@@ -6,273 +6,295 @@
     <title>The Community</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f9fafb;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #202124;
-            padding-bottom: 80px;
-        }
-
-        header {
-            background: white;
-            border-bottom: 1px solid #e8eaed;
-            padding: 16px 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        h1 {
-            font-size: 20px;
-            font-weight: 500;
-            color: #202124;
-        }
-
-        main {
-            flex: 1;
-            padding: 20px;
-            max-width: 800px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        .search-container {
-            background: white;
-            border-radius: 24px;
-            padding: 16px 24px;
-            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
-            margin-bottom: 24px;
-        }
-
-        .search-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        #searchInput {
-            flex: 1;
-            border: none;
-            outline: none;
-            font-size: 16px;
-            color: #202124;
-            background: transparent;
-        }
-
-        #searchInput::placeholder {
-            color: #70757a;
-        }
-
-        .search-icon {
-            width: 20px;
-            height: 20px;
-            opacity: 0.54;
-        }
-
-        .mic-button {
-            background: none;
-            border: none;
-            padding: 8px;
-            cursor: pointer;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .mic-button:hover {
-            background: #f1f3f4;
-        }
-
-        .mic-button.listening {
-            background: #ea4335;
-        }
-
-        .mic-button.listening svg {
-            fill: white;
-        }
-
-        .mic-icon {
-            width: 24px;
-            height: 24px;
-            fill: #4285f4;
-        }
-
-        #response {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            line-height: 1.6;
-            display: none;
-        }
-
-        #response.show {
-            display: block;
-        }
-
-        #map {
-            height: 300px;
-            border-radius: 12px;
-            margin-top: 16px;
-            display: none;
-        }
-
-        #map.show {
-            display: block;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #70757a;
-        }
-
-        .error {
-            background: #fce8e6;
-            color: #c5221f;
-            padding: 16px;
-            border-radius: 8px;
-            margin-top: 16px;
-        }
-
-        footer {
-            background: white;
-            border-top: 1px solid #e8eaed;
-            padding: 20px;
-            text-align: center;
-            margin-top: auto;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
-
-        .add-button {
-            background: #1a73e8;
-            color: white;
-            border: none;
-            padding: 12px 32px;
-            border-radius: 24px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-            transition: all 0.2s;
-        }
-
-        .add-button:hover {
-            background: #1765cc;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        }
-
-        .add-button:active {
-            transform: scale(0.98);
-        }
-
-        .location-item {
-            padding: 12px;
-            margin: 8px 0;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 3px solid #1a73e8;
-        }
-
-        .location-name {
-            font-weight: 500;
-            color: #1a73e8;
-            margin-bottom: 4px;
-        }
-
-        .location-distance {
-            font-size: 14px;
-            color: #70757a;
-        }
-
-        .session-button {
-            background: #34a853;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 16px;
-            font-size: 12px;
-            cursor: pointer;
-            margin-left: 12px;
-        }
-
-        .session-button:hover {
-            background: #2d8e47;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Login Screen -->
-    <div id="loginScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f5f5f5;">
-        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px;">
-            <h2 style="margin-bottom: 20px; text-align: center;">The Community</h2>
-            <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter password to continue</p>
-            <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; font-size: 16px;">
-            <button id="loginButton" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">Login</button>
-            <p id="loginError" style="color: red; margin-top: 10px; text-align: center; display: none; font-size: 14px;">Incorrect password</p>
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>The Community</h2>
+            <p class="subtitle">Enter password to continue</p>
+            <input type="password" id="passwordInput" placeholder="Password">
+            <button id="loginButton">Login</button>
+            <p id="loginError">Incorrect password</p>
         </div>
     </div>
 
     <!-- Main App (hidden until login) -->
     <div id="mainApp" style="display: none;">
-        <header>
-            <div class="header-content">
-                <h1>The Community</h1>
-                <button class="session-button" onclick="newSession()">New Session</button>
-            </div>
-        </header>
 
-        <main>
-            <div class="search-container">
-                <div class="search-box">
-                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                    </svg>
-                    <input
-                        type="text"
-                        id="searchInput"
-                        placeholder="Ask The Community anything..."
-                        onkeypress="if(event.key === 'Enter') performSearch()"
-                    >
-                    <button class="mic-button" id="micButton" onclick="toggleVoiceSearch()">
-                        <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                        </svg>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <span class="header-title">The Community</span>
+            <span class="location-indicator" id="locationIndicator">📍 Getting location...</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- LANDING PAGE (First-time users only) -->
+        <div id="landingPage" class="hidden">
+            <div class="landing-page">
+                <div class="landing-logo"></div>
+                <h1 class="landing-title">The Community</h1>
+                <p class="landing-subtitle">Google finds strangers' opinions.<br>We find your friends' stories.</p>
+
+                <div class="landing-preview">
+                    <div class="preview-stat">
+                        Currently <strong id="landingDiscoveryCount">55</strong> discoveries<br>
+                        from your Auckland community
+                    </div>
+                    <div class="preview-examples">
+                        <div class="preview-example">💭 "Good coffee for working"</div>
+                        <div class="preview-example">💭 "Fun things for kids"</div>
+                        <div class="preview-example">💭 "Stanley's restaurant picks"</div>
+                    </div>
+                </div>
+
+                <div class="landing-actions">
+                    <button class="landing-btn landing-btn-primary" onclick="fromLanding('search')">
+                        🔍 Start Searching
+                    </button>
+                    <button class="landing-btn landing-btn-secondary" onclick="fromLanding('discover')">
+                        🎯 Browse Discoveries
+                    </button>
+                    <button class="landing-btn landing-btn-secondary" onclick="fromLanding('input')">
+                        ➕ Add Discovery
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div id="response"></div>
-            <div id="map"></div>
-        </main>
+        <!-- HOME PAGE (Recurring users) -->
+        <div id="homePage" class="hidden">
+            <div class="home-page">
+                <h1 class="home-title">What would you like to do?</h1>
 
-        <footer>
-            <button class="add-button" onclick="window.location.href='add.html'">
-                ✨ Add New Discovery
-            </button>
-        </footer>
+                <div class="home-actions">
+                    <div class="home-card" onclick="setMode('search')">
+                        <div class="home-card-icon">🔍</div>
+                        <div class="home-card-content">
+                            <div class="home-card-title">Search</div>
+                            <div class="home-card-desc">Ask anything about your friends' recommendations</div>
+                        </div>
+                    </div>
+
+                    <div class="home-card" onclick="setMode('discover')">
+                        <div class="home-card-icon">🎯</div>
+                        <div class="home-card-content">
+                            <div class="home-card-title">Discover</div>
+                            <div class="home-card-desc">Browse recent finds from your community</div>
+                        </div>
+                    </div>
+
+                    <div class="home-card" onclick="setMode('input')">
+                        <div class="home-card-icon">➕</div>
+                        <div class="home-card-content">
+                            <div class="home-card-title">Add Discovery</div>
+                            <div class="home-card-desc">Capture a recommendation from a friend</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEARCH MODE -->
+        <div id="searchMode" class="hidden">
+            <div class="search-header">
+                <button class="new-session-btn" onclick="startNewSession()" title="Start a new search session">
+                    <span class="new-session-icon">🆕</span>
+                    <span class="new-session-text">New Session</span>
+                </button>
+            </div>
+            <div class="chat-container" id="chatContainer">
+                <div class="welcome">
+                    <h2>What are you looking for?</h2>
+                    <p>Search your friends' best discoveries</p>
+                    <div class="suggestions">
+                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
+                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
+                        <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
+                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
+                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
+                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DISCOVER MODE -->
+        <div id="discoverMode" class="hidden">
+            <div class="discover-container">
+                <h2 class="page-title">Discover</h2>
+                <p class="page-subtitle">What your friends & family found:</p>
+
+                <div class="top-bar">
+                    <input type="text" class="search-input" id="discoverSearch" placeholder="Search discoveries..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter') searchFromDiscover()"/>
+                    <button class="filter-btn" onclick="openFilterModal()">
+                        Filter
+                        <span class="filter-badge" id="filterBadge" style="display: none;">0</span>
+                        <span>▼</span>
+                    </button>
+                    <button class="capture-btn" onclick="setMode('input')">Capture</button>
+                </div>
+
+                <div class="recent-searches" id="recentSearches"></div>
+                <div class="active-filters-bar" id="activeFiltersBar"></div>
+
+                <div class="discover-grid" id="discoverGrid"></div>
+
+                <div class="load-more-container hidden" id="loadMoreContainer">
+                    <button class="load-more-btn" onclick="loadMore()">Load More</button>
+                </div>
+
+                <div class="map-section">
+                    <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap('discover')">
+                        <span class="map-toggle-icon">▼</span>
+                        <span id="mapToggleText">Show Map</span>
+                    </button>
+                    <div class="discover-map-container hidden" id="discoverMapContainer">
+                        <div id="discoverMap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- INPUT MODE -->
+        <div id="inputMode" class="hidden">
+            <div class="input-form-container">
+                <h2>Add Discovery</h2>
+                <p>Save a recommendation from a friend</p>
+                <div id="formMessage"></div>
+                <form id="addForm" onsubmit="submitDiscovery(event)">
+                    <div class="form-group">
+                        <label>Title *</label>
+                        <input type="text" id="title" placeholder="e.g., Tony's Coffee" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description *</label>
+                        <textarea id="description" placeholder="Great flat whites, cozy atmosphere" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Personal Note (optional)</label>
+                        <textarea id="personalNote" placeholder="Your personal story"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="category">
+                            <option value="place">Place</option>
+                            <option value="product">Product</option>
+                            <option value="service">Service</option>
+                            <option value="advice">Advice</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Added by</label>
+                        <input type="text" id="addedBy" placeholder="Friend's name">
+                    </div>
+                    <div class="form-group">
+                        <label>Address (optional)</label>
+                        <input type="text" id="address" placeholder="123 Queen St, Auckland">
+                    </div>
+                    <div class="form-group">
+                        <label>URL (optional)</label>
+                        <input type="url" id="url" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label>Photo (optional)</label>
+                        <input type="file" id="photo" accept="image/*">
+                        <div id="photoPreview" style="margin-top: 12px; display: none;">
+                            <img id="previewImg" style="max-width: 200px; border-radius: 8px;" />
+                        </div>
+                    </div>
+                    <button type="submit" class="submit-btn" id="submitBtn">Save Discovery</button>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <!-- Input Area - Only visible in Search mode -->
+    <div class="input-area hidden" id="inputArea">
+        <div class="input-wrapper">
+            <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button id="sendButton" onclick="sendMessage()">→</button>
+        </div>
+    </div>
+
+    <!-- Bottom Tab Bar - 4 tabs -->
+    <div class="bottom-tab-bar">
+        <button class="tab-item active" onclick="setMode('home')" id="homeTab">
+            <div class="tab-icon">🏠</div>
+            <div class="tab-label">Home</div>
+        </button>
+        <button class="tab-item" onclick="setMode('search')" id="searchTab">
+            <div class="tab-icon">🔍</div>
+            <div class="tab-label">Search</div>
+        </button>
+        <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
+            <div class="tab-icon">🎯</div>
+            <div class="tab-label">Discover</div>
+        </button>
+        <button class="tab-item" onclick="setMode('input')" id="addTab">
+            <div class="tab-icon">➕</div>
+            <div class="tab-label">Add</div>
+        </button>
+    </div>
+
+    <!-- Filter Modal -->
+    <div class="filter-modal-backdrop" id="filterBackdrop" onclick="closeFilterModal()"></div>
+    <div class="filter-modal" id="filterModal">
+        <div class="filter-modal-header">Filter</div>
+        <div class="filter-modal-content">
+            <div class="filter-section" id="categorySection">
+                <div class="filter-section-header" onclick="toggleSection('category')">
+                    <span class="filter-section-title">Category</span>
+                    <span class="filter-section-chevron">›</span>
+                </div>
+                <div class="filter-section-content">
+                    <div class="filter-section-options" id="categoryOptions"></div>
+                </div>
+            </div>
+            <div class="filter-section" id="userSection">
+                <div class="filter-section-header" onclick="toggleSection('user')">
+                    <span class="filter-section-title">User</span>
+                    <span class="filter-section-chevron">›</span>
+                </div>
+                <div class="filter-section-content">
+                    <div class="filter-section-options" id="userOptions"></div>
+                </div>
+            </div>
+            <div class="filter-section" id="distanceSection">
+                <div class="filter-section-header" onclick="toggleSection('distance')">
+                    <span class="filter-section-title">Distance</span>
+                    <span class="filter-section-chevron">›</span>
+                </div>
+                <div class="filter-section-content">
+                    <div class="filter-section-options" id="distanceOptions"></div>
+                </div>
+            </div>
+        </div>
+        <div class="filter-modal-footer">
+            <button class="clear-btn" onclick="clearFilters()">Clear all</button>
+            <button class="done-btn" onclick="applyFilters()">Done</button>
+        </div>
+    </div>
+
+    <!-- Drawer -->
+    <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+    <div class="detail-drawer" id="detailDrawer">
+        <div class="drawer-header">
+            <button class="drawer-close" onclick="closeDrawer()">×</button>
+        </div>
+        <div class="drawer-content" id="drawerContent"></div>
+    </div>
+
+    <!-- Photo Lightbox -->
+    <div class="photo-lightbox" id="photoLightbox" onclick="closeLightbox()">
+        <span class="lightbox-close">×</span>
+        <img id="lightboxImg" src="" alt="">
+    </div>
+
+    </div><!-- end mainApp -->
 
     <script src="app.js"></script>
 </body>
