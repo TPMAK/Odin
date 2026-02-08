@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Community</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: #202124;
+            padding-bottom: 80px;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #e8eaed;
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            color: #202124;
+        }
+
+        main {
+            flex: 1;
+            padding: 20px;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .search-container {
+            background: white;
+            border-radius: 24px;
+            padding: 16px 24px;
+            box-shadow: 0 1px 6px rgba(32,33,36,0.28);
+            margin-bottom: 24px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #searchInput {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #202124;
+            background: transparent;
+        }
+
+        #searchInput::placeholder {
+            color: #70757a;
+        }
+
+        .search-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.54;
+        }
+
+        .mic-button {
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-button:hover {
+            background: #f1f3f4;
+        }
+
+        .mic-button.listening {
+            background: #ea4335;
+        }
+
+        .mic-button.listening svg {
+            fill: white;
+        }
+
+        .mic-icon {
+            width: 24px;
+            height: 24px;
+            fill: #4285f4;
+        }
+
+        #response {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        #response.show {
+            display: block;
+        }
+
+        #map {
+            height: 300px;
+            border-radius: 12px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        #map.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #70757a;
+        }
+
+        .error {
+            background: #fce8e6;
+            color: #c5221f;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+        }
+
+        footer {
+            background: white;
+            border-top: 1px solid #e8eaed;
+            padding: 20px;
+            text-align: center;
+            margin-top: auto;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .add-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+
+        .add-button:hover {
+            background: #1765cc;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .add-button:active {
+            transform: scale(0.98);
+        }
+
+        .location-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #1a73e8;
+        }
+
+        .location-name {
+            font-weight: 500;
+            color: #1a73e8;
+            margin-bottom: 4px;
+        }
+
+        .location-distance {
+            font-size: 14px;
+            color: #70757a;
+        }
+
+        .session-button {
+            background: #34a853;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 12px;
+        }
+
+        .session-button:hover {
+            background: #2d8e47;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f5f5f5;">
+        <div style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px;">
+            <h2 style="margin-bottom: 20px; text-align: center;">The Community</h2>
+            <p style="color: #666; margin-bottom: 20px; text-align: center;">Enter password to continue</p>
+            <input type="password" id="passwordInput" placeholder="Password" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; font-size: 16px;">
+            <button id="loginButton" style="width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer;">Login</button>
+            <p id="loginError" style="color: red; margin-top: 10px; text-align: center; display: none; font-size: 14px;">Incorrect password</p>
+        </div>
+    </div>
+
+    <!-- Main App (hidden until login) -->
+    <div id="mainApp" style="display: none;">
+        <header>
+            <div class="header-content">
+                <h1>The Community</h1>
+                <button class="session-button" onclick="newSession()">New Session</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="search-container">
+                <div class="search-box">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Ask The Community anything..."
+                        onkeypress="if(event.key === 'Enter') performSearch()"
+                    >
+                    <button class="mic-button" id="micButton" onclick="toggleVoiceSearch()">
+                        <svg class="mic-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div id="response"></div>
+            <div id="map"></div>
+        </main>
+
+        <footer>
+            <button class="add-button" onclick="window.location.href='add.html'">
+                ✨ Add New Discovery
+            </button>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
