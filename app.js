@@ -43,7 +43,7 @@
 
         checkAuth();
         // ===== END PASSWORD PROTECTION =====
-        const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search';
+        const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
         const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
         const SUPABASE_URL = 'https://hedywkwmgkvojujvczqr.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8';
