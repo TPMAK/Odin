@@ -6,17 +6,20 @@
     <title>The Community</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- IMPORTANT: Add Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <!-- Login Screen -->
     <div id="loginScreen">
         <div class="login-box">
-            <h2>The Community</h2>
-            <p class="subtitle">Enter password to continue</p>
-            <input type="password" id="passwordInput" placeholder="Password">
-            <button id="loginButton">Login</button>
-            <p id="loginError">Incorrect password</p>
+            <h2>🏠 The Community</h2>
+            <p class="subtitle">Your family's trusted recommendations</p>
+            <button class="login-btn-google" onclick="handleGoogleLogin()">
+                <span style="font-size: 20px;">🔐</span> Continue with Google
+            </button>
+            <p id="loginError" style="display: none;">Login failed. Please try again.</p>
         </div>
     </div>
 
@@ -35,7 +38,7 @@
         <!-- LANDING PAGE (First-time users only) -->
         <div id="landingPage" class="hidden">
             <div class="landing-page">
-                <div class="landing-logo"></div>
+                <div class="landing-logo">🏠</div>
                 <h1 class="landing-title">The Community</h1>
                 <p class="landing-subtitle">Google finds strangers' opinions.<br>We find your friends' stories.</p>
 
@@ -189,7 +192,8 @@
                     </div>
                     <div class="form-group">
                         <label>Added by</label>
-                        <input type="text" id="addedBy" placeholder="Friend's name">
+                        <input type="text" id="addedBy" placeholder="Friend's name" disabled>
+                        <small style="color: #6b7280; font-size: 12px;">Auto-filled from your profile</small>
                     </div>
                     <div class="form-group">
                         <label>Address (optional)</label>
