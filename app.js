@@ -16,7 +16,7 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
 }
 
 // Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== AUTHENTICATION =====
 let currentUser = null;
@@ -25,7 +25,7 @@ let currentUser = null;
 
 async function checkAuth() {
     try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (error) {
             console.error('Auth error:', error);
             showLoginScreen();
@@ -65,7 +65,7 @@ function showMainApp() {
 }
 
 async function handleLogout() {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
     if (!error) {
         currentUser = null;
         showLoginScreen();
@@ -153,7 +153,7 @@ async function handleGoogleLogin() {
         setButtonLoading(btn, 'Connecting...');
         clearAuthMessage();
 
-        const { data, error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: window.location.href.split('?')[0].split('#')[0]
@@ -189,7 +189,7 @@ async function handleEmailSignIn(event) {
     setButtonLoading(btn, 'Signing in...');
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
             email: email,
             password: password
         });
@@ -239,7 +239,7 @@ async function handleEmailSignUp(event) {
     setButtonLoading(btn, 'Creating account...');
 
     try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -293,7 +293,7 @@ async function handleForgotPassword() {
     clearAuthMessage();
 
     try {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
             redirectTo: window.location.href.split('?')[0].split('#')[0]
         });
 
@@ -311,7 +311,7 @@ async function handleForgotPassword() {
 
 // --- Auth State Listener ---
 
-supabase.auth.onAuthStateChange((event, session) => {
+supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         currentUser = session.user;
         showMainApp();
