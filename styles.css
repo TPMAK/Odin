@@ -1858,124 +1858,326 @@
                 font-size: 11px;
             }
         }
-        /* Login Screen */
-        #loginScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: #f5f5f5;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            z-index: 9999;
-        }
-        #loginScreen .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        }
-        #loginScreen h2 { margin-bottom: 20px; }
-        #loginScreen p.subtitle { color: #666; margin-bottom: 20px; }
-        #loginScreen input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        #loginScreen button {
-            width: 100%;
-            padding: 12px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #loginScreen button:hover { background: #0056b3; }
-        #loginError { color: red; margin-top: 10px; display: none; font-size: 14px; }
+/* ========================================
+   AUTH SCREEN - Apple/Google Inspired
+   ======================================== */
 
-        /* Login Screen - OAuth */
 #loginScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: #ffffff;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    overflow-y: auto;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 48px 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    position: fixed;
-    top: 0; 
-    left: 0; 
-    right: 0; 
-    bottom: 0;
-    z-index: 9999;
 }
 
-#loginScreen .login-box {
-    background: white;
-    padding: 48px 40px;
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    max-width: 420px;
-    width: 90%;
+.auth-brand {
     text-align: center;
+    margin-bottom: 40px;
 }
 
-#loginScreen h2 { 
-    margin-bottom: 8px;
+.auth-logo {
+    margin-bottom: 20px;
+}
+
+.auth-title {
     font-size: 28px;
-    color: #202124;
+    font-weight: 700;
+    color: #1d1d1f;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
 }
 
-#loginScreen p.subtitle { 
-    color: #6b7280; 
-    margin-bottom: 32px;
+.auth-subtitle {
     font-size: 15px;
+    color: #86868b;
+    font-weight: 400;
     line-height: 1.5;
 }
 
-/* Google Login Button */
-.login-btn-google {
+.auth-card {
     width: 100%;
-    padding: 14px 24px;
     background: #ffffff;
-    color: #202124;
-    border: 1px solid #dadce0;
+    border-radius: 16px;
+    padding: 32px;
+    border: 1px solid #e5e5e7;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* Tab Toggle */
+.auth-tabs {
+    display: flex;
+    background: #f5f5f7;
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 28px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #86868b;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: inherit;
+}
+
+.auth-tab.active {
+    background: #ffffff;
+    color: #1d1d1f;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Google Button */
+.auth-btn-google {
+    width: 100%;
+    padding: 12px 16px;
+    background: #ffffff;
+    color: #1d1d1f;
+    border: 1px solid #dadce0;
+    border-radius: 10px;
+    font-size: 15px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     transition: all 0.2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-family: inherit;
 }
 
-.login-btn-google:hover {
+.auth-btn-google:hover {
     background: #f8f9fa;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    border-color: #d2d4d6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.login-btn-google:active {
-    background: #f1f3f4;
+.auth-btn-google:active {
     transform: scale(0.98);
 }
 
-#loginError { 
-    color: #dc2626; 
-    margin-top: 16px; 
+.auth-btn-google:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.google-icon {
+    flex-shrink: 0;
+}
+
+/* Divider */
+.auth-divider {
+    display: flex;
+    align-items: center;
+    margin: 24px 0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e5e5e7;
+}
+
+.auth-divider span {
+    padding: 0 16px;
+    font-size: 13px;
+    color: #86868b;
+    font-weight: 400;
+}
+
+/* Form */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.auth-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d1d1f;
+}
+
+.auth-field input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d2d2d7;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1d1d1f;
+    background: #ffffff;
+    transition: all 0.2s;
+    -webkit-appearance: none;
+    box-sizing: border-box;
+}
+
+.auth-field input:focus {
+    outline: none;
+    border-color: #0071e3;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+
+.auth-field input.field-error {
+    border-color: #ff3b30;
+    box-shadow: 0 0 0 3px rgba(255, 59, 48, 0.1);
+}
+
+.auth-field input::placeholder {
+    color: #c7c7cc;
+}
+
+/* Primary Button */
+.auth-btn-primary {
+    width: 100%;
+    padding: 13px 16px;
+    background: #059669;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    margin-top: 4px;
+}
+
+.auth-btn-primary:hover {
+    background: #047857;
+}
+
+.auth-btn-primary:active {
+    transform: scale(0.98);
+}
+
+.auth-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Forgot Password Link */
+.auth-link {
+    background: none;
+    border: none;
+    color: #0071e3;
+    font-size: 13px;
+    font-weight: 400;
+    cursor: pointer;
+    padding: 4px 0;
+    text-align: center;
+    font-family: inherit;
+    transition: color 0.2s;
+}
+
+.auth-link:hover {
+    color: #0077ed;
+    text-decoration: underline;
+}
+
+/* Messages */
+.auth-message {
+    margin-top: 20px;
+    padding: 12px 16px;
+    border-radius: 10px;
     font-size: 14px;
-    background: #fee2e2;
-    padding: 12px;
-    border-radius: 8px;
+    line-height: 1.5;
+    text-align: center;
+    animation: authFadeIn 0.3s ease;
+}
+
+.auth-message.error {
+    background: #fff2f2;
+    color: #ff3b30;
+    border: 1px solid #ffcdd2;
+}
+
+.auth-message.success {
+    background: #f0fdf4;
+    color: #059669;
+    border: 1px solid #bbf7d0;
+}
+
+.auth-message.info {
+    background: #f0f7ff;
+    color: #0071e3;
+    border: 1px solid #bfdbfe;
+}
+
+@keyframes authFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loading Spinner */
+.auth-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: authSpin 0.6s linear infinite;
+    vertical-align: middle;
+}
+
+.auth-btn-google .auth-spinner {
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #1d1d1f;
+}
+
+@keyframes authSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Footer */
+.auth-footer {
+    margin-top: 32px;
+    font-size: 12px;
+    color: #c7c7cc;
+    text-align: center;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 32px 20px;
+    }
+    .auth-card {
+        padding: 24px 20px;
+        border: none;
+        box-shadow: none;
+    }
+    .auth-title {
+        font-size: 24px;
+    }
 }

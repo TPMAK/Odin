@@ -2,26 +2,43 @@
 const SUPABASE_URL = 'https://hedywkwmgkvojujvczqr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8';
 
+// Verify Supabase SDK loaded
+if (typeof window.supabase === 'undefined' || typeof window.supabase.createClient !== 'function') {
+    console.error('Supabase SDK failed to load');
+    document.addEventListener('DOMContentLoaded', () => {
+        const msg = document.getElementById('authMessage');
+        if (msg) {
+            msg.className = 'auth-message error';
+            msg.textContent = 'App failed to load. Please refresh the page.';
+            msg.style.display = 'block';
+        }
+    });
+}
+
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ===== OAUTH AUTHENTICATION =====
+// ===== AUTHENTICATION =====
 let currentUser = null;
 
+// --- Core Auth Functions ---
+
 async function checkAuth() {
-    // Check for OAuth callback
-    const { data: { session }, error } = await supabase.auth.getSession();
-    
-    if (error) {
-        console.error('Auth error:', error);
-        showLoginScreen();
-        return;
-    }
-    
-    if (session) {
-        currentUser = session.user;
-        showMainApp();
-    } else {
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+            console.error('Auth error:', error);
+            showLoginScreen();
+            return;
+        }
+        if (session) {
+            currentUser = session.user;
+            showMainApp();
+        } else {
+            showLoginScreen();
+        }
+    } catch (err) {
+        console.error('Auth check failed:', err);
         showLoginScreen();
     }
 }
@@ -34,25 +51,16 @@ function showLoginScreen() {
 function showMainApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
-    
-    // Update UI with user name if available
-    const userName = currentUser?.user_metadata?.full_name || 
-                     currentUser?.email?.split('@')[0] || 
+
+    const userName = currentUser?.user_metadata?.full_name ||
+                     currentUser?.email?.split('@')[0] ||
                      'User';
     console.log('Logged in as:', userName);
-}
 
-async function handleGoogleLogin() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-            redirectTo: window.location.origin
-        }
-    });
-    
-    if (error) {
-        document.getElementById('loginError').style.display = 'block';
-        document.getElementById('loginError').textContent = 'Login failed: ' + error.message;
+    // Auto-fill the "Added by" field
+    const addedByField = document.getElementById('addedBy');
+    if (addedByField) {
+        addedByField.value = userName;
     }
 }
 
@@ -64,7 +72,245 @@ async function handleLogout() {
     }
 }
 
-// Listen for auth state changes
+// --- Auth UI Helpers ---
+
+function showAuthMode(mode) {
+    const signInTab = document.getElementById('signInTab');
+    const createAccountTab = document.getElementById('createAccountTab');
+    const signInForm = document.getElementById('signInForm');
+    const createAccountForm = document.getElementById('createAccountForm');
+
+    clearAuthMessage();
+
+    if (mode === 'signin') {
+        signInTab.classList.add('active');
+        createAccountTab.classList.remove('active');
+        signInForm.style.display = 'flex';
+        createAccountForm.style.display = 'none';
+    } else {
+        signInTab.classList.remove('active');
+        createAccountTab.classList.add('active');
+        signInForm.style.display = 'none';
+        createAccountForm.style.display = 'flex';
+    }
+}
+
+function showAuthError(message) {
+    const el = document.getElementById('authMessage');
+    el.className = 'auth-message error';
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+function showAuthSuccess(message) {
+    const el = document.getElementById('authMessage');
+    el.className = 'auth-message success';
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+function showAuthInfo(message) {
+    const el = document.getElementById('authMessage');
+    el.className = 'auth-message info';
+    el.textContent = message;
+    el.style.display = 'block';
+}
+
+function clearAuthMessage() {
+    const el = document.getElementById('authMessage');
+    if (el) el.style.display = 'none';
+}
+
+function setButtonLoading(btn, loadingText) {
+    if (!btn) return;
+    btn.disabled = true;
+    btn.dataset.originalText = btn.textContent;
+    btn.innerHTML = '<span class="auth-spinner"></span> ' + loadingText;
+}
+
+function resetButton(btn) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.textContent = btn.dataset.originalText || 'Submit';
+}
+
+function resetGoogleButton(btn) {
+    if (!btn) return;
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="google-icon" width="18" height="18" viewBox="0 0 18 18">' +
+        '<path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>' +
+        '<path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>' +
+        '<path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>' +
+        '<path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>' +
+        '</svg> Continue with Google';
+}
+
+// --- Google OAuth ---
+
+async function handleGoogleLogin() {
+    try {
+        const btn = document.getElementById('googleAuthBtn');
+        setButtonLoading(btn, 'Connecting...');
+        clearAuthMessage();
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.href.split('?')[0].split('#')[0]
+            }
+        });
+
+        if (error) {
+            showAuthError('Google sign-in failed: ' + error.message);
+            resetGoogleButton(btn);
+        }
+    } catch (err) {
+        console.error('Google login error:', err);
+        showAuthError('Unable to connect to Google. Please try again.');
+        resetGoogleButton(document.getElementById('googleAuthBtn'));
+    }
+}
+
+// --- Email/Password Sign In ---
+
+async function handleEmailSignIn(event) {
+    event.preventDefault();
+    clearAuthMessage();
+
+    const email = document.getElementById('signInEmail').value.trim();
+    const password = document.getElementById('signInPassword').value;
+    const btn = document.getElementById('signInBtn');
+
+    if (!email || !password) {
+        showAuthError('Please enter both email and password.');
+        return;
+    }
+
+    setButtonLoading(btn, 'Signing in...');
+
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) {
+            if (error.message.includes('Invalid login credentials')) {
+                showAuthError('Incorrect email or password. Please try again.');
+            } else if (error.message.includes('Email not confirmed')) {
+                showAuthInfo('Please check your email and confirm your account before signing in.');
+            } else {
+                showAuthError(error.message);
+            }
+            resetButton(btn);
+            return;
+        }
+
+        currentUser = data.user;
+        showMainApp();
+    } catch (err) {
+        console.error('Sign in error:', err);
+        showAuthError('An unexpected error occurred. Please try again.');
+        resetButton(btn);
+    }
+}
+
+// --- Email/Password Sign Up ---
+
+async function handleEmailSignUp(event) {
+    event.preventDefault();
+    clearAuthMessage();
+
+    const name = document.getElementById('signUpName').value.trim();
+    const email = document.getElementById('signUpEmail').value.trim();
+    const password = document.getElementById('signUpPassword').value;
+    const passwordConfirm = document.getElementById('signUpPasswordConfirm').value;
+    const btn = document.getElementById('signUpBtn');
+
+    if (!name) { showAuthError('Please enter your name.'); return; }
+    if (!email) { showAuthError('Please enter your email address.'); return; }
+    if (password.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+    if (password !== passwordConfirm) {
+        showAuthError('Passwords do not match.');
+        document.getElementById('signUpPasswordConfirm').classList.add('field-error');
+        return;
+    }
+
+    setButtonLoading(btn, 'Creating account...');
+
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: { full_name: name },
+                emailRedirectTo: window.location.href.split('?')[0].split('#')[0]
+            }
+        });
+
+        if (error) {
+            if (error.message.includes('already registered')) {
+                showAuthError('An account with this email already exists. Please sign in instead.');
+            } else {
+                showAuthError(error.message);
+            }
+            resetButton(btn);
+            return;
+        }
+
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+            showAuthError('An account with this email already exists. Please sign in instead.');
+            resetButton(btn);
+            return;
+        }
+
+        if (data.session) {
+            currentUser = data.user;
+            showMainApp();
+        } else {
+            showAuthSuccess('Account created! Please check your email to confirm your account, then sign in.');
+            resetButton(btn);
+            setTimeout(() => showAuthMode('signin'), 3000);
+        }
+    } catch (err) {
+        console.error('Sign up error:', err);
+        showAuthError('An unexpected error occurred. Please try again.');
+        resetButton(btn);
+    }
+}
+
+// --- Password Reset ---
+
+async function handleForgotPassword() {
+    const email = document.getElementById('signInEmail').value.trim();
+
+    if (!email) {
+        showAuthInfo('Enter your email address above, then click "Forgot password?" again.');
+        document.getElementById('signInEmail').focus();
+        return;
+    }
+
+    clearAuthMessage();
+
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.href.split('?')[0].split('#')[0]
+        });
+
+        if (error) {
+            showAuthError(error.message);
+            return;
+        }
+
+        showAuthSuccess('Password reset email sent! Please check your inbox.');
+    } catch (err) {
+        console.error('Password reset error:', err);
+        showAuthError('Unable to send reset email. Please try again.');
+    }
+}
+
+// --- Auth State Listener ---
+
 supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         currentUser = session.user;
@@ -75,10 +321,17 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
 });
 
+// Clear field-error styling when user types
+document.addEventListener('input', (e) => {
+    if (e.target.classList.contains('field-error')) {
+        e.target.classList.remove('field-error');
+    }
+});
+
 // Check auth on page load
 checkAuth();
 
-// ===== END OAUTH AUTHENTICATION =====
+// ===== END AUTHENTICATION =====
 
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';

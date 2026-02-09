@@ -11,15 +11,84 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Login Screen -->
+    <!-- Auth Screen -->
     <div id="loginScreen">
-        <div class="login-box">
-            <h2>🏠 The Community</h2>
-            <p class="subtitle">Your family's trusted recommendations</p>
-            <button class="login-btn-google" onclick="handleGoogleLogin()">
-                <span style="font-size: 20px;">🔐</span> Continue with Google
-            </button>
-            <p id="loginError" style="display: none;">Login failed. Please try again.</p>
+        <div class="auth-container">
+            <!-- Brand -->
+            <div class="auth-brand">
+                <div class="auth-logo">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <rect width="48" height="48" rx="12" fill="#059669"/>
+                        <path d="M14 32V20L24 14L34 20V32L24 38L14 32Z" stroke="white" stroke-width="2.5" fill="none"/>
+                        <circle cx="24" cy="26" r="4" fill="white"/>
+                    </svg>
+                </div>
+                <h1 class="auth-title">The Community</h1>
+                <p class="auth-subtitle">Your family's trusted recommendations</p>
+            </div>
+
+            <!-- Auth Card -->
+            <div class="auth-card">
+                <!-- Tab Toggle -->
+                <div class="auth-tabs">
+                    <button class="auth-tab active" id="signInTab" onclick="showAuthMode('signin')">Sign In</button>
+                    <button class="auth-tab" id="createAccountTab" onclick="showAuthMode('create')">Create Account</button>
+                </div>
+
+                <!-- Google OAuth -->
+                <button class="auth-btn-google" id="googleAuthBtn" onclick="handleGoogleLogin()">
+                    <svg class="google-icon" width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                        <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>
+                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <!-- Divider -->
+                <div class="auth-divider"><span>or</span></div>
+
+                <!-- Sign In Form -->
+                <form id="signInForm" class="auth-form" onsubmit="handleEmailSignIn(event)">
+                    <div class="auth-field">
+                        <label for="signInEmail">Email</label>
+                        <input type="email" id="signInEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="signInPassword">Password</label>
+                        <input type="password" id="signInPassword" placeholder="Enter your password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="auth-btn-primary" id="signInBtn">Sign In</button>
+                    <button type="button" class="auth-link" onclick="handleForgotPassword()">Forgot password?</button>
+                </form>
+
+                <!-- Create Account Form -->
+                <form id="createAccountForm" class="auth-form" style="display: none;" onsubmit="handleEmailSignUp(event)">
+                    <div class="auth-field">
+                        <label for="signUpName">Full Name</label>
+                        <input type="text" id="signUpName" placeholder="Your name" required autocomplete="name">
+                    </div>
+                    <div class="auth-field">
+                        <label for="signUpEmail">Email</label>
+                        <input type="email" id="signUpEmail" placeholder="you@example.com" required autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="signUpPassword">Password</label>
+                        <input type="password" id="signUpPassword" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <div class="auth-field">
+                        <label for="signUpPasswordConfirm">Confirm Password</label>
+                        <input type="password" id="signUpPasswordConfirm" placeholder="Confirm your password" required minlength="6" autocomplete="new-password">
+                    </div>
+                    <button type="submit" class="auth-btn-primary" id="signUpBtn">Create Account</button>
+                </form>
+
+                <!-- Messages -->
+                <div id="authMessage" class="auth-message" style="display: none;"></div>
+            </div>
+
+            <p class="auth-footer">By continuing, you agree to our Terms of Service</p>
         </div>
     </div>
 
