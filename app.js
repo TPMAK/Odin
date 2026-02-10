@@ -411,6 +411,71 @@ async function loadProfilePage() {
     } catch (err) {
         console.error('Error loading profile stats:', err);
     }
+
+    // Load endorsed items
+    await loadMyEndorsements();
+}
+
+async function loadMyEndorsements() {
+    const container = document.getElementById('myEndorsementsList');
+    if (!container || !currentUser) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('endorsements')
+            .select('item_id, created_at')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error || !data || data.length === 0) {
+            container.innerHTML = '<p class="my-endorsements-empty">No endorsements yet. Explore and endorse discoveries you love!</p>';
+            return;
+        }
+
+        // Fetch the actual items
+        const itemIds = data.map(e => e.item_id);
+        const { data: items } = await supabaseClient
+            .from('knowledge_items')
+            .select('id, title, photo_url, added_by_name, type')
+            .in('id', itemIds);
+
+        if (!items || items.length === 0) {
+            container.innerHTML = '<p class="my-endorsements-empty">No endorsements yet.</p>';
+            return;
+        }
+
+        // Sort items in same order as endorsements (most recent first)
+        const itemMap = {};
+        items.forEach(i => { itemMap[i.id] = i; });
+        const sorted = data.map(e => itemMap[e.item_id]).filter(Boolean);
+
+        container.innerHTML = sorted.map(item => {
+            const photo = item.photo_url
+                ? `<img src="${escapeHtml(item.photo_url)}">`
+                : '<span class="my-endorse-placeholder">📍</span>';
+            return `<div class="my-endorse-item" onclick="goToEndorsedItem('${item.id}')">
+                <div class="my-endorse-photo">${photo}</div>
+                <div class="my-endorse-info">
+                    <div class="my-endorse-title">${escapeHtml(item.title)}</div>
+                    <div class="my-endorse-meta">${escapeHtml(item.added_by_name || '')} · ${item.type || ''}</div>
+                </div>
+                <span class="my-endorse-star">★</span>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('Error loading my endorsements:', err);
+    }
+}
+
+function goToEndorsedItem(itemId) {
+    setMode('discover');
+    // Wait for discoveries to load, then open the drawer
+    setTimeout(() => {
+        const index = filteredDiscoveries.findIndex(d => d.id === itemId);
+        if (index >= 0) {
+            showDrawer(index);
+        }
+    }, 1000);
 }
 
 async function saveProfile(event) {
