@@ -672,7 +672,7 @@ let searchMap = null;
 let mapVisible = { discover: false, search: false };
 const LOAD_INCREMENT = 12;
 
-let filters = { categories: [], users: [], distances: [], searchText: '' };
+let filters = { categories: [], users: [], distances: [], endorsed: false, searchText: '' };
 let isFirstMessage = true;
 let currentResults = [];
 let currentSessionId = generateSessionId();
@@ -868,8 +868,9 @@ function updateFilterState() {
     filters.categories = Array.from(document.querySelectorAll('#categoryOptions input:checked')).map(cb => cb.value);
     filters.users = Array.from(document.querySelectorAll('#userOptions input:checked')).map(cb => cb.value);
     filters.distances = Array.from(document.querySelectorAll('#distanceOptions input:checked')).map(cb => parseFloat(cb.value));
+    filters.endorsed = document.getElementById('endorsed-mine')?.checked || false;
 
-    const count = filters.categories.length + filters.users.length + filters.distances.length;
+    const count = filters.categories.length + filters.users.length + filters.distances.length + (filters.endorsed ? 1 : 0);
     const badge = document.getElementById('filterBadge');
     if (count > 0) {
         badge.textContent = count;
@@ -880,7 +881,7 @@ function updateFilterState() {
 }
 
 function clearFilters() {
-    filters = { categories: [], users: [], distances: [], searchText: '' };
+    filters = { categories: [], users: [], distances: [], endorsed: false, searchText: '' };
     document.querySelectorAll('.filter-option input').forEach(cb => cb.checked = false);
     document.getElementById('discoverSearch').value = '';
     updateFilterState();
@@ -914,6 +915,10 @@ function filterAndRender() {
             const maxDist = Math.max(...filters.distances);
             if (item.distance_km > maxDist) return false;
         }
+        if (filters.endorsed) {
+            const cached = endorsementsCache[item.id];
+            if (!cached || !cached.userEndorsed) return false;
+        }
         if (filters.searchText) {
             const text = filters.searchText;
             const title = (item.title || '').toLowerCase();
@@ -933,6 +938,7 @@ function updateActiveFiltersBar() {
     let html = '';
     filters.categories.forEach(cat => html += `<span class="active-filter-chip">${cat} <span class="active-filter-remove" onclick="removeActiveFilter('category', '${cat}')">×</span></span>`);
     filters.users.forEach(user => html += `<span class="active-filter-chip">${escapeHtml(user)} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`);
+    if (filters.endorsed) html += `<span class="active-filter-chip">★ Endorsed <span class="active-filter-remove" onclick="removeActiveFilter('endorsed', '')">×</span></span>`;
     filters.distances.forEach(dist => html += `<span class="active-filter-chip">&lt; ${dist}km <span class="active-filter-remove" onclick="removeActiveFilter('distance', '${dist}')">×</span></span>`);
     bar.innerHTML = html;
 }
@@ -944,6 +950,10 @@ function removeActiveFilter(type, value) {
     } else if (type === 'user') {
         filters.users = filters.users.filter(u => u !== value);
         document.getElementById('user-' + value).checked = false;
+    } else if (type === 'endorsed') {
+        filters.endorsed = false;
+        const cb = document.getElementById('endorsed-mine');
+        if (cb) cb.checked = false;
     } else if (type === 'distance') {
         filters.distances = filters.distances.filter(d => d != value);
         document.getElementById('dist-' + value).checked = false;
