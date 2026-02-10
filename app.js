@@ -48,11 +48,15 @@ function showLoginScreen() {
     document.getElementById('mainApp').style.display = 'none';
 }
 
-function showMainApp() {
+async function showMainApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('mainApp').style.display = 'block';
 
-    const userName = currentUser?.user_metadata?.full_name ||
+    // Load profile from profiles table
+    await loadUserProfile();
+
+    const userName = currentProfile?.display_name ||
+                     currentUser?.user_metadata?.full_name ||
                      currentUser?.email?.split('@')[0] ||
                      'User';
     console.log('Logged in as:', userName);
@@ -62,6 +66,9 @@ function showMainApp() {
     if (addedByField) {
         addedByField.value = userName;
     }
+
+    // Set avatar initial in header
+    updateAvatarInitials(userName);
 }
 
 async function handleLogout() {
@@ -333,6 +340,260 @@ checkAuth();
 
 // ===== END AUTHENTICATION =====
 
+// ===== PROFILE MANAGEMENT =====
+let currentProfile = null;
+
+async function loadUserProfile() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+
+        if (error && error.code === 'PGRST116') {
+            // Profile doesn't exist yet, create it
+            const fallbackName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+            const { data: newProfile } = await supabaseClient
+                .from('profiles')
+                .insert({
+                    id: currentUser.id,
+                    email: currentUser.email,
+                    name: fallbackName,
+                    display_name: fallbackName,
+                    avatar_url: currentUser.user_metadata?.avatar_url || null,
+                    family_id: '37ae9f84-2d1d-4930-9765-f6f8991ae053',
+                    role: 'member'
+                })
+                .select()
+                .single();
+            currentProfile = newProfile;
+        } else if (data) {
+            currentProfile = data;
+        }
+    } catch (err) {
+        console.error('Error loading profile:', err);
+    }
+}
+
+function updateAvatarInitials(name) {
+    const initial = (name || '?').charAt(0).toUpperCase();
+    const headerAvatar = document.getElementById('profileAvatarInitial');
+    if (headerAvatar) headerAvatar.textContent = initial;
+}
+
+async function loadProfilePage() {
+    if (!currentUser || !currentProfile) return;
+
+    const name = currentProfile.display_name || '';
+    document.getElementById('profileDisplayName').textContent = name;
+    document.getElementById('profileEmail').textContent = currentUser.email || '';
+    document.getElementById('profileNameInput').value = name;
+    document.getElementById('profileBioInput').value = currentProfile.bio || '';
+
+    const largeInitial = document.getElementById('profileAvatarLargeInitial');
+    if (largeInitial) largeInitial.textContent = (name || '?').charAt(0).toUpperCase();
+
+    // Load stats
+    try {
+        const { count: discoveryCount } = await supabaseClient
+            .from('knowledge_items')
+            .select('*', { count: 'exact', head: true })
+            .eq('added_by', currentUser.id);
+        document.getElementById('profileDiscoveryCount').textContent = discoveryCount || 0;
+
+        const { count: endorsementCount } = await supabaseClient
+            .from('endorsements')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', currentUser.id);
+        document.getElementById('profileEndorsementCount').textContent = endorsementCount || 0;
+    } catch (err) {
+        console.error('Error loading profile stats:', err);
+    }
+}
+
+async function saveProfile(event) {
+    event.preventDefault();
+    const btn = document.getElementById('saveProfileBtn');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const newName = document.getElementById('profileNameInput').value.trim();
+    const newBio = document.getElementById('profileBioInput').value.trim();
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('profiles')
+            .update({
+                name: newName,
+                display_name: newName,
+                bio: newBio || null,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        currentProfile = data;
+        document.getElementById('profileDisplayName').textContent = newName;
+        updateAvatarInitials(newName);
+
+        // Update "Added by" field too
+        const addedByField = document.getElementById('addedBy');
+        if (addedByField) addedByField.value = newName;
+
+        document.getElementById('profileMessage').innerHTML = '<div class="success-msg">Profile saved!</div>';
+        setTimeout(() => { document.getElementById('profileMessage').innerHTML = ''; }, 2000);
+    } catch (err) {
+        console.error('Error saving profile:', err);
+        document.getElementById('profileMessage').innerHTML = '<div class="error-msg">Error saving profile</div>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Profile';
+    }
+}
+
+// ===== ENDORSEMENT SYSTEM =====
+let endorsementsCache = {}; // { item_id: { count, names, ids, userEndorsed } }
+
+async function loadEndorsementsForItems(items) {
+    if (!currentUser || !items || items.length === 0) return;
+
+    const itemIds = items.map(i => i.id).filter(Boolean);
+    if (itemIds.length === 0) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('get_endorsements_for_items', {
+            p_item_ids: itemIds
+        });
+
+        if (error) {
+            console.error('Error loading endorsements:', error);
+            // Initialize defaults when RPC unavailable (e.g. before SQL is run)
+            itemIds.forEach(id => {
+                endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+            });
+            return;
+        }
+
+        // Reset cache for these items
+        itemIds.forEach(id => {
+            endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+        });
+
+        if (data) {
+            data.forEach(row => {
+                endorsementsCache[row.item_id] = {
+                    count: row.endorsement_count,
+                    names: row.endorser_names || [],
+                    ids: row.endorser_ids || [],
+                    userEndorsed: (row.endorser_ids || []).includes(currentUser.id)
+                };
+            });
+        }
+    } catch (err) {
+        console.error('Error in loadEndorsementsForItems:', err);
+    }
+}
+
+async function toggleEndorsement(itemId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!currentUser) return;
+
+    const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
+
+    if (cached.userEndorsed) {
+        // Un-endorse
+        const { error } = await supabaseClient
+            .from('endorsements')
+            .delete()
+            .eq('user_id', currentUser.id)
+            .eq('item_id', itemId);
+
+        if (!error) {
+            cached.count = Math.max(0, cached.count - 1);
+            cached.userEndorsed = false;
+            cached.ids = cached.ids.filter(id => id !== currentUser.id);
+            const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
+            cached.names = cached.names.filter(n => n !== myName);
+        }
+    } else {
+        // Endorse
+        const { error } = await supabaseClient
+            .from('endorsements')
+            .insert({ user_id: currentUser.id, item_id: itemId });
+
+        if (!error) {
+            cached.count += 1;
+            cached.userEndorsed = true;
+            cached.ids.push(currentUser.id);
+            const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
+            cached.names.push(myName);
+        }
+    }
+
+    endorsementsCache[itemId] = cached;
+
+    // Update UI
+    updateEndorsementUI(itemId);
+}
+
+function updateEndorsementUI(itemId) {
+    const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
+
+    // Update all buttons with this item ID
+    document.querySelectorAll(`[data-endorse-id="${itemId}"]`).forEach(btn => {
+        btn.classList.toggle('endorsed', cached.userEndorsed);
+        const countEl = btn.querySelector('.endorse-count');
+        if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
+        const iconEl = btn.querySelector('.endorse-icon');
+        if (iconEl) iconEl.textContent = cached.userEndorsed ? '★' : '☆';
+    });
+}
+
+function buildEndorseButton(itemId) {
+    const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
+    const activeClass = cached.userEndorsed ? ' endorsed' : '';
+    const icon = cached.userEndorsed ? '★' : '☆';
+    const countText = cached.count > 0 ? cached.count : '';
+
+    return `<button class="endorse-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Endorse this discovery">
+        <span class="endorse-icon">${icon}</span>
+        <span class="endorse-count">${countText}</span>
+    </button>`;
+}
+
+function buildEndorseSection(itemId) {
+    const cached = endorsementsCache[itemId] || { count: 0, names: [], userEndorsed: false };
+    const activeClass = cached.userEndorsed ? ' endorsed' : '';
+    const icon = cached.userEndorsed ? '★' : '☆';
+
+    let namesText = '';
+    if (cached.count > 0) {
+        const displayNames = cached.names.slice(0, 3);
+        if (cached.count <= 3) {
+            namesText = displayNames.join(', ') + ' endorsed this';
+        } else {
+            namesText = displayNames.join(', ') + ` and ${cached.count - 3} more endorsed this`;
+        }
+    }
+
+    return `<div class="drawer-endorse-section">
+        <button class="drawer-endorse-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+            <span class="endorse-icon">${icon}</span>
+            <span>${cached.userEndorsed ? 'Endorsed' : 'Endorse'}</span>
+            <span class="endorse-count">${cached.count > 0 ? cached.count : ''}</span>
+        </button>
+        ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
+    </div>`;
+}
+
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
@@ -373,6 +634,7 @@ function showLanding() {
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
+    document.getElementById('profileMode').classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
     updateTabBar('home');
     loadDiscoveryCount();
@@ -384,6 +646,7 @@ function showHome() {
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
+    document.getElementById('profileMode').classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
     updateTabBar('home');
 }
@@ -411,6 +674,7 @@ function setMode(mode) {
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
+    document.getElementById('profileMode').classList.add('hidden');
 
     if (mode === 'home') {
         showHome();
@@ -424,6 +688,10 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+    } else if (mode === 'profile') {
+        document.getElementById('profileMode').classList.remove('hidden');
+        document.getElementById('inputArea').classList.add('hidden');
+        loadProfilePage();
     }
 
     updateTabBar(mode);
@@ -641,6 +909,7 @@ async function loadDiscoveries() {
         }
 
         allDiscoveries = data;
+        await loadEndorsementsForItems(data);
         populateFilters();
         filterAndRender();
     } catch (error) {
@@ -705,12 +974,17 @@ function createCard(item, index) {
     tagsHtml += `<span class="discovery-tag discovery-tag-time">${dateText}</span>`;
     tagsHtml += '</div>';
 
+    const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
+
     card.innerHTML = `
         <div class="discovery-card-photo">${photo}</div>
         <div class="discovery-card-content">
             <div class="discovery-card-title">${escapeHtml(item.title)}</div>
             ${tagsHtml}
             ${snippetHtml}
+            <div class="discovery-card-footer">
+                ${endorseBtn}
+            </div>
         </div>
     `;
     return card;
@@ -782,6 +1056,8 @@ function showDrawer(index) {
         } catch (e) {}
     }
 
+    if (item.id) html += buildEndorseSection(item.id);
+
     if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
     if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
@@ -824,6 +1100,8 @@ function showSearchDrawer(index) {
     }
     if (item.added_by_name) html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name)}</span>`;
     html += '</div>';
+
+    if (item.id) html += buildEndorseSection(item.id);
 
     let note = item.PersonalNote || item.personal_note || (item.metadata?.personal_note);
     if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
@@ -891,10 +1169,12 @@ function sendMessage(text) {
         body: JSON.stringify(body)
     })
     .then(r => r.json())
-    .then(data => {
+    .then(async (data) => {
         document.getElementById('typing').remove();
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
+            // Load endorsements for search results
+            await loadEndorsementsForItems(currentResults);
 
             const getPersonalNote = (r) => {
                 if (r.PersonalNote) return r.PersonalNote;
@@ -1133,7 +1413,7 @@ async function submitDiscovery(e) {
         description: document.getElementById('description').value.trim(),
         personalNote: document.getElementById('personalNote').value.trim() || null,
         type: document.getElementById('category').value,
-        addedBy: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+        addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
         address: document.getElementById('address').value.trim() || null,
         url: document.getElementById('url').value.trim() || null,
         UserID: currentUser.id,

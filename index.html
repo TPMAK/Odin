@@ -99,7 +99,12 @@
     <div class="header">
         <div class="header-content">
             <span class="header-title">The Community</span>
-            <span class="location-indicator" id="locationIndicator">📍 Getting location...</span>
+            <div class="header-right">
+                <span class="location-indicator" id="locationIndicator">📍 Getting location...</span>
+                <button class="profile-avatar-btn" id="profileAvatarBtn" onclick="setMode('profile')" title="My Profile">
+                    <span id="profileAvatarInitial">?</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -228,6 +233,45 @@
                         <div id="discoverMap"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- PROFILE MODE -->
+        <div id="profileMode" class="hidden">
+            <div class="profile-container">
+                <div class="profile-header-section">
+                    <div class="profile-avatar-large" id="profileAvatarLarge">
+                        <span id="profileAvatarLargeInitial">?</span>
+                    </div>
+                    <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
+                    <p class="profile-email" id="profileEmail"></p>
+                </div>
+
+                <div class="profile-stats">
+                    <div class="profile-stat">
+                        <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                        <div class="profile-stat-label">Discoveries</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-number" id="profileEndorsementCount">0</div>
+                        <div class="profile-stat-label">Endorsements</div>
+                    </div>
+                </div>
+
+                <form id="profileForm" onsubmit="saveProfile(event)">
+                    <div class="form-group">
+                        <label>Display Name</label>
+                        <input type="text" id="profileNameInput" placeholder="Your name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Bio (optional)</label>
+                        <textarea id="profileBioInput" placeholder="A short intro about yourself" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn" id="saveProfileBtn">Save Profile</button>
+                    <div id="profileMessage"></div>
+                </form>
+
+                <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
             </div>
         </div>
 
@@ -369,6 +413,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>
