@@ -486,11 +486,11 @@ async function loadEndorsementsForItems(items) {
 
         if (data) {
             data.forEach(row => {
-                endorsementsCache[row.item_id] = {
-                    count: row.endorsement_count,
-                    names: row.endorser_names || [],
-                    ids: row.endorser_ids || [],
-                    userEndorsed: (row.endorser_ids || []).includes(currentUser.id)
+                endorsementsCache[row.out_item_id] = {
+                    count: row.out_count,
+                    names: row.out_names || [],
+                    ids: row.out_ids || [],
+                    userEndorsed: (row.out_ids || []).includes(currentUser.id)
                 };
             });
         }
