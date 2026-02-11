@@ -2646,28 +2646,72 @@
     box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
 }
 
-/* ===== PHASE B: Community Notes ===== */
+/* ===== PHASE B: You + Friends Collapsible Section ===== */
+.friends-section {
+    margin: 20px 0 8px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 4px;
+}
+
+.friends-section-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 8px 0;
+    user-select: none;
+}
+
+.friends-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6b7280;
+    letter-spacing: 0.02em;
+}
+
+.friends-section-arrow {
+    font-size: 11px;
+    color: #9ca3af;
+    transition: transform 0.2s;
+}
+
+.friends-section-body {
+    overflow: hidden;
+    max-height: 2000px;
+    transition: max-height 0.3s ease;
+    padding-top: 4px;
+}
+
+.friends-section-body.collapsed {
+    max-height: 0;
+    padding-top: 0;
+}
+
+.notes-loading {
+    font-size: 13px;
+    color: #9ca3af;
+    padding: 8px 0;
+}
+
+/* ===== PHASE B: Community Notes (inside You + Friends) ===== */
 .community-notes {
-    margin: 16px 0;
-    padding: 16px;
-    background: #f9fafb;
-    border-radius: 12px;
-    border: 1px solid #e5e7eb;
+    margin: 12px 0 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
 }
 
 .community-notes-label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    color: #374151;
-    margin-bottom: 12px;
+    color: #9ca3af;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-.community-notes-label::before {
-    content: '📝';
-    font-size: 14px;
 }
 
 .notes-list {
@@ -2691,15 +2735,15 @@
 }
 
 .note-avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    background: #059669;
-    color: white;
+    background: #d1d5db;
+    color: #4b5563;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     flex-shrink: 0;
 }
@@ -2743,8 +2787,8 @@
 }
 
 .note-text {
-    font-size: 14px;
-    color: #4b5563;
+    font-size: 13px;
+    color: #6b7280;
     line-height: 1.4;
     word-wrap: break-word;
 }
@@ -2772,19 +2816,19 @@
 }
 
 .note-submit-btn {
-    background: #059669;
+    background: #6b7280;
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 8px 14px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
 }
 
 .note-submit-btn:hover {
-    background: #047857;
+    background: #4b5563;
 }
 
 /* ===== PHASE B: Notification Badge ===== */

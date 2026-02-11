@@ -817,10 +817,10 @@ function renderNotesSection(itemId, notes) {
     }).join('');
 
     return `<div class="community-notes" id="communityNotes">
-        <div class="community-notes-label">Community Notes</div>
-        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No notes yet. Be the first to share!</div>'}</div>
+        <div class="community-notes-label">Comments</div>
+        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet. Be the first!</div>'}</div>
         <div class="note-input-wrap">
-            <textarea class="note-input" id="noteInput" placeholder="Add a note..." maxlength="500" rows="2"></textarea>
+            <textarea class="note-input" id="noteInput" placeholder="Leave a comment..." maxlength="500" rows="2"></textarea>
             <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
         </div>
     </div>`;
@@ -1621,16 +1621,10 @@ function openItemDrawer(item) {
         } catch (e) {}
     }
 
-    // 3-reaction buttons (🙌 Me too, 🔖 Save, 💡 Good find)
-    if (item.id) html += buildEndorseSection(item.id);
-
-    // Community Notes placeholder (loaded async)
-    if (item.id) {
-        currentDrawerItemId = item.id;
-        html += `<div id="communityNotesContainer"></div>`;
-    }
-
+    // === SECTION 1: Personal Story (THE emotional hook — sacred, top position) ===
     if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
+
+    // === SECTION 2: Practical Info (description, address, actions) ===
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
     if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
 
@@ -1651,6 +1645,21 @@ function openItemDrawer(item) {
             html += `<button class="drawer-btn drawer-btn-secondary" onclick="window.open('${mapsUrl}', '_blank')">Open in Google Maps</button>`;
         }
         html += '</div>';
+    }
+
+    // === SECTION 3: You + Friends (collapsible — reactions + community notes) ===
+    if (item.id) {
+        currentDrawerItemId = item.id;
+        html += `<div class="friends-section">
+            <div class="friends-section-toggle" onclick="toggleFriendsSection()">
+                <span class="friends-section-title">You + Friends</span>
+                <span class="friends-section-arrow" id="friendsSectionArrow">▼</span>
+            </div>
+            <div class="friends-section-body" id="friendsSectionBody">
+                ${buildEndorseSection(item.id)}
+                <div id="communityNotesContainer"><div class="notes-loading">Loading notes...</div></div>
+            </div>
+        </div>`;
     }
 
     document.getElementById('drawerContent').innerHTML = html;
@@ -1677,6 +1686,20 @@ function showSearchDrawer(index) {
 function closeDrawer() {
     document.getElementById('detailDrawer').classList.remove('open');
     document.getElementById('drawerBackdrop').classList.remove('active');
+}
+
+function toggleFriendsSection() {
+    const body = document.getElementById('friendsSectionBody');
+    const arrow = document.getElementById('friendsSectionArrow');
+    if (!body) return;
+    const isOpen = !body.classList.contains('collapsed');
+    if (isOpen) {
+        body.classList.add('collapsed');
+        if (arrow) arrow.textContent = '▶';
+    } else {
+        body.classList.remove('collapsed');
+        if (arrow) arrow.textContent = '▼';
+    }
 }
 
 function sendMessage(text) {
