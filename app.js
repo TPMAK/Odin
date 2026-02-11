@@ -1407,6 +1407,18 @@ function sendMessage(text) {
         document.getElementById('typing').remove();
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
+
+            // Debug: log first result to see field names
+            console.log('Search result fields:', Object.keys(currentResults[0]));
+            console.log('Search result sample:', JSON.stringify(currentResults[0]).substring(0, 500));
+
+            // Normalize ID field - n8n may return id with different names
+            currentResults.forEach(r => {
+                if (!r.id) {
+                    r.id = r.ID || r.item_id || r.record_id || r.uuid || null;
+                }
+            });
+
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
 
