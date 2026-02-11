@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=6">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -253,7 +253,7 @@
                     </div>
                     <div class="profile-stat">
                         <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                        <div class="profile-stat-label">Endorsements</div>
+                        <div class="profile-stat-label">+1s</div>
                     </div>
                 </div>
 
@@ -271,7 +271,7 @@
                 </form>
 
                 <div class="profile-section-divider"></div>
-                <h3 class="profile-section-title">My Endorsements</h3>
+                <h3 class="profile-section-title">My +1s</h3>
                 <div id="myEndorsementsList" class="my-endorsements-list">
                     <p class="my-endorsements-empty">No endorsements yet. Explore and endorse discoveries you love!</p>
                 </div>
@@ -387,14 +387,14 @@
             </div>
             <div class="filter-section" id="endorsedSection">
                 <div class="filter-section-header" onclick="toggleSection('endorsed')">
-                    <span class="filter-section-title">Endorsed</span>
+                    <span class="filter-section-title">+1s</span>
                     <span class="filter-section-chevron">›</span>
                 </div>
                 <div class="filter-section-content">
                     <div class="filter-section-options" id="endorsedOptions">
                         <div class="filter-option">
                             <input type="checkbox" id="endorsed-mine" value="mine" onchange="updateFilterState()">
-                            <label for="endorsed-mine">★ My Endorsements</label>
+                            <label for="endorsed-mine">My +1s only</label>
                         </div>
                     </div>
                 </div>
@@ -432,6 +432,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=5"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>

@@ -428,7 +428,7 @@ async function loadMyEndorsements() {
             .order('created_at', { ascending: false });
 
         if (error || !data || data.length === 0) {
-            container.innerHTML = '<p class="my-endorsements-empty">No endorsements yet. Explore and endorse discoveries you love!</p>';
+            container.innerHTML = '<p class="my-endorsements-empty">No +1s yet. Explore and +1 discoveries you love!</p>';
             return;
         }
 
@@ -459,7 +459,7 @@ async function loadMyEndorsements() {
                     <div class="my-endorse-title">${escapeHtml(item.title)}</div>
                     <div class="my-endorse-meta">${escapeHtml(item.added_by_name || '')} · ${item.type || ''}</div>
                 </div>
-                <span class="my-endorse-star">★</span>
+                <span class="my-endorse-star">+1</span>
             </div>`;
         }).join('');
     } catch (err) {
@@ -615,45 +615,43 @@ function updateEndorsementUI(itemId) {
     // Update all buttons with this item ID
     document.querySelectorAll(`[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('endorsed', cached.userEndorsed);
-        const countEl = btn.querySelector('.endorse-count');
+        // Update count badge
+        const countEl = btn.querySelector('.plus-one-count') || btn.querySelector('.drawer-plus-one-count');
         if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
-        const iconEl = btn.querySelector('.endorse-icon');
-        if (iconEl) iconEl.textContent = cached.userEndorsed ? '★' : '☆';
+        // Update drawer button text
+        const textEl = btn.querySelector('.drawer-plus-one-text');
+        if (textEl) textEl.textContent = cached.userEndorsed ? "+1'd" : '+1';
     });
 }
 
 function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
-    const icon = cached.userEndorsed ? '★' : '☆';
     const countText = cached.count > 0 ? cached.count : '';
 
-    return `<button class="endorse-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Endorse this discovery">
-        <span class="endorse-icon">${icon}</span>
-        <span class="endorse-count">${countText}</span>
+    return `<button class="plus-one-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="+1 this discovery">
+        <span class="plus-one-label">+1</span>${countText ? `<span class="plus-one-count">${countText}</span>` : ''}
     </button>`;
 }
 
 function buildEndorseSection(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, names: [], userEndorsed: false };
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
-    const icon = cached.userEndorsed ? '★' : '☆';
 
     let namesText = '';
     if (cached.count > 0) {
         const displayNames = cached.names.slice(0, 3);
         if (cached.count <= 3) {
-            namesText = displayNames.join(', ') + ' endorsed this';
+            namesText = displayNames.join(', ') + ' +1\'d this';
         } else {
-            namesText = displayNames.join(', ') + ` and ${cached.count - 3} more endorsed this`;
+            namesText = displayNames.join(', ') + ` and ${cached.count - 3} more +1'd this`;
         }
     }
 
     return `<div class="drawer-endorse-section">
-        <button class="drawer-endorse-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
-            <span class="endorse-icon">${icon}</span>
-            <span>${cached.userEndorsed ? 'Endorsed' : 'Endorse'}</span>
-            <span class="endorse-count">${cached.count > 0 ? cached.count : ''}</span>
+        <button class="drawer-plus-one-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+            <span class="drawer-plus-one-text">${cached.userEndorsed ? "+1'd" : '+1'}</span>
+            ${cached.count > 0 ? `<span class="drawer-plus-one-count">${cached.count}</span>` : ''}
         </button>
         ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
     </div>`;
@@ -938,7 +936,7 @@ function updateActiveFiltersBar() {
     let html = '';
     filters.categories.forEach(cat => html += `<span class="active-filter-chip">${cat} <span class="active-filter-remove" onclick="removeActiveFilter('category', '${cat}')">×</span></span>`);
     filters.users.forEach(user => html += `<span class="active-filter-chip">${escapeHtml(user)} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`);
-    if (filters.endorsed) html += `<span class="active-filter-chip">★ Endorsed <span class="active-filter-remove" onclick="removeActiveFilter('endorsed', '')">×</span></span>`;
+    if (filters.endorsed) html += `<span class="active-filter-chip">My +1s <span class="active-filter-remove" onclick="removeActiveFilter('endorsed', '')">×</span></span>`;
     filters.distances.forEach(dist => html += `<span class="active-filter-chip">&lt; ${dist}km <span class="active-filter-remove" onclick="removeActiveFilter('distance', '${dist}')">×</span></span>`);
     bar.innerHTML = html;
 }
@@ -1052,14 +1050,11 @@ function createCard(item, index) {
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
     card.innerHTML = `
-        <div class="discovery-card-photo">${photo}</div>
+        <div class="discovery-card-photo">${photo}${endorseBtn}</div>
         <div class="discovery-card-content">
             <div class="discovery-card-title">${escapeHtml(item.title)}</div>
             ${tagsHtml}
             ${snippetHtml}
-            <div class="discovery-card-footer">
-                ${endorseBtn}
-            </div>
         </div>
     `;
     return card;
