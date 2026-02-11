@@ -69,6 +69,11 @@ async function showMainApp() {
 
     // Set avatar initial in header
     updateAvatarInitials(userName);
+
+    // Pre-load discoveries so search results can match IDs
+    if (allDiscoveries.length === 0) {
+        loadDiscoveries();
+    }
 }
 
 async function handleLogout() {
@@ -1408,14 +1413,12 @@ function sendMessage(text) {
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
 
-            // Debug: log first result to see field names
-            console.log('Search result fields:', Object.keys(currentResults[0]));
-            console.log('Search result sample:', JSON.stringify(currentResults[0]).substring(0, 500));
-
-            // Normalize ID field - n8n may return id with different names
+            // Match search results to Supabase IDs via allDiscoveries
             currentResults.forEach(r => {
                 if (!r.id) {
-                    r.id = r.ID || r.item_id || r.record_id || r.uuid || null;
+                    // Try matching by title against loaded discoveries
+                    const match = allDiscoveries.find(d => d.title === r.title);
+                    if (match) r.id = match.id;
                 }
             });
 
