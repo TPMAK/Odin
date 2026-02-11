@@ -2167,33 +2167,12 @@
 }
 
 /* ========================================
-   HEADER - Profile Avatar
+   HEADER
    ======================================== */
 .header-right {
     display: flex;
     align-items: center;
     gap: 12px;
-}
-
-.profile-avatar-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: #059669;
-    color: #ffffff;
-    border: none;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.profile-avatar-btn:hover {
-    background: #047857;
-    transform: scale(1.05);
 }
 
 /* ========================================
@@ -2410,10 +2389,18 @@
     margin-bottom: 16px;
 }
 
-.my-endorsements-list {
+/* My +1s - Horizontal Scrolling Cards */
+.my-endorsements-list-horizontal {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+}
+
+.my-endorsements-list-horizontal::-webkit-scrollbar {
+    display: none;
 }
 
 .my-endorsements-empty {
@@ -2421,55 +2408,51 @@
     color: #9ca3af;
     font-size: 14px;
     padding: 24px 0;
+    width: 100%;
 }
 
-.my-endorse-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
+.my-endorse-card {
+    flex-shrink: 0;
+    width: 120px;
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.2s;
-}
-
-.my-endorse-item:hover {
-    border-color: #059669;
-    background: #f0fdf4;
-}
-
-.my-endorse-photo {
-    width: 48px;
-    height: 48px;
-    border-radius: 8px;
+    scroll-snap-align: start;
+    position: relative;
     overflow: hidden;
+}
+
+.my-endorse-card:hover {
+    border-color: #059669;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.my-endorse-card-photo {
+    width: 100%;
+    height: 80px;
     background: #f3f4f6;
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
-.my-endorse-photo img {
+.my-endorse-card-photo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
 .my-endorse-placeholder {
-    font-size: 20px;
-    color: #d1d5db;
+    font-size: 24px;
 }
 
-.my-endorse-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.my-endorse-title {
-    font-size: 14px;
+.my-endorse-card-title {
+    padding: 8px 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #202124;
     white-space: nowrap;
@@ -2477,15 +2460,171 @@
     text-overflow: ellipsis;
 }
 
-.my-endorse-meta {
-    font-size: 12px;
-    color: #9ca3af;
-    margin-top: 2px;
+.my-endorse-card-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #059669;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
 }
 
-.my-endorse-star {
+/* ========================================
+   RECENTLY VIEWED - Discover page
+   ======================================== */
+.recently-viewed-section {
+    margin-bottom: 16px;
+}
+
+.recently-viewed-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+}
+
+.recently-viewed-row {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.recently-viewed-row::-webkit-scrollbar {
+    display: none;
+}
+
+.rv-item {
+    flex-shrink: 0;
+    text-align: center;
+    cursor: pointer;
+    width: 64px;
+}
+
+.rv-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 4px;
+    border: 2px solid #e5e7eb;
+    transition: border-color 0.2s;
+}
+
+.rv-item:hover .rv-thumb {
+    border-color: #059669;
+}
+
+.rv-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rv-placeholder {
+    font-size: 20px;
+}
+
+.rv-label {
+    font-size: 10px;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   PROFILE - View / Edit mode
+   ======================================== */
+.profile-bio {
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+.profile-edit-btn {
+    width: 100%;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.profile-edit-btn:hover {
+    border-color: #059669;
+    color: #059669;
+}
+
+.profile-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.profile-edit-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.profile-edit-close {
+    background: none;
+    border: none;
     color: #059669;
     font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+/* ========================================
+   TAB BAR - Center Profile Avatar
+   ======================================== */
+.tab-item-profile {
+    position: relative;
+}
+
+.tab-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 15px;
     font-weight: 700;
-    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.tab-item-profile.active .tab-avatar {
+    background: #059669;
+    color: #ffffff;
+    border-color: #059669;
+}
+
+/* Mobile tweaks */
+@media (max-width: 640px) {
+    .rv-item { width: 56px; }
+    .rv-thumb { width: 48px; height: 48px; }
+    .rv-label { font-size: 9px; }
+    .my-endorse-card { width: 110px; }
+    .my-endorse-card-photo { height: 70px; }
+    .tab-avatar { width: 32px; height: 32px; font-size: 13px; }
 }

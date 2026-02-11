@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -101,9 +101,6 @@
             <span class="header-title">The Community</span>
             <div class="header-right">
                 <span class="location-indicator" id="locationIndicator">📍 Getting location...</span>
-                <button class="profile-avatar-btn" id="profileAvatarBtn" onclick="setMode('profile')" title="My Profile">
-                    <span id="profileAvatarInitial">?</span>
-                </button>
             </div>
         </div>
     </div>
@@ -214,6 +211,11 @@
                     </button>
                 </div>
 
+                <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
+                    <div class="recently-viewed-header">Recently viewed</div>
+                    <div class="recently-viewed-row" id="recentlyViewedRow"></div>
+                </div>
+
                 <div class="recent-searches" id="recentSearches"></div>
                 <div class="active-filters-bar" id="activeFiltersBar"></div>
 
@@ -238,42 +240,55 @@
         <!-- PROFILE MODE -->
         <div id="profileMode" class="hidden">
             <div class="profile-container">
-                <div class="profile-header-section">
-                    <div class="profile-avatar-large" id="profileAvatarLarge">
-                        <span id="profileAvatarLargeInitial">?</span>
+                <!-- View Mode (default) -->
+                <div id="profileViewMode">
+                    <div class="profile-header-section">
+                        <div class="profile-avatar-large" id="profileAvatarLarge">
+                            <span id="profileAvatarLargeInitial">?</span>
+                        </div>
+                        <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
+                        <p class="profile-email" id="profileEmail"></p>
+                        <p class="profile-bio" id="profileBioDisplay"></p>
                     </div>
-                    <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
-                    <p class="profile-email" id="profileEmail"></p>
+
+                    <div class="profile-stats">
+                        <div class="profile-stat">
+                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                            <div class="profile-stat-label">Discoveries</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
+                            <div class="profile-stat-label">+1s</div>
+                        </div>
+                    </div>
+
+                    <button class="profile-edit-btn" onclick="toggleProfileEdit(true)">Edit Profile</button>
                 </div>
 
-                <div class="profile-stats">
-                    <div class="profile-stat">
-                        <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
-                        <div class="profile-stat-label">Discoveries</div>
+                <!-- Edit Mode (hidden by default) -->
+                <div id="profileEditMode" style="display:none;">
+                    <div class="profile-edit-header">
+                        <h3>Edit Profile</h3>
+                        <button class="profile-edit-close" onclick="toggleProfileEdit(false)">Cancel</button>
                     </div>
-                    <div class="profile-stat">
-                        <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                        <div class="profile-stat-label">+1s</div>
-                    </div>
+                    <form id="profileForm" onsubmit="saveProfile(event)">
+                        <div class="form-group">
+                            <label>Display Name</label>
+                            <input type="text" id="profileNameInput" placeholder="Your name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Bio (optional)</label>
+                            <textarea id="profileBioInput" placeholder="A short intro about yourself" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn" id="saveProfileBtn">Save Profile</button>
+                        <div id="profileMessage"></div>
+                    </form>
                 </div>
-
-                <form id="profileForm" onsubmit="saveProfile(event)">
-                    <div class="form-group">
-                        <label>Display Name</label>
-                        <input type="text" id="profileNameInput" placeholder="Your name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Bio (optional)</label>
-                        <textarea id="profileBioInput" placeholder="A short intro about yourself" rows="3"></textarea>
-                    </div>
-                    <button type="submit" class="submit-btn" id="saveProfileBtn">Save Profile</button>
-                    <div id="profileMessage"></div>
-                </form>
 
                 <div class="profile-section-divider"></div>
                 <h3 class="profile-section-title">My +1s</h3>
-                <div id="myEndorsementsList" class="my-endorsements-list">
-                    <p class="my-endorsements-empty">No endorsements yet. Explore and endorse discoveries you love!</p>
+                <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
+                    <p class="my-endorsements-empty">No +1s yet. Explore and +1 discoveries you love!</p>
                 </div>
 
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
@@ -342,7 +357,7 @@
         </div>
     </div>
 
-    <!-- Bottom Tab Bar - 4 tabs -->
+    <!-- Bottom Tab Bar - 5 tabs with profile center -->
     <div class="bottom-tab-bar">
         <button class="tab-item active" onclick="setMode('home')" id="homeTab">
             <div class="tab-icon">🏠</div>
@@ -351,6 +366,9 @@
         <button class="tab-item" onclick="setMode('search')" id="searchTab">
             <div class="tab-icon">🔍</div>
             <div class="tab-label">Search</div>
+        </button>
+        <button class="tab-item tab-item-profile" onclick="setMode('profile')" id="profileTab">
+            <div class="tab-avatar" id="tabAvatarInitial">?</div>
         </button>
         <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
             <div class="tab-icon">🎯</div>
@@ -432,6 +450,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=6"></script>
+    <script src="app.js?v=7"></script>
 </body>
 </html>

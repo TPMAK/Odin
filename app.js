@@ -379,18 +379,34 @@ async function loadUserProfile() {
 
 function updateAvatarInitials(name) {
     const initial = (name || '?').charAt(0).toUpperCase();
-    const headerAvatar = document.getElementById('profileAvatarInitial');
-    if (headerAvatar) headerAvatar.textContent = initial;
+    // Update tab bar avatar
+    const tabAvatar = document.getElementById('tabAvatarInitial');
+    if (tabAvatar) tabAvatar.textContent = initial;
+}
+
+function toggleProfileEdit(show) {
+    document.getElementById('profileViewMode').style.display = show ? 'none' : 'block';
+    document.getElementById('profileEditMode').style.display = show ? 'block' : 'none';
 }
 
 async function loadProfilePage() {
     if (!currentUser || !currentProfile) return;
+
+    // Always reset to view mode
+    toggleProfileEdit(false);
 
     const name = currentProfile.display_name || '';
     document.getElementById('profileDisplayName').textContent = name;
     document.getElementById('profileEmail').textContent = currentUser.email || '';
     document.getElementById('profileNameInput').value = name;
     document.getElementById('profileBioInput').value = currentProfile.bio || '';
+
+    // Show bio in view mode
+    const bioDisplay = document.getElementById('profileBioDisplay');
+    if (bioDisplay) {
+        bioDisplay.textContent = currentProfile.bio || '';
+        bioDisplay.style.display = currentProfile.bio ? 'block' : 'none';
+    }
 
     const largeInitial = document.getElementById('profileAvatarLargeInitial');
     if (largeInitial) largeInitial.textContent = (name || '?').charAt(0).toUpperCase();
@@ -452,14 +468,11 @@ async function loadMyEndorsements() {
         container.innerHTML = sorted.map(item => {
             const photo = item.photo_url
                 ? `<img src="${escapeHtml(item.photo_url)}">`
-                : '<span class="my-endorse-placeholder">📍</span>';
-            return `<div class="my-endorse-item" onclick="goToEndorsedItem('${item.id}')">
-                <div class="my-endorse-photo">${photo}</div>
-                <div class="my-endorse-info">
-                    <div class="my-endorse-title">${escapeHtml(item.title)}</div>
-                    <div class="my-endorse-meta">${escapeHtml(item.added_by_name || '')} · ${item.type || ''}</div>
-                </div>
-                <span class="my-endorse-star">+1</span>
+                : `<span class="my-endorse-placeholder">${getCategoryEmoji(item.type)}</span>`;
+            return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
+                <div class="my-endorse-card-photo">${photo}</div>
+                <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
+                <span class="my-endorse-card-badge">+1</span>
             </div>`;
         }).join('');
     } catch (err) {
@@ -506,12 +519,19 @@ async function saveProfile(event) {
         document.getElementById('profileDisplayName').textContent = newName;
         updateAvatarInitials(newName);
 
+        // Update bio display
+        const bioDisplay = document.getElementById('profileBioDisplay');
+        if (bioDisplay) {
+            bioDisplay.textContent = newBio || '';
+            bioDisplay.style.display = newBio ? 'block' : 'none';
+        }
+
         // Update "Added by" field too
         const addedByField = document.getElementById('addedBy');
         if (addedByField) addedByField.value = newName;
 
-        document.getElementById('profileMessage').innerHTML = '<div class="success-msg">Profile saved!</div>';
-        setTimeout(() => { document.getElementById('profileMessage').innerHTML = ''; }, 2000);
+        // Collapse back to view mode
+        toggleProfileEdit(false);
     } catch (err) {
         console.error('Error saving profile:', err);
         document.getElementById('profileMessage').innerHTML = '<div class="error-msg">Error saving profile</div>';
@@ -657,6 +677,71 @@ function buildEndorseSection(itemId) {
     </div>`;
 }
 
+// ===== RECENTLY VIEWED =====
+function trackRecentlyViewed(item) {
+    if (!item || !item.id) return;
+    try {
+        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        // Remove if already exists
+        viewed = viewed.filter(v => v.id !== item.id);
+        // Add to front
+        viewed.unshift({
+            id: item.id,
+            title: item.title,
+            photo_url: item.photo_url || null,
+            type: item.type || ''
+        });
+        // Keep max 10
+        viewed = viewed.slice(0, 10);
+        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+    } catch (e) { /* ignore storage errors */ }
+}
+
+function renderRecentlyViewed() {
+    const section = document.getElementById('recentlyViewedSection');
+    const row = document.getElementById('recentlyViewedRow');
+    if (!section || !row) return;
+
+    try {
+        const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        if (viewed.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+        section.style.display = 'block';
+        row.innerHTML = viewed.map(v => {
+            const photo = v.photo_url
+                ? `<img src="${escapeHtml(v.photo_url)}" alt="">`
+                : `<span class="rv-placeholder">${getCategoryEmoji(v.type)}</span>`;
+            return `<div class="rv-item" onclick="openRecentlyViewed('${v.id}')" title="${escapeHtml(v.title)}">
+                <div class="rv-thumb">${photo}</div>
+                <div class="rv-label">${escapeHtml(v.title.length > 12 ? v.title.slice(0,11) + '…' : v.title)}</div>
+            </div>`;
+        }).join('');
+    } catch (e) {
+        section.style.display = 'none';
+    }
+}
+
+function openRecentlyViewed(itemId) {
+    const idx = filteredDiscoveries.findIndex(d => d.id === itemId);
+    if (idx >= 0) {
+        showDrawer(idx);
+    } else {
+        // Item might not be in filtered list, search all
+        const allIdx = allDiscoveries.findIndex(d => d.id === itemId);
+        if (allIdx >= 0) {
+            filteredDiscoveries = [allDiscoveries[allIdx]];
+            showDrawer(0);
+        }
+    }
+}
+
+function getCategoryEmoji(type) {
+    const map = { place: '📍', product: '🛍️', service: '🔧', advice: '💡' };
+    return map[type] || '📍';
+}
+
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
@@ -763,11 +848,13 @@ function setMode(mode) {
 function updateTabBar(mode) {
     document.getElementById('homeTab').classList.remove('active');
     document.getElementById('searchTab').classList.remove('active');
+    document.getElementById('profileTab').classList.remove('active');
     document.getElementById('discoverTab').classList.remove('active');
     document.getElementById('addTab').classList.remove('active');
 
     if (mode === 'home') document.getElementById('homeTab').classList.add('active');
     else if (mode === 'search') document.getElementById('searchTab').classList.add('active');
+    else if (mode === 'profile') document.getElementById('profileTab').classList.add('active');
     else if (mode === 'discover') document.getElementById('discoverTab').classList.add('active');
     else if (mode === 'input') document.getElementById('addTab').classList.add('active');
 }
@@ -985,6 +1072,7 @@ async function loadDiscoveries() {
         await loadEndorsementsForItems(data);
         populateFilters();
         filterAndRender();
+        renderRecentlyViewed();
     } catch (error) {
         console.error('Error:', error);
     }
@@ -1103,6 +1191,9 @@ function initDiscoverMap() {
 function showDrawer(index) {
     const item = filteredDiscoveries[index] || currentResults[index];
     if (!item) return;
+
+    // Track recently viewed
+    trackRecentlyViewed(item);
 
     let html = '';
     if (item.photo_url) {
