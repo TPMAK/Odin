@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=7">
+    <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -258,7 +258,7 @@
                         </div>
                         <div class="profile-stat">
                             <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                            <div class="profile-stat-label">+1s</div>
+                            <div class="profile-stat-label">Saves</div>
                         </div>
                     </div>
 
@@ -286,9 +286,9 @@
                 </div>
 
                 <div class="profile-section-divider"></div>
-                <h3 class="profile-section-title">My +1s</h3>
+                <h3 class="profile-section-title">My Saves</h3>
                 <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
-                    <p class="my-endorsements-empty">No +1s yet. Explore and +1 discoveries you love!</p>
+                    <p class="my-endorsements-empty">No saves yet. Tap "Me too" on discoveries you like!</p>
                 </div>
 
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
@@ -405,14 +405,14 @@
             </div>
             <div class="filter-section" id="endorsedSection">
                 <div class="filter-section-header" onclick="toggleSection('endorsed')">
-                    <span class="filter-section-title">+1s</span>
+                    <span class="filter-section-title">Saves</span>
                     <span class="filter-section-chevron">›</span>
                 </div>
                 <div class="filter-section-content">
                     <div class="filter-section-options" id="endorsedOptions">
                         <div class="filter-option">
                             <input type="checkbox" id="endorsed-mine" value="mine" onchange="updateFilterState()">
-                            <label for="endorsed-mine">My +1s only</label>
+                            <label for="endorsed-mine">My Saves only</label>
                         </div>
                     </div>
                 </div>
@@ -450,6 +450,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=10"></script>
 </body>
 </html>
