@@ -2462,6 +2462,8 @@
    ======================================== */
 .recently-viewed-section {
     margin-bottom: 16px;
+    padding-top: 6px;
+    overflow: visible;
 }
 
 .recently-viewed-header {
@@ -2475,6 +2477,8 @@
     display: flex;
     gap: 14px;
     overflow-x: auto;
+    overflow-y: visible;
+    padding-top: 6px;
     padding-bottom: 4px;
     -webkit-overflow-scrolling: touch;
 }
