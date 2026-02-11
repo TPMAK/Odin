@@ -59,7 +59,7 @@ async function showMainApp() {
                      currentUser?.user_metadata?.full_name ||
                      currentUser?.email?.split('@')[0] ||
                      'User';
-    console.log('Logged in as:', userName);
+    console.log('Logged in as:', userName, '| User ID:', currentUser.id);
 
     // Auto-fill the "Added by" field
     const addedByField = document.getElementById('addedBy');
@@ -74,12 +74,17 @@ async function showMainApp() {
     if (allDiscoveries.length === 0) {
         loadDiscoveries();
     }
+
+    // Start notification polling
+    startNotifPolling();
 }
 
 async function handleLogout() {
+    stopNotifPolling();
     const { error } = await supabaseClient.auth.signOut();
     if (!error) {
         currentUser = null;
+        currentProfile = null;
         showLoginScreen();
     }
 }
@@ -772,6 +777,293 @@ function buildEndorseSection(itemId) {
     </div>`;
 }
 
+// ===== COMMUNITY NOTES =====
+let currentDrawerItemId = null;
+
+async function loadNotesForItem(itemId) {
+    if (!itemId) return [];
+    try {
+        const { data, error } = await supabaseClient.rpc('get_notes_for_item', {
+            p_item_id: itemId
+        });
+        if (error) {
+            console.error('Error loading notes:', error);
+            return [];
+        }
+        return data || [];
+    } catch (err) {
+        console.error('Error in loadNotesForItem:', err);
+        return [];
+    }
+}
+
+function renderNotesSection(itemId, notes) {
+    const notesList = notes.map(n => {
+        const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+        const timeAgo = getTimeAgo(n.out_created_at);
+        const isOwn = currentUser && n.out_user_id === currentUser.id;
+        const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+        return `<div class="note-item">
+            <div class="note-avatar">${initial}</div>
+            <div class="note-body">
+                <div class="note-header">
+                    <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                    <span class="note-time">${timeAgo}</span>
+                    ${deleteBtn}
+                </div>
+                <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    return `<div class="community-notes" id="communityNotes">
+        <div class="community-notes-label">Community Notes</div>
+        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No notes yet. Be the first to share!</div>'}</div>
+        <div class="note-input-wrap">
+            <textarea class="note-input" id="noteInput" placeholder="Add a note..." maxlength="500" rows="2"></textarea>
+            <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
+        </div>
+    </div>`;
+}
+
+async function submitNote(itemId) {
+    if (!currentUser || !itemId) return;
+    const input = document.getElementById('noteInput');
+    const text = input.value.trim();
+    if (!text) return;
+    if (text.length > 500) {
+        alert('Note must be 500 characters or less');
+        return;
+    }
+
+    const userName = currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
+
+    try {
+        const { error } = await supabaseClient
+            .from('item_notes')
+            .insert({
+                item_id: itemId,
+                user_id: currentUser.id,
+                user_name: userName,
+                note_text: text
+            });
+
+        if (error) {
+            console.error('Error submitting note:', error);
+            alert('Failed to post note. Please try again.');
+            return;
+        }
+
+        // Clear input and reload notes
+        input.value = '';
+        const notes = await loadNotesForItem(itemId);
+        const notesList = document.getElementById('notesList');
+        if (notesList) {
+            notesList.innerHTML = notes.map(n => {
+                const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+                const timeAgo = getTimeAgo(n.out_created_at);
+                const isOwn = currentUser && n.out_user_id === currentUser.id;
+                const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+                return `<div class="note-item">
+                    <div class="note-avatar">${initial}</div>
+                    <div class="note-body">
+                        <div class="note-header">
+                            <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                            <span class="note-time">${timeAgo}</span>
+                            ${deleteBtn}
+                        </div>
+                        <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
+        }
+    } catch (err) {
+        console.error('Error in submitNote:', err);
+    }
+}
+
+async function deleteNote(noteId, itemId, event) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    if (!currentUser) return;
+
+    try {
+        const { error } = await supabaseClient
+            .from('item_notes')
+            .delete()
+            .eq('id', noteId)
+            .eq('user_id', currentUser.id);
+
+        if (!error) {
+            // Reload notes
+            const notes = await loadNotesForItem(itemId);
+            const notesList = document.getElementById('notesList');
+            if (notesList) {
+                notesList.innerHTML = notes.map(n => {
+                    const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+                    const timeAgo = getTimeAgo(n.out_created_at);
+                    const isOwn = currentUser && n.out_user_id === currentUser.id;
+                    const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+                    return `<div class="note-item">
+                        <div class="note-avatar">${initial}</div>
+                        <div class="note-body">
+                            <div class="note-header">
+                                <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                                <span class="note-time">${timeAgo}</span>
+                                ${deleteBtn}
+                            </div>
+                            <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+                        </div>
+                    </div>`;
+                }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
+            }
+        }
+    } catch (err) {
+        console.error('Error deleting note:', err);
+    }
+}
+
+function getTimeAgo(dateStr) {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    if (diffHrs < 24) return `${diffHrs}h ago`;
+    const diffDays = Math.floor(diffHrs / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    if (diffWeeks < 4) return `${diffWeeks}w ago`;
+    return date.toLocaleDateString();
+}
+
+// ===== NOTIFICATIONS =====
+let notifPollInterval = null;
+
+async function checkUnreadNotifications() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('get_unread_notification_count', {
+            p_user_id: currentUser.id
+        });
+        if (error) {
+            console.error('Error checking notifications:', error);
+            return;
+        }
+        const count = data || 0;
+        const badge = document.getElementById('notifBadge');
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (err) {
+        console.error('Error in checkUnreadNotifications:', err);
+    }
+}
+
+function startNotifPolling() {
+    // Check immediately
+    checkUnreadNotifications();
+    // Then poll every 30 seconds
+    if (notifPollInterval) clearInterval(notifPollInterval);
+    notifPollInterval = setInterval(checkUnreadNotifications, 30000);
+}
+
+function stopNotifPolling() {
+    if (notifPollInterval) {
+        clearInterval(notifPollInterval);
+        notifPollInterval = null;
+    }
+}
+
+async function loadNotifications() {
+    if (!currentUser) return;
+    const container = document.getElementById('notifItems');
+    const section = document.getElementById('notificationsList');
+    if (!container || !section) return;
+
+    try {
+        const { data, error } = await supabaseClient.rpc('get_user_notifications', {
+            p_user_id: currentUser.id,
+            p_limit: 20
+        });
+
+        if (error) {
+            console.error('Error loading notifications:', error);
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+        container.innerHTML = data.map(n => {
+            const icon = n.out_type === 'endorsement' ? '🙌' : '📝';
+            const timeAgo = getTimeAgo(n.out_created_at);
+            const unreadClass = n.out_read ? '' : ' unread';
+            return `<div class="notif-item${unreadClass}" onclick="handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')">
+                <div class="notif-icon">${icon}</div>
+                <div class="notif-body">
+                    <div class="notif-message">${escapeHtml(n.out_message)}</div>
+                    <div class="notif-time">${timeAgo}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        console.error('Error in loadNotifications:', err);
+    }
+}
+
+async function handleNotifClick(notifId, itemId) {
+    // Mark as read
+    try {
+        await supabaseClient.rpc('mark_notification_read', {
+            p_notification_id: notifId
+        });
+    } catch (e) { /* ignore */ }
+
+    // Update badge
+    checkUnreadNotifications();
+
+    // Open the item if we have an ID
+    if (itemId) {
+        // Find item in allDiscoveries
+        const item = allDiscoveries.find(d => d.id === itemId);
+        if (item) {
+            openItemDrawer(item);
+        } else {
+            // Try loading from Supabase directly
+            try {
+                const { data } = await supabaseClient
+                    .from('knowledge_items')
+                    .select('*')
+                    .eq('id', itemId)
+                    .single();
+                if (data) openItemDrawer(data);
+            } catch (e) { /* ignore */ }
+        }
+    }
+}
+
+async function markAllNotifsRead() {
+    if (!currentUser) return;
+    try {
+        await supabaseClient.rpc('mark_all_notifications_read', {
+            p_user_id: currentUser.id
+        });
+        checkUnreadNotifications();
+        // Refresh the list
+        loadNotifications();
+    } catch (e) { console.error('Error marking all read:', e); }
+}
+
 // ===== RECENTLY VIEWED =====
 function trackRecentlyViewed(item) {
     if (!item || !item.id) return;
@@ -932,6 +1224,7 @@ function setMode(mode) {
 
     if (mode === 'home') {
         showHome();
+        loadNotifications();
     } else if (mode === 'search') {
         document.getElementById('searchMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.remove('hidden');
@@ -1331,6 +1624,12 @@ function openItemDrawer(item) {
     // 3-reaction buttons (🙌 Me too, 🔖 Save, 💡 Good find)
     if (item.id) html += buildEndorseSection(item.id);
 
+    // Community Notes placeholder (loaded async)
+    if (item.id) {
+        currentDrawerItemId = item.id;
+        html += `<div id="communityNotesContainer"></div>`;
+    }
+
     if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
     if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
@@ -1357,6 +1656,16 @@ function openItemDrawer(item) {
     document.getElementById('drawerContent').innerHTML = html;
     document.getElementById('drawerBackdrop').classList.add('active');
     document.getElementById('detailDrawer').classList.add('open');
+
+    // Load community notes asynchronously
+    if (item.id) {
+        loadNotesForItem(item.id).then(notes => {
+            const container = document.getElementById('communityNotesContainer');
+            if (container) {
+                container.innerHTML = renderNotesSection(item.id, notes);
+            }
+        });
+    }
 }
 
 function showSearchDrawer(index) {
@@ -1666,7 +1975,7 @@ async function submitDiscovery(e) {
         address: document.getElementById('address').value.trim() || null,
         url: document.getElementById('url').value.trim() || null,
         UserID: currentUser.id,
-        familyId: '37ae9f84-2d1d-4930-9765-f6f8991ae053',
+        familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null
     };
