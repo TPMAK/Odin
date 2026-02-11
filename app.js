@@ -803,9 +803,12 @@ function renderRecentlyViewed() {
             const photo = v.photo_url
                 ? `<img src="${escapeHtml(v.photo_url)}" alt="">`
                 : `<span class="rv-placeholder">${getCategoryEmoji(v.type)}</span>`;
-            return `<div class="rv-item" onclick="openRecentlyViewed('${v.id}')" title="${escapeHtml(v.title)}">
-                <div class="rv-thumb">${photo}</div>
-                <div class="rv-label">${escapeHtml(v.title.length > 12 ? v.title.slice(0,11) + '…' : v.title)}</div>
+            return `<div class="rv-item" title="${escapeHtml(v.title)}">
+                <div class="rv-thumb-wrap">
+                    <div class="rv-thumb" onclick="openRecentlyViewed('${v.id}')">${photo}</div>
+                    <button class="rv-remove" onclick="event.stopPropagation(); removeRecentlyViewed('${v.id}')">×</button>
+                </div>
+                <div class="rv-label" onclick="openRecentlyViewed('${v.id}')">${escapeHtml(v.title.length > 12 ? v.title.slice(0,11) + '…' : v.title)}</div>
             </div>`;
         }).join('');
     } catch (e) {
@@ -825,6 +828,15 @@ function openRecentlyViewed(itemId) {
             showDrawer(0);
         }
     }
+}
+
+function removeRecentlyViewed(itemId) {
+    try {
+        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        viewed = viewed.filter(v => v.id !== itemId);
+        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+        renderRecentlyViewed();
+    } catch (e) { /* ignore */ }
 }
 
 function getCategoryEmoji(type) {
@@ -854,7 +866,6 @@ let sessionMessages = [];
 // Initialize app
 initApp();
 initLocation();
-loadRecentSearches();
 
 function initApp() {
     const hasVisited = localStorage.getItem('hasVisited');
@@ -1069,7 +1080,6 @@ function applyFilters() {
 
 function handleSearchInput() {
     filters.searchText = document.getElementById('discoverSearch').value.trim().toLowerCase();
-    if (filters.searchText) saveRecentSearch(filters.searchText);
     filterAndRender();
 }
 
@@ -1283,7 +1293,10 @@ function initDiscoverMap() {
 function showDrawer(index) {
     const item = filteredDiscoveries[index] || currentResults[index];
     if (!item) return;
+    openItemDrawer(item);
+}
 
+function openItemDrawer(item) {
     // Track recently viewed
     trackRecentlyViewed(item);
 
@@ -1299,6 +1312,7 @@ function showDrawer(index) {
     if (item.added_by_name) html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name)}</span>`;
     html += '</div>';
 
+    // Extract personal note from multiple possible fields
     let note = null;
     if (item.PersonalNote) note = item.PersonalNote;
     else if (item.personal_note) note = item.personal_note;
@@ -1309,19 +1323,21 @@ function showDrawer(index) {
         } catch (e) {}
     }
 
+    // 3-reaction buttons (🙌 Me too, 🔖 Save, 💡 Good find)
     if (item.id) html += buildEndorseSection(item.id);
 
     if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
     if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
 
+    // Extract URL from multiple possible fields
     let url = null;
     if (item.URL) {
         if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
         else if (typeof item.URL === 'string' && item.URL.startsWith('http')) url = item.URL;
-    } else if (item.url) {
-        url = item.url;
     }
+    if (!url && item.url) url = item.url;
+    if (!url && item.website) url = item.website;
 
     if (url || item.address) {
         html += '<div class="drawer-actions">';
@@ -1341,40 +1357,7 @@ function showDrawer(index) {
 function showSearchDrawer(index) {
     const item = currentResults[index];
     if (!item) return;
-
-    let html = '';
-    if (item.photo_url) {
-        html += `<div class="drawer-photo" onclick="event.stopPropagation(); openLightbox('${escapeHtml(item.photo_url)}');"><img src="${escapeHtml(item.photo_url)}"></div>`;
-    }
-    html += `<h1 class="drawer-title">${escapeHtml(item.title)}</h1><div class="drawer-meta">`;
-    if (item.distance_km) {
-        const dist = item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km';
-        html += `<span class="drawer-distance">${dist}</span>`;
-    }
-    if (item.added_by_name) html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name)}</span>`;
-    html += '</div>';
-
-    if (item.id) html += buildEndorseSection(item.id);
-
-    let note = item.PersonalNote || item.personal_note || (item.metadata?.personal_note);
-    if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
-    if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
-    if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
-
-    let url = item.URL?.[0] || item.url;
-    if (url || item.address) {
-        html += '<div class="drawer-actions">';
-        if (url) html += `<button class="drawer-btn drawer-btn-primary" onclick="window.open('${escapeHtml(url)}', '_blank')">Visit Website</button>`;
-        if (item.address) {
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
-            html += `<button class="drawer-btn drawer-btn-secondary" onclick="window.open('${mapsUrl}', '_blank')">Open in Google Maps</button>`;
-        }
-        html += '</div>';
-    }
-
-    document.getElementById('drawerContent').innerHTML = html;
-    document.getElementById('drawerBackdrop').classList.add('active');
-    document.getElementById('detailDrawer').classList.add('open');
+    openItemDrawer(item);
 }
 
 function closeDrawer() {
@@ -1403,8 +1386,6 @@ function sendMessage(text) {
         content: query,
         timestamp: Date.now()
     });
-
-    saveRecentSearch(query);
 
     const body = {
         query,
@@ -1708,24 +1689,6 @@ document.getElementById('photo').addEventListener('change', function(e) {
         reader.readAsDataURL(file);
     }
 });
-
-function saveRecentSearch(query) {
-    try {
-        let searches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-        searches = [query, ...searches.filter(s => s !== query)].slice(0, 5);
-        localStorage.setItem('recentSearches', JSON.stringify(searches));
-        loadRecentSearches();
-    } catch (e) {}
-}
-
-function loadRecentSearches() {
-    try {
-        const searches = JSON.parse(localStorage.getItem('recentSearches') || '[]');
-        document.getElementById('recentSearches').innerHTML = searches.map(s =>
-            `<span class="recent-search-chip" onclick="applyRecentSearch('${escapeHtml(s)}')">${escapeHtml(s)}</span>`
-        ).join('');
-    } catch (e) {}
-}
 
 function applyRecentSearch(query) {
     document.getElementById('discoverSearch').value = query;
