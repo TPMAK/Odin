@@ -77,6 +77,10 @@ async function showMainApp() {
 
     // Start notification polling
     startNotifPolling();
+
+    // Load friends network
+    loadFriends();
+    loadPendingFriendRequests();
 }
 
 async function handleLogout() {
@@ -85,6 +89,8 @@ async function handleLogout() {
     if (!error) {
         currentUser = null;
         currentProfile = null;
+        friendsCache = [];
+        pendingFriendRequests = [];
         showLoginScreen();
     }
 }
@@ -353,6 +359,10 @@ checkAuth();
 // ===== PROFILE MANAGEMENT =====
 let currentProfile = null;
 
+// ===== FRIENDS NETWORK =====
+let friendsCache = [];           // Array: { out_user_id, out_email, out_display_name, out_avatar_url }
+let pendingFriendRequests = [];  // Array: { out_id, out_requester_id, out_requester_name, ... }
+
 async function loadUserProfile() {
     if (!currentUser) return;
     try {
@@ -440,6 +450,10 @@ async function loadProfilePage() {
 
     // Load endorsed items
     await loadMyEndorsements();
+
+    // Load friends network display
+    await loadPendingFriendRequests();
+    updateFriendsDisplay();
 }
 
 async function loadMyEndorsements() {
@@ -777,6 +791,226 @@ function buildEndorseSection(itemId) {
     </div>`;
 }
 
+// ===== FRIENDS NETWORK FUNCTIONS =====
+
+function isFriend(userId) {
+    if (!userId || !currentUser) return false;
+    if (userId === currentUser.id) return true; // always see your own content
+    return friendsCache.some(f => f.out_user_id === userId);
+}
+
+async function loadFriends() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('get_friends_list', {
+            p_user_id: currentUser.id
+        });
+        if (error) {
+            console.error('Error loading friends:', error);
+            friendsCache = [];
+            return;
+        }
+        friendsCache = data || [];
+        console.log('Friends loaded:', friendsCache.length);
+    } catch (err) {
+        console.error('Error in loadFriends:', err);
+        friendsCache = [];
+    }
+}
+
+async function loadPendingFriendRequests() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('get_pending_friend_requests', {
+            p_user_id: currentUser.id
+        });
+        if (error) {
+            console.error('Error loading pending requests:', error);
+            pendingFriendRequests = [];
+            return;
+        }
+        pendingFriendRequests = data || [];
+    } catch (err) {
+        console.error('Error in loadPendingFriendRequests:', err);
+        pendingFriendRequests = [];
+    }
+}
+
+async function searchProfiles(query) {
+    if (!query || query.length < 2) return [];
+    try {
+        const { data, error } = await supabaseClient.rpc('search_profiles', {
+            p_search_query: query
+        });
+        if (error) {
+            console.error('Error searching profiles:', error);
+            return [];
+        }
+        return data || [];
+    } catch (err) {
+        console.error('Error in searchProfiles:', err);
+        return [];
+    }
+}
+
+let friendSearchTimeout;
+async function handleFriendSearchInput(event) {
+    const query = event.target.value.trim();
+    const resultsDiv = document.getElementById('friendSearchResults');
+    clearTimeout(friendSearchTimeout);
+
+    if (query.length < 2) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+    friendSearchTimeout = setTimeout(async () => {
+        const results = await searchProfiles(query);
+
+        if (results.length === 0) {
+            resultsDiv.innerHTML = '<div class="friend-search-empty">No results found</div>';
+        } else {
+            let html = '';
+            for (const profile of results) {
+                const initial = (profile.out_display_name || '?').charAt(0).toUpperCase();
+                const alreadyFriend = isFriend(profile.out_id);
+                const isPending = pendingFriendRequests.some(r => r.out_requester_id === profile.out_id);
+
+                let statusHtml = '';
+                if (alreadyFriend) {
+                    statusHtml = '<span class="search-result-status added">Friends</span>';
+                } else if (isPending) {
+                    statusHtml = '<span class="search-result-status pending">Pending</span>';
+                } else {
+                    statusHtml = `<button class="search-result-add-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', this)">Add Friend</button>`;
+                }
+
+                html += `<div class="search-result-item">
+                    <div class="search-result-avatar">${initial}</div>
+                    <div class="search-result-info">
+                        <div class="search-result-name">${escapeHtml(profile.out_display_name || 'Unknown')}</div>
+                        <div class="search-result-email">${escapeHtml(profile.out_email || '')}</div>
+                    </div>
+                    ${statusHtml}
+                </div>`;
+            }
+            resultsDiv.innerHTML = html;
+        }
+        resultsDiv.style.display = 'block';
+    }, 300);
+}
+
+async function handleSendFriendRequest(receiverId, btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+    try {
+        const { data, error } = await supabaseClient.rpc('send_friend_request', {
+            p_receiver_id: receiverId
+        });
+        if (error) {
+            console.error('Error sending friend request:', error);
+            if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
+            return;
+        }
+        if (data && data.length > 0 && data[0].out_success) {
+            if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
+        } else {
+            const msg = data?.[0]?.out_message || 'Could not send request';
+            if (btn) { btn.disabled = false; btn.textContent = msg; }
+        }
+    } catch (err) {
+        console.error('Error in handleSendFriendRequest:', err);
+        if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
+    }
+}
+
+async function handleAcceptFriendRequest(friendshipId) {
+    try {
+        const { data, error } = await supabaseClient.rpc('accept_friend_request', {
+            p_friendship_id: friendshipId
+        });
+        if (error) {
+            console.error('Error accepting friend request:', error);
+            return;
+        }
+        if (data && data.length > 0 && data[0].out_success) {
+            await loadFriends();
+            await loadPendingFriendRequests();
+            updateFriendsDisplay();
+            checkUnreadNotifications();
+        }
+    } catch (err) {
+        console.error('Error in handleAcceptFriendRequest:', err);
+    }
+}
+
+async function handleRejectFriendRequest(friendshipId) {
+    try {
+        const { data, error } = await supabaseClient.rpc('reject_friend_request', {
+            p_friendship_id: friendshipId
+        });
+        if (error) {
+            console.error('Error rejecting friend request:', error);
+            return;
+        }
+        if (data && data.length > 0 && data[0].out_success) {
+            await loadPendingFriendRequests();
+            updateFriendsDisplay();
+        }
+    } catch (err) {
+        console.error('Error in handleRejectFriendRequest:', err);
+    }
+}
+
+function updateFriendsDisplay() {
+    const requestsContainer = document.getElementById('pendingRequestsContainer');
+    const friendsContainer = document.getElementById('friendsListContainer');
+    const emptyState = document.getElementById('friendsEmptyState');
+    if (!requestsContainer || !friendsContainer) return;
+
+    const hasPending = pendingFriendRequests.length > 0;
+    const hasFriends = friendsCache.length > 0;
+
+    requestsContainer.style.display = hasPending ? 'block' : 'none';
+    friendsContainer.style.display = hasFriends ? 'block' : 'none';
+    if (emptyState) emptyState.style.display = (!hasPending && !hasFriends) ? 'block' : 'none';
+
+    // Render pending requests
+    if (hasPending) {
+        const list = document.getElementById('pendingRequestsList');
+        if (list) {
+            list.innerHTML = pendingFriendRequests.map(req => {
+                const initial = (req.out_requester_name || '?').charAt(0).toUpperCase();
+                const timeAgo = getTimeAgo(req.out_created_at);
+                return `<div class="friend-request-card">
+                    <div class="friend-request-avatar">${initial}</div>
+                    <div class="friend-request-body">
+                        <div class="friend-request-name">${escapeHtml(req.out_requester_name || 'Unknown')}</div>
+                        <div class="friend-request-time">${timeAgo}</div>
+                    </div>
+                    <div class="friend-request-actions">
+                        <button class="friend-req-btn friend-req-accept" onclick="handleAcceptFriendRequest('${req.out_id}')">Accept</button>
+                        <button class="friend-req-btn friend-req-reject" onclick="handleRejectFriendRequest('${req.out_id}')">Reject</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Render friends list
+    if (hasFriends) {
+        const list = document.getElementById('friendsList');
+        if (list) {
+            list.innerHTML = friendsCache.map(f => {
+                const initial = (f.out_display_name || '?').charAt(0).toUpperCase();
+                return `<div class="friend-card">
+                    <div class="friend-card-avatar">${initial}</div>
+                    <div class="friend-card-name">${escapeHtml(f.out_display_name || 'Unknown')}</div>
+                </div>`;
+            }).join('');
+        }
+    }
+}
+
 // ===== COMMUNITY NOTES =====
 let currentDrawerItemId = null;
 
@@ -1005,10 +1239,19 @@ async function loadNotifications() {
 
         section.style.display = 'block';
         container.innerHTML = data.map(n => {
-            const icon = n.out_type === 'endorsement' ? '🙌' : '📝';
+            let icon = '📝';
+            if (n.out_type === 'endorsement') icon = '🙌';
+            else if (n.out_type === 'friend_request') icon = '🤝';
+            else if (n.out_type === 'friend_accepted') icon = '🎉';
             const timeAgo = getTimeAgo(n.out_created_at);
             const unreadClass = n.out_read ? '' : ' unread';
-            return `<div class="notif-item${unreadClass}" onclick="handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')">
+
+            // Friend notifications click → go to profile (friend requests section)
+            const clickAction = (n.out_type === 'friend_request' || n.out_type === 'friend_accepted')
+                ? `handleFriendNotifClick('${n.out_id}')`
+                : `handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')`;
+
+            return `<div class="notif-item${unreadClass}" onclick="${clickAction}">
                 <div class="notif-icon">${icon}</div>
                 <div class="notif-body">
                     <div class="notif-message">${escapeHtml(n.out_message)}</div>
@@ -1062,6 +1305,16 @@ async function markAllNotifsRead() {
         // Refresh the list
         loadNotifications();
     } catch (e) { console.error('Error marking all read:', e); }
+}
+
+async function handleFriendNotifClick(notifId) {
+    // Mark as read
+    try {
+        await supabaseClient.rpc('mark_notification_read', { p_notification_id: notifId });
+    } catch (e) { /* ignore */ }
+    checkUnreadNotifications();
+    // Navigate to profile page where friend requests are visible
+    setMode('profile');
 }
 
 // ===== RECENTLY VIEWED =====
@@ -1524,10 +1777,18 @@ function createCard(item, index) {
     const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
     const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d' : `${daysAgo}d`;
 
-    const snippet = note || item.description || '';
-    const snippetHtml = snippet
-        ? `<div class="discovery-card-snippet">${note ? '💭 ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`
-        : '';
+    // Privacy: only show personal note snippet to friends
+    let snippet = '';
+    let snippetHtml = '';
+    if (note && isFriend(item.added_by)) {
+        snippet = note;
+        snippetHtml = `<div class="discovery-card-snippet">💭 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
+    } else if (note && !isFriend(item.added_by)) {
+        snippetHtml = `<div class="discovery-card-snippet privacy-teaser-card">🔒 Connect to see their story</div>`;
+    } else if (item.description) {
+        snippet = item.description;
+        snippetHtml = `<div class="discovery-card-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
+    }
 
     let tagsHtml = '<div class="discovery-card-tags">';
     if (distText) tagsHtml += `<span class="discovery-tag discovery-tag-distance">📍 ${distText}</span>`;
@@ -1621,8 +1882,14 @@ function openItemDrawer(item) {
         } catch (e) {}
     }
 
-    // === SECTION 1: Personal Story (THE emotional hook — sacred, top position) ===
-    if (note) html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
+    // === SECTION 1: Personal Story (friends-only) ===
+    if (note) {
+        if (isFriend(item.added_by)) {
+            html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
+        } else {
+            html += `<div class="drawer-story privacy-teaser"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their personal story</div></div>`;
+        }
+    }
 
     // === SECTION 2: Practical Info (description, address, actions) ===
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
@@ -1776,9 +2043,11 @@ function sendMessage(text) {
 
             const buildTopPick = (r, idx) => {
                 const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
-                const note = getPersonalNote(r);
+                const rawNote = getPersonalNote(r);
+                const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
-                const snippet = note || r.relevance_reason || r.description || '';
+                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
+                const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
@@ -1792,7 +2061,7 @@ function sendMessage(text) {
                             </div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
-                                    <div class="top-pick-reason-label">${note ? '💭 Friend says' : '💡 Why this matches'}</div>
+                                    <div class="top-pick-reason-label">${snippetLabel}</div>
                                     ${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}
                                 </div>
                             ` : ''}
@@ -1805,9 +2074,11 @@ function sendMessage(text) {
                 const photo = r.photo_url
                     ? `<img src="${escapeHtml(r.photo_url)}">`
                     : '<span class="compact-photo-placeholder">📍</span>';
-                const note = getPersonalNote(r);
+                const rawNote = getPersonalNote(r);
+                const canSeeNote = rawNote && isFriend(r.added_by);
                 const distText = formatDistance(r.distance_km);
-                const snippet = note || r.relevance_reason || r.description || '';
+                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
+                const snippetIcon = canSeeNote ? '💭' : '';
 
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
@@ -1817,7 +2088,7 @@ function sendMessage(text) {
                             ${distText ? `<span>📍 ${distText}</span>` : ''}
                             ${r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : ''}
                         </div>
-                        ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        ${snippet ? `<div class="compact-snippet">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                     </div>
                 `;
             };

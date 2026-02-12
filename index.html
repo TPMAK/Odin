@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=15">
+    <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -298,6 +298,28 @@
                     <p class="my-endorsements-empty">No saves yet. Tap "Me too" on discoveries you like!</p>
                 </div>
 
+                <div class="profile-section-divider"></div>
+                <h3 class="profile-section-title">My Network</h3>
+
+                <div class="friends-search-container">
+                    <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search by name or email..." onkeyup="handleFriendSearchInput(event)">
+                    <div id="friendSearchResults" class="friend-search-results" style="display:none;"></div>
+                </div>
+
+                <div id="pendingRequestsContainer" style="display:none;">
+                    <h4 class="friends-subsection-title">Friend Requests</h4>
+                    <div id="pendingRequestsList" class="friend-requests-list"></div>
+                </div>
+
+                <div id="friendsListContainer" style="display:none;">
+                    <h4 class="friends-subsection-title">Friends</h4>
+                    <div id="friendsList" class="friends-list"></div>
+                </div>
+
+                <div id="friendsEmptyState" class="friends-empty-state">
+                    <p>No friends yet. Search above to connect!</p>
+                </div>
+
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
             </div>
         </div>
@@ -458,6 +480,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=18"></script>
 </body>
 </html>
