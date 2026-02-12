@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=16">
+    <link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -143,6 +143,18 @@
         <div id="homePage" class="hidden">
             <div class="home-page">
                 <h1 class="home-title">What would you like to do?</h1>
+
+                <div id="onboardingBanner" class="onboarding-banner" style="display:none;">
+                    <div class="onboarding-icon">👋</div>
+                    <div class="onboarding-text">
+                        <strong>Welcome to The Community!</strong>
+                        <p>Add friends to unlock personal stories and notes from people you trust.</p>
+                    </div>
+                    <div class="onboarding-actions">
+                        <button class="onboarding-btn onboarding-btn-primary" onclick="goToFindFriends()">Find Friends</button>
+                        <button class="onboarding-btn onboarding-btn-secondary" onclick="dismissOnboarding()">Got it</button>
+                    </div>
+                </div>
 
                 <div class="home-actions">
                     <div class="home-card" onclick="setMode('search')">
@@ -317,7 +329,9 @@
                 </div>
 
                 <div id="friendsEmptyState" class="friends-empty-state">
-                    <p>No friends yet. Search above to connect!</p>
+                    <div class="friends-empty-icon">🤝</div>
+                    <p>Your network is empty</p>
+                    <p class="friends-empty-hint">Search by name or email above to start connecting with friends!</p>
                 </div>
 
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
@@ -480,6 +494,6 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=18"></script>
+    <script src="app.js?v=19"></script>
 </body>
 </html>

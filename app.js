@@ -81,6 +81,10 @@ async function showMainApp() {
     // Load friends network
     loadFriends();
     loadPendingFriendRequests();
+    loadBlockedUsers();
+
+    // Show onboarding banner for new users
+    checkOnboardingBanner();
 }
 
 async function handleLogout() {
@@ -91,6 +95,7 @@ async function handleLogout() {
         currentProfile = null;
         friendsCache = [];
         pendingFriendRequests = [];
+        blockedUsersCache = [];
         showLoginScreen();
     }
 }
@@ -360,8 +365,9 @@ checkAuth();
 let currentProfile = null;
 
 // ===== FRIENDS NETWORK =====
-let friendsCache = [];           // Array: { out_user_id, out_email, out_display_name, out_avatar_url }
+let friendsCache = [];           // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
 let pendingFriendRequests = [];  // Array: { out_id, out_requester_id, out_requester_name, ... }
+let blockedUsersCache = [];      // Array: { out_blocked_user_id, out_display_name }
 
 async function loadUserProfile() {
     if (!currentUser) return;
@@ -656,6 +662,11 @@ async function toggleEndorsement(itemId, event) {
             cached.ids.push(currentUser.id);
             const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
             cached.names.push(myName);
+            // Milestone: first endorsement
+            if (!localStorage.getItem('milestone_first_endorse')) {
+                localStorage.setItem('milestone_first_endorse', 'true');
+                setTimeout(() => showToast('Your friends will see you endorsed this!'), 300);
+            }
         }
     }
 
@@ -796,7 +807,13 @@ function buildEndorseSection(itemId) {
 function isFriend(userId) {
     if (!userId || !currentUser) return false;
     if (userId === currentUser.id) return true; // always see your own content
+    if (isBlocked(userId)) return false;
     return friendsCache.some(f => f.out_user_id === userId);
+}
+
+function isBlocked(userId) {
+    if (!userId) return false;
+    return blockedUsersCache.some(b => b.out_blocked_user_id === userId);
 }
 
 async function loadFriends() {
@@ -833,6 +850,62 @@ async function loadPendingFriendRequests() {
     } catch (err) {
         console.error('Error in loadPendingFriendRequests:', err);
         pendingFriendRequests = [];
+    }
+}
+
+async function loadBlockedUsers() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('get_blocked_users', {
+            p_user_id: currentUser.id
+        });
+        if (error) {
+            console.error('Error loading blocked users:', error);
+            blockedUsersCache = [];
+            return;
+        }
+        blockedUsersCache = data || [];
+    } catch (err) {
+        console.error('Error in loadBlockedUsers:', err);
+        blockedUsersCache = [];
+    }
+}
+
+async function handleRemoveFriend(friendshipId, friendName) {
+    if (!confirm(`Remove ${friendName} from your friends?`)) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('remove_friend', {
+            p_friendship_id: friendshipId
+        });
+        if (error) {
+            console.error('Error removing friend:', error);
+            showToast('Could not remove friend. Try again.');
+            return;
+        }
+        showToast(`${friendName} removed from friends`);
+        await loadFriends();
+        updateFriendsDisplay();
+    } catch (err) {
+        console.error('Error in handleRemoveFriend:', err);
+    }
+}
+
+async function handleBlockUser(userId, userName) {
+    if (!confirm(`Block ${userName}? They won't be able to see your content or find you.`)) return;
+    try {
+        const { data, error } = await supabaseClient.rpc('block_user', {
+            p_blocked_user_id: userId
+        });
+        if (error) {
+            console.error('Error blocking user:', error);
+            showToast('Could not block user. Try again.');
+            return;
+        }
+        showToast(`${userName} has been blocked`);
+        await Promise.all([loadFriends(), loadBlockedUsers()]);
+        updateFriendsDisplay();
+    } catch (err) {
+        console.error('Error in handleBlockUser:', err);
     }
 }
 
@@ -937,6 +1010,11 @@ async function handleAcceptFriendRequest(friendshipId) {
             await loadPendingFriendRequests();
             updateFriendsDisplay();
             checkUnreadNotifications();
+            // Milestone: first friend accepted
+            if (!localStorage.getItem('milestone_first_friend')) {
+                localStorage.setItem('milestone_first_friend', 'true');
+                setTimeout(() => showToast('You can now see each other\'s personal stories!'), 300);
+            }
         }
     } catch (err) {
         console.error('Error in handleAcceptFriendRequest:', err);
@@ -1000,16 +1078,40 @@ function updateFriendsDisplay() {
     if (hasFriends) {
         const list = document.getElementById('friendsList');
         if (list) {
-            list.innerHTML = friendsCache.map(f => {
+            list.innerHTML = friendsCache.filter(f => f.out_display_name).map(f => {
                 const initial = (f.out_display_name || '?').charAt(0).toUpperCase();
+                const fId = f.out_friendship_id || '';
+                const fName = escapeHtml(f.out_display_name || 'Unknown');
+                const uId = f.out_user_id || '';
                 return `<div class="friend-card">
+                    <div class="friend-card-menu-btn" onclick="event.stopPropagation(); toggleFriendMenu('${fId}')">&#8942;</div>
+                    <div class="friend-card-menu" id="friendMenu_${fId}" style="display:none;">
+                        <button onclick="event.stopPropagation(); handleRemoveFriend('${fId}', '${fName}')">Remove</button>
+                        <button onclick="event.stopPropagation(); handleBlockUser('${uId}', '${fName}')">Block</button>
+                    </div>
                     <div class="friend-card-avatar">${initial}</div>
-                    <div class="friend-card-name">${escapeHtml(f.out_display_name || 'Unknown')}</div>
+                    <div class="friend-card-name">${fName}</div>
                 </div>`;
             }).join('');
         }
     }
 }
+
+function toggleFriendMenu(friendshipId) {
+    // Close all other menus first
+    document.querySelectorAll('.friend-card-menu').forEach(m => {
+        if (m.id !== 'friendMenu_' + friendshipId) m.style.display = 'none';
+    });
+    const menu = document.getElementById('friendMenu_' + friendshipId);
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Close friend menus when clicking elsewhere
+document.addEventListener('click', () => {
+    document.querySelectorAll('.friend-card-menu').forEach(m => m.style.display = 'none');
+});
 
 // ===== COMMUNITY NOTES =====
 let currentDrawerItemId = null;
@@ -1712,6 +1814,12 @@ async function loadDiscoveries() {
         let data = await response.json();
         data = data.filter(item => new Date(item.created_at) >= twoWeeksAgo);
 
+        // Hide discoveries from blocked users
+        if (blockedUsersCache.length > 0) {
+            const blockedIds = new Set(blockedUsersCache.map(b => b.out_blocked_user_id));
+            data = data.filter(item => !item.added_by || !blockedIds.has(item.added_by));
+        }
+
         if (userLocation.available) {
             data = data.map(item => {
                 if (item.latitude && item.longitude) {
@@ -1868,7 +1976,7 @@ function openItemDrawer(item) {
         const dist = item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km';
         html += `<span class="drawer-distance">${dist}</span>`;
     }
-    if (item.added_by_name) html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name)}</span>`;
+    html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name || 'Community Member')}</span>`;
     html += '</div>';
 
     // Extract personal note from multiple possible fields
@@ -2343,4 +2451,73 @@ function toggleMoreResults(btn) {
             btn.textContent = `Show ${count} more results`;
         }
     }
+}
+
+
+// ===== TOAST NOTIFICATIONS =====
+function showToast(message, duration = 3000) {
+    // Remove any existing toast
+    const existing = document.getElementById('appToast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'appToast';
+    toast.className = 'app-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        toast.classList.add('show');
+    });
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, duration);
+}
+
+
+// ===== ONBOARDING =====
+function checkOnboardingBanner() {
+    const banner = document.getElementById('onboardingBanner');
+    if (!banner) return;
+
+    // Don't show if already dismissed
+    if (localStorage.getItem('onboarding_welcome_dismissed')) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    // Show if user has no friends and no endorsements
+    const hasNoFriends = friendsCache.length === 0;
+    const hasNoEndorsements = Object.values(endorsementsCache || {}).every(e => !e.userEndorsed);
+
+    if (hasNoFriends && hasNoEndorsements) {
+        banner.style.display = 'block';
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function dismissOnboarding() {
+    localStorage.setItem('onboarding_welcome_dismissed', 'true');
+    const banner = document.getElementById('onboardingBanner');
+    if (banner) {
+        banner.style.opacity = '0';
+        setTimeout(() => { banner.style.display = 'none'; }, 300);
+    }
+}
+
+function goToFindFriends() {
+    dismissOnboarding();
+    setMode('profile');
+    // Scroll to and focus the friend search input after a short delay
+    setTimeout(() => {
+        const input = document.getElementById('friendSearchInput');
+        if (input) {
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            input.focus();
+        }
+    }, 400);
 }
