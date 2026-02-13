@@ -467,22 +467,17 @@ async function loadMyEndorsements() {
     if (!container || !currentUser) return;
 
     try {
-        // Get endorsed items (🙌 Me too) from Supabase
+        // Get liked items (❤️) from Supabase
         const { data, error } = await supabaseClient
             .from('endorsements')
             .select('item_id, created_at')
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
-        // Get bookmarked items (🔖 Save) from localStorage
-        const savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
+        const likedIds = (data || []).map(e => e.item_id);
 
-        // Combine unique IDs
-        const endorsedIds = (data || []).map(e => e.item_id);
-        const allIds = [...new Set([...endorsedIds, ...savedIds])];
-
-        if (allIds.length === 0) {
-            container.innerHTML = '<p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>';
+        if (likedIds.length === 0) {
+            container.innerHTML = '<p class="my-endorsements-empty">No likes yet. Tap ❤️ on discoveries you love!</p>';
             return;
         }
 
@@ -490,31 +485,26 @@ async function loadMyEndorsements() {
         const { data: items } = await supabaseClient
             .from('knowledge_items')
             .select('id, title, photo_url, added_by_name, type')
-            .in('id', allIds);
+            .in('id', likedIds);
 
         if (!items || items.length === 0) {
-            container.innerHTML = '<p class="my-endorsements-empty">No saves yet.</p>';
+            container.innerHTML = '<p class="my-endorsements-empty">No likes yet.</p>';
             return;
         }
 
-        // Sort: endorsed first (most recent), then saved
+        // Sort by endorsement order (most recent first)
         const itemMap = {};
         items.forEach(i => { itemMap[i.id] = i; });
-        const endorsedItems = (data || []).map(e => itemMap[e.item_id]).filter(Boolean);
-        const savedOnlyItems = savedIds.filter(id => !endorsedIds.includes(id)).map(id => itemMap[id]).filter(Boolean);
-        const sorted = [...endorsedItems, ...savedOnlyItems];
+        const sorted = likedIds.map(id => itemMap[id]).filter(Boolean);
 
         container.innerHTML = sorted.map(item => {
             const photo = item.photo_url
                 ? `<img src="${escapeHtml(item.photo_url)}">`
                 : `<span class="my-endorse-placeholder">${getCategoryEmoji(item.type)}</span>`;
-            const isEndorsed = endorsedIds.includes(item.id);
-            const isSaved = savedIds.includes(item.id);
-            const badge = isEndorsed ? '🙌' : '🔖';
             return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
-                <span class="my-endorse-card-badge">${badge}</span>
+                <span class="my-endorse-card-badge">❤️</span>
             </div>`;
         }).join('');
     } catch (err) {
@@ -636,7 +626,7 @@ async function toggleEndorsement(itemId, event) {
     const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
 
     if (cached.userEndorsed) {
-        // Un-endorse
+        // Unlike
         const { error } = await supabaseClient
             .from('endorsements')
             .delete()
@@ -651,7 +641,7 @@ async function toggleEndorsement(itemId, event) {
             cached.names = cached.names.filter(n => n !== myName);
         }
     } else {
-        // Endorse
+        // Like
         const { error } = await supabaseClient
             .from('endorsements')
             .insert({ user_id: currentUser.id, item_id: itemId });
@@ -662,144 +652,133 @@ async function toggleEndorsement(itemId, event) {
             cached.ids.push(currentUser.id);
             const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
             cached.names.push(myName);
-            // Milestone: first endorsement
+            // Milestone: first like
             if (!localStorage.getItem('milestone_first_endorse')) {
                 localStorage.setItem('milestone_first_endorse', 'true');
-                setTimeout(() => showToast('Your friends will see you endorsed this!'), 300);
+                setTimeout(() => showToast('Your friends will see you liked this!'), 300);
             }
         }
     }
 
     endorsementsCache[itemId] = cached;
-
-    // Update UI
     updateEndorsementUI(itemId);
+}
+
+// Get endorsement data filtered to friends only
+function getFriendsEndorsementData(itemId) {
+    const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
+    const friendIds = cached.ids.filter(id => isFriend(id));
+    const friendNames = [];
+    friendIds.forEach(id => {
+        if (id === currentUser?.id) { friendNames.push('You'); return; }
+        const f = friendsCache.find(fc => fc.out_user_id === id);
+        if (f) friendNames.push(f.out_display_name || 'Friend');
+    });
+    return { count: friendIds.length, names: friendNames, ids: friendIds, userLiked: cached.userEndorsed };
 }
 
 function updateEndorsementUI(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
+    const friendData = getFriendsEndorsementData(itemId);
 
     // Update card overlay buttons
     document.querySelectorAll(`.react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('endorsed', cached.userEndorsed);
         const countEl = btn.querySelector('.react-count');
-        if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
+        if (countEl) countEl.textContent = friendData.count > 0 ? friendData.count : '';
     });
 
-    // Update drawer Me too button
+    // Update drawer like button
     document.querySelectorAll(`.drawer-react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('active', cached.userEndorsed);
         const label = btn.querySelector('.drawer-react-label');
-        if (label) label.textContent = cached.userEndorsed ? 'Me too!' : 'Me too';
+        if (label) label.textContent = cached.userEndorsed ? 'Liked!' : 'Like';
+        const countEl = btn.querySelector('.drawer-react-count');
+        if (countEl) countEl.textContent = friendData.count > 0 ? friendData.count : '';
     });
+
+    // Update names text
+    const namesEl = document.getElementById('endorseNamesText');
+    if (namesEl) {
+        namesEl.innerHTML = buildNamesText(itemId);
+    }
 }
 
 function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
+    const friendData = getFriendsEndorsementData(itemId);
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
-    const countHtml = cached.count > 0 ? `<span class="react-count">${cached.count}</span>` : '';
+    const countHtml = friendData.count > 0 ? `<span class="react-count">${friendData.count}</span>` : '';
 
-    return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Me too!">
-        <span class="react-icon">🙌</span>${countHtml}
+    return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Like">
+        <span class="react-icon">❤️</span>${countHtml}
     </button>`;
 }
 
-// ===== SAVE (Bookmark) - localStorage =====
-function isItemSaved(itemId) {
-    try {
-        const saved = JSON.parse(localStorage.getItem('savedItems') || '[]');
-        return saved.includes(itemId);
-    } catch (e) { return false; }
-}
+function buildNamesText(itemId) {
+    const friendData = getFriendsEndorsementData(itemId);
+    if (friendData.count === 0) return '';
 
-function toggleSaveItem(itemId, event) {
-    if (event) { event.stopPropagation(); event.preventDefault(); }
-    try {
-        let saved = JSON.parse(localStorage.getItem('savedItems') || '[]');
-        if (saved.includes(itemId)) {
-            saved = saved.filter(id => id !== itemId);
-        } else {
-            saved.push(itemId);
-        }
-        localStorage.setItem('savedItems', JSON.stringify(saved));
-        updateSaveUI(itemId);
-    } catch (e) { console.error('Save error:', e); }
-}
-
-function updateSaveUI(itemId) {
-    const isSaved = isItemSaved(itemId);
-    document.querySelectorAll(`.drawer-react-btn[data-save-id="${itemId}"]`).forEach(btn => {
-        btn.classList.toggle('active', isSaved);
-        const label = btn.querySelector('.drawer-react-label');
-        if (label) label.textContent = isSaved ? 'Saved!' : 'Save';
-    });
-}
-
-// ===== GOOD FIND - visual feedback =====
-function toggleGoodFind(itemId, event) {
-    if (event) { event.stopPropagation(); event.preventDefault(); }
-    try {
-        let finds = JSON.parse(localStorage.getItem('goodFinds') || '[]');
-        if (finds.includes(itemId)) {
-            finds = finds.filter(id => id !== itemId);
-        } else {
-            finds.push(itemId);
-        }
-        localStorage.setItem('goodFinds', JSON.stringify(finds));
-        updateGoodFindUI(itemId);
-    } catch (e) { console.error('Good find error:', e); }
-}
-
-function isGoodFind(itemId) {
-    try {
-        const finds = JSON.parse(localStorage.getItem('goodFinds') || '[]');
-        return finds.includes(itemId);
-    } catch (e) { return false; }
-}
-
-function updateGoodFindUI(itemId) {
-    const isFind = isGoodFind(itemId);
-    document.querySelectorAll(`.drawer-react-btn[data-find-id="${itemId}"]`).forEach(btn => {
-        btn.classList.toggle('active', isFind);
-        const label = btn.querySelector('.drawer-react-label');
-        if (label) label.textContent = isFind ? 'Great find!' : 'Good find';
-    });
+    const displayNames = friendData.names.slice(0, 3);
+    let text = '';
+    if (friendData.count <= 3) {
+        text = displayNames.join(', ') + ' also liked this';
+    } else {
+        text = displayNames.join(', ') + ` and ${friendData.count - 3} others also liked this`;
+    }
+    return `<span class="liked-by-link" onclick="showLikedByModal('${itemId}')">${escapeHtml(text)}</span>`;
 }
 
 function buildEndorseSection(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, names: [], userEndorsed: false };
-    const metooActive = cached.userEndorsed ? ' active' : '';
-    const saveActive = isItemSaved(itemId) ? ' active' : '';
-    const findActive = isGoodFind(itemId) ? ' active' : '';
-
-    let namesText = '';
-    if (cached.count > 0) {
-        const displayNames = cached.names.slice(0, 3);
-        if (cached.count <= 3) {
-            namesText = displayNames.join(', ') + ' also liked this';
-        } else {
-            namesText = displayNames.join(', ') + ` and ${cached.count - 3} others also liked this`;
-        }
-    }
+    const friendData = getFriendsEndorsementData(itemId);
+    const likeActive = cached.userEndorsed ? ' active' : '';
 
     return `<div class="drawer-reactions">
         <div class="drawer-react-row">
-            <button class="drawer-react-btn${metooActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
-                <span class="drawer-react-icon">🙌</span>
-                <span class="drawer-react-label">${cached.userEndorsed ? 'Me too!' : 'Me too'}</span>
-                ${cached.count > 0 ? `<span class="drawer-react-count">${cached.count}</span>` : ''}
-            </button>
-            <button class="drawer-react-btn${saveActive}" data-save-id="${itemId}" onclick="toggleSaveItem('${itemId}', event)">
-                <span class="drawer-react-icon">🔖</span>
-                <span class="drawer-react-label">${isItemSaved(itemId) ? 'Saved!' : 'Save'}</span>
-            </button>
-            <button class="drawer-react-btn${findActive}" data-find-id="${itemId}" onclick="toggleGoodFind('${itemId}', event)">
-                <span class="drawer-react-icon">💡</span>
-                <span class="drawer-react-label">${isGoodFind(itemId) ? 'Great find!' : 'Good find'}</span>
+            <button class="drawer-react-btn${likeActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+                <span class="drawer-react-icon">❤️</span>
+                <span class="drawer-react-label">${cached.userEndorsed ? 'Liked!' : 'Like'}</span>
+                ${friendData.count > 0 ? `<span class="drawer-react-count">${friendData.count}</span>` : ''}
             </button>
         </div>
-        ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
+        <div id="endorseNamesText" class="endorse-names">${buildNamesText(itemId)}</div>
     </div>`;
+}
+
+function showLikedByModal(itemId) {
+    const friendData = getFriendsEndorsementData(itemId);
+    if (friendData.count === 0) return;
+
+    const listHtml = friendData.names.map(name => {
+        const initial = (name || '?').charAt(0).toUpperCase();
+        return `<div class="liked-by-item">
+            <div class="liked-by-avatar">${initial}</div>
+            <div class="liked-by-name">${escapeHtml(name)}</div>
+        </div>`;
+    }).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'likedByModal';
+    modal.className = 'liked-by-overlay';
+    modal.onclick = (e) => { if (e.target === modal) closeLikedByModal(); };
+    modal.innerHTML = `<div class="liked-by-modal">
+        <div class="liked-by-header">
+            <span class="liked-by-title">Liked by</span>
+            <button class="liked-by-close" onclick="closeLikedByModal()">×</button>
+        </div>
+        <div class="liked-by-list">${listHtml}</div>
+    </div>`;
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('show'));
+}
+
+function closeLikedByModal() {
+    const modal = document.getElementById('likedByModal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.remove(), 200);
+    }
 }
 
 // ===== FRIENDS NETWORK FUNCTIONS =====
@@ -1166,7 +1145,11 @@ function renderSingleNote(n, itemId) {
 }
 
 function renderNotesList(notes, itemId) {
-    return notes.map(n => renderSingleNote(n, itemId)).join('') || '<div class="notes-empty">No stories yet. Share yours!</div>';
+    // Sort: friends/own stories first (by date), then non-friends
+    const friendNotes = notes.filter(n => (currentUser && n.out_user_id === currentUser.id) || isFriend(n.out_user_id));
+    const otherNotes = notes.filter(n => (!currentUser || n.out_user_id !== currentUser.id) && !isFriend(n.out_user_id));
+    const sorted = [...friendNotes, ...otherNotes];
+    return sorted.map(n => renderSingleNote(n, itemId)).join('') || '<div class="notes-empty">No stories yet. Share yours!</div>';
 }
 
 function renderNotesSection(itemId, notes) {
@@ -1329,7 +1312,7 @@ async function loadNotifications() {
         section.style.display = 'block';
         container.innerHTML = data.map(n => {
             let icon = '📝';
-            if (n.out_type === 'endorsement') icon = '🙌';
+            if (n.out_type === 'endorsement') icon = '❤️';
             else if (n.out_type === 'friend_request') icon = '🤝';
             else if (n.out_type === 'friend_accepted') icon = '🎉';
             const timeAgo = getTimeAgo(n.out_created_at);
@@ -1743,8 +1726,7 @@ function filterAndRender() {
         if (filters.endorsed) {
             const cached = endorsementsCache[item.id];
             const isEndorsed = cached && cached.userEndorsed;
-            const isSaved = isItemSaved(item.id);
-            if (!isEndorsed && !isSaved) return false;
+            if (!isEndorsed) return false;
         }
         if (filters.searchText) {
             const text = filters.searchText;
