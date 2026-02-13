@@ -1133,30 +1133,50 @@ async function loadNotesForItem(itemId) {
     }
 }
 
-function renderNotesSection(itemId, notes) {
-    const notesList = notes.map(n => {
-        const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
-        const timeAgo = getTimeAgo(n.out_created_at);
-        const isOwn = currentUser && n.out_user_id === currentUser.id;
-        const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
-        return `<div class="note-item">
+// Shared helper: render a single note with privacy check
+function renderSingleNote(n, itemId) {
+    const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+    const isOwn = currentUser && n.out_user_id === currentUser.id;
+    const canSee = isOwn || isFriend(n.out_user_id);
+
+    if (!canSee) {
+        // Non-friend teaser
+        return `<div class="note-item note-teaser">
             <div class="note-avatar">${initial}</div>
             <div class="note-body">
-                <div class="note-header">
-                    <span class="note-author">${escapeHtml(n.out_user_name)}</span>
-                    <span class="note-time">${timeAgo}</span>
-                    ${deleteBtn}
-                </div>
-                <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+                <div class="note-text note-teaser-text">Connect with ${escapeHtml(n.out_user_name || 'them')} to see their story</div>
             </div>
         </div>`;
-    }).join('');
+    }
+
+    // Full note for friends and own notes
+    const timeAgo = getTimeAgo(n.out_created_at);
+    const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+    return `<div class="note-item">
+        <div class="note-avatar">${initial}</div>
+        <div class="note-body">
+            <div class="note-header">
+                <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                <span class="note-time">${timeAgo}</span>
+                ${deleteBtn}
+            </div>
+            <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+        </div>
+    </div>`;
+}
+
+function renderNotesList(notes, itemId) {
+    return notes.map(n => renderSingleNote(n, itemId)).join('') || '<div class="notes-empty">No stories yet. Share yours!</div>';
+}
+
+function renderNotesSection(itemId, notes) {
+    const notesList = renderNotesList(notes, itemId);
 
     return `<div class="community-notes" id="communityNotes">
-        <div class="community-notes-label">Comments</div>
-        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet. Be the first!</div>'}</div>
+        <div class="community-notes-label">Friend Stories</div>
+        <div class="notes-list" id="notesList">${notesList}</div>
         <div class="note-input-wrap">
-            <textarea class="note-input" id="noteInput" placeholder="Leave a comment..." maxlength="500" rows="2"></textarea>
+            <textarea class="note-input" id="noteInput" placeholder="Share your experience..." maxlength="500" rows="2"></textarea>
             <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
         </div>
     </div>`;
@@ -1168,7 +1188,7 @@ async function submitNote(itemId) {
     const text = input.value.trim();
     if (!text) return;
     if (text.length > 500) {
-        alert('Note must be 500 characters or less');
+        alert('Story must be 500 characters or less');
         return;
     }
 
@@ -1186,32 +1206,16 @@ async function submitNote(itemId) {
 
         if (error) {
             console.error('Error submitting note:', error);
-            alert('Failed to post note. Please try again.');
+            alert('Failed to post. Please try again.');
             return;
         }
 
         // Clear input and reload notes
         input.value = '';
         const notes = await loadNotesForItem(itemId);
-        const notesList = document.getElementById('notesList');
-        if (notesList) {
-            notesList.innerHTML = notes.map(n => {
-                const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
-                const timeAgo = getTimeAgo(n.out_created_at);
-                const isOwn = currentUser && n.out_user_id === currentUser.id;
-                const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
-                return `<div class="note-item">
-                    <div class="note-avatar">${initial}</div>
-                    <div class="note-body">
-                        <div class="note-header">
-                            <span class="note-author">${escapeHtml(n.out_user_name)}</span>
-                            <span class="note-time">${timeAgo}</span>
-                            ${deleteBtn}
-                        </div>
-                        <div class="note-text">${escapeHtml(n.out_note_text)}</div>
-                    </div>
-                </div>`;
-            }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
+        const notesListEl = document.getElementById('notesList');
+        if (notesListEl) {
+            notesListEl.innerHTML = renderNotesList(notes, itemId);
         }
     } catch (err) {
         console.error('Error in submitNote:', err);
@@ -1230,27 +1234,10 @@ async function deleteNote(noteId, itemId, event) {
             .eq('user_id', currentUser.id);
 
         if (!error) {
-            // Reload notes
             const notes = await loadNotesForItem(itemId);
-            const notesList = document.getElementById('notesList');
-            if (notesList) {
-                notesList.innerHTML = notes.map(n => {
-                    const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
-                    const timeAgo = getTimeAgo(n.out_created_at);
-                    const isOwn = currentUser && n.out_user_id === currentUser.id;
-                    const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
-                    return `<div class="note-item">
-                        <div class="note-avatar">${initial}</div>
-                        <div class="note-body">
-                            <div class="note-header">
-                                <span class="note-author">${escapeHtml(n.out_user_name)}</span>
-                                <span class="note-time">${timeAgo}</span>
-                                ${deleteBtn}
-                            </div>
-                            <div class="note-text">${escapeHtml(n.out_note_text)}</div>
-                        </div>
-                    </div>`;
-                }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
+            const notesListEl = document.getElementById('notesList');
+            if (notesListEl) {
+                notesListEl.innerHTML = renderNotesList(notes, itemId);
             }
         }
     } catch (err) {
