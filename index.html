@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=19">
+    <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
     <!-- Auth Screen -->
@@ -18,7 +18,7 @@
             <div class="auth-brand">
                 <div class="auth-logo">
                     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                        <rect width="48" height="48" rx="12" fill="#059669"/>
+                        <rect width="48" height="48" rx="12" fill="#E8854A"/>
                         <path d="M14 32V20L24 14L34 20V32L24 38L14 32Z" stroke="white" stroke-width="2.5" fill="none"/>
                         <circle cx="24" cy="26" r="4" fill="white"/>
                     </svg>
@@ -98,9 +98,12 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <span class="header-title">The Community</span>
+            <span class="header-title">The <span class="header-accent">Community</span></span>
             <div class="header-right">
-                <span class="location-indicator" id="locationIndicator">📍 Getting location...</span>
+                <span class="location-indicator" id="locationIndicator" style="display:none;">📍 Getting location...</span>
+                <div class="header-avatar" onclick="setMode('profile')">
+                    <span id="headerAvatarInitial">?</span>
+                </div>
             </div>
         </div>
     </div>
@@ -142,8 +145,19 @@
         <!-- HOME PAGE (Recurring users) -->
         <div id="homePage" class="hidden">
             <div class="home-page">
-                <h1 class="home-title">What would you like to do?</h1>
+                <!-- Greeting -->
+                <div class="home-greeting">
+                    <h1 id="homeGreeting">Good morning</h1>
+                    <p id="homeSubtitle">What would you like to find today?</p>
+                </div>
 
+                <!-- Breathing Search Bar -->
+                <div class="home-search-wrapper breathing">
+                    <svg class="home-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="home-search-bar" id="homeSearchInput" placeholder="Try &quot;quiet cafe to work from&quot;" onkeypress="if(event.key==='Enter') searchFromHome()">
+                </div>
+
+                <!-- Onboarding Banner -->
                 <div id="onboardingBanner" class="onboarding-banner" style="display:none;">
                     <div class="onboarding-icon">👋</div>
                     <div class="onboarding-text">
@@ -156,38 +170,24 @@
                     </div>
                 </div>
 
-                <div class="home-actions">
-                    <div class="home-card" onclick="setMode('search')">
-                        <div class="home-card-icon">🔍</div>
-                        <div class="home-card-content">
-                            <div class="home-card-title">Search</div>
-                            <div class="home-card-desc">Ask anything about your friends' recommendations</div>
-                        </div>
+                <!-- Your Recent Saves -->
+                <div class="home-saves-section" id="homeSavesSection" style="display:none;">
+                    <div class="home-section-header">
+                        <h2>Your Recent Saves</h2>
+                        <a onclick="setMode('saved')">See all</a>
                     </div>
-
-                    <div class="home-card" onclick="setMode('discover')">
-                        <div class="home-card-icon">🎯</div>
-                        <div class="home-card-content">
-                            <div class="home-card-title">Discover</div>
-                            <div class="home-card-desc">Browse recent finds from your community</div>
-                        </div>
-                    </div>
-
-                    <div class="home-card" onclick="setMode('input')">
-                        <div class="home-card-icon">➕</div>
-                        <div class="home-card-content">
-                            <div class="home-card-title">Add Discovery</div>
-                            <div class="home-card-desc">Capture a recommendation from a friend</div>
-                        </div>
-                    </div>
+                    <div class="home-saves-scroll" id="homeSavesList"></div>
                 </div>
 
-                <div id="notificationsList" class="notifications-list" style="display:none;">
-                    <div class="notifications-header">
-                        <h3 class="notifications-title">Notifications</h3>
-                        <button class="notif-mark-all" onclick="markAllNotifsRead()">Mark all read</button>
+                <!-- Activity -->
+                <div class="home-activity-section" id="homeActivitySection">
+                    <div class="home-section-header">
+                        <h2>Activity</h2>
+                        <a onclick="markAllNotifsRead()">Mark all read</a>
                     </div>
-                    <div id="notifItems"></div>
+                    <div id="homeActivityItems">
+                        <div class="activity-empty">No recent activity</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -219,15 +219,17 @@
         <!-- DISCOVER MODE -->
         <div id="discoverMode" class="hidden">
             <div class="discover-container">
-                <h2 class="page-title">Discover</h2>
-                <p class="page-subtitle">What your friends & family found:</p>
+                <div class="discover-header">
+                    <h2 class="page-title">Discover</h2>
+                    <p class="page-subtitle">Curated finds from your circle</p>
+                </div>
 
-                <div class="top-bar">
+                <div class="discover-search-wrapper">
+                    <svg class="discover-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     <input type="text" class="search-input" id="discoverSearch" placeholder="Search discoveries..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter') searchFromDiscover()"/>
-                    <button class="filter-btn" onclick="openFilterModal()">
-                        Filter
+                    <button class="filter-pill" onclick="openFilterModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
                         <span class="filter-badge" id="filterBadge" style="display: none;">0</span>
-                        <span>▼</span>
                     </button>
                 </div>
 
@@ -246,8 +248,9 @@
 
                 <div class="map-section">
                     <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap('discover')">
-                        <span class="map-toggle-icon">▼</span>
+                        <svg class="map-toggle-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 11-7 11S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
                         <span id="mapToggleText">Show Map</span>
+                        <span class="map-toggle-icon">▼</span>
                     </button>
                     <div class="discover-map-container hidden" id="discoverMapContainer">
                         <div id="discoverMap"></div>
@@ -272,16 +275,23 @@
 
                     <div class="profile-stats">
                         <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
-                            <div class="profile-stat-label">Discoveries</div>
+                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
+                            <div class="profile-stat-label">Saved</div>
                         </div>
                         <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                            <div class="profile-stat-label">Likes</div>
+                            <div class="profile-stat-number" id="profilePeopleCount">0</div>
+                            <div class="profile-stat-label">People</div>
+                        </div>
+                        <div class="profile-stat">
+                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                            <div class="profile-stat-label">Items</div>
                         </div>
                     </div>
 
-                    <button class="profile-edit-btn" onclick="toggleProfileEdit(true)">Edit Profile</button>
+                    <button class="profile-edit-link" onclick="toggleProfileEdit(true)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        Edit Profile
+                    </button>
                 </div>
 
                 <!-- Edit Mode (hidden by default) -->
@@ -304,37 +314,69 @@
                     </form>
                 </div>
 
+                <!-- My Saves -->
                 <div class="profile-section-divider"></div>
-                <h3 class="profile-section-title">My Likes</h3>
+                <div class="home-section-header">
+                    <h2>My Saves</h2>
+                </div>
                 <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
-                    <p class="my-endorsements-empty">No likes yet. Tap ❤️ on discoveries you love!</p>
+                    <p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>
                 </div>
 
+                <!-- Your Circle -->
                 <div class="profile-section-divider"></div>
-                <h3 class="profile-section-title">My Network</h3>
+                <div class="home-section-header" style="margin-bottom:4px;">
+                    <h2>Your Circle</h2>
+                </div>
 
                 <div class="friends-search-container">
                     <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search by name or email..." onkeyup="handleFriendSearchInput(event)">
                     <div id="friendSearchResults" class="friend-search-results" style="display:none;"></div>
                 </div>
 
+                <!-- Pending Requests -->
                 <div id="pendingRequestsContainer" style="display:none;">
-                    <h4 class="friends-subsection-title">Friend Requests</h4>
+                    <div class="tier-label">
+                        <h3>Requests</h3>
+                        <span class="tier-badge pending">Pending</span>
+                    </div>
                     <div id="pendingRequestsList" class="friend-requests-list"></div>
                 </div>
 
+                <!-- Friends -->
                 <div id="friendsListContainer" style="display:none;">
-                    <h4 class="friends-subsection-title">Friends</h4>
+                    <div class="tier-label">
+                        <h3>Friends</h3>
+                        <span class="tier-badge outer" id="friendsCountBadge">0</span>
+                    </div>
+                    <div class="tier-desc">People you trust. Their recommendations appear in your search results.</div>
                     <div id="friendsList" class="friends-list"></div>
                 </div>
 
                 <div id="friendsEmptyState" class="friends-empty-state">
                     <div class="friends-empty-icon">🤝</div>
-                    <p>Your network is empty</p>
-                    <p class="friends-empty-hint">Search by name or email above to start connecting with friends!</p>
+                    <p>Your circle is empty</p>
+                    <p class="friends-empty-hint">Search by name or email above to connect with friends and family!</p>
                 </div>
 
+                <!-- Invite Button -->
+                <button class="invite-btn" onclick="document.getElementById('friendSearchInput').focus();">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Invite a friend
+                </button>
+
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- SAVED MODE -->
+        <div id="savedMode" class="hidden">
+            <div class="saved-container">
+                <div class="discover-header">
+                    <h2 class="page-title">Saved</h2>
+                    <p class="page-subtitle">Your bookmarked discoveries</p>
+                </div>
+                <div id="savedItemsList" class="my-endorsements-list-vertical"></div>
             </div>
         </div>
 
@@ -400,27 +442,28 @@
         </div>
     </div>
 
-    <!-- Bottom Tab Bar - 5 tabs with profile center -->
+    <!-- Bottom Tab Bar - 5 tabs -->
     <div class="bottom-tab-bar">
         <button class="tab-item active" onclick="setMode('home')" id="homeTab">
-            <div class="tab-icon">🏠</div>
+            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <div class="tab-label">Home</div>
             <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
         </button>
-        <button class="tab-item" onclick="setMode('search')" id="searchTab">
-            <div class="tab-icon">🔍</div>
-            <div class="tab-label">Search</div>
-        </button>
-        <button class="tab-item tab-item-profile" onclick="setMode('profile')" id="profileTab">
-            <div class="tab-avatar" id="tabAvatarInitial">?</div>
-        </button>
         <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
-            <div class="tab-icon">🎯</div>
+            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
             <div class="tab-label">Discover</div>
         </button>
+        <button class="tab-item" onclick="setMode('saved')" id="savedTab">
+            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <div class="tab-label">Saved</div>
+        </button>
         <button class="tab-item" onclick="setMode('input')" id="addTab">
-            <div class="tab-icon">➕</div>
+            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <div class="tab-label">Add</div>
+        </button>
+        <button class="tab-item" onclick="setMode('profile')" id="profileTab">
+            <div class="tab-avatar" id="tabAvatarInitial">?</div>
+            <div class="tab-label">Profile</div>
         </button>
     </div>
 
@@ -449,14 +492,14 @@
             </div>
             <div class="filter-section" id="endorsedSection">
                 <div class="filter-section-header" onclick="toggleSection('endorsed')">
-                    <span class="filter-section-title">Likes</span>
+                    <span class="filter-section-title">Saves</span>
                     <span class="filter-section-chevron">›</span>
                 </div>
                 <div class="filter-section-content">
                     <div class="filter-section-options" id="endorsedOptions">
                         <div class="filter-option">
                             <input type="checkbox" id="endorsed-mine" value="mine" onchange="updateFilterState()">
-                            <label for="endorsed-mine">My Likes only</label>
+                            <label for="endorsed-mine">My Saves only</label>
                         </div>
                     </div>
                 </div>
@@ -494,6 +537,195 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=21"></script>
+    <script src="app.js?v=22"></script>
+    <script>
+    // ===== HOME PAGE ENHANCEMENTS =====
+
+    // Time-of-day greeting
+    function updateHomeGreeting() {
+        const el = document.getElementById('homeGreeting');
+        if (!el) return;
+        const hour = new Date().getHours();
+        let greeting = 'Good evening';
+        if (hour < 12) greeting = 'Good morning';
+        else if (hour < 17) greeting = 'Good afternoon';
+        const name = (typeof currentProfile !== 'undefined' && currentProfile)
+            ? (currentProfile.display_name || '').split(' ')[0]
+            : '';
+        el.textContent = name ? `${greeting}, ${name}` : greeting;
+    }
+
+    // Search from home → transitions to search mode
+    function searchFromHome() {
+        const input = document.getElementById('homeSearchInput');
+        const query = input.value.trim();
+        if (!query) return;
+        input.value = '';
+        setMode('search');
+        setTimeout(function() { sendMessage(query); }, 150);
+    }
+
+    // Dynamic subtitle based on time of day
+    function updateHomeSubtitle() {
+        var el = document.getElementById('homeSubtitle');
+        if (!el) return;
+        var hour = new Date().getHours();
+        if (hour < 11) el.textContent = 'Looking for a breakfast spot?';
+        else if (hour < 14) el.textContent = 'Looking for a lunch spot?';
+        else if (hour < 17) el.textContent = 'Looking for a coffee break?';
+        else el.textContent = 'Looking for dinner ideas?';
+    }
+
+    // Load saves on home page — with "Added by" and delete button
+    async function loadHomeSaves() {
+        const section = document.getElementById('homeSavesSection');
+        const list = document.getElementById('homeSavesList');
+        if (!section || !list || typeof currentUser === 'undefined' || !currentUser) return;
+        try {
+            const { data } = await supabaseClient
+                .from('endorsements')
+                .select('item_id')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+            const savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
+            const endorsedIds = (data || []).map(function(e) { return e.item_id; });
+            const allIds = [...new Set([...endorsedIds, ...savedIds])].slice(0, 10);
+            if (allIds.length === 0) { section.style.display = 'none'; return; }
+            const { data: items } = await supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, type, added_by_name')
+                .in('id', allIds);
+            if (!items || items.length === 0) { section.style.display = 'none'; return; }
+            section.style.display = 'block';
+            list.innerHTML = items.map(function(item) {
+                var photo = item.photo_url
+                    ? '<img class="home-save-img" src="' + escapeHtml(item.photo_url) + '">'
+                    : '<div class="home-save-img home-save-placeholder">' + getCategoryEmoji(item.type) + '</div>';
+                var addedBy = item.added_by_name ? '<div class="home-save-addedby">Added by ' + escapeHtml(item.added_by_name) + '</div>' : '';
+                return '<div class="home-save-card">'
+                    + '<button class="home-save-delete" onclick="event.stopPropagation(); removeHomeSave(\'' + item.id + '\')" title="Remove">&times;</button>'
+                    + '<div onclick="goToEndorsedItem(\'' + item.id + '\')">'
+                    + photo
+                    + '<div class="home-save-title">' + escapeHtml(item.title) + '</div>'
+                    + addedBy
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        } catch (err) {
+            console.error('Home saves error:', err);
+        }
+    }
+
+    // Remove a save from home page
+    async function removeHomeSave(itemId) {
+        try {
+            // Remove from local storage saves
+            var savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
+            savedIds = savedIds.filter(function(id) { return id !== itemId; });
+            localStorage.setItem('savedItems', JSON.stringify(savedIds));
+
+            // Remove endorsement from Supabase
+            if (typeof currentUser !== 'undefined' && currentUser) {
+                await supabaseClient
+                    .from('endorsements')
+                    .delete()
+                    .eq('user_id', currentUser.id)
+                    .eq('item_id', itemId);
+            }
+            loadHomeSaves();
+            showToast('Removed from saves');
+        } catch (err) {
+            console.error('Remove save error:', err);
+        }
+    }
+
+    // Load activity/notifications on home page
+    async function loadHomeActivity() {
+        var container = document.getElementById('homeActivityItems');
+        if (!container || typeof currentUser === 'undefined' || !currentUser) return;
+        try {
+            var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+            if (notifs.length === 0 && typeof loadNotifications === 'function') {
+                await loadNotifications();
+                notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+            }
+            if (notifs.length === 0) {
+                container.innerHTML = '<div class="activity-empty">No recent activity</div>';
+                return;
+            }
+            container.innerHTML = notifs.slice(0, 10).map(function(n) {
+                var initial = (n.actor_name || '?').charAt(0).toUpperCase();
+                var isUnread = !n.read;
+                return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\')">'
+                    + '<div class="activity-avatar">' + initial + '</div>'
+                    + '<div class="activity-body">'
+                    + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
+                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        } catch (err) {
+            console.error('Home activity error:', err);
+        }
+    }
+
+    function handleNotifClick(notifId, itemId) {
+        if (notifId && typeof markNotifRead === 'function') markNotifRead(notifId);
+        if (itemId) goToEndorsedItem(itemId);
+    }
+
+    // Patch updateAvatarInitials to also update header avatar
+    if (typeof updateAvatarInitials === 'function') {
+        var _origUpdateAvatar = updateAvatarInitials;
+        updateAvatarInitials = function(name) {
+            _origUpdateAvatar(name);
+            var el = document.getElementById('headerAvatarInitial');
+            if (el) el.textContent = (name || '?').charAt(0).toUpperCase();
+        };
+    }
+
+    // Patch showHome to also load greeting, subtitle, saves & activity
+    if (typeof showHome === 'function') {
+        var _origShowHome = showHome;
+        showHome = function() {
+            _origShowHome();
+            updateHomeGreeting();
+            updateHomeSubtitle();
+            loadHomeSaves();
+            loadHomeActivity();
+        };
+    }
+
+    // ===== PROFILE PAGE ENHANCEMENTS =====
+
+    // Update People count + Friends badge after friends load
+    if (typeof updateFriendsDisplay === 'function') {
+        var _origUpdateFriendsDisplay = updateFriendsDisplay;
+        updateFriendsDisplay = function() {
+            _origUpdateFriendsDisplay();
+            // Update "People" stat on profile
+            var count = (typeof friendsCache !== 'undefined') ? friendsCache.length : 0;
+            var el = document.getElementById('profilePeopleCount');
+            if (el) el.textContent = count;
+            // Update friends badge count
+            var badge = document.getElementById('friendsCountBadge');
+            if (badge) badge.textContent = count;
+        };
+    }
+
+    // Patch loadProfilePage to update People stat
+    if (typeof loadProfilePage === 'function') {
+        var _origLoadProfilePage = loadProfilePage;
+        loadProfilePage = async function() {
+            await _origLoadProfilePage();
+            var count = (typeof friendsCache !== 'undefined') ? friendsCache.length : 0;
+            var el = document.getElementById('profilePeopleCount');
+            if (el) el.textContent = count;
+            var badge = document.getElementById('friendsCountBadge');
+            if (badge) badge.textContent = count;
+        };
+    }
+    </script>
 </body>
 </html>

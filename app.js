@@ -467,17 +467,22 @@ async function loadMyEndorsements() {
     if (!container || !currentUser) return;
 
     try {
-        // Get liked items (❤️) from Supabase
+        // Get endorsed items (🙌 Me too) from Supabase
         const { data, error } = await supabaseClient
             .from('endorsements')
             .select('item_id, created_at')
             .eq('user_id', currentUser.id)
             .order('created_at', { ascending: false });
 
-        const likedIds = (data || []).map(e => e.item_id);
+        // Get bookmarked items (🔖 Save) from localStorage
+        const savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
 
-        if (likedIds.length === 0) {
-            container.innerHTML = '<p class="my-endorsements-empty">No likes yet. Tap ❤️ on discoveries you love!</p>';
+        // Combine unique IDs
+        const endorsedIds = (data || []).map(e => e.item_id);
+        const allIds = [...new Set([...endorsedIds, ...savedIds])];
+
+        if (allIds.length === 0) {
+            container.innerHTML = '<p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>';
             return;
         }
 
@@ -485,26 +490,31 @@ async function loadMyEndorsements() {
         const { data: items } = await supabaseClient
             .from('knowledge_items')
             .select('id, title, photo_url, added_by_name, type')
-            .in('id', likedIds);
+            .in('id', allIds);
 
         if (!items || items.length === 0) {
-            container.innerHTML = '<p class="my-endorsements-empty">No likes yet.</p>';
+            container.innerHTML = '<p class="my-endorsements-empty">No saves yet.</p>';
             return;
         }
 
-        // Sort by endorsement order (most recent first)
+        // Sort: endorsed first (most recent), then saved
         const itemMap = {};
         items.forEach(i => { itemMap[i.id] = i; });
-        const sorted = likedIds.map(id => itemMap[id]).filter(Boolean);
+        const endorsedItems = (data || []).map(e => itemMap[e.item_id]).filter(Boolean);
+        const savedOnlyItems = savedIds.filter(id => !endorsedIds.includes(id)).map(id => itemMap[id]).filter(Boolean);
+        const sorted = [...endorsedItems, ...savedOnlyItems];
 
         container.innerHTML = sorted.map(item => {
             const photo = item.photo_url
                 ? `<img src="${escapeHtml(item.photo_url)}">`
                 : `<span class="my-endorse-placeholder">${getCategoryEmoji(item.type)}</span>`;
+            const isEndorsed = endorsedIds.includes(item.id);
+            const isSaved = savedIds.includes(item.id);
+            const badge = isEndorsed ? '🙌' : '🔖';
             return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
-                <span class="my-endorse-card-badge">❤️</span>
+                <span class="my-endorse-card-badge">${badge}</span>
             </div>`;
         }).join('');
     } catch (err) {
@@ -626,7 +636,7 @@ async function toggleEndorsement(itemId, event) {
     const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
 
     if (cached.userEndorsed) {
-        // Unlike
+        // Un-endorse
         const { error } = await supabaseClient
             .from('endorsements')
             .delete()
@@ -641,7 +651,7 @@ async function toggleEndorsement(itemId, event) {
             cached.names = cached.names.filter(n => n !== myName);
         }
     } else {
-        // Like
+        // Endorse
         const { error } = await supabaseClient
             .from('endorsements')
             .insert({ user_id: currentUser.id, item_id: itemId });
@@ -652,133 +662,144 @@ async function toggleEndorsement(itemId, event) {
             cached.ids.push(currentUser.id);
             const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
             cached.names.push(myName);
-            // Milestone: first like
+            // Milestone: first endorsement
             if (!localStorage.getItem('milestone_first_endorse')) {
                 localStorage.setItem('milestone_first_endorse', 'true');
-                setTimeout(() => showToast('Your friends will see you liked this!'), 300);
+                setTimeout(() => showToast('Your friends will see you endorsed this!'), 300);
             }
         }
     }
 
     endorsementsCache[itemId] = cached;
-    updateEndorsementUI(itemId);
-}
 
-// Get endorsement data filtered to friends only
-function getFriendsEndorsementData(itemId) {
-    const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
-    const friendIds = cached.ids.filter(id => isFriend(id));
-    const friendNames = [];
-    friendIds.forEach(id => {
-        if (id === currentUser?.id) { friendNames.push('You'); return; }
-        const f = friendsCache.find(fc => fc.out_user_id === id);
-        if (f) friendNames.push(f.out_display_name || 'Friend');
-    });
-    return { count: friendIds.length, names: friendNames, ids: friendIds, userLiked: cached.userEndorsed };
+    // Update UI
+    updateEndorsementUI(itemId);
 }
 
 function updateEndorsementUI(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
-    const friendData = getFriendsEndorsementData(itemId);
 
     // Update card overlay buttons
     document.querySelectorAll(`.react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('endorsed', cached.userEndorsed);
         const countEl = btn.querySelector('.react-count');
-        if (countEl) countEl.textContent = friendData.count > 0 ? friendData.count : '';
+        if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
     });
 
-    // Update drawer like button
+    // Update drawer Me too button
     document.querySelectorAll(`.drawer-react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('active', cached.userEndorsed);
         const label = btn.querySelector('.drawer-react-label');
-        if (label) label.textContent = cached.userEndorsed ? 'Liked!' : 'Like';
-        const countEl = btn.querySelector('.drawer-react-count');
-        if (countEl) countEl.textContent = friendData.count > 0 ? friendData.count : '';
+        if (label) label.textContent = cached.userEndorsed ? 'Me too!' : 'Me too';
     });
-
-    // Update names text
-    const namesEl = document.getElementById('endorseNamesText');
-    if (namesEl) {
-        namesEl.innerHTML = buildNamesText(itemId);
-    }
 }
 
 function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
-    const friendData = getFriendsEndorsementData(itemId);
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
-    const countHtml = friendData.count > 0 ? `<span class="react-count">${friendData.count}</span>` : '';
+    const countHtml = cached.count > 0 ? `<span class="react-count">${cached.count}</span>` : '';
 
-    return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Like">
-        <span class="react-icon">❤️</span>${countHtml}
+    return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Me too!">
+        <span class="react-icon">🙌</span>${countHtml}
     </button>`;
 }
 
-function buildNamesText(itemId) {
-    const friendData = getFriendsEndorsementData(itemId);
-    if (friendData.count === 0) return '';
+// ===== SAVE (Bookmark) - localStorage =====
+function isItemSaved(itemId) {
+    try {
+        const saved = JSON.parse(localStorage.getItem('savedItems') || '[]');
+        return saved.includes(itemId);
+    } catch (e) { return false; }
+}
 
-    const displayNames = friendData.names.slice(0, 3);
-    let text = '';
-    if (friendData.count <= 3) {
-        text = displayNames.join(', ') + ' also liked this';
-    } else {
-        text = displayNames.join(', ') + ` and ${friendData.count - 3} others also liked this`;
-    }
-    return `<span class="liked-by-link" onclick="showLikedByModal('${itemId}')">${escapeHtml(text)}</span>`;
+function toggleSaveItem(itemId, event) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    try {
+        let saved = JSON.parse(localStorage.getItem('savedItems') || '[]');
+        if (saved.includes(itemId)) {
+            saved = saved.filter(id => id !== itemId);
+        } else {
+            saved.push(itemId);
+        }
+        localStorage.setItem('savedItems', JSON.stringify(saved));
+        updateSaveUI(itemId);
+    } catch (e) { console.error('Save error:', e); }
+}
+
+function updateSaveUI(itemId) {
+    const isSaved = isItemSaved(itemId);
+    document.querySelectorAll(`.drawer-react-btn[data-save-id="${itemId}"]`).forEach(btn => {
+        btn.classList.toggle('active', isSaved);
+        const label = btn.querySelector('.drawer-react-label');
+        if (label) label.textContent = isSaved ? 'Saved!' : 'Save';
+    });
+}
+
+// ===== GOOD FIND - visual feedback =====
+function toggleGoodFind(itemId, event) {
+    if (event) { event.stopPropagation(); event.preventDefault(); }
+    try {
+        let finds = JSON.parse(localStorage.getItem('goodFinds') || '[]');
+        if (finds.includes(itemId)) {
+            finds = finds.filter(id => id !== itemId);
+        } else {
+            finds.push(itemId);
+        }
+        localStorage.setItem('goodFinds', JSON.stringify(finds));
+        updateGoodFindUI(itemId);
+    } catch (e) { console.error('Good find error:', e); }
+}
+
+function isGoodFind(itemId) {
+    try {
+        const finds = JSON.parse(localStorage.getItem('goodFinds') || '[]');
+        return finds.includes(itemId);
+    } catch (e) { return false; }
+}
+
+function updateGoodFindUI(itemId) {
+    const isFind = isGoodFind(itemId);
+    document.querySelectorAll(`.drawer-react-btn[data-find-id="${itemId}"]`).forEach(btn => {
+        btn.classList.toggle('active', isFind);
+        const label = btn.querySelector('.drawer-react-label');
+        if (label) label.textContent = isFind ? 'Great find!' : 'Good find';
+    });
 }
 
 function buildEndorseSection(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, names: [], userEndorsed: false };
-    const friendData = getFriendsEndorsementData(itemId);
-    const likeActive = cached.userEndorsed ? ' active' : '';
+    const metooActive = cached.userEndorsed ? ' active' : '';
+    const saveActive = isItemSaved(itemId) ? ' active' : '';
+    const findActive = isGoodFind(itemId) ? ' active' : '';
+
+    let namesText = '';
+    if (cached.count > 0) {
+        const displayNames = cached.names.slice(0, 3);
+        if (cached.count <= 3) {
+            namesText = displayNames.join(', ') + ' also liked this';
+        } else {
+            namesText = displayNames.join(', ') + ` and ${cached.count - 3} others also liked this`;
+        }
+    }
 
     return `<div class="drawer-reactions">
         <div class="drawer-react-row">
-            <button class="drawer-react-btn${likeActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
-                <span class="drawer-react-icon">❤️</span>
-                <span class="drawer-react-label">${cached.userEndorsed ? 'Liked!' : 'Like'}</span>
-                ${friendData.count > 0 ? `<span class="drawer-react-count">${friendData.count}</span>` : ''}
+            <button class="drawer-react-btn${metooActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+                <span class="drawer-react-icon">🙌</span>
+                <span class="drawer-react-label">${cached.userEndorsed ? 'Me too!' : 'Me too'}</span>
+                ${cached.count > 0 ? `<span class="drawer-react-count">${cached.count}</span>` : ''}
+            </button>
+            <button class="drawer-react-btn${saveActive}" data-save-id="${itemId}" onclick="toggleSaveItem('${itemId}', event)">
+                <span class="drawer-react-icon">🔖</span>
+                <span class="drawer-react-label">${isItemSaved(itemId) ? 'Saved!' : 'Save'}</span>
+            </button>
+            <button class="drawer-react-btn${findActive}" data-find-id="${itemId}" onclick="toggleGoodFind('${itemId}', event)">
+                <span class="drawer-react-icon">💡</span>
+                <span class="drawer-react-label">${isGoodFind(itemId) ? 'Great find!' : 'Good find'}</span>
             </button>
         </div>
-        <div id="endorseNamesText" class="endorse-names">${buildNamesText(itemId)}</div>
+        ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
     </div>`;
-}
-
-function showLikedByModal(itemId) {
-    const friendData = getFriendsEndorsementData(itemId);
-    if (friendData.count === 0) return;
-
-    const listHtml = friendData.names.map(name => {
-        const initial = (name || '?').charAt(0).toUpperCase();
-        return `<div class="liked-by-item">
-            <div class="liked-by-avatar">${initial}</div>
-            <div class="liked-by-name">${escapeHtml(name)}</div>
-        </div>`;
-    }).join('');
-
-    const modal = document.createElement('div');
-    modal.id = 'likedByModal';
-    modal.className = 'liked-by-overlay';
-    modal.onclick = (e) => { if (e.target === modal) closeLikedByModal(); };
-    modal.innerHTML = `<div class="liked-by-modal">
-        <div class="liked-by-header">
-            <span class="liked-by-title">Liked by</span>
-            <button class="liked-by-close" onclick="closeLikedByModal()">×</button>
-        </div>
-        <div class="liked-by-list">${listHtml}</div>
-    </div>`;
-    document.body.appendChild(modal);
-    requestAnimationFrame(() => modal.classList.add('show'));
-}
-
-function closeLikedByModal() {
-    const modal = document.getElementById('likedByModal');
-    if (modal) {
-        modal.classList.remove('show');
-        setTimeout(() => modal.remove(), 200);
-    }
 }
 
 // ===== FRIENDS NETWORK FUNCTIONS =====
@@ -934,7 +955,7 @@ async function handleFriendSearchInput(event) {
                 } else if (isPending) {
                     statusHtml = '<span class="search-result-status pending">Pending</span>';
                 } else {
-                    statusHtml = `<button class="search-result-add-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', this)">Add Friend</button>`;
+                    statusHtml = `<div class="search-result-action"><button class="add-friend-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', this)">Add Friend</button></div>`;
                 }
 
                 html += `<div class="search-result-item">
@@ -965,6 +986,14 @@ async function handleSendFriendRequest(receiverId, btn) {
         }
         if (data && data.length > 0 && data[0].out_success) {
             if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
+            showToast('Friend request sent!');
+            // Clear search bar and hide results after a short delay
+            setTimeout(() => {
+                const searchInput = document.getElementById('friendSearchInput');
+                const resultsDiv = document.getElementById('friendSearchResults');
+                if (searchInput) searchInput.value = '';
+                if (resultsDiv) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; }
+            }, 800);
         } else {
             const msg = data?.[0]?.out_message || 'Could not send request';
             if (btn) { btn.disabled = false; btn.textContent = msg; }
@@ -1040,13 +1069,13 @@ function updateFriendsDisplay() {
                 const timeAgo = getTimeAgo(req.out_created_at);
                 return `<div class="friend-request-card">
                     <div class="friend-request-avatar">${initial}</div>
-                    <div class="friend-request-body">
+                    <div class="friend-request-info">
                         <div class="friend-request-name">${escapeHtml(req.out_requester_name || 'Unknown')}</div>
                         <div class="friend-request-time">${timeAgo}</div>
                     </div>
                     <div class="friend-request-actions">
-                        <button class="friend-req-btn friend-req-accept" onclick="handleAcceptFriendRequest('${req.out_id}')">Accept</button>
-                        <button class="friend-req-btn friend-req-reject" onclick="handleRejectFriendRequest('${req.out_id}')">Reject</button>
+                        <button class="accept-btn" onclick="handleAcceptFriendRequest('${req.out_id}')">Accept</button>
+                        <button class="reject-btn" onclick="handleRejectFriendRequest('${req.out_id}')">Reject</button>
                     </div>
                 </div>`;
             }).join('');
@@ -1112,54 +1141,30 @@ async function loadNotesForItem(itemId) {
     }
 }
 
-// Shared helper: render a single note with privacy check
-function renderSingleNote(n, itemId) {
-    const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
-    const isOwn = currentUser && n.out_user_id === currentUser.id;
-    const canSee = isOwn || isFriend(n.out_user_id);
-
-    if (!canSee) {
-        // Non-friend teaser
-        return `<div class="note-item note-teaser">
+function renderNotesSection(itemId, notes) {
+    const notesList = notes.map(n => {
+        const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+        const timeAgo = getTimeAgo(n.out_created_at);
+        const isOwn = currentUser && n.out_user_id === currentUser.id;
+        const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+        return `<div class="note-item">
             <div class="note-avatar">${initial}</div>
             <div class="note-body">
-                <div class="note-text note-teaser-text">Connect with ${escapeHtml(n.out_user_name || 'them')} to see their story</div>
+                <div class="note-header">
+                    <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                    <span class="note-time">${timeAgo}</span>
+                    ${deleteBtn}
+                </div>
+                <div class="note-text">${escapeHtml(n.out_note_text)}</div>
             </div>
         </div>`;
-    }
-
-    // Full note for friends and own notes
-    const timeAgo = getTimeAgo(n.out_created_at);
-    const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
-    return `<div class="note-item">
-        <div class="note-avatar">${initial}</div>
-        <div class="note-body">
-            <div class="note-header">
-                <span class="note-author">${escapeHtml(n.out_user_name)}</span>
-                <span class="note-time">${timeAgo}</span>
-                ${deleteBtn}
-            </div>
-            <div class="note-text">${escapeHtml(n.out_note_text)}</div>
-        </div>
-    </div>`;
-}
-
-function renderNotesList(notes, itemId) {
-    // Sort: friends/own stories first (by date), then non-friends
-    const friendNotes = notes.filter(n => (currentUser && n.out_user_id === currentUser.id) || isFriend(n.out_user_id));
-    const otherNotes = notes.filter(n => (!currentUser || n.out_user_id !== currentUser.id) && !isFriend(n.out_user_id));
-    const sorted = [...friendNotes, ...otherNotes];
-    return sorted.map(n => renderSingleNote(n, itemId)).join('') || '<div class="notes-empty">No stories yet. Share yours!</div>';
-}
-
-function renderNotesSection(itemId, notes) {
-    const notesList = renderNotesList(notes, itemId);
+    }).join('');
 
     return `<div class="community-notes" id="communityNotes">
-        <div class="community-notes-label">Friend Stories</div>
-        <div class="notes-list" id="notesList">${notesList}</div>
+        <div class="community-notes-label">Comments</div>
+        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet. Be the first!</div>'}</div>
         <div class="note-input-wrap">
-            <textarea class="note-input" id="noteInput" placeholder="Share your experience..." maxlength="500" rows="2"></textarea>
+            <textarea class="note-input" id="noteInput" placeholder="Leave a comment..." maxlength="500" rows="2"></textarea>
             <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
         </div>
     </div>`;
@@ -1171,7 +1176,7 @@ async function submitNote(itemId) {
     const text = input.value.trim();
     if (!text) return;
     if (text.length > 500) {
-        alert('Story must be 500 characters or less');
+        alert('Note must be 500 characters or less');
         return;
     }
 
@@ -1189,16 +1194,32 @@ async function submitNote(itemId) {
 
         if (error) {
             console.error('Error submitting note:', error);
-            alert('Failed to post. Please try again.');
+            alert('Failed to post note. Please try again.');
             return;
         }
 
         // Clear input and reload notes
         input.value = '';
         const notes = await loadNotesForItem(itemId);
-        const notesListEl = document.getElementById('notesList');
-        if (notesListEl) {
-            notesListEl.innerHTML = renderNotesList(notes, itemId);
+        const notesList = document.getElementById('notesList');
+        if (notesList) {
+            notesList.innerHTML = notes.map(n => {
+                const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+                const timeAgo = getTimeAgo(n.out_created_at);
+                const isOwn = currentUser && n.out_user_id === currentUser.id;
+                const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+                return `<div class="note-item">
+                    <div class="note-avatar">${initial}</div>
+                    <div class="note-body">
+                        <div class="note-header">
+                            <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                            <span class="note-time">${timeAgo}</span>
+                            ${deleteBtn}
+                        </div>
+                        <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+                    </div>
+                </div>`;
+            }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
         }
     } catch (err) {
         console.error('Error in submitNote:', err);
@@ -1217,10 +1238,27 @@ async function deleteNote(noteId, itemId, event) {
             .eq('user_id', currentUser.id);
 
         if (!error) {
+            // Reload notes
             const notes = await loadNotesForItem(itemId);
-            const notesListEl = document.getElementById('notesList');
-            if (notesListEl) {
-                notesListEl.innerHTML = renderNotesList(notes, itemId);
+            const notesList = document.getElementById('notesList');
+            if (notesList) {
+                notesList.innerHTML = notes.map(n => {
+                    const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+                    const timeAgo = getTimeAgo(n.out_created_at);
+                    const isOwn = currentUser && n.out_user_id === currentUser.id;
+                    const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+                    return `<div class="note-item">
+                        <div class="note-avatar">${initial}</div>
+                        <div class="note-body">
+                            <div class="note-header">
+                                <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                                <span class="note-time">${timeAgo}</span>
+                                ${deleteBtn}
+                            </div>
+                            <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+                        </div>
+                    </div>`;
+                }).join('') || '<div class="notes-empty">No notes yet. Be the first to share!</div>';
             }
         }
     } catch (err) {
@@ -1312,7 +1350,7 @@ async function loadNotifications() {
         section.style.display = 'block';
         container.innerHTML = data.map(n => {
             let icon = '📝';
-            if (n.out_type === 'endorsement') icon = '❤️';
+            if (n.out_type === 'endorsement') icon = '🙌';
             else if (n.out_type === 'friend_request') icon = '🤝';
             else if (n.out_type === 'friend_accepted') icon = '🎉';
             const timeAgo = getTimeAgo(n.out_created_at);
@@ -1506,6 +1544,8 @@ function showLanding() {
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
     document.getElementById('profileMode').classList.add('hidden');
+    var savedEl = document.getElementById('savedMode');
+    if (savedEl) savedEl.classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
     updateTabBar('home');
     loadDiscoveryCount();
@@ -1518,6 +1558,8 @@ function showHome() {
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
     document.getElementById('profileMode').classList.add('hidden');
+    var savedEl = document.getElementById('savedMode');
+    if (savedEl) savedEl.classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
     updateTabBar('home');
 }
@@ -1546,6 +1588,8 @@ function setMode(mode) {
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
     document.getElementById('profileMode').classList.add('hidden');
+    var savedEl = document.getElementById('savedMode');
+    if (savedEl) savedEl.classList.add('hidden');
 
     if (mode === 'home') {
         showHome();
@@ -1557,6 +1601,10 @@ function setMode(mode) {
         document.getElementById('discoverMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         loadDiscoveries();
+    } else if (mode === 'saved') {
+        if (savedEl) savedEl.classList.remove('hidden');
+        document.getElementById('inputArea').classList.add('hidden');
+        loadSavedPage();
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -1571,16 +1619,18 @@ function setMode(mode) {
 
 function updateTabBar(mode) {
     document.getElementById('homeTab').classList.remove('active');
-    document.getElementById('searchTab').classList.remove('active');
-    document.getElementById('profileTab').classList.remove('active');
     document.getElementById('discoverTab').classList.remove('active');
+    var savedTab = document.getElementById('savedTab');
+    if (savedTab) savedTab.classList.remove('active');
     document.getElementById('addTab').classList.remove('active');
+    document.getElementById('profileTab').classList.remove('active');
 
     if (mode === 'home') document.getElementById('homeTab').classList.add('active');
-    else if (mode === 'search') document.getElementById('searchTab').classList.add('active');
-    else if (mode === 'profile') document.getElementById('profileTab').classList.add('active');
+    else if (mode === 'search') document.getElementById('homeTab').classList.add('active');
     else if (mode === 'discover') document.getElementById('discoverTab').classList.add('active');
+    else if (mode === 'saved' && savedTab) savedTab.classList.add('active');
     else if (mode === 'input') document.getElementById('addTab').classList.add('active');
+    else if (mode === 'profile') document.getElementById('profileTab').classList.add('active');
 }
 
 function initLocation() {
@@ -1726,7 +1776,8 @@ function filterAndRender() {
         if (filters.endorsed) {
             const cached = endorsementsCache[item.id];
             const isEndorsed = cached && cached.userEndorsed;
-            if (!isEndorsed) return false;
+            const isSaved = isItemSaved(item.id);
+            if (!isEndorsed && !isSaved) return false;
         }
         if (filters.searchText) {
             const text = filters.searchText;
@@ -2422,6 +2473,81 @@ function toggleMoreResults(btn) {
     }
 }
 
+
+// ===== SAVED PAGE =====
+async function loadSavedPage() {
+    const list = document.getElementById('savedItemsList');
+    if (!list || !currentUser) return;
+    list.innerHTML = '<div class="activity-empty">Loading saves...</div>';
+    try {
+        const { data } = await supabaseClient
+            .from('endorsements')
+            .select('item_id')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+        const savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
+        const endorsedIds = (data || []).map(e => e.item_id);
+        const allIds = [...new Set([...endorsedIds, ...savedIds])];
+        if (allIds.length === 0) {
+            list.innerHTML = '<div class="activity-empty">No saves yet. Discover and save items you love!</div>';
+            return;
+        }
+        const { data: items } = await supabaseClient
+            .from('knowledge_items')
+            .select('*')
+            .in('id', allIds);
+        if (!items || items.length === 0) {
+            list.innerHTML = '<div class="activity-empty">No saves yet.</div>';
+            return;
+        }
+        if (userLocation.available) {
+            items.forEach(item => {
+                if (item.latitude && item.longitude) {
+                    item.distance_km = calculateDistance(userLocation.latitude, userLocation.longitude, item.latitude, item.longitude);
+                }
+            });
+        }
+        list.innerHTML = items.map((item, idx) => {
+            const photo = item.photo_url
+                ? `<div class="saved-item-photo"><img src="${escapeHtml(item.photo_url)}"></div>`
+                : `<div class="saved-item-photo saved-item-placeholder">${getCategoryEmoji(item.type)}</div>`;
+            const distText = item.distance_km
+                ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
+                : '';
+            return `<div class="saved-item-card" onclick="openItemDrawer(savedPageItems[${idx}])">
+                ${photo}
+                <div class="saved-item-content">
+                    <div class="saved-item-title">${escapeHtml(item.title)}</div>
+                    <div class="saved-item-meta">
+                        ${item.added_by_name ? '<span>Added by ' + escapeHtml(item.added_by_name) + '</span>' : ''}
+                        ${distText ? '<span>' + distText + '</span>' : ''}
+                    </div>
+                    ${item.description ? '<div class="saved-item-desc">' + escapeHtml(item.description).substring(0, 80) + (item.description.length > 80 ? '...' : '') + '</div>' : ''}
+                </div>
+                <button class="saved-item-remove" onclick="event.stopPropagation(); removeSavedItem('${item.id}')" title="Remove">&times;</button>
+            </div>`;
+        }).join('');
+        window.savedPageItems = items;
+    } catch (err) {
+        console.error('Saved page error:', err);
+        list.innerHTML = '<div class="activity-empty">Error loading saves</div>';
+    }
+}
+
+async function removeSavedItem(itemId) {
+    try {
+        var savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
+        savedIds = savedIds.filter(id => id !== itemId);
+        localStorage.setItem('savedItems', JSON.stringify(savedIds));
+        if (currentUser) {
+            await supabaseClient.from('endorsements').delete().eq('user_id', currentUser.id).eq('item_id', itemId);
+        }
+        loadSavedPage();
+        showToast('Removed from saves');
+    } catch (err) {
+        console.error('Remove saved error:', err);
+    }
+}
 
 // ===== TOAST NOTIFICATIONS =====
 function showToast(message, duration = 3000) {
