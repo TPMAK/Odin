@@ -44,12 +44,19 @@ async function checkAuth() {
 }
 
 function showLoginScreen() {
-    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
+    // Close auth modal if open (e.g. after sign-out)
+    var modal = document.getElementById('authModal');
+    if (modal) modal.classList.remove('open');
 }
 
 async function showMainApp() {
+    // Hide landing page and close auth modal
     document.getElementById('loginScreen').style.display = 'none';
+    var authModal = document.getElementById('authModal');
+    if (authModal) authModal.classList.remove('open');
+    document.body.style.overflow = '';
     document.getElementById('mainApp').style.display = 'block';
 
     // Load profile from profiles table
@@ -85,6 +92,9 @@ async function showMainApp() {
 
     // Show onboarding banner for new users
     checkOnboardingBanner();
+
+    // Navigate to home so header and layout match the Home tab state
+    showHome();
 }
 
 async function handleLogout() {
@@ -1298,12 +1308,7 @@ async function checkUnreadNotifications() {
         const count = data || 0;
         const badge = document.getElementById('notifBadge');
         if (badge) {
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
+            badge.style.display = count > 0 ? 'block' : 'none';
         }
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
@@ -1620,15 +1625,15 @@ function setMode(mode) {
 function updateTabBar(mode) {
     document.getElementById('homeTab').classList.remove('active');
     document.getElementById('discoverTab').classList.remove('active');
-    var savedTab = document.getElementById('savedTab');
-    if (savedTab) savedTab.classList.remove('active');
+    var searchTab = document.getElementById('searchTab');
+    if (searchTab) searchTab.classList.remove('active');
     document.getElementById('addTab').classList.remove('active');
     document.getElementById('profileTab').classList.remove('active');
 
     if (mode === 'home') document.getElementById('homeTab').classList.add('active');
-    else if (mode === 'search') document.getElementById('homeTab').classList.add('active');
+    else if (mode === 'search') { if (searchTab) searchTab.classList.add('active'); }
     else if (mode === 'discover') document.getElementById('discoverTab').classList.add('active');
-    else if (mode === 'saved' && savedTab) savedTab.classList.add('active');
+    else if (mode === 'saved') document.getElementById('profileTab').classList.add('active');
     else if (mode === 'input') document.getElementById('addTab').classList.add('active');
     else if (mode === 'profile') document.getElementById('profileTab').classList.add('active');
 }

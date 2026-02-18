@@ -3,31 +3,483 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Community</title>
+    <title>Vouch</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css?v=22">
+    <style>
+        /* ── LANDING PAGE STYLES ── */
+        #loginScreen {
+            all: unset;
+            display: block;
+        }
+        #loginScreen * {
+            box-sizing: border-box;
+        }
+        :root {
+            --primary-orange: #E8854A;
+            --primary-orange-hover: #D4713A;
+            --primary-orange-light: #F0A06A;
+            --cream: #FCEBD8;
+            --lp-bg: #FAF7F4;
+            --surface: #FFFFFF;
+            --text-primary: #202124;
+            --text-secondary: #6B6B6B;
+            --border-light: #EDE8E3;
+            --shadow-warm: 0 4px 20px rgba(232,133,74,0.15);
+            --shadow-light: 0 2px 12px rgba(0,0,0,0.06);
+            --shadow-button: 0 4px 16px rgba(232,133,74,0.35);
+        }
+        .lp-body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--lp-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding-bottom: 0;
+        }
+        /* TOP NAV */
+        .lp-top-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            z-index: 999;
+        }
+        .lp-nav-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        .lp-nav-brand span { color: var(--primary-orange); }
+        .lp-nav-right { display: flex; align-items: center; gap: 16px; }
+        .lp-nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+        .lp-nav-link:hover { color: var(--primary-orange); }
+        /* PRODUCT INTRO */
+        .lp-product-intro {
+            padding: 100px 20px 60px;
+            background: var(--surface);
+        }
+        .lp-intro-content {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .lp-intro-tagline {
+            font-family: 'Playfair Display', serif;
+            font-size: 38px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        .lp-intro-description {
+            font-size: 17px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 40px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+        }
+        .lp-features-grid {
+            display: grid;
+            grid-template-columns: repeat(4,1fr);
+            gap: 16px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .lp-feature-card {
+            background: var(--lp-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            text-align: left;
+            transition: all 0.3s ease;
+        }
+        .lp-feature-card:hover {
+            border-color: var(--primary-orange);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-warm);
+        }
+        .lp-feature-card-image {
+            height: 120px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 10px;
+            margin-bottom: 14px;
+        }
+        .lp-feature-card-icon { font-size: 28px; margin-bottom: 12px; }
+        .lp-feature-card-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+        .lp-feature-card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+        /* MISSION */
+        .lp-mission-section {
+            padding: 80px 20px;
+            background: linear-gradient(180deg, var(--lp-bg), var(--cream));
+        }
+        .lp-mission-content { max-width: 900px; margin: 0 auto; text-align: center; }
+        .lp-mission-title { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; margin-bottom: 24px; color: var(--text-primary); }
+        .lp-mission-description { font-size: 18px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 48px; }
+        .lp-mission-values { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 48px; }
+        .lp-value-item { background: var(--surface); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-light); border: 1px solid rgba(232,133,74,0.1); }
+        .lp-value-icon { font-size: 48px; margin-bottom: 16px; }
+        .lp-value-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+        .lp-value-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+        /* EXPECTATIONS */
+        .lp-expectations-section { background: var(--surface); padding: 70px 20px; }
+        .lp-container { max-width: 900px; margin: 0 auto; }
+        .lp-section-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
+        .lp-section-subtitle { font-size: 16px; color: var(--text-secondary); text-align: center; margin-bottom: 40px; }
+        .lp-expectations-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+        .lp-expectation-card { background: var(--lp-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 28px 20px; text-align: center; transition: all 0.3s ease; }
+        .lp-expectation-card:hover { border-color: var(--primary-orange); transform: translateY(-4px); box-shadow: var(--shadow-warm); }
+        .lp-expectation-icon { font-size: 40px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(232,133,74,0.2)); }
+        .lp-expectation-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+        .lp-expectation-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+        /* BENEFITS */
+        .lp-benefits-section { padding: 70px 20px; background: var(--lp-bg); }
+        .lp-benefits-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; max-width: 750px; margin: 0 auto; }
+        .lp-benefit-card { background: var(--surface); border-radius: 16px; padding: 32px; box-shadow: var(--shadow-light); border: 1px solid rgba(232,133,74,0.1); }
+        .lp-benefit-icon { font-size: 36px; margin-bottom: 16px; }
+        .lp-benefit-title { font-size: 19px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+        .lp-benefit-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
+        /* HOW IT WORKS */
+        .lp-process-section { background: var(--surface); padding: 70px 20px; }
+        .lp-process-steps { display: flex; justify-content: center; align-items: flex-start; gap: 32px; max-width: 800px; margin: 0 auto; }
+        .lp-process-step { flex: 1; text-align: center; position: relative; }
+        .lp-process-step:not(:last-child)::after { content: '→'; position: absolute; right: -24px; top: 24px; font-size: 20px; color: var(--primary-orange); font-weight: bold; }
+        .lp-step-number { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; margin: 0 auto 16px; box-shadow: var(--shadow-warm); }
+        .lp-step-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+        .lp-step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+        /* FINAL CTA */
+        .lp-final-cta { padding: 100px 20px; text-align: center; background: linear-gradient(180deg, var(--lp-bg), var(--cream)); }
+        .lp-cta-title { font-family: 'Playfair Display', serif; font-size: 44px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
+        .lp-cta-subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.6; }
+        .lp-cta-primary {
+            display: inline-block;
+            padding: 20px 56px;
+            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: var(--shadow-button);
+            transition: all 0.2s ease;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .lp-cta-primary:hover { background: linear-gradient(135deg, var(--primary-orange-hover), var(--primary-orange)); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(232,133,74,0.4); }
+        .lp-cta-primary:active { transform: scale(0.98); }
+        /* FOOTER */
+        .lp-footer { background: var(--surface); padding: 40px 20px; text-align: center; border-top: 1px solid var(--border-light); }
+        .lp-footer-text { font-size: 14px; color: var(--text-secondary); }
+
+        /* ── AUTH MODAL ── */
+        #authModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        #authModal.open { display: flex; }
+        .auth-modal-inner {
+            background: #FAF7F4;
+            border-radius: 20px;
+            padding: 36px 32px 28px;
+            width: 100%;
+            max-width: 420px;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: modalSlideUp 0.28s cubic-bezier(0.4,0,0.2,1);
+        }
+        @keyframes modalSlideUp {
+            from { opacity: 0; transform: translateY(24px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .auth-modal-close {
+            position: absolute;
+            top: 16px; right: 18px;
+            background: none;
+            border: none;
+            font-size: 22px;
+            color: #9ca3af;
+            cursor: pointer;
+            line-height: 1;
+            padding: 4px;
+        }
+        .auth-modal-close:hover { color: #202124; }
+        .auth-modal-brand {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .auth-modal-logo {
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        .auth-modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            font-weight: 700;
+            color: #202124;
+        }
+        .auth-modal-title span { color: #E8854A; }
+        .auth-modal-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        /* RESPONSIVE LANDING */
+        @media (max-width: 768px) {
+            .lp-top-nav { padding: 0 16px; }
+            .lp-product-intro { padding: 80px 16px 40px; }
+            .lp-intro-tagline { font-size: 28px; }
+            .lp-intro-description { font-size: 16px; margin-bottom: 32px; }
+            .lp-features-grid { grid-template-columns: repeat(2,1fr); gap: 12px; }
+            .lp-feature-card { padding: 16px; }
+            .lp-feature-card-image { height: 100px; }
+            .lp-feature-card-title { font-size: 14px; }
+            .lp-feature-card-desc { font-size: 12px; }
+            .lp-mission-section { padding: 50px 16px; }
+            .lp-mission-title { font-size: 28px; }
+            .lp-mission-description { font-size: 16px; }
+            .lp-mission-values { grid-template-columns: 1fr; gap: 16px; margin-top: 32px; }
+            .lp-expectations-section { padding: 50px 16px; }
+            .lp-section-title { font-size: 26px; }
+            .lp-section-subtitle { font-size: 14px; }
+            .lp-expectations-grid { grid-template-columns: 1fr; gap: 16px; }
+            .lp-expectation-card { padding: 24px 16px; }
+            .lp-benefits-section { padding: 50px 16px; }
+            .lp-benefits-grid { grid-template-columns: 1fr; gap: 16px; }
+            .lp-benefit-card { padding: 28px; }
+            .lp-process-section { padding: 50px 16px; }
+            .lp-process-steps { flex-direction: column; gap: 24px; align-items: center; }
+            .lp-process-step { max-width: 280px; }
+            .lp-process-step:not(:last-child)::after { content: '↓'; right: auto; top: auto; bottom: -20px; left: 50%; transform: translateX(-50%); }
+            .lp-final-cta { padding: 60px 16px; }
+            .lp-cta-title { font-size: 32px; }
+            .lp-cta-subtitle { font-size: 16px; margin-bottom: 32px; }
+            .lp-cta-primary { width: 100%; padding: 18px 40px; }
+            .auth-modal-inner { padding: 28px 20px 24px; }
+        }
+    </style>
 </head>
 <body>
-    <!-- Auth Screen -->
-    <div id="loginScreen">
-        <div class="auth-container">
+
+    <!-- ══════════════════════════════════════════
+         LANDING / PRE-LOGIN SCREEN
+    ══════════════════════════════════════════ -->
+    <div id="loginScreen" class="lp-body">
+
+        <!-- TOP NAV -->
+        <nav class="lp-top-nav">
+            <a href="#" class="lp-nav-brand"><span>Vouch</span></a>
+            <div class="lp-nav-right">
+                <button class="lp-nav-link" onclick="openAuthModal('signin')">Sign In</button>
+            </div>
+        </nav>
+
+        <!-- PRODUCT INTRO -->
+        <section class="lp-product-intro">
+            <div class="lp-intro-content">
+                <h1 class="lp-intro-tagline">See the world through your friends' eyes</h1>
+                <p class="lp-intro-description">
+                    Vouch is an AI-powered app that helps you discover what your friends actually love—places, products, books, online creators, advice, anything.<br><br>
+                    No more googling strangers' opinions. Just search naturally and find what your trusted circle adds.
+                </p>
+
+                <div class="lp-features-grid">
+                    <div class="lp-feature-card">
+                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1531746790731-6c087fecd65a?w=800&q=80');"></div>
+                        <div class="lp-feature-card-icon">💬</div>
+                        <h3 class="lp-feature-card-title">AI Semantic Search</h3>
+                        <p class="lp-feature-card-desc">Ask questions like you're texting a friend. "Good coffee for studying?" The AI understands what you mean, not just exact keywords—like having a conversation with all your friends at once.</p>
+                    </div>
+                    <div class="lp-feature-card">
+                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80');"></div>
+                        <div class="lp-feature-card-icon">🔒</div>
+                        <h3 class="lp-feature-card-title">Private by Default</h3>
+                        <p class="lp-feature-card-desc">Like a private group chat, not social media. Only your friends see what you share. No strangers, no companies mining your data to sell you stuff.</p>
+                    </div>
+                    <div class="lp-feature-card">
+                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80');"></div>
+                        <div class="lp-feature-card-icon">🌍</div>
+                        <h3 class="lp-feature-card-title">Anything & Everything</h3>
+                        <p class="lp-feature-card-desc">Not just cafes and restaurants. Your friend's favourite YouTuber, the book that changed their life, the dentist who doesn't hurt, the best budget laptop—if your friend loves it, you can find it.</p>
+                    </div>
+                    <div class="lp-feature-card">
+                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80');"></div>
+                        <div class="lp-feature-card-icon">👥</div>
+                        <h3 class="lp-feature-card-title">Your Friend Network</h3>
+                        <p class="lp-feature-card-desc">Stop asking the same question in 5 different group chats. Your friends have already answered—you just didn't see it. Like having all your friends' recommendations in one searchable place.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WHY THIS MATTERS -->
+        <section class="lp-mission-section">
+            <div class="lp-mission-content">
+                <h2 class="lp-mission-title">Why this matters</h2>
+                <p class="lp-mission-description">
+                    Every place you add, everything you save—you're planting seeds that help you and your friends discover something meaningful. Your contributions aren't just data points. They're connections. They bring people closer, no matter the distance.<br><br>
+                    You're not just testing an app. You're helping build a community where trust and genuine experiences matter more than algorithms and ads.
+                </p>
+                <div class="lp-mission-values">
+                    <div class="lp-value-item">
+                        <div class="lp-value-icon">🌱</div>
+                        <h3 class="lp-value-title">Plant Seeds</h3>
+                        <p class="lp-value-desc">Every save helps your friends discover something new</p>
+                    </div>
+                    <div class="lp-value-item">
+                        <div class="lp-value-icon">🤝</div>
+                        <h3 class="lp-value-title">Bring People Closer</h3>
+                        <p class="lp-value-desc">Build connections that matter, no matter where they are</p>
+                    </div>
+                    <div class="lp-value-item">
+                        <div class="lp-value-icon">💫</div>
+                        <h3 class="lp-value-title">Your Value to the World</h3>
+                        <p class="lp-value-desc">Be part of something bigger than just an app</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WHAT WE NEED -->
+        <section class="lp-expectations-section">
+            <div class="lp-container">
+                <h2 class="lp-section-title">What we're looking for</h2>
+                <p class="lp-section-subtitle">Help us grow this community</p>
+                <div class="lp-expectations-grid">
+                    <div class="lp-expectation-card">
+                        <div class="lp-expectation-icon">📱</div>
+                        <h3 class="lp-expectation-title">Use it regularly</h3>
+                        <p class="lp-expectation-desc">Try the app in your daily life. The more you use it, the better we can make it.</p>
+                    </div>
+                    <div class="lp-expectation-card">
+                        <div class="lp-expectation-icon">💬</div>
+                        <h3 class="lp-expectation-title">Share feedback</h3>
+                        <p class="lp-expectation-desc">Tell us what works, what doesn't, and what you'd love to see.</p>
+                    </div>
+                    <div class="lp-expectation-card">
+                        <div class="lp-expectation-icon">🐛</div>
+                        <h3 class="lp-expectation-title">Report bugs</h3>
+                        <p class="lp-expectation-desc">Help us catch issues early so we can fix them before launch.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- WHAT YOU GET -->
+        <section class="lp-benefits-section">
+            <div class="lp-container">
+                <h2 class="lp-section-title">What you get</h2>
+                <p class="lp-section-subtitle">Be part of something meaningful</p>
+                <div class="lp-benefits-grid">
+                    <div class="lp-benefit-card">
+                        <div class="lp-benefit-icon">🎨</div>
+                        <h3 class="lp-benefit-title">Shape the product</h3>
+                        <p class="lp-benefit-desc">Your feedback directly influences what we build. Help create something that brings people together.</p>
+                    </div>
+                    <div class="lp-benefit-card">
+                        <div class="lp-benefit-icon">👥</div>
+                        <h3 class="lp-benefit-title">Founding community</h3>
+                        <p class="lp-benefit-desc">Be part of the inner circle. Build a movement that values trust and connection from day one.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section class="lp-process-section">
+            <div class="lp-container">
+                <h2 class="lp-section-title">How it works</h2>
+                <p class="lp-section-subtitle">Simple, transparent process</p>
+                <div class="lp-process-steps">
+                    <div class="lp-process-step">
+                        <div class="lp-step-number">1</div>
+                        <h3 class="lp-step-title">Sign up</h3>
+                        <p class="lp-step-desc">Create your account in 30 seconds</p>
+                    </div>
+                    <div class="lp-process-step">
+                        <div class="lp-step-number">2</div>
+                        <h3 class="lp-step-title">Get access</h3>
+                        <p class="lp-step-desc">Instant access to the beta app</p>
+                    </div>
+                    <div class="lp-process-step">
+                        <div class="lp-step-number">3</div>
+                        <h3 class="lp-step-title">Start exploring</h3>
+                        <p class="lp-step-desc">Use the app and share your thoughts</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FINAL CTA -->
+        <section class="lp-final-cta">
+            <h1 class="lp-cta-title">Let's build something special, together</h1>
+            <p class="lp-cta-subtitle">
+                Be part of our founding community.<br>
+                Shape the product with your feedback.
+            </p>
+            <button class="lp-cta-primary" onclick="openAuthModal('create')">Join as a Tester</button>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="lp-footer">
+            <p class="lp-footer-text">© 2026 Vouch · Built with testers in mind</p>
+        </footer>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         AUTH MODAL (overlays landing page)
+    ══════════════════════════════════════════ -->
+    <div id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account" onclick="authModalBackdropClick(event)">
+        <div class="auth-modal-inner">
+            <button class="auth-modal-close" onclick="closeAuthModal()" aria-label="Close">✕</button>
+
             <!-- Brand -->
-            <div class="auth-brand">
-                <div class="auth-logo">
-                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <div class="auth-modal-brand">
+                <div class="auth-modal-logo">
+                    <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
                         <rect width="48" height="48" rx="12" fill="#E8854A"/>
                         <path d="M14 32V20L24 14L34 20V32L24 38L14 32Z" stroke="white" stroke-width="2.5" fill="none"/>
                         <circle cx="24" cy="26" r="4" fill="white"/>
                     </svg>
                 </div>
-                <h1 class="auth-title">The Community</h1>
-                <p class="auth-subtitle">Your family's trusted recommendations</p>
+                <div class="auth-modal-title"><span>Vouch</span></div>
+                <div class="auth-modal-subtitle">Your family's trusted recommendations</div>
             </div>
 
-            <!-- Auth Card -->
+            <!-- Auth Card (reused from original) -->
             <div class="auth-card">
                 <!-- Tab Toggle -->
                 <div class="auth-tabs">
@@ -98,11 +550,14 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <span class="header-title">The <span class="header-accent">Community</span></span>
+            <span class="header-title"><span class="header-accent">Vouch</span></span>
             <div class="header-right">
                 <span class="location-indicator" id="locationIndicator" style="display:none;">📍 Getting location...</span>
-                <div class="header-avatar" onclick="setMode('profile')">
-                    <span id="headerAvatarInitial">?</span>
+                <div class="header-avatar-wrap" onclick="setMode('profile')">
+                    <div class="header-avatar">
+                        <span id="headerAvatarInitial">?</span>
+                    </div>
+                    <span class="header-notif-dot" id="notifBadge" style="display:none;"></span>
                 </div>
             </div>
         </div>
@@ -113,7 +568,7 @@
         <div id="landingPage" class="hidden">
             <div class="landing-page">
                 <div class="landing-logo">🏠</div>
-                <h1 class="landing-title">The Community</h1>
+                <h1 class="landing-title">Vouch</h1>
                 <p class="landing-subtitle">Google finds strangers' opinions.<br>We find your friends' stories.</p>
 
                 <div class="landing-preview">
@@ -161,7 +616,7 @@
                 <div id="onboardingBanner" class="onboarding-banner" style="display:none;">
                     <div class="onboarding-icon">👋</div>
                     <div class="onboarding-text">
-                        <strong>Welcome to The Community!</strong>
+                        <strong>Welcome to Vouch!</strong>
                         <p>Add friends to unlock personal stories and notes from people you trust.</p>
                     </div>
                     <div class="onboarding-actions">
@@ -195,9 +650,14 @@
         <!-- SEARCH MODE -->
         <div id="searchMode" class="hidden">
             <div class="search-header">
+                <button class="search-back-btn" onclick="goBack()" aria-label="Go back">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    <span>Back</span>
+                </button>
+                <span class="search-header-title">Search</span>
                 <button class="new-session-btn" onclick="startNewSession()" title="Start a new search session">
                     <span class="new-session-icon">🆕</span>
-                    <span class="new-session-text">New Session</span>
+                    <span class="new-session-text">New</span>
                 </button>
             </div>
             <div class="chat-container" id="chatContainer">
@@ -442,20 +902,19 @@
         </div>
     </div>
 
-    <!-- Bottom Tab Bar - 5 tabs -->
+    <!-- Bottom Tab Bar - 5 tabs: Home, Discover, Search, Add, Profile -->
     <div class="bottom-tab-bar">
         <button class="tab-item active" onclick="setMode('home')" id="homeTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <div class="tab-label">Home</div>
-            <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
         </button>
         <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
             <div class="tab-label">Discover</div>
         </button>
-        <button class="tab-item" onclick="setMode('saved')" id="savedTab">
-            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            <div class="tab-label">Saved</div>
+        <button class="tab-item" onclick="setMode('search')" id="searchTab">
+            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <div class="tab-label">Search</div>
         </button>
         <button class="tab-item" onclick="setMode('input')" id="addTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -539,6 +998,79 @@
 
     <script src="app.js?v=22"></script>
     <script>
+    // ===== NAVIGATION HISTORY (back button) =====
+    var _navHistory = [];    // stack of mode strings
+    var _navIgnoreNext = false;  // flag to skip push on goBack
+
+    function _getCurrentMode() {
+        var panels = [
+            { id: 'searchMode',   mode: 'search'   },
+            { id: 'discoverMode', mode: 'discover'  },
+            { id: 'savedMode',    mode: 'saved'     },
+            { id: 'inputMode',    mode: 'input'     },
+            { id: 'profileMode',  mode: 'profile'   },
+            { id: 'homePage',     mode: 'home'      },
+        ];
+        for (var i = 0; i < panels.length; i++) {
+            var el = document.getElementById(panels[i].id);
+            if (el && !el.classList.contains('hidden')) return panels[i].mode;
+        }
+        return 'home';
+    }
+
+    // Patch setMode to track history
+    (function() {
+        var _origSetMode = setMode;
+        setMode = function(mode) {
+            if (!_navIgnoreNext) {
+                var current = _getCurrentMode();
+                if (current && current !== mode) {
+                    _navHistory.push(current);
+                    if (_navHistory.length > 20) _navHistory.shift();
+                }
+            }
+            _navIgnoreNext = false;
+            _origSetMode(mode);
+        };
+    })();
+
+    function goBack() {
+        var prev = _navHistory.pop();
+        _navIgnoreNext = true;   // don't push current onto stack when going back
+        setMode(prev || 'home');
+    }
+
+    // ===== AUTH MODAL (landing page) =====
+
+    function openAuthModal(mode) {
+        var modal = document.getElementById('authModal');
+        if (!modal) return;
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        // Switch to the requested tab
+        if (typeof showAuthMode === 'function') {
+            showAuthMode(mode || 'signin');
+        }
+    }
+
+    function closeAuthModal() {
+        var modal = document.getElementById('authModal');
+        if (!modal) return;
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function authModalBackdropClick(e) {
+        if (e.target === document.getElementById('authModal')) {
+            closeAuthModal();
+        }
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAuthModal();
+    });
+
     // ===== HOME PAGE ENHANCEMENTS =====
 
     // Time-of-day greeting
