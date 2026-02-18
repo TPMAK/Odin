@@ -4,11 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Vouch</title>
+
+    <!-- ── Favicon & PWA icons ── -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.svg">
+    <meta name="theme-color" content="#EDE0CC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vouch">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Vouch">
+
+    <!-- Preconnect for faster Google Fonts load -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=22">
+    <link rel="stylesheet" href="styles.css?v=25">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -19,18 +34,18 @@
             box-sizing: border-box;
         }
         :root {
-            --primary-orange: #E8854A;
-            --primary-orange-hover: #D4713A;
-            --primary-orange-light: #F0A06A;
-            --cream: #FCEBD8;
-            --lp-bg: #FAF7F4;
-            --surface: #FFFFFF;
-            --text-primary: #202124;
-            --text-secondary: #6B6B6B;
-            --border-light: #EDE8E3;
-            --shadow-warm: 0 4px 20px rgba(232,133,74,0.15);
-            --shadow-light: 0 2px 12px rgba(0,0,0,0.06);
-            --shadow-button: 0 4px 16px rgba(232,133,74,0.35);
+            --primary-orange: #7B2D45;   /* Winterberry */
+            --primary-orange-hover: #5A1F30;
+            --primary-orange-light: #9B4D65;
+            --cream: #EDE0CC;            /* Cream / surface */
+            --lp-bg: #F0EBE2;            /* Page bg */
+            --surface: #EDE0CC;
+            --text-primary: #2A1E14;     /* Cumberland */
+            --text-secondary: #9A8A7A;   /* Warm grey */
+            --border-light: #D4C8B0;
+            --shadow-warm: 0 4px 20px rgba(123, 45, 69, 0.12);
+            --shadow-light: 0 2px 12px rgba(42, 30, 20, 0.06);
+            --shadow-button: 0 4px 16px rgba(123, 45, 69, 0.3);
         }
         .lp-body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -54,13 +69,12 @@
             z-index: 999;
         }
         .lp-nav-brand {
-            font-family: 'Playfair Display', serif;
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-primary);
+            display: flex;
+            align-items: center;
             text-decoration: none;
+            line-height: 1;
         }
-        .lp-nav-brand span { color: var(--primary-orange); }
+        .lp-nav-brand svg { display: block; }
         .lp-nav-right { display: flex; align-items: center; gap: 16px; }
         .lp-nav-link {
             color: var(--text-secondary);
@@ -85,9 +99,9 @@
             text-align: center;
         }
         .lp-intro-tagline {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Fraunces', Georgia, serif;
             font-size: 38px;
-            font-weight: 700;
+            font-weight: 500;
             margin-bottom: 20px;
             color: var(--text-primary);
             line-height: 1.3;
@@ -138,28 +152,28 @@
             background: linear-gradient(180deg, var(--lp-bg), var(--cream));
         }
         .lp-mission-content { max-width: 900px; margin: 0 auto; text-align: center; }
-        .lp-mission-title { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; margin-bottom: 24px; color: var(--text-primary); }
+        .lp-mission-title { font-family: 'Fraunces', Georgia, serif; font-size: 36px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
         .lp-mission-description { font-size: 18px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 48px; }
         .lp-mission-values { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 48px; }
-        .lp-value-item { background: var(--surface); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-light); border: 1px solid rgba(232,133,74,0.1); }
+        .lp-value-item { background: var(--surface); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-light); border: 1px solid rgba(123, 45, 69,0.1); }
         .lp-value-icon { font-size: 48px; margin-bottom: 16px; }
         .lp-value-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
         .lp-value-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
         /* EXPECTATIONS */
         .lp-expectations-section { background: var(--surface); padding: 70px 20px; }
         .lp-container { max-width: 900px; margin: 0 auto; }
-        .lp-section-title { font-family: 'Playfair Display', serif; font-size: 32px; font-weight: 700; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
+        .lp-section-title { font-family: 'Fraunces', Georgia, serif; font-size: 32px; font-weight: 500; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
         .lp-section-subtitle { font-size: 16px; color: var(--text-secondary); text-align: center; margin-bottom: 40px; }
         .lp-expectations-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
         .lp-expectation-card { background: var(--lp-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 28px 20px; text-align: center; transition: all 0.3s ease; }
         .lp-expectation-card:hover { border-color: var(--primary-orange); transform: translateY(-4px); box-shadow: var(--shadow-warm); }
-        .lp-expectation-icon { font-size: 40px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(232,133,74,0.2)); }
+        .lp-expectation-icon { font-size: 40px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(123, 45, 69,0.2)); }
         .lp-expectation-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
         .lp-expectation-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
         /* BENEFITS */
         .lp-benefits-section { padding: 70px 20px; background: var(--lp-bg); }
         .lp-benefits-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; max-width: 750px; margin: 0 auto; }
-        .lp-benefit-card { background: var(--surface); border-radius: 16px; padding: 32px; box-shadow: var(--shadow-light); border: 1px solid rgba(232,133,74,0.1); }
+        .lp-benefit-card { background: var(--surface); border-radius: 16px; padding: 32px; box-shadow: var(--shadow-light); border: 1px solid rgba(123, 45, 69,0.1); }
         .lp-benefit-icon { font-size: 36px; margin-bottom: 16px; }
         .lp-benefit-title { font-size: 19px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
         .lp-benefit-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
@@ -173,7 +187,7 @@
         .lp-step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
         /* FINAL CTA */
         .lp-final-cta { padding: 100px 20px; text-align: center; background: linear-gradient(180deg, var(--lp-bg), var(--cream)); }
-        .lp-cta-title { font-family: 'Playfair Display', serif; font-size: 44px; font-weight: 700; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
+        .lp-cta-title { font-family: 'Fraunces', Georgia, serif; font-size: 44px; font-weight: 500; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
         .lp-cta-subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.6; }
         .lp-cta-primary {
             display: inline-block;
@@ -190,7 +204,7 @@
             text-decoration: none;
             font-family: inherit;
         }
-        .lp-cta-primary:hover { background: linear-gradient(135deg, var(--primary-orange-hover), var(--primary-orange)); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(232,133,74,0.4); }
+        .lp-cta-primary:hover { background: linear-gradient(135deg, var(--primary-orange-hover), var(--primary-orange)); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(123, 45, 69,0.4); }
         .lp-cta-primary:active { transform: scale(0.98); }
         /* FOOTER */
         .lp-footer { background: var(--surface); padding: 40px 20px; text-align: center; border-top: 1px solid var(--border-light); }
@@ -245,12 +259,12 @@
             margin-bottom: 10px;
         }
         .auth-modal-title {
-            font-family: 'Playfair Display', serif;
+            font-family: 'Fraunces', Georgia, serif;
             font-size: 26px;
-            font-weight: 700;
+            font-weight: 500;
             color: #202124;
         }
-        .auth-modal-title span { color: #E8854A; }
+        .auth-modal-title span { color: #7B2D45; }
         .auth-modal-subtitle {
             font-size: 14px;
             color: #6b7280;
@@ -301,7 +315,9 @@
 
         <!-- TOP NAV -->
         <nav class="lp-top-nav">
-            <a href="#" class="lp-nav-brand"><span>Vouch</span></a>
+            <a href="#" class="lp-nav-brand" aria-label="Vouch">
+                <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+            </a>
             <div class="lp-nav-right">
                 <button class="lp-nav-link" onclick="openAuthModal('signin')">Sign In</button>
             </div>
@@ -469,14 +485,9 @@
             <!-- Brand -->
             <div class="auth-modal-brand">
                 <div class="auth-modal-logo">
-                    <svg width="44" height="44" viewBox="0 0 48 48" fill="none">
-                        <rect width="48" height="48" rx="12" fill="#E8854A"/>
-                        <path d="M14 32V20L24 14L34 20V32L24 38L14 32Z" stroke="white" stroke-width="2.5" fill="none"/>
-                        <circle cx="24" cy="26" r="4" fill="white"/>
-                    </svg>
+                    <span class="vouch-wordmark vouch-wordmark-lg"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
                 </div>
-                <div class="auth-modal-title"><span>Vouch</span></div>
-                <div class="auth-modal-subtitle">Your family's trusted recommendations</div>
+                <div class="auth-modal-subtitle">Your trusted recommendations, from people you know</div>
             </div>
 
             <!-- Auth Card (reused from original) -->
@@ -550,7 +561,9 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <span class="header-title"><span class="header-accent">Vouch</span></span>
+            <div class="header-logo" aria-label="Vouch">
+                <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+            </div>
             <div class="header-right">
                 <span class="location-indicator" id="locationIndicator" style="display:none;">📍 Getting location...</span>
                 <div class="header-avatar-wrap" onclick="setMode('profile')">
@@ -573,8 +586,7 @@
 
                 <div class="landing-preview">
                     <div class="preview-stat">
-                        Currently <strong id="landingDiscoveryCount">55</strong> discoveries<br>
-                        from your Auckland community
+                        Trusted recommendations from people you know.
                     </div>
                     <div class="preview-examples">
                         <div class="preview-example">💭 "Good coffee for working"</div>
@@ -603,14 +615,21 @@
                 <!-- Greeting -->
                 <div class="home-greeting">
                     <h1 id="homeGreeting">Good morning</h1>
-                    <p id="homeSubtitle">What would you like to find today?</p>
+                    <p id="homeSubtitle" class="home-subtitle"></p>
                 </div>
 
                 <!-- Breathing Search Bar -->
                 <div class="home-search-wrapper breathing">
-                    <svg class="home-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="home-search-bar" id="homeSearchInput" placeholder="Try &quot;quiet cafe to work from&quot;" onkeypress="if(event.key==='Enter') searchFromHome()">
+                    <div class="home-search-inner">
+                        <svg class="home-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                        <input type="text" class="home-search-bar" id="homeSearchInput" placeholder="Try &quot;quiet cafe to work from&quot;" onkeypress="if(event.key==='Enter') searchFromHome()">
+                    </div>
+                    <!-- Location toggle pill -->
+                    <button class="home-loc-pill" id="homeLocPill" onclick="toggleHomeLocation()" title="Toggle nearby search"></button>
                 </div>
+
+                <!-- Quick Search Chips -->
+                <div class="home-chips-row" id="homeChipsRow"></div>
 
                 <!-- Onboarding Banner -->
                 <div id="onboardingBanner" class="onboarding-banner" style="display:none;">
@@ -628,21 +647,19 @@
                 <!-- Your Recent Saves -->
                 <div class="home-saves-section" id="homeSavesSection" style="display:none;">
                     <div class="home-section-header">
-                        <h2>Your Recent Saves</h2>
+                        <h2>Recent Saves</h2>
                         <a onclick="setMode('saved')">See all</a>
                     </div>
-                    <div class="home-saves-scroll" id="homeSavesList"></div>
+                    <div class="home-saves-list" id="homeSavesList"></div>
                 </div>
 
                 <!-- Activity -->
-                <div class="home-activity-section" id="homeActivitySection">
+                <div class="home-activity-section" id="homeActivitySection" style="display:none;">
                     <div class="home-section-header">
                         <h2>Activity</h2>
                         <a onclick="markAllNotifsRead()">Mark all read</a>
                     </div>
-                    <div id="homeActivityItems">
-                        <div class="activity-empty">No recent activity</div>
-                    </div>
+                    <div id="homeActivityItems"></div>
                 </div>
             </div>
         </div>
@@ -1073,7 +1090,7 @@
 
     // ===== HOME PAGE ENHANCEMENTS =====
 
-    // Time-of-day greeting
+    // ── 1. Greeting with user name (already correct, kept as-is) ──
     function updateHomeGreeting() {
         const el = document.getElementById('homeGreeting');
         if (!el) return;
@@ -1087,28 +1104,152 @@
         el.textContent = name ? `${greeting}, ${name}` : greeting;
     }
 
-    // Search from home → transitions to search mode
-    function searchFromHome() {
-        const input = document.getElementById('homeSearchInput');
-        const query = input.value.trim();
-        if (!query) return;
-        input.value = '';
-        setMode('search');
-        setTimeout(function() { sendMessage(query); }, 150);
-    }
-
-    // Dynamic subtitle based on time of day
+    // ── 1b. Time-of-day subtitle ──
     function updateHomeSubtitle() {
         var el = document.getElementById('homeSubtitle');
         if (!el) return;
         var hour = new Date().getHours();
-        if (hour < 11) el.textContent = 'Looking for a breakfast spot?';
-        else if (hour < 14) el.textContent = 'Looking for a lunch spot?';
-        else if (hour < 17) el.textContent = 'Looking for a coffee break?';
-        else el.textContent = 'Looking for dinner ideas?';
+        if (hour >= 6 && hour < 11)        el.textContent = 'Looking for a breakfast spot?';
+        else if (hour >= 11 && hour < 14)  el.textContent = 'Looking for a lunch spot?';
+        else if (hour >= 14 && hour < 18)  el.textContent = 'Looking for a coffee break?';
+        else                               el.textContent = 'Looking for dinner ideas?';
     }
 
-    // Load saves on home page — with "Added by" and delete button
+    // ── 2. Location-aware subtitle line — ON by default ──
+    var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') !== 'false';
+    var _homeSuburb = null; // cached suburb name
+
+    // iOS-style location arrow SVG
+    var _locArrowSVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px;"><path d="M12 2L2 22l10-5 10 5L12 2z"/></svg>';
+
+    function updateLocationLine() {
+        var pill = document.getElementById('homeLocPill');
+        if (!pill) return;
+        if (_homeLocationEnabled) {
+            pill.innerHTML = _locArrowSVG + 'Nearby';
+            pill.classList.add('home-loc-on');
+            pill.classList.remove('home-loc-off');
+        } else {
+            pill.innerHTML = _locArrowSVG + 'Nearby off';
+            pill.classList.remove('home-loc-on');
+            pill.classList.add('home-loc-off');
+        }
+    }
+
+    async function fetchSuburb(lat, lon) {
+        try {
+            var resp = await fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon, {
+                headers: { 'Accept-Language': 'en' }
+            });
+            var json = await resp.json();
+            var addr = json.address || {};
+            return addr.suburb || addr.neighbourhood || addr.city_district || addr.city || addr.town || null;
+        } catch (e) { return null; }
+    }
+
+    function toggleHomeLocation() {
+        if (_homeLocationEnabled) {
+            // Turn off
+            _homeLocationEnabled = false;
+            localStorage.setItem('homeLocationEnabled', 'false');
+            userLocation.available = false;
+            userLocation.latitude = null;
+            userLocation.longitude = null;
+            _homeSuburb = null;
+            updateLocationLine();
+        } else {
+            // Turn on — request permission now
+            if (!navigator.geolocation) { updateLocationLine(); return; }
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                _homeLocationEnabled = true;
+                localStorage.setItem('homeLocationEnabled', 'true');
+                userLocation.latitude = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                updateLocationLine();
+                fetchSuburb(pos.coords.latitude, pos.coords.longitude).then(function(s) {
+                    _homeSuburb = s;
+                    updateLocationLine();
+                });
+            }, function() {
+                _homeLocationEnabled = false;
+                localStorage.setItem('homeLocationEnabled', 'false');
+                updateLocationLine();
+            });
+        }
+    }
+
+    function initHomeLocation() {
+        if (_homeLocationEnabled && navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                userLocation.latitude = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                fetchSuburb(pos.coords.latitude, pos.coords.longitude).then(function(s) {
+                    _homeSuburb = s;
+                    updateLocationLine();
+                });
+            }, function() {
+                _homeLocationEnabled = false;
+                localStorage.setItem('homeLocationEnabled', 'false');
+                updateLocationLine();
+            });
+        } else {
+            updateLocationLine();
+        }
+    }
+
+    // ── 3. Search from home — appends "nearby" when location on ──
+    function searchFromHome() {
+        const input = document.getElementById('homeSearchInput');
+        var query = input.value.trim();
+        if (!query) return;
+        input.value = '';
+        if (_homeLocationEnabled && userLocation.available) {
+            query = query + ' nearby';
+        }
+        setMode('search');
+        setTimeout(function() { sendMessage(query); }, 150);
+    }
+
+    // Chip search also respects location
+    function chipSearch(term) {
+        var query = _homeLocationEnabled && userLocation.available ? term + ' nearby' : term;
+        setMode('search');
+        setTimeout(function() { sendMessage(query); }, 150);
+    }
+
+    // ── 4. Time-based quick search chips — 5 random from a pool each load ──
+    function renderHomeChips() {
+        var row = document.getElementById('homeChipsRow');
+        if (!row) return;
+        var hour = new Date().getHours();
+        var pool;
+        if (hour >= 5 && hour < 11) {
+            // Morning
+            pool = ['Breakfast spot', 'Good coffee nearby', 'Acai bowl', 'Brunch with friends', 'Eggs benny spot', 'Flat white', 'Bakery nearby', 'Smoothie bar', 'Healthy brekkie', 'Café with wifi'];
+        } else if (hour >= 11 && hour < 14) {
+            // Lunch
+            pool = ['Quick lunch nearby', 'Poke bowl', 'Best ramen', 'Salad bar', 'Sandwich spot', 'Sushi lunch', 'Burger spot', 'Thai food', 'Cheap eats nearby', 'Lunch with a view'];
+        } else if (hour >= 14 && hour < 18) {
+            // Afternoon
+            pool = ['Coffee break', 'Café to work from', 'Matcha latte', 'Afternoon snack', 'Somewhere quiet', 'Good wifi café', 'Bookshop nearby', 'Ice cream', 'Juice bar', 'Co-working space'];
+        } else if (hour >= 18 && hour < 23) {
+            // Evening
+            pool = ['Dinner tonight', 'Cocktail bar', 'Date night restaurant', 'Drinks nearby', 'Late night eats', 'Wine bar', 'Rooftop bar', 'Izakaya', 'Pizza spot', 'Pasta nearby'];
+        } else {
+            // Late night
+            pool = ['Late night food', 'Open now', '24hr eats', 'Night cap bar', 'Comfort food'];
+        }
+        // Shuffle and pick 5
+        var shuffled = pool.slice().sort(function() { return Math.random() - 0.5; });
+        var chips = shuffled.slice(0, 5);
+        row.innerHTML = chips.map(function(c) {
+            return '<button class="home-chip" onclick="chipSearch(' + JSON.stringify(c) + ')">' + escapeHtml(c) + '</button>';
+        }).join('');
+    }
+
+    // ── 5. Recent Saves — horizontal list cards (max 5) ──
     async function loadHomeSaves() {
         const section = document.getElementById('homeSavesSection');
         const list = document.getElementById('homeSavesList');
@@ -1122,7 +1263,7 @@
                 .limit(10);
             const savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
             const endorsedIds = (data || []).map(function(e) { return e.item_id; });
-            const allIds = [...new Set([...endorsedIds, ...savedIds])].slice(0, 10);
+            const allIds = [...new Set([...endorsedIds, ...savedIds])].slice(0, 5);
             if (allIds.length === 0) { section.style.display = 'none'; return; }
             const { data: items } = await supabaseClient
                 .from('knowledge_items')
@@ -1130,18 +1271,18 @@
                 .in('id', allIds);
             if (!items || items.length === 0) { section.style.display = 'none'; return; }
             section.style.display = 'block';
-            list.innerHTML = items.map(function(item) {
-                var photo = item.photo_url
-                    ? '<img class="home-save-img" src="' + escapeHtml(item.photo_url) + '">'
-                    : '<div class="home-save-img home-save-placeholder">' + getCategoryEmoji(item.type) + '</div>';
-                var addedBy = item.added_by_name ? '<div class="home-save-addedby">Added by ' + escapeHtml(item.added_by_name) + '</div>' : '';
-                return '<div class="home-save-card">'
-                    + '<button class="home-save-delete" onclick="event.stopPropagation(); removeHomeSave(\'' + item.id + '\')" title="Remove">&times;</button>'
-                    + '<div onclick="goToEndorsedItem(\'' + item.id + '\')">'
-                    + photo
-                    + '<div class="home-save-title">' + escapeHtml(item.title) + '</div>'
-                    + addedBy
+            list.innerHTML = items.slice(0, 5).map(function(item) {
+                var thumb = item.photo_url
+                    ? '<img class="hsl-thumb" src="' + escapeHtml(item.photo_url) + '" alt="">'
+                    : '<div class="hsl-thumb hsl-thumb-emoji">' + getCategoryEmoji(item.type) + '</div>';
+                var meta = item.added_by_name ? 'Added by ' + escapeHtml(item.added_by_name) : '';
+                return '<div class="hsl-row" onclick="goToEndorsedItem(\'' + item.id + '\')">'
+                    + thumb
+                    + '<div class="hsl-info">'
+                    + '<div class="hsl-title">' + escapeHtml(item.title) + '</div>'
+                    + (meta ? '<div class="hsl-meta">' + meta + '</div>' : '')
                     + '</div>'
+                    + '<button class="hsl-delete" onclick="event.stopPropagation(); removeHomeSave(\'' + item.id + '\')" title="Remove">×</button>'
                     + '</div>';
             }).join('');
         } catch (err) {
@@ -1152,12 +1293,9 @@
     // Remove a save from home page
     async function removeHomeSave(itemId) {
         try {
-            // Remove from local storage saves
             var savedIds = JSON.parse(localStorage.getItem('savedItems') || '[]');
             savedIds = savedIds.filter(function(id) { return id !== itemId; });
             localStorage.setItem('savedItems', JSON.stringify(savedIds));
-
-            // Remove endorsement from Supabase
             if (typeof currentUser !== 'undefined' && currentUser) {
                 await supabaseClient
                     .from('endorsements')
@@ -1172,8 +1310,9 @@
         }
     }
 
-    // Load activity/notifications on home page
+    // ── 6. Activity — hide section entirely when empty ──
     async function loadHomeActivity() {
+        var section = document.getElementById('homeActivitySection');
         var container = document.getElementById('homeActivityItems');
         if (!container || typeof currentUser === 'undefined' || !currentUser) return;
         try {
@@ -1183,9 +1322,10 @@
                 notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
             }
             if (notifs.length === 0) {
-                container.innerHTML = '<div class="activity-empty">No recent activity</div>';
+                if (section) section.style.display = 'none';
                 return;
             }
+            if (section) section.style.display = 'block';
             container.innerHTML = notifs.slice(0, 10).map(function(n) {
                 var initial = (n.actor_name || '?').charAt(0).toUpperCase();
                 var isUnread = !n.read;
@@ -1217,13 +1357,15 @@
         };
     }
 
-    // Patch showHome to also load greeting, subtitle, saves & activity
+    // Patch showHome to load all home page content
     if (typeof showHome === 'function') {
         var _origShowHome = showHome;
         showHome = function() {
             _origShowHome();
             updateHomeGreeting();
             updateHomeSubtitle();
+            renderHomeChips();
+            initHomeLocation();
             loadHomeSaves();
             loadHomeActivity();
         };

@@ -428,6 +428,13 @@ function toggleProfileEdit(show) {
 async function loadProfilePage() {
     if (!currentUser || !currentProfile) return;
 
+    // Auto-clear notification dot when user opens profile
+    try {
+        await supabaseClient.rpc('mark_all_notifications_read', { p_user_id: currentUser.id });
+    } catch (e) { /* silently ignore */ }
+    const badge = document.getElementById('notifBadge');
+    if (badge) badge.style.display = 'none';
+
     // Always reset to view mode
     toggleProfileEdit(false);
 
@@ -1296,22 +1303,21 @@ function getTimeAgo(dateStr) {
 let notifPollInterval = null;
 
 async function checkUnreadNotifications() {
-    if (!currentUser) return;
+    const badge = document.getElementById('notifBadge');
+    if (!currentUser) {
+        if (badge) badge.style.display = 'none';
+        return;
+    }
     try {
         const { data, error } = await supabaseClient.rpc('get_unread_notification_count', {
             p_user_id: currentUser.id
         });
-        if (error) {
-            console.error('Error checking notifications:', error);
-            return;
-        }
-        const count = data || 0;
-        const badge = document.getElementById('notifBadge');
-        if (badge) {
-            badge.style.display = count > 0 ? 'block' : 'none';
-        }
+        // Only show dot if RPC succeeded and count is a positive number
+        const count = (!error && typeof data === 'number') ? data : 0;
+        if (badge) badge.style.display = count > 0 ? 'block' : 'none';
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
+        if (badge) badge.style.display = 'none';
     }
 }
 
