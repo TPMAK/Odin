@@ -35,7 +35,7 @@
         }
 
         .header-content {
-            padding: 16px 24px;
+            padding: 10px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -367,7 +367,7 @@
 
         /* Greeting */
         .home-greeting {
-            padding: 24px 0 4px;
+            padding: 8px 0 4px;
         }
 
         .home-greeting h1 {
@@ -1498,23 +1498,21 @@
         .search-back-btn {
             display: flex;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
             background: none;
             border: none;
             color: #7B2D45;
-            font-size: 15px;
-            font-weight: 600;
-            font-family: inherit;
             cursor: pointer;
-            padding: 6px 10px 6px 4px;
-            border-radius: 8px;
-            transition: background 0.15s, opacity 0.15s;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            padding: 0;
+            transition: background 0.15s;
             flex-shrink: 0;
         }
 
         .search-back-btn:hover {
-            background: #F5EDE8;
-            opacity: 0.9;
+            background: rgba(123, 45, 69, 0.08);
         }
 
         .search-back-btn svg {
@@ -1524,30 +1522,34 @@
         .search-header-title {
             font-family: 'DM Serif Display', Georgia, serif;
             font-size: 18px;
-            font-weight: 700;
+            font-weight: 400;
             color: var(--ink);
             flex: 1;
             text-align: center;
         }
 
+        /* New session — icon-only circle matching Winterberry theme */
         .new-session-btn {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 14px;
-            color: #374151;
-            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: all 0.2s;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #7B2D45;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+            flex-shrink: 0;
+            transition: background 0.18s, transform 0.18s;
         }
 
         .new-session-btn:hover {
-            border-color: #7B2D45;
-            color: #7B2D45;
-            background: #F5EDE8;
+            background: #5A1F30;
+        }
+
+        .new-session-btn:active {
+            transform: rotate(-30deg);
         }
 
         .new-session-icon {
@@ -1585,18 +1587,21 @@
         }
 
         .suggestion-chip {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            padding: 10px 16px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            padding: 6px 12px;
             border-radius: 20px;
-            font-size: 14px;
-            color: #374151;
+            font-size: 13px;
+            color: var(--ink);
             cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
         }
 
         .suggestion-chip:hover {
             border-color: #7B2D45;
             color: #7B2D45;
+            background: #F5EDE8;
         }
 
         .message {
@@ -2306,8 +2311,8 @@
         }
 
         #sendButton {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             border: none;
             background: #7B2D45;
@@ -2316,10 +2321,22 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.18s, transform 0.18s;
+        }
+
+        #sendButton svg {
+            width: 15px;
+            height: 15px;
+            stroke: white;
         }
 
         #sendButton:hover {
             background: #5A1F30;
+        }
+
+        #sendButton:active {
+            transform: scale(0.93);
         }
 
         /* INPUT MODE */
@@ -2890,7 +2907,7 @@
     font-family: 'DM Serif Display', Georgia, serif;
     font-size: 24px;
     font-weight: 700;
-    color: var(--wb);
+    color: #7B2D45 !important;
     letter-spacing: -0.3px;
     margin-bottom: 2px;
 }
