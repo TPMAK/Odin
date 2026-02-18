@@ -8,7 +8,7 @@
     <!-- ── Favicon & PWA icons ── -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="apple-touch-icon.svg">
-    <meta name="theme-color" content="#EDE0CC">
+    <meta name="theme-color" content="#FAF6EE">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Vouch">
@@ -18,12 +18,12 @@
     <!-- Preconnect for faster Google Fonts load -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=DM+Serif+Display:ital@0;1&display=swap">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=25">
+    <link rel="stylesheet" href="styles.css?v=26">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -37,12 +37,12 @@
             --primary-orange: #7B2D45;   /* Winterberry */
             --primary-orange-hover: #5A1F30;
             --primary-orange-light: #9B4D65;
-            --cream: #EDE0CC;            /* Cream / surface */
-            --lp-bg: #F0EBE2;            /* Page bg */
-            --surface: #EDE0CC;
+            --cream: #FAF6EE;            /* Cream / surface */
+            --lp-bg: #FAF6EE;            /* Page bg */
+            --surface: #FFFFFF;
             --text-primary: #2A1E14;     /* Cumberland */
             --text-secondary: #9A8A7A;   /* Warm grey */
-            --border-light: #D4C8B0;
+            --border-light: #EAE0D2;
             --shadow-warm: 0 4px 20px rgba(123, 45, 69, 0.12);
             --shadow-light: 0 2px 12px rgba(42, 30, 20, 0.06);
             --shadow-button: 0 4px 16px rgba(123, 45, 69, 0.3);
@@ -99,7 +99,7 @@
             text-align: center;
         }
         .lp-intro-tagline {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 38px;
             font-weight: 500;
             margin-bottom: 20px;
@@ -152,7 +152,7 @@
             background: linear-gradient(180deg, var(--lp-bg), var(--cream));
         }
         .lp-mission-content { max-width: 900px; margin: 0 auto; text-align: center; }
-        .lp-mission-title { font-family: 'Fraunces', Georgia, serif; font-size: 36px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
+        .lp-mission-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 36px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
         .lp-mission-description { font-size: 18px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 48px; }
         .lp-mission-values { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 48px; }
         .lp-value-item { background: var(--surface); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-light); border: 1px solid rgba(123, 45, 69,0.1); }
@@ -162,7 +162,7 @@
         /* EXPECTATIONS */
         .lp-expectations-section { background: var(--surface); padding: 70px 20px; }
         .lp-container { max-width: 900px; margin: 0 auto; }
-        .lp-section-title { font-family: 'Fraunces', Georgia, serif; font-size: 32px; font-weight: 500; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
+        .lp-section-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 32px; font-weight: 500; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
         .lp-section-subtitle { font-size: 16px; color: var(--text-secondary); text-align: center; margin-bottom: 40px; }
         .lp-expectations-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
         .lp-expectation-card { background: var(--lp-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 28px 20px; text-align: center; transition: all 0.3s ease; }
@@ -187,7 +187,7 @@
         .lp-step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
         /* FINAL CTA */
         .lp-final-cta { padding: 100px 20px; text-align: center; background: linear-gradient(180deg, var(--lp-bg), var(--cream)); }
-        .lp-cta-title { font-family: 'Fraunces', Georgia, serif; font-size: 44px; font-weight: 500; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
+        .lp-cta-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 44px; font-weight: 500; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
         .lp-cta-subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.6; }
         .lp-cta-primary {
             display: inline-block;
@@ -259,7 +259,7 @@
             margin-bottom: 10px;
         }
         .auth-modal-title {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 26px;
             font-weight: 500;
             color: #202124;
@@ -1119,20 +1119,23 @@
     var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') !== 'false';
     var _homeSuburb = null; // cached suburb name
 
-    // iOS-style location arrow SVG
-    var _locArrowSVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display:inline-block;vertical-align:middle;margin-right:3px;"><path d="M12 2L2 22l10-5 10 5L12 2z"/></svg>';
+    // Location icon — filled pin (on) / outline pin (off)
+    var _locIconOn  = '<svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>';
+    var _locIconOff = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>';
 
     function updateLocationLine() {
         var pill = document.getElementById('homeLocPill');
         if (!pill) return;
         if (_homeLocationEnabled) {
-            pill.innerHTML = _locArrowSVG + 'Nearby';
+            pill.innerHTML = _locIconOn;
             pill.classList.add('home-loc-on');
             pill.classList.remove('home-loc-off');
+            pill.title = 'Nearby search on — tap to turn off';
         } else {
-            pill.innerHTML = _locArrowSVG + 'Nearby off';
+            pill.innerHTML = _locIconOff;
             pill.classList.remove('home-loc-on');
             pill.classList.add('home-loc-off');
+            pill.title = 'Nearby search off — tap to turn on';
         }
     }
 

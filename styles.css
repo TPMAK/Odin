@@ -1,14 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=DM+Serif+Display:ital@0;1&display=swap');
 
 /* ── Vouch Brand Tokens ── */
 :root {
     --wb:       #7B2D45;   /* Winterberry  — logo "v", buttons, chips  */
     --ink:      #2A1E14;   /* Cumberland   — all primary text          */
-    --bg:       #F0EBE2;   /* Page bg      — warm off-white            */
-    --mason:    #DDD0B8;   /* Mason Bay    — nav / card bg             */
-    --surface:  #EDE0CC;   /* Cream        — cards, search bar         */
+    --bg:       #FAF6EE;   /* Page bg      — warm off-white            */
+    --mason:    #FAF6EE;   /* Mason Bay    — nav / card bg             */
+    --surface:  #FFFFFF;   /* Cream        — cards, search bar         */
     --muted:    #9A8A7A;   /* Warm grey    — meta text, placeholders   */
-    --border:   #D4C8B0;   /* Warm border  — dividers, card borders    */
+    --border:   #EAE0D2;   /* Warm border  — dividers, card borders    */
 }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,7 +28,7 @@
             position: sticky;
             top: 0;
             z-index: 1000;
-            background: rgba(240, 235, 226, 0.92);
+            background: rgba(250, 246, 238, 0.95);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -44,7 +44,7 @@
         }
 
         .header-title {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 22px;
             font-weight: 700;
             color: var(--ink);
@@ -65,7 +65,7 @@
         .vouch-wordmark {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 900;
-            font-size: 22px;
+            font-size: 28px;
             letter-spacing: -0.06em;
             line-height: 1;
             display: inline-flex;
@@ -73,7 +73,7 @@
         }
 
         .vouch-wordmark-lg {
-            font-size: 32px;
+            font-size: 36px;
             letter-spacing: -0.06em;
         }
 
@@ -138,7 +138,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(237, 224, 204, 0.97);
+            background: rgba(250, 246, 238, 0.97);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-top: 1px solid var(--border);
@@ -343,11 +343,11 @@
         }
 
         .home-greeting h1 {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 28px;
-            font-weight: 500;
-            line-height: 1.2;
-            letter-spacing: -0.2px;
+            font-weight: 400;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
             color: var(--ink);
         }
 
@@ -369,35 +369,46 @@
             color: var(--muted);
         }
 
-        /* Location pill inside search bar */
+        /* Location icon button — same height as search bar, icon-only */
         .home-loc-pill {
             flex-shrink: 0;
             display: flex;
             align-items: center;
-            gap: 2px;
-            padding: 4px 10px;
-            border-radius: 50px;
-            font-size: 11px;
-            font-weight: 500;
-            font-family: inherit;
+            justify-content: center;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
             cursor: pointer;
-            border: 1.5px solid transparent;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
             transition: all 0.18s;
-            white-space: nowrap;
-            line-height: 1;
+            padding: 0;
+        }
+        .home-loc-pill svg {
+            width: 18px;
+            height: 18px;
+            transition: all 0.18s;
         }
         .home-loc-pill.home-loc-on {
-            background: #F5EDE8;
+            background: #7B2D4514;
             border-color: #7B2D45;
+        }
+        .home-loc-pill.home-loc-on svg {
             color: #7B2D45;
+            fill: #7B2D45;
         }
         .home-loc-pill.home-loc-off {
-            background: transparent;
-            border-color: #d1d5db;
+            background: var(--surface);
+            border-color: var(--border);
+        }
+        .home-loc-pill.home-loc-off svg {
             color: var(--muted);
+            fill: none;
+            stroke: var(--muted);
         }
         .home-loc-pill:hover {
-            opacity: 0.8;
+            border-color: #7B2D45;
+            opacity: 0.85;
         }
 
         /* Quick search chips */
@@ -789,7 +800,7 @@
         }
 
         .page-title {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 28px;
             font-weight: 700;
             color: #1A1A1A;
@@ -1276,7 +1287,7 @@
         }
 
         .empty-state-title {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 22px;
             font-weight: 700;
             color: #1A1A1A;
@@ -1432,7 +1443,7 @@
         }
 
         .search-header-title {
-            font-family: 'Fraunces', Georgia, serif;
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 18px;
             font-weight: 700;
             color: var(--ink);
@@ -2797,7 +2808,7 @@
 }
 
 .profile-name {
-    font-family: 'Fraunces', Georgia, serif;
+    font-family: 'DM Serif Display', Georgia, serif;
     font-size: 24px;
     font-weight: 700;
     color: var(--ink);
