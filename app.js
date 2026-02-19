@@ -439,7 +439,9 @@ async function loadProfilePage() {
     toggleProfileEdit(false);
 
     const name = currentProfile.display_name || '';
-    document.getElementById('profileDisplayName').textContent = name;
+    const nameEl = document.getElementById('profileDisplayName');
+    nameEl.textContent = name;
+    nameEl.style.color = '#7B2D45';
     document.getElementById('profileEmail').textContent = currentUser.email || '';
     document.getElementById('profileNameInput').value = name;
     document.getElementById('profileBioInput').value = currentProfile.bio || '';
@@ -575,7 +577,9 @@ async function saveProfile(event) {
         if (error) throw error;
 
         currentProfile = data;
-        document.getElementById('profileDisplayName').textContent = newName;
+        const nameElSave = document.getElementById('profileDisplayName');
+        nameElSave.textContent = newName;
+        nameElSave.style.color = '#7B2D45';
         updateAvatarInitials(newName);
 
         // Update bio display
@@ -1645,11 +1649,11 @@ function updateTabBar(mode) {
 }
 
 function initLocation() {
+    // locationIndicator element was replaced by the home-loc-pill; guard against null
     const indicator = document.getElementById('locationIndicator');
 
     if (!navigator.geolocation) {
-        indicator.textContent = '📍 Not supported';
-        indicator.className = 'location-indicator error';
+        if (indicator) { indicator.textContent = '📍 Not supported'; indicator.className = 'location-indicator error'; }
         return;
     }
 
@@ -1658,12 +1662,10 @@ function initLocation() {
             userLocation.latitude = position.coords.latitude;
             userLocation.longitude = position.coords.longitude;
             userLocation.available = true;
-            indicator.textContent = '📍 Location on';
-            indicator.className = 'location-indicator active';
+            if (indicator) { indicator.textContent = '📍 Location on'; indicator.className = 'location-indicator active'; }
         },
         (error) => {
-            indicator.textContent = '📍 Location off';
-            indicator.className = 'location-indicator error';
+            if (indicator) { indicator.textContent = '📍 Location off'; indicator.className = 'location-indicator error'; }
         }
     );
 }
@@ -2374,6 +2376,8 @@ function startNewSession() {
     isFirstMessage = true;
     currentResults = [];
     document.getElementById('messageInput').value = '';
+    // Refresh search greeting after session reset
+    if (typeof updateSearchGreeting === 'function') updateSearchGreeting();
     console.log('New session started:', currentSessionId);
 }
 

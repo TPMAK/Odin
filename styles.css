@@ -581,9 +581,7 @@
             min-width: 0;
         }
 
-        @media (min-width: 768px) {
-            .home-search-wrapper { max-width: 540px; }
-        }
+        /* search wrapper fills full home-page container width at all sizes */
 
         .home-search-bar {
             width: 100%;
@@ -668,22 +666,24 @@
 
         .home-voice-btn { display: none; }
 
-        /* Saves Section on Home */
-        .home-saves-section {
-            margin-bottom: 28px;
+        /* ── Section header (shared) ── */
+        .home-saves-section,
+        .home-feed-section {
+            margin-bottom: 32px;
         }
 
         .home-section-header {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             justify-content: space-between;
             margin-bottom: 14px;
         }
 
-        .home-section-header h2 {
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: -0.3px;
+        .home-section-title {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: -0.01em;
             color: var(--ink);
         }
 
@@ -693,7 +693,285 @@
             text-decoration: none;
             font-weight: 600;
             cursor: pointer;
+            flex-shrink: 0;
         }
+
+        /* ── Friend feed — horizontal scroll + nav arrows ── */
+        .home-feed-wrap {
+            position: relative;
+        }
+
+        .home-feed-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 8px;
+            /* bleed to page edge on mobile */
+            margin: 0 -24px;
+            padding-left: 24px;
+            padding-right: 24px;
+        }
+
+        @media (min-width: 768px) {
+            .home-feed-scroll {
+                margin: 0;
+                padding-left: 0;
+                padding-right: 0;
+            }
+        }
+
+        .home-feed-scroll::-webkit-scrollbar { display: none; }
+
+        /* Nav arrow buttons — hidden on mobile (touch scroll), shown on desktop */
+        .feed-nav-btn {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .feed-nav-btn {
+                display: flex;
+                position: absolute;
+                top: 50%;
+                transform: translateY(-60%);
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: var(--surface);
+                border: 1.5px solid var(--border);
+                box-shadow: 0 2px 8px rgba(42,30,20,0.12);
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: var(--ink);
+                transition: background 0.15s, box-shadow 0.15s, opacity 0.2s;
+                z-index: 2;
+            }
+
+            .feed-nav-btn:hover {
+                background: var(--bg);
+                box-shadow: 0 4px 12px rgba(42,30,20,0.16);
+            }
+
+            .feed-nav-btn:disabled,
+            .feed-nav-btn.hidden {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            .feed-nav-prev { left: -16px; }
+            .feed-nav-next { right: -16px; }
+        }
+
+        /* Gradient fade hint on mobile right edge */
+        .feed-scroll-hint {
+            position: absolute;
+            right: -24px;
+            top: 0;
+            bottom: 8px;
+            width: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 6px;
+            background: linear-gradient(to right, transparent, var(--bg) 65%);
+            pointer-events: none;
+            color: var(--muted);
+            transition: opacity 0.4s ease;
+        }
+
+        @media (min-width: 768px) {
+            .feed-scroll-hint { display: none; }
+        }
+
+        .feed-scroll-hint.hidden { opacity: 0; }
+
+        /* ── Animated search placeholder ── */
+        @keyframes placeholderFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes placeholderFadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(-4px); }
+        }
+
+        .home-search-placeholder-text {
+            /* Mirror the input's own padding so the text lands exactly
+               where a native placeholder would — no transform needed. */
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 10px 44px 10px 40px;
+            display: flex;
+            align-items: center;
+            font-size: 15px;
+            line-height: 1;
+            color: var(--muted);
+            pointer-events: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .home-search-placeholder-text.fade-in {
+            animation: placeholderFadeIn 0.5s ease forwards;
+        }
+
+        .home-search-placeholder-text.fade-out {
+            animation: placeholderFadeOut 0.4s ease forwards;
+        }
+
+        /* Hide native placeholder when our custom one is active */
+        .home-search-bar.custom-placeholder::placeholder {
+            color: transparent;
+        }
+
+        .hf-card {
+            flex-shrink: 0;
+            width: 148px;
+            background: var(--surface);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            scroll-snap-align: start;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .hf-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(42,30,20,0.1);
+        }
+
+        .hf-card-img {
+            width: 100%;
+            height: 96px;
+            object-fit: cover;
+            display: block;
+            background: var(--bg);
+        }
+
+        .hf-card-emoji {
+            width: 100%;
+            height: 96px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            background: var(--bg);
+        }
+
+        .hf-card-body {
+            padding: 10px 12px 12px;
+        }
+
+        .hf-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .hf-card-by {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hf-card-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7B2D45, #5A1F30);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .hf-card-name {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── Empty state — no friends ── */
+        .home-empty-friends {
+            margin-bottom: 32px;
+        }
+
+        .home-empty-inner {
+            background: var(--surface);
+            border: 1.5px dashed var(--border);
+            border-radius: 16px;
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .home-empty-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: #7B2D4510;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #7B2D45;
+        }
+
+        .home-empty-text strong {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .home-empty-text p {
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .home-empty-btn {
+            background: #7B2D45;
+            color: white;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: background 0.18s;
+        }
+
+        .home-empty-btn:hover { background: #5A1F30; }
 
         .home-saves-scroll {
             display: flex;
@@ -1488,11 +1766,15 @@
         .search-header {
             max-width: 600px;
             margin: 0 auto;
-            padding: 14px 24px 0;
+            padding: 10px 24px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .search-header { max-width: 720px; padding: 10px 32px 0; }
         }
 
         .search-back-btn {
@@ -1562,27 +1844,50 @@
             padding: 16px 24px 100px;
         }
 
-        .welcome {
-            text-align: center;
-            padding: 80px 24px;
+        @media (min-width: 768px) {
+            .chat-container { max-width: 720px; padding: 16px 32px 100px; }
         }
 
-        .welcome h2 {
+        .welcome {
+            text-align: left;
+            padding: 16px 0 32px;
+        }
+
+        /* Search page greeting — mirrors home greeting style */
+        .search-greeting {
+            margin-bottom: 28px;
+        }
+
+        .search-greeting h1 {
+            font-family: 'DM Serif Display', Georgia, serif;
             font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-weight: 400;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        @media (min-width: 768px) {
+            .search-greeting h1 { font-size: 34px; }
+        }
+
+        .search-greeting p {
+            font-size: 15px;
+            color: var(--muted);
+            line-height: 1.5;
         }
 
         .welcome p {
             color: var(--muted);
             font-size: 15px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
 
         .suggestions {
             display: flex;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 10px;
         }
 
@@ -2293,6 +2598,10 @@
             padding: 6px 6px 6px 18px;
             max-width: 600px;
             margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .input-wrapper { max-width: 720px; }
         }
 
         .input-wrapper:focus-within {

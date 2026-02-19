@@ -23,7 +23,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=29">
+    <link rel="stylesheet" href="styles.css?v=36">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -270,6 +270,15 @@
             color: #6b7280;
             margin-top: 4px;
         }
+        .auth-modal-brandline {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: #9A8A7A;
+            line-height: 1.7;
+            margin-top: 8px;
+        }
 
         /* RESPONSIVE LANDING */
         @media (max-width: 768px) {
@@ -487,7 +496,7 @@
                 <div class="auth-modal-logo">
                     <span class="vouch-wordmark vouch-wordmark-lg"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
                 </div>
-                <div class="auth-modal-subtitle">Your trusted recommendations, from people you know</div>
+                <div class="auth-modal-brandline">From people you know,<br>not platforms.</div>
             </div>
 
             <!-- Auth Card (reused from original) -->
@@ -623,7 +632,8 @@
                 <div class="home-search-wrapper breathing">
                     <div class="home-search-inner">
                         <svg class="home-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="text" class="home-search-bar" id="homeSearchInput" placeholder="Try &quot;quiet cafe to work from&quot;" onkeypress="if(event.key==='Enter') searchFromHome()">
+                        <input type="text" class="home-search-bar custom-placeholder" id="homeSearchInput" placeholder="" onkeypress="if(event.key==='Enter') searchFromHome()" onfocus="stopPlaceholderCycle()" onblur="startPlaceholderCycle()">
+                        <div class="home-search-placeholder-text" id="homePlaceholder"></div>
                         <button class="home-search-send" onclick="searchFromHome()" aria-label="Search">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         </button>
@@ -632,38 +642,51 @@
                     <button class="home-loc-pill" id="homeLocPill" onclick="toggleHomeLocation()"></button>
                 </div>
 
-                <!-- Quick Search Chips -->
-                <div class="home-chips-row" id="homeChipsRow"></div>
+                <!-- chips row hidden — placeholder now animates in search bar -->
+                <div class="home-chips-row" id="homeChipsRow" style="display:none;"></div>
 
-                <!-- Onboarding Banner -->
-                <div id="onboardingBanner" class="onboarding-banner" style="display:none;">
-                    <div class="onboarding-icon">👋</div>
-                    <div class="onboarding-text">
-                        <strong>Welcome to Vouch!</strong>
-                        <p>Add friends to unlock personal stories and notes from people you trust.</p>
+                <!-- From your circle — friend activity feed -->
+                <div class="home-feed-section" id="homeFeedSection" style="display:none;">
+                    <div class="home-section-header">
+                        <h2 class="home-section-title">From your circle</h2>
+                        <a onclick="setMode('discover')">See all</a>
                     </div>
-                    <div class="onboarding-actions">
-                        <button class="onboarding-btn onboarding-btn-primary" onclick="goToFindFriends()">Find Friends</button>
-                        <button class="onboarding-btn onboarding-btn-secondary" onclick="dismissOnboarding()">Got it</button>
+                    <!-- Horizontal scroll cards + nav arrows (desktop) + hint (mobile) -->
+                    <div class="home-feed-wrap">
+                        <button class="feed-nav-btn feed-nav-prev hidden" id="feedNavPrev" aria-label="Scroll left" onclick="scrollFeed(-1)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div class="home-feed-scroll" id="homeFeedScroll"></div>
+                        <button class="feed-nav-btn feed-nav-next" id="feedNavNext" aria-label="Scroll right" onclick="scrollFeed(1)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="feed-scroll-hint" id="feedScrollHint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empty state — no friends yet -->
+                <div class="home-empty-friends" id="homeEmptyFriends" style="display:none;">
+                    <div class="home-empty-inner">
+                        <div class="home-empty-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="home-empty-text">
+                            <strong>Add friends to see their picks</strong>
+                            <p>When your friends save places, you'll see them here — no searching needed.</p>
+                        </div>
+                        <button class="home-empty-btn" onclick="goToFindFriends()">Find friends</button>
                     </div>
                 </div>
 
                 <!-- Your Recent Saves -->
                 <div class="home-saves-section" id="homeSavesSection" style="display:none;">
                     <div class="home-section-header">
-                        <h2>Recent Saves</h2>
+                        <h2 class="home-section-title">Your saves</h2>
                         <a onclick="setMode('saved')">See all</a>
                     </div>
                     <div class="home-saves-list" id="homeSavesList"></div>
-                </div>
-
-                <!-- Activity -->
-                <div class="home-activity-section" id="homeActivitySection" style="display:none;">
-                    <div class="home-section-header">
-                        <h2>Activity</h2>
-                        <a onclick="markAllNotifsRead()">Mark all read</a>
-                    </div>
-                    <div id="homeActivityItems"></div>
                 </div>
             </div>
         </div>
@@ -674,15 +697,17 @@
                 <button class="search-back-btn" onclick="goBack()" aria-label="Go back">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <span class="search-header-title">Search</span>
+                <span class="search-header-title"></span>
                 <button class="new-session-btn" onclick="startNewSession()" title="New search session" aria-label="New session">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
                 </button>
             </div>
             <div class="chat-container" id="chatContainer">
                 <div class="welcome">
-                    <h2>What are you looking for?</h2>
-                    <p>Search your friends' best discoveries</p>
+                    <div class="search-greeting">
+                        <h1 id="searchGreeting"></h1>
+                        <p id="searchGreetingSub"></p>
+                    </div>
                     <div class="suggestions">
                         <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
                         <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
@@ -747,7 +772,7 @@
                         <div class="profile-avatar-large" id="profileAvatarLarge">
                             <span id="profileAvatarLargeInitial">?</span>
                         </div>
-                        <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
+                        <h2 class="profile-name" id="profileDisplayName" style="color:#7B2D45;">Loading...</h2>
                         <p class="profile-email" id="profileEmail"></p>
                         <p class="profile-bio" id="profileBioDisplay"></p>
                     </div>
@@ -1017,7 +1042,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=22"></script>
+    <script src="app.js?v=25"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
@@ -1039,7 +1064,33 @@
         return 'home';
     }
 
-    // Patch setMode to track history
+    // ── Search page greeting ──
+    function updateSearchGreeting() {
+        var h1 = document.getElementById('searchGreeting');
+        var sub = document.getElementById('searchGreetingSub');
+        if (!h1 || !sub) return;
+        var hour = new Date().getHours();
+        var name = (typeof currentProfile !== 'undefined' && currentProfile)
+            ? (currentProfile.display_name || '').split(' ')[0] : '';
+
+        // Greeting
+        var greeting = 'Good evening';
+        if (hour < 12)       greeting = 'Good morning';
+        else if (hour < 17)  greeting = 'Good afternoon';
+        h1.textContent = name ? greeting + ', ' + name : greeting;
+
+        // Time-based search prompt
+        var prompts = {
+            morning:   ['What are you hunting for today?', 'Start your day with a great find.', 'What can your friends help you discover?'],
+            lunch:     ['Hungry? Ask your friends.', 'What are you in the mood for?', 'What would you like to find today?'],
+            afternoon: ['What are you looking for?', 'Your friends might know just the thing.', 'What can we help you find?'],
+            evening:   ['What are you after tonight?', 'Let your friends guide you.', 'What sounds good right now?'],
+        };
+        var pool = hour < 12 ? prompts.morning : hour < 14 ? prompts.lunch : hour < 18 ? prompts.afternoon : prompts.evening;
+        sub.textContent = pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // Patch setMode to track history + trigger search greeting
     (function() {
         var _origSetMode = setMode;
         setMode = function(mode) {
@@ -1052,6 +1103,8 @@
             }
             _navIgnoreNext = false;
             _origSetMode(mode);
+            if (mode === 'search') updateSearchGreeting();
+            if (mode !== 'home') stopPlaceholderCycle();
         };
     })();
 
@@ -1187,11 +1240,17 @@
     }
 
     function initHomeLocation() {
+        // If we already have coords from this session, just refresh the pill — no re-prompt
+        if (userLocation.available) {
+            updateLocationLine();
+            return;
+        }
         if (_homeLocationEnabled && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
                 userLocation.latitude = pos.coords.latitude;
                 userLocation.longitude = pos.coords.longitude;
                 userLocation.available = true;
+                updateLocationLine();
                 fetchSuburb(pos.coords.latitude, pos.coords.longitude).then(function(s) {
                     _homeSuburb = s;
                     updateLocationLine();
@@ -1200,7 +1259,7 @@
                 _homeLocationEnabled = false;
                 localStorage.setItem('homeLocationEnabled', 'false');
                 updateLocationLine();
-            });
+            }, { timeout: 8000, maximumAge: 300000 }); // reuse cached position up to 5 min old
         } else {
             updateLocationLine();
         }
@@ -1217,10 +1276,11 @@
         }
         setMode('search');
         setTimeout(function() {
-            var msgInput = document.getElementById('messageInput');
-            if (msgInput) msgInput.value = query;
-            sendMessage(query);
-        }, 300);
+            if (typeof startNewSession === 'function') startNewSession();
+            setTimeout(function() {
+                sendMessage(query);
+            }, 50);
+        }, 200);
     }
 
     // Chip search also respects location
@@ -1228,10 +1288,12 @@
         var query = _homeLocationEnabled && userLocation.available ? term + ' nearby' : term;
         setMode('search');
         setTimeout(function() {
-            var msgInput = document.getElementById('messageInput');
-            if (msgInput) msgInput.value = query;
-            sendMessage(query);
-        }, 300);
+            // Reset to clean state so .welcome and isFirstMessage are guaranteed fresh
+            if (typeof startNewSession === 'function') startNewSession();
+            setTimeout(function() {
+                sendMessage(query);
+            }, 50);
+        }, 200);
     }
 
     // ── 4. Time-based quick search chips — 5 random from a pool each load ──
@@ -1264,7 +1326,194 @@
         }).join('');
     }
 
-    // ── 5. Recent Saves — horizontal list cards (max 5) ──
+    // ── 4b. Animated search bar placeholder ──
+    var _placeholderTimer = null;
+    var _placeholderIdx   = 0;
+
+    function _getPlaceholderPool() {
+        var hour = new Date().getHours();
+        if (hour >= 5  && hour < 11) return [
+            'Try "best flat white nearby"',
+            'Ask "eggs benedict spots your friends love"',
+            'Try "bakery open early"',
+            'Ask "best acai bowl in town"',
+            'Try "quiet café to work from"',
+        ];
+        if (hour >= 11 && hour < 14) return [
+            'Try "quick lunch nearby"',
+            'Ask "best poke bowl your friends tried"',
+            'Try "good sushi for lunch"',
+            'Ask "healthy lunch spots"',
+            'Try "ramen your friends recommend"',
+        ];
+        if (hour >= 14 && hour < 18) return [
+            'Try "café with good wifi"',
+            'Ask "best matcha latte in the area"',
+            'Try "quiet place to work"',
+            'Ask "afternoon snack spots"',
+            'Try "somewhere cosy to read"',
+        ];
+        if (hour >= 18 && hour < 23) return [
+            'Try "dinner spot for tonight"',
+            'Ask "best cocktail bar your friends like"',
+            'Try "date night restaurant"',
+            'Ask "rooftop bar nearby"',
+            'Try "great pasta near me"',
+        ];
+        return [
+            'Try "late night food open now"',
+            'Ask "best 24hr eats"',
+            'Try "night cap bar nearby"',
+        ];
+    }
+
+    function _showPlaceholder(el, text) {
+        el.classList.remove('fade-in', 'fade-out');
+        // force reflow
+        void el.offsetWidth;
+        el.textContent = text;
+        el.classList.add('fade-in');
+    }
+
+    function startPlaceholderCycle() {
+        var el = document.getElementById('homePlaceholder');
+        var input = document.getElementById('homeSearchInput');
+        if (!el) return;
+        // Don't cycle while user is typing
+        if (input && input.value.trim()) return;
+
+        var pool = _getPlaceholderPool();
+        // Show immediately
+        _showPlaceholder(el, pool[_placeholderIdx % pool.length]);
+        el.style.display = 'block';
+
+        _placeholderTimer = setInterval(function() {
+            var inp = document.getElementById('homeSearchInput');
+            if (inp && inp.value.trim()) return; // pause if typing
+            el.classList.remove('fade-in');
+            el.classList.add('fade-out');
+            setTimeout(function() {
+                _placeholderIdx = (_placeholderIdx + 1) % pool.length;
+                _showPlaceholder(el, pool[_placeholderIdx]);
+            }, 420);
+        }, 5000);
+    }
+
+    function stopPlaceholderCycle() {
+        if (_placeholderTimer) { clearInterval(_placeholderTimer); _placeholderTimer = null; }
+        var el = document.getElementById('homePlaceholder');
+        if (el) el.style.display = 'none';
+    }
+
+    // ── 4c. Feed scroll nav (desktop buttons + mobile hint) ──
+    function scrollFeed(dir) {
+        var scroll = document.getElementById('homeFeedScroll');
+        if (!scroll) return;
+        // Scroll by ~3 card widths (148px + 12px gap = 160px each)
+        scroll.scrollBy({ left: dir * 160 * 3, behavior: 'smooth' });
+    }
+
+    function _updateFeedNavButtons(scroll) {
+        var prev = document.getElementById('feedNavPrev');
+        var next = document.getElementById('feedNavNext');
+        if (!prev || !next) return;
+        var atStart = scroll.scrollLeft <= 4;
+        var atEnd   = scroll.scrollLeft >= scroll.scrollWidth - scroll.clientWidth - 4;
+        if (atStart) prev.classList.add('hidden'); else prev.classList.remove('hidden');
+        if (atEnd)   next.classList.add('hidden'); else next.classList.remove('hidden');
+    }
+
+    function initFeedScrollHint() {
+        var scroll = document.getElementById('homeFeedScroll');
+        var hint   = document.getElementById('feedScrollHint');
+        if (!scroll) return;
+
+        var canScroll = scroll.scrollWidth > scroll.clientWidth + 4;
+
+        // Mobile hint
+        if (hint) {
+            if (!canScroll) { hint.style.display = 'none'; }
+            else {
+                hint.classList.remove('hidden');
+                var dismissed = false;
+                scroll.addEventListener('scroll', function onScroll() {
+                    if (dismissed) return;
+                    dismissed = true;
+                    hint.classList.add('hidden');
+                    setTimeout(function() { hint.style.display = 'none'; }, 450);
+                    scroll.removeEventListener('scroll', onScroll);
+                }, { passive: true });
+            }
+        }
+
+        // Desktop nav buttons — update on scroll
+        _updateFeedNavButtons(scroll);
+        scroll.addEventListener('scroll', function() {
+            _updateFeedNavButtons(scroll);
+        }, { passive: true });
+    }
+
+    // ── 5. Friend feed — what people in your circle saved recently ──
+    async function loadFriendFeed() {
+        var feedSection  = document.getElementById('homeFeedSection');
+        var emptySection = document.getElementById('homeEmptyFriends');
+        var scroll       = document.getElementById('homeFeedScroll');
+        if (!feedSection || !emptySection || !scroll) return;
+        if (typeof currentUser === 'undefined' || !currentUser) return;
+
+        // Wait for friendsCache to be populated (it loads async on app init)
+        var friends = (typeof friendsCache !== 'undefined') ? friendsCache : [];
+
+        if (friends.length === 0) {
+            feedSection.style.display  = 'none';
+            emptySection.style.display = 'block';
+            return;
+        }
+
+        try {
+            var friendIds = friends.map(function(f) { return f.out_user_id; });
+            var { data: items, error } = await supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, type, added_by, added_by_name, created_at')
+                .in('added_by', friendIds)
+                .order('created_at', { ascending: false })
+                .limit(12);
+
+            if (error || !items || items.length === 0) {
+                feedSection.style.display  = 'none';
+                emptySection.style.display = 'block';
+                return;
+            }
+
+            feedSection.style.display  = 'block';
+            emptySection.style.display = 'none';
+
+            scroll.innerHTML = items.map(function(item) {
+                var media = item.photo_url
+                    ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
+                    : '<div class="hf-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
+                var friendName = escapeHtml(item.added_by_name || 'Friend');
+                var initial    = friendName.charAt(0).toUpperCase();
+                return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
+                    + media
+                    + '<div class="hf-card-body">'
+                    + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
+                    + '<div class="hf-card-by">'
+                    + '<div class="hf-card-avatar">' + initial + '</div>'
+                    + '<span class="hf-card-name">' + friendName + '</span>'
+                    + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+
+        } catch (err) {
+            console.error('Friend feed error:', err);
+            feedSection.style.display  = 'none';
+            emptySection.style.display = 'none';
+        }
+    }
+
+    // ── 5b. Recent Saves — horizontal list cards (max 5) ──
     async function loadHomeSaves() {
         const section = document.getElementById('homeSavesSection');
         const list = document.getElementById('homeSavesList');
@@ -1381,8 +1630,9 @@
             updateHomeSubtitle();
             renderHomeChips();
             initHomeLocation();
+            startPlaceholderCycle();
+            loadFriendFeed().then(function() { initFeedScrollHint(); });
             loadHomeSaves();
-            loadHomeActivity();
         };
     }
 
