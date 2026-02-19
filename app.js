@@ -547,6 +547,11 @@ function goToEndorsedItem(itemId) {
     setTimeout(() => {
         const index = filteredDiscoveries.findIndex(d => d.id === itemId);
         if (index >= 0) {
+            // Track recently viewed
+            var item = filteredDiscoveries[index];
+            if (typeof trackRecentlyViewed === 'function' && item) {
+                trackRecentlyViewed({ id: item.id, title: item.title, photo_url: item.photo_url, type: item.type });
+            }
             showDrawer(index);
         }
     }, 1000);
@@ -1586,11 +1591,13 @@ function fromLanding(mode) {
 
 async function loadDiscoveryCount() {
     try {
+        const el = document.getElementById('landingDiscoveryCount');
+        if (!el) return;
         const response = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_items?select=id`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
         const data = await response.json();
-        document.getElementById('landingDiscoveryCount').textContent = data.length;
+        el.textContent = data.length;
     } catch (error) {
         console.error('Error loading count:', error);
     }
