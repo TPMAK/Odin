@@ -435,6 +435,9 @@ function toggleProfileEdit(show) {
 async function loadProfilePage() {
     if (!currentUser || !currentProfile) return;
 
+    // Load notifications list first, then mark as read
+    await loadNotifications();
+
     // Auto-clear notification dot when user opens profile
     try {
         await supabaseClient.rpc('mark_all_notifications_read', { p_user_id: currentUser.id });

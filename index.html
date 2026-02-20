@@ -843,6 +843,15 @@
                     </form>
                 </div>
 
+                <!-- Notifications -->
+                <div id="notificationsList" class="profile-notif-section" style="display:none;">
+                    <div class="profile-section-divider"></div>
+                    <div class="home-section-header">
+                        <h2>Notifications</h2>
+                    </div>
+                    <div id="notifItems" class="notif-list"></div>
+                </div>
+
                 <!-- My Saves -->
                 <div class="profile-section-divider"></div>
                 <div class="home-section-header">
@@ -1746,6 +1755,22 @@
             loadHomeSaves();
         };
     }
+
+    // If showHome() already ran before this script patched it,
+    // fire the home enhancements now to catch up.
+    (function catchUpHome() {
+        var homePage = document.getElementById('homePage');
+        if (homePage && !homePage.classList.contains('hidden')) {
+            updateHomeGreeting();
+            updateHomeSubtitle();
+            renderHomeChips();
+            initHomeLocation();
+            startPlaceholderCycle();
+            loadFriendFeed().then(function() { initFeedScrollHint(); });
+            loadRecentlyViewed();
+            loadHomeSaves();
+        }
+    })();
 
     // ===== PROFILE PAGE ENHANCEMENTS =====
 
