@@ -702,7 +702,15 @@
                         <h2 class="home-section-title">Recently viewed</h2>
                         <a onclick="clearRecentlyViewed()">Clear</a>
                     </div>
-                    <div class="home-recent-scroll" id="homeRecentScroll"></div>
+                    <div class="home-recent-wrap">
+                        <button class="hr-scroll-arrow hr-scroll-left" id="hrScrollLeft" onclick="scrollRecent(-1)" style="display:none;" aria-label="Scroll left">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div class="home-recent-scroll" id="homeRecentScroll"></div>
+                        <button class="hr-scroll-arrow hr-scroll-right" id="hrScrollRight" onclick="scrollRecent(1)" aria-label="Scroll right">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Your Recent Saves -->
@@ -848,6 +856,7 @@
                     <div class="profile-section-divider"></div>
                     <div class="home-section-header">
                         <h2>Notifications</h2>
+                        <a onclick="clearAllNotifications()">Clear all</a>
                     </div>
                     <div id="notifItems" class="notif-list"></div>
                 </div>
@@ -1728,6 +1737,28 @@
                 + '</div>'
                 + '</div>';
         }).join('');
+        // Update scroll arrow visibility after rendering
+        updateRecentScrollArrows();
+        // Listen for scroll to update arrows
+        scroll.removeEventListener('scroll', updateRecentScrollArrows);
+        scroll.addEventListener('scroll', updateRecentScrollArrows);
+    }
+
+    function scrollRecent(dir) {
+        var scroll = document.getElementById('homeRecentScroll');
+        if (!scroll) return;
+        scroll.scrollBy({ left: dir * 200, behavior: 'smooth' });
+    }
+
+    function updateRecentScrollArrows() {
+        var scroll = document.getElementById('homeRecentScroll');
+        var leftBtn = document.getElementById('hrScrollLeft');
+        var rightBtn = document.getElementById('hrScrollRight');
+        if (!scroll || !leftBtn || !rightBtn) return;
+        var canScrollLeft = scroll.scrollLeft > 4;
+        var canScrollRight = scroll.scrollLeft < scroll.scrollWidth - scroll.clientWidth - 4;
+        leftBtn.style.display = canScrollLeft ? 'flex' : 'none';
+        rightBtn.style.display = canScrollRight ? 'flex' : 'none';
     }
 
     // Patch updateAvatarInitials to also update header avatar

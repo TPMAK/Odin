@@ -1067,10 +1067,56 @@ function updateFriendsDisplay() {
                         <button onclick="event.stopPropagation(); handleBlockUser('${uId}', '${fName}')">Block</button>
                     </div>
                     <div class="friend-card-avatar">${initial}</div>
-                    <div class="friend-card-name">${fName}</div>
+                    <div class="friend-card-info">
+                        <div class="friend-card-name">${fName}</div>
+                        <div class="friend-card-common" id="commonSaves_${uId}"></div>
+                    </div>
                 </div>`;
             }).join('');
+            // Fetch common saves counts in background
+            loadCommonSavesCounts();
         }
+    }
+}
+
+async function loadCommonSavesCounts() {
+    if (!currentUser || friendsCache.length === 0) return;
+    try {
+        // Get current user's endorsed item IDs
+        const { data: myEndorsements } = await supabaseClient
+            .from('endorsements')
+            .select('item_id')
+            .eq('user_id', currentUser.id);
+
+        if (!myEndorsements || myEndorsements.length === 0) return;
+        const myItemIds = new Set(myEndorsements.map(e => e.item_id));
+
+        // For each friend, get their endorsed item IDs and count overlap
+        const friendIds = friendsCache.map(f => f.out_user_id).filter(Boolean);
+        const { data: friendEndorsements } = await supabaseClient
+            .from('endorsements')
+            .select('user_id, item_id')
+            .in('user_id', friendIds);
+
+        if (!friendEndorsements) return;
+
+        // Group by friend and count common
+        const commonCounts = {};
+        friendEndorsements.forEach(e => {
+            if (myItemIds.has(e.item_id)) {
+                commonCounts[e.user_id] = (commonCounts[e.user_id] || 0) + 1;
+            }
+        });
+
+        // Update DOM
+        Object.entries(commonCounts).forEach(([userId, count]) => {
+            const el = document.getElementById('commonSaves_' + userId);
+            if (el && count > 0) {
+                el.textContent = count + ' in common';
+            }
+        });
+    } catch (err) {
+        console.error('Error loading common saves:', err);
     }
 }
 
@@ -1401,17 +1447,71 @@ async function loadNotifications() {
                 ? `handleFriendNotifClick('${n.out_id}')`
                 : `handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')`;
 
-            return `<div class="notif-item${unreadClass}" onclick="${clickAction}">
+            return `<div class="notif-item${unreadClass}" id="notif-${n.out_id}" onclick="${clickAction}">
                 <div class="notif-icon">${icon}</div>
                 <div class="notif-body">
                     <div class="notif-message">${escapeHtml(n.out_message)}</div>
                     <div class="notif-time">${timeAgo}</div>
                 </div>
+                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.out_id}')" aria-label="Delete notification">&times;</button>
             </div>`;
         }).join('');
     } catch (err) {
         console.error('Error in loadNotifications:', err);
     }
+}
+
+async function deleteNotification(notifId) {
+    // Remove from DOM immediately
+    const el = document.getElementById('notif-' + notifId);
+    if (el) {
+        el.style.transition = 'opacity 0.2s, transform 0.2s';
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(20px)';
+        setTimeout(() => el.remove(), 200);
+    }
+
+    // Delete from Supabase
+    try {
+        await supabaseClient.from('notifications').delete().eq('id', notifId);
+    } catch (e) { console.error('Error deleting notification:', e); }
+
+    // Hide section if empty
+    setTimeout(() => {
+        const container = document.getElementById('notifItems');
+        const section = document.getElementById('notificationsList');
+        if (container && section && container.children.length === 0) {
+            section.style.display = 'none';
+        }
+    }, 250);
+}
+
+async function clearAllNotifications() {
+    if (!currentUser) return;
+    const container = document.getElementById('notifItems');
+    const section = document.getElementById('notificationsList');
+
+    // Fade out all items
+    if (container) {
+        Array.from(container.children).forEach((el, i) => {
+            el.style.transition = 'opacity 0.2s ' + (i * 0.04) + 's';
+            el.style.opacity = '0';
+        });
+    }
+
+    // Delete all from Supabase
+    try {
+        await supabaseClient.from('notifications').delete().eq('user_id', currentUser.id);
+    } catch (e) { console.error('Error clearing notifications:', e); }
+
+    setTimeout(() => {
+        if (container) container.innerHTML = '';
+        if (section) section.style.display = 'none';
+    }, 300);
+
+    // Clear badge
+    const badge = document.getElementById('notifBadge');
+    if (badge) badge.style.display = 'none';
 }
 
 async function handleNotifClick(notifId, itemId) {
