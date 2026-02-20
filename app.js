@@ -2952,3 +2952,13 @@ function goToFindFriends() {
         }
     }, 400);
 }
+
+function dismissEmptyFriends() {
+    localStorage.setItem('empty_friends_dismissed', 'true');
+    const el = document.getElementById('homeEmptyFriends');
+    if (el) {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity 0.3s';
+        setTimeout(() => { el.style.display = 'none'; }, 300);
+    }
+}

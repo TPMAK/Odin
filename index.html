@@ -684,6 +684,7 @@
                 <!-- Empty state — no friends yet -->
                 <div class="home-empty-friends" id="homeEmptyFriends" style="display:none;">
                     <div class="home-empty-inner">
+                        <button class="home-empty-close" onclick="dismissEmptyFriends()" title="Dismiss">&times;</button>
                         <div class="home-empty-icon">
                             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </div>
@@ -1522,7 +1523,8 @@
 
         if (friends.length === 0) {
             feedSection.style.display  = 'none';
-            emptySection.style.display = 'block';
+            var dismissed = localStorage.getItem('empty_friends_dismissed');
+            emptySection.style.display = dismissed ? 'none' : 'block';
             return;
         }
 
@@ -1537,7 +1539,8 @@
 
             if (error || !items || items.length === 0) {
                 feedSection.style.display  = 'none';
-                emptySection.style.display = 'block';
+                var dismissed2 = localStorage.getItem('empty_friends_dismissed');
+                emptySection.style.display = dismissed2 ? 'none' : 'block';
                 return;
             }
 
