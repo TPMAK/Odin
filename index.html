@@ -322,7 +322,7 @@
     <!-- ══════════════════════════════════════════
          LANDING / PRE-LOGIN SCREEN
     ══════════════════════════════════════════ -->
-    <div id="loginScreen" class="lp-body">
+    <div id="loginScreen" class="lp-body" style="display:none;">
 
         <!-- TOP NAV -->
         <nav class="lp-top-nav">
@@ -642,6 +642,19 @@
                     </div>
                     <!-- Location toggle — icon + on/off label -->
                     <button class="home-loc-pill" id="homeLocPill" onclick="toggleHomeLocation()"></button>
+                </div>
+
+                <!-- Onboarding welcome banner -->
+                <div class="onboarding-banner" id="onboardingBanner" style="display:none;">
+                    <div class="onboarding-icon">👋</div>
+                    <div class="onboarding-text">
+                        <strong>Welcome to Vouch!</strong>
+                        <p>We've connected you with <b>Vouch HQ</b> so you can explore how it works. Try searching for something, then add your own friends!</p>
+                    </div>
+                    <div class="onboarding-actions">
+                        <button class="onboarding-btn onboarding-btn-primary" onclick="goToFindFriends()">Find Friends</button>
+                        <button class="onboarding-btn onboarding-btn-secondary" onclick="dismissOnboarding()">Got it</button>
+                    </div>
                 </div>
 
                 <!-- Quick suggestion chips — 4 random, time-based -->
@@ -1045,6 +1058,26 @@
         <div class="drawer-content" id="drawerContent"></div>
     </div>
 
+    <!-- Friend Profile Drawer -->
+    <div class="drawer-backdrop" id="friendDrawerBackdrop" onclick="closeFriendDrawer()"></div>
+    <div class="detail-drawer" id="friendProfileDrawer">
+        <div class="drawer-header">
+            <button class="drawer-close" onclick="closeFriendDrawer()">×</button>
+        </div>
+        <div class="drawer-content" id="friendDrawerContent"></div>
+    </div>
+
+    <!-- Search Results Bottom Sheet -->
+    <div class="search-sheet-backdrop" id="searchSheetBackdrop" onclick="closeSearchSheet()"></div>
+    <div class="search-bottom-sheet" id="searchBottomSheet">
+        <div class="sheet-drag-handle" onclick="toggleSearchSheet()"><div class="sheet-handle-bar"></div></div>
+        <div class="sheet-header">
+            <span class="sheet-title" id="sheetTitle">Results</span>
+            <button class="sheet-close" onclick="closeSearchSheet()">×</button>
+        </div>
+        <div class="sheet-content" id="sheetContent"></div>
+    </div>
+
     <!-- Photo Lightbox -->
     <div class="photo-lightbox" id="photoLightbox" onclick="closeLightbox()">
         <span class="lightbox-close">×</span>
@@ -1396,6 +1429,9 @@
     }
 
     function startPlaceholderCycle() {
+        // Clear any existing timer first to prevent stacking
+        if (_placeholderTimer) { clearInterval(_placeholderTimer); _placeholderTimer = null; }
+
         var el = document.getElementById('homePlaceholder');
         var input = document.getElementById('homeSearchInput');
         if (!el) return;
