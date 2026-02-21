@@ -1462,6 +1462,7 @@ async function checkUnreadNotifications() {
         });
         // Only show dot if RPC succeeded and count is a positive number
         const count = (!error && typeof data === 'number') ? data : 0;
+        if (count > 0) _notificationsCleared = false;
         if (badge) badge.style.display = count > 0 ? 'block' : 'none';
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
@@ -1484,11 +1485,20 @@ function stopNotifPolling() {
     }
 }
 
+let _notificationsCleared = false;
+
 async function loadNotifications() {
     if (!currentUser) return;
     const container = document.getElementById('notifItems');
     const section = document.getElementById('notificationsList');
     if (!container || !section) return;
+
+    // If user just cleared all notifications, don't re-fetch
+    if (_notificationsCleared) {
+        section.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -1561,6 +1571,7 @@ async function deleteNotification(notifId) {
 
 async function clearAllNotifications() {
     if (!currentUser) return;
+    _notificationsCleared = true;
     const container = document.getElementById('notifItems');
     const section = document.getElementById('notificationsList');
 
