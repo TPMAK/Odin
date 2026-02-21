@@ -5453,3 +5453,318 @@
     .activity-avatar { width: 36px; height: 36px; font-size: 14px; }
     .saved-item-photo { width: 56px; height: 56px; }
 }
+
+/* ========================================
+   LAUNCHER HOME (Simple mode)
+   ======================================== */
+.launcher-page {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 36px 20px 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.launcher-greeting {
+    line-height: 1.2;
+}
+
+.launcher-greeting h1 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.launcher-name {
+    color: #7B2D45 !important;
+}
+
+.launcher-sub-greeting {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+    margin: 6px 0 0;
+    letter-spacing: 0;
+}
+
+.launcher-mode-toggle,
+.feed-mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 14px 0 4px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+}
+
+.launcher-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.launcher-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Base tile */
+.launcher-tile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 18px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.launcher-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(42,30,20,0.12);
+}
+.launcher-tile:active {
+    transform: translateY(0);
+}
+
+/* Hero search tile */
+.tile-search {
+    background: linear-gradient(135deg, #7B2D45, #5A1F30);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(123, 45, 69, 0.28);
+}
+.tile-search .launcher-tile-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+}
+.tile-search .launcher-tile-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.72);
+}
+.tile-search .launcher-tile-arrow {
+    margin-left: auto;
+    color: rgba(255,255,255,0.7);
+    flex-shrink: 0;
+}
+.tile-search .launcher-tile-icon {
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Add & Browse tiles (half-width, vertical) */
+.tile-add,
+.tile-browse {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    box-shadow: 0 2px 8px rgba(42,30,20,0.06);
+}
+.tile-add:hover, .tile-browse:hover {
+    border-color: #7B2D45;
+}
+.tile-add .launcher-tile-icon,
+.tile-browse .launcher-tile-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.tile-add .launcher-tile-icon {
+    background: #F5EDE8;
+    color: #7B2D45;
+}
+.tile-browse .launcher-tile-icon {
+    background: #EDE8F5;
+    color: #4B2D7B;
+}
+.tile-add .launcher-tile-label,
+.tile-browse .launcher-tile-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.tile-add .launcher-tile-sub,
+.tile-browse .launcher-tile-sub {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.launcher-tile-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Profile button — small secondary */
+.launcher-profile-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    padding: 8px 16px 8px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    align-self: center;
+    transition: border-color 0.15s, color 0.15s;
+}
+.launcher-profile-btn:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+}
+.launcher-profile-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7B2D45, #5A1F30);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ========================================
+   HOME STYLE PICKER BANNER
+   ======================================== */
+.style-picker-banner {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    margin: 12px 20px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(42,30,20,0.08);
+}
+
+.style-picker-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 18px;
+    color: var(--ink);
+    margin-bottom: 4px;
+}
+
+.style-picker-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 16px;
+}
+
+.style-picker-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.style-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    background: var(--bg);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+}
+.style-option:hover {
+    border-color: #7B2D45;
+    background: #F5EDE8;
+}
+.style-option-icon { font-size: 24px; }
+.style-option-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+}
+.style-option-desc {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.style-picker-dismiss {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    font-family: inherit;
+}
+.style-picker-dismiss:hover { color: var(--ink); }
+
+/* ========================================
+   PROFILE HOME STYLE TOGGLE
+   ======================================== */
+.profile-style-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.profile-style-label {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.profile-style-pills {
+    display: flex;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.style-pill {
+    padding: 4px 14px;
+    border-radius: 16px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    background: none;
+    color: var(--muted);
+    transition: all 0.15s;
+}
+.style-pill.active {
+    background: #7B2D45;
+    color: #ffffff;
+}

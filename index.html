@@ -623,6 +623,82 @@
 
         <!-- HOME PAGE (Recurring users) -->
         <div id="homePage" class="hidden">
+
+            <!-- ── LAUNCHER HOME (Simple mode) ── -->
+            <div id="launcherHome" style="display:none;">
+                <div class="launcher-page">
+                    <div class="launcher-greeting">
+                        <h1 id="launcherGreetingLine">Good morning, <span id="launcherGreetingName" class="launcher-name"></span></h1>
+                        <p id="launcherSubGreeting" class="launcher-sub-greeting"></p>
+                    </div>
+
+                    <!-- Main action tiles -->
+                    <div class="launcher-tiles">
+                        <!-- AI Search — hero tile -->
+                        <button class="launcher-tile tile-search" onclick="setMode('search')">
+                            <div class="launcher-tile-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            </div>
+                            <div class="launcher-tile-text">
+                                <span class="launcher-tile-label">AI Search</span>
+                                <span class="launcher-tile-sub">Ask anything from your circle</span>
+                            </div>
+                            <svg class="launcher-tile-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+
+                        <!-- Add + Browse row -->
+                        <div class="launcher-row">
+                            <button class="launcher-tile tile-add" onclick="setMode('input')">
+                                <div class="launcher-tile-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                </div>
+                                <span class="launcher-tile-label">Add</span>
+                                <span class="launcher-tile-sub">Save a new place</span>
+                            </button>
+                            <button class="launcher-tile tile-browse" onclick="setMode('discover')">
+                                <div class="launcher-tile-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                </div>
+                                <span class="launcher-tile-label">Browse</span>
+                                <span class="launcher-tile-sub">Explore all saves</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- App mode toggle -->
+                    <div class="launcher-mode-toggle">
+                        <span class="profile-style-label">App mode</span>
+                        <div class="profile-style-pills">
+                            <button class="style-pill" id="launcherPillFeed" onclick="setHomeStyle('feed')">Discover</button>
+                            <button class="style-pill" id="launcherPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── STYLE PICKER BANNER (shown once) ── -->
+            <div id="homeStyleBanner" style="display:none;" class="style-picker-banner">
+                <div class="style-picker-content">
+                    <p class="style-picker-title">Choose your home style</p>
+                    <p class="style-picker-sub">You can change this anytime in your profile</p>
+                    <div class="style-picker-options">
+                        <button class="style-option" onclick="setHomeStyle('feed')">
+                            <span class="style-option-icon">📰</span>
+                            <span class="style-option-label">Discover</span>
+                            <span class="style-option-desc">Feed & friend activity</span>
+                        </button>
+                        <button class="style-option" onclick="setHomeStyle('launcher')">
+                            <span class="style-option-icon">⚡</span>
+                            <span class="style-option-label">Focus</span>
+                            <span class="style-option-desc">Quick action buttons</span>
+                        </button>
+                    </div>
+                    <button class="style-picker-dismiss" onclick="dismissStylePicker()">Not now</button>
+                </div>
+            </div>
+
+            <!-- ── FEED HOME (Discover mode) ── -->
+            <div id="feedHome">
             <div class="home-page">
                 <!-- Greeting -->
                 <div class="home-greeting">
@@ -721,7 +797,17 @@
                     </div>
                     <div class="home-saves-list" id="homeSavesList"></div>
                 </div>
+
+                <!-- App mode toggle -->
+                <div class="feed-mode-toggle">
+                    <span class="profile-style-label">App mode</span>
+                    <div class="profile-style-pills">
+                        <button class="style-pill" id="feedPillFeed" onclick="setHomeStyle('feed')">Discover</button>
+                        <button class="style-pill" id="feedPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
+                    </div>
+                </div>
             </div>
+            </div><!-- /#feedHome -->
         </div>
 
         <!-- SEARCH MODE -->
@@ -829,6 +915,15 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         Edit Profile
                     </button>
+
+                    <!-- App mode toggle -->
+                    <div class="profile-style-toggle">
+                        <span class="profile-style-label">App mode</span>
+                        <div class="profile-style-pills" id="homeStyleToggle">
+                            <button class="style-pill" id="stylePillFeed" onclick="setHomeStyle('feed')">Discover</button>
+                            <button class="style-pill" id="stylePillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Edit Mode (hidden by default) -->
@@ -1219,6 +1314,102 @@
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeAuthModal();
     });
+
+    // ===== HOME STYLE (Discover vs Simple/Launcher) =====
+    var _HOME_STYLE_KEY = 'vouch_home_style';
+    var _STYLE_PICKER_KEY = 'vouch_style_picker_seen';
+
+    function getHomeStyle() {
+        return localStorage.getItem(_HOME_STYLE_KEY) || 'launcher'; // default: Focus mode
+    }
+
+    function setHomeStyle(style) {
+        localStorage.setItem(_HOME_STYLE_KEY, style);
+        localStorage.setItem(_STYLE_PICKER_KEY, 'true');
+        applyHomeStyle();
+        updateStyleToggleUI();
+        // Hide banner if it's showing
+        var banner = document.getElementById('homeStyleBanner');
+        if (banner) banner.style.display = 'none';
+    }
+
+    function applyHomeStyle() {
+        var style = getHomeStyle();
+        var launcher = document.getElementById('launcherHome');
+        var feed = document.getElementById('feedHome');
+        if (!launcher || !feed) return;
+        if (style === 'launcher') {
+            launcher.style.display = 'block';
+            feed.style.display = 'none';
+            // Update launcher greeting
+            updateLauncherGreeting();
+        } else {
+            launcher.style.display = 'none';
+            feed.style.display = 'block';
+        }
+    }
+
+    function updateLauncherGreeting() {
+        var lineEl = document.getElementById('launcherGreetingLine');
+        var nameSpan = document.getElementById('launcherGreetingName');
+        var subEl = document.getElementById('launcherSubGreeting');
+        if (!lineEl) return;
+        var hour = new Date().getHours();
+        var greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
+        var name = (typeof currentProfile !== 'undefined' && currentProfile)
+            ? (currentProfile.display_name || '').split(' ')[0] : '';
+        // Rebuild the h1 keeping the span intact
+        var safeName = (name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        lineEl.innerHTML = greeting + ' <span id="launcherGreetingName" class="launcher-name">' + safeName + '</span>';
+        // Random sub-greeting
+        var subs = [
+            'What are you looking for today?',
+            'How are you doing?',
+            'Ready to discover something new?',
+            'What\'s on your mind?',
+            'Looking for a recommendation?'
+        ];
+        if (subEl) subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
+    }
+
+    function updateStyleToggleUI() {
+        var style = getHomeStyle();
+        // Sync ALL toggle sets: profile, launcher, feed
+        var ids = [
+            ['stylePillFeed','stylePillLauncher'],
+            ['launcherPillFeed','launcherPillLauncher'],
+            ['feedPillFeed','feedPillLauncher']
+        ];
+        ids.forEach(function(pair) {
+            var f = document.getElementById(pair[0]);
+            var l = document.getElementById(pair[1]);
+            if (f) f.classList.toggle('active', style === 'feed');
+            if (l) l.classList.toggle('active', style === 'launcher');
+        });
+    }
+
+    function showHomeStyleBanner() {
+        // Only show once, only after onboarding is done
+        if (localStorage.getItem(_STYLE_PICKER_KEY)) return;
+        var banner = document.getElementById('homeStyleBanner');
+        if (banner) {
+            // Show after a short delay so it doesn't feel instant
+            setTimeout(function() {
+                banner.style.display = 'block';
+                localStorage.setItem(_STYLE_PICKER_KEY, 'shown');
+            }, 3000);
+        }
+    }
+
+    function dismissStylePicker() {
+        localStorage.setItem(_STYLE_PICKER_KEY, 'true');
+        var banner = document.getElementById('homeStyleBanner');
+        if (banner) {
+            banner.style.opacity = '0';
+            banner.style.transition = 'opacity 0.2s';
+            setTimeout(function() { banner.style.display = 'none'; }, 200);
+        }
+    }
 
     // ===== HOME PAGE ENHANCEMENTS =====
 
@@ -1784,6 +1975,7 @@
         var _origShowHome = showHome;
         showHome = function() {
             _origShowHome();
+            applyHomeStyle();
             updateHomeGreeting();
             updateHomeSubtitle();
             renderHomeChips();
@@ -1792,6 +1984,7 @@
             loadFriendFeed().then(function() { initFeedScrollHint(); });
             loadRecentlyViewed();
             loadHomeSaves();
+            showHomeStyleBanner();
         };
     }
 
@@ -1800,6 +1993,7 @@
     (function catchUpHome() {
         var homePage = document.getElementById('homePage');
         if (homePage && !homePage.classList.contains('hidden')) {
+            applyHomeStyle();
             updateHomeGreeting();
             updateHomeSubtitle();
             renderHomeChips();
@@ -1808,6 +2002,7 @@
             loadFriendFeed().then(function() { initFeedScrollHint(); });
             loadRecentlyViewed();
             loadHomeSaves();
+            showHomeStyleBanner();
         }
     })();
 
@@ -1828,7 +2023,7 @@
         };
     }
 
-    // Patch loadProfilePage to update People stat
+    // Patch loadProfilePage to update People stat + style toggle
     if (typeof loadProfilePage === 'function') {
         var _origLoadProfilePage = loadProfilePage;
         loadProfilePage = async function() {
@@ -1838,6 +2033,8 @@
             if (el) el.textContent = count;
             var badge = document.getElementById('friendsCountBadge');
             if (badge) badge.textContent = count;
+            // Sync the home style toggle pills
+            updateStyleToggleUI();
         };
     }
     </script>
