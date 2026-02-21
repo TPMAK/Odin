@@ -866,8 +866,16 @@
                 <div class="home-section-header">
                     <h2>My Saves</h2>
                 </div>
-                <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
-                    <p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>
+                <div class="profile-saves-wrap">
+                    <button class="ps-scroll-arrow ps-scroll-left" id="psSaveLeft" onclick="scrollProfileSaves(-1)" style="display:none;" aria-label="Scroll left">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
+                        <p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>
+                    </div>
+                    <button class="ps-scroll-arrow ps-scroll-right" id="psSaveRight" onclick="scrollProfileSaves(1)" aria-label="Scroll right">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
                 </div>
 
                 <!-- Your Circle -->

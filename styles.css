@@ -1050,6 +1050,22 @@
         .hr-scroll-left { left: 0; }
         .hr-scroll-right { right: 0; }
 
+        /* Mobile: hide arrows, show fade hint on right edge */
+        @media (max-width: 767px) {
+            .hr-scroll-arrow { display: none !important; }
+            .home-recent-wrap::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: -24px;
+                width: 48px;
+                height: 100%;
+                background: linear-gradient(to left, var(--bg) 30%, transparent);
+                pointer-events: none;
+                z-index: 2;
+            }
+        }
+
         @media (min-width: 768px) {
             .home-recent-scroll {
                 margin: 0;
@@ -3566,16 +3582,16 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(4px);
-    border: 1.5px solid rgba(0,0,0,0.08);
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(0,0,0,0.06);
     border-radius: 16px;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
     z-index: 2;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.10);
 }
 
 .react-btn:hover {
@@ -3602,7 +3618,7 @@
 .react-count {
     font-size: 11px;
     font-weight: 700;
-    color: var(--muted);
+    color: #5a5a5a;
     line-height: 1;
 }
 
@@ -3871,6 +3887,42 @@
     font-weight: 600;
     color: var(--ink);
     margin-bottom: 16px;
+}
+
+/* My Saves wrapper with scroll arrows */
+.profile-saves-wrap {
+    position: relative;
+}
+
+.ps-scroll-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(42,30,20,0.10);
+    transition: opacity 0.2s, background 0.15s, border-color 0.15s;
+    padding: 0;
+}
+.ps-scroll-arrow:hover {
+    background: #7B2D4510;
+    border-color: #7B2D45;
+    color: #7B2D45;
+}
+.ps-scroll-left { left: -4px; }
+.ps-scroll-right { right: -4px; }
+
+@media (max-width: 767px) {
+    .ps-scroll-arrow { display: none !important; }
 }
 
 /* My Saves - Horizontal Scrolling Cards */
@@ -4923,6 +4975,101 @@
     color: var(--muted);
     padding: 32px 0;
     font-size: 14px;
+}
+
+/* Common saves section in friend drawer */
+.friend-common-section {
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #F5EDE8;
+    border-radius: 14px;
+}
+
+.friend-common-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #7B2D45;
+    margin-bottom: 10px;
+}
+
+.friend-common-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.friend-common-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px 5px 5px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    max-width: 180px;
+}
+
+.friend-common-chip:hover {
+    border-color: #7B2D45;
+    background: #fff;
+}
+
+.friend-common-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.friend-common-emoji {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.friend-common-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.friend-discoveries-toggle {
+    text-align: center;
+    padding: 8px 0;
+}
+
+.friend-show-discoveries-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.friend-show-discoveries-btn:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+    background: #7B2D4508;
 }
 
 .friend-profile-list {

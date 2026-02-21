@@ -533,12 +533,29 @@ async function loadMyEndorsements() {
             return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
-                <span class="my-endorse-card-badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="#7B2D45" stroke="#7B2D45" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
             </div>`;
         }).join('');
+        // Update scroll arrows after render
+        updateProfileSavesArrows();
+        container.removeEventListener('scroll', updateProfileSavesArrows);
+        container.addEventListener('scroll', updateProfileSavesArrows);
     } catch (err) {
         console.error('Error loading my endorsements:', err);
     }
+}
+
+function scrollProfileSaves(dir) {
+    const el = document.getElementById('myEndorsementsList');
+    if (el) el.scrollBy({ left: dir * 200, behavior: 'smooth' });
+}
+
+function updateProfileSavesArrows() {
+    const el = document.getElementById('myEndorsementsList');
+    const left = document.getElementById('psSaveLeft');
+    const right = document.getElementById('psSaveRight');
+    if (!el || !left || !right) return;
+    left.style.display = el.scrollLeft > 4 ? 'flex' : 'none';
+    right.style.display = el.scrollLeft < el.scrollWidth - el.clientWidth - 4 ? 'flex' : 'none';
 }
 
 function goToEndorsedItem(itemId) {
@@ -708,6 +725,11 @@ function updateEndorsementUI(itemId) {
     // Update card overlay buttons
     document.querySelectorAll(`.react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
         btn.classList.toggle('endorsed', cached.userEndorsed);
+        const svg = btn.querySelector('.bookmark-icon');
+        if (svg) {
+            svg.setAttribute('fill', cached.userEndorsed ? '#ffffff' : 'none');
+            svg.setAttribute('stroke', cached.userEndorsed ? '#ffffff' : '#5a5a5a');
+        }
         const countEl = btn.querySelector('.react-count');
         if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
     });
@@ -728,7 +750,7 @@ function buildEndorseButton(itemId) {
     const countHtml = cached.count > 0 ? `<span class="react-count">${cached.count}</span>` : '';
 
     return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Save">
-        <svg class="bookmark-icon" width="16" height="16" viewBox="0 0 24 24" fill="${cached.userEndorsed ? '#ffffff' : 'none'}" stroke="${cached.userEndorsed ? '#ffffff' : '#7B2D45'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>${countHtml}
+        <svg class="bookmark-icon" width="16" height="16" viewBox="0 0 24 24" fill="${cached.userEndorsed ? '#ffffff' : 'none'}" stroke="${cached.userEndorsed ? '#ffffff' : '#5a5a5a'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>${countHtml}
     </button>`;
 }
 
@@ -1112,7 +1134,7 @@ async function loadCommonSavesCounts() {
         Object.entries(commonCounts).forEach(([userId, count]) => {
             const el = document.getElementById('commonSaves_' + userId);
             if (el && count > 0) {
-                el.textContent = count + ' in common';
+                el.textContent = count + (count === 1 ? ' save in common' : ' saves in common');
             }
         });
     } catch (err) {
@@ -1157,24 +1179,65 @@ async function openFriendProfile(userId, displayName) {
     drawer.classList.add('open');
 
     try {
-        // Fetch items added by this friend
-        const { data, error } = await supabaseClient
-            .from('knowledge_items')
-            .select('*')
-            .eq('added_by', userId)
-            .order('created_at', { ascending: false })
-            .limit(50);
+        // Fetch items added by this friend + common saves in parallel
+        const [itemsResult, friendEndorsementsResult, myEndorsementsResult] = await Promise.all([
+            supabaseClient
+                .from('knowledge_items')
+                .select('*')
+                .eq('added_by', userId)
+                .order('created_at', { ascending: false })
+                .limit(50),
+            supabaseClient
+                .from('endorsements')
+                .select('item_id')
+                .eq('user_id', userId),
+            supabaseClient
+                .from('endorsements')
+                .select('item_id')
+                .eq('user_id', currentUser.id)
+        ]);
 
-        if (error) throw error;
+        if (itemsResult.error) throw itemsResult.error;
 
-        const items = data || [];
+        const items = itemsResult.data || [];
+
+        // Find common saves
+        const friendItemIds = new Set((friendEndorsementsResult.data || []).map(e => e.item_id));
+        const myItemIds = (myEndorsementsResult.data || []).map(e => e.item_id);
+        const commonItemIds = myItemIds.filter(id => friendItemIds.has(id));
+
+        // Build common saves section
+        let commonHtml = '';
+        if (commonItemIds.length > 0) {
+            // Fetch the common items details
+            const { data: commonItems } = await supabaseClient
+                .from('knowledge_items')
+                .select('id, title, type, photo_url')
+                .in('id', commonItemIds)
+                .limit(20);
+
+            if (commonItems && commonItems.length > 0) {
+                commonHtml = `<div class="friend-common-section">
+                    <div class="friend-common-header">${commonItems.length} save${commonItems.length !== 1 ? 's' : ''} in common</div>
+                    <div class="friend-common-list">`;
+                commonItems.forEach(ci => {
+                    const emoji = getCategoryEmoji(ci.type);
+                    const thumb = ci.photo_url
+                        ? `<img src="${escapeHtml(ci.photo_url)}" class="friend-common-thumb">`
+                        : `<span class="friend-common-emoji">${emoji}</span>`;
+                    commonHtml += `<div class="friend-common-chip" onclick="closeFriendDrawer(); setTimeout(() => { const idx = allDiscoveries.findIndex(d => d.id === '${ci.id}'); if (idx >= 0) showDrawer(idx); else openItemDrawer(${JSON.stringify(ci).replace(/'/g, "\\'")}); }, 300);">
+                        ${thumb}<span class="friend-common-name">${escapeHtml(ci.title)}</span>
+                    </div>`;
+                });
+                commonHtml += '</div></div>';
+            }
+        }
 
         let itemsHtml = '';
         if (items.length === 0) {
-            itemsHtml = '<div class="friend-profile-empty">No discoveries yet</div>';
+            itemsHtml = '';
         } else {
-            itemsHtml = `<div class="friend-profile-count">${items.length} discovery${items.length !== 1 ? 'ies' : ''}</div>`;
-            itemsHtml += '<div class="friend-profile-list">';
+            let listCards = '';
             items.forEach(item => {
                 const photo = item.photo_url
                     ? `<img src="${escapeHtml(item.photo_url)}" class="friend-item-photo">`
@@ -1182,7 +1245,7 @@ async function openFriendProfile(userId, displayName) {
                 const typeTag = item.type ? `<span class="friend-item-type">${escapeHtml(item.type)}</span>` : '';
                 const desc = item.description ? escapeHtml(item.description).substring(0, 80) + (item.description.length > 80 ? '...' : '') : '';
 
-                itemsHtml += `<div class="friend-item-card" onclick="closeFriendDrawer(); setTimeout(() => { const idx = allDiscoveries.findIndex(d => d.id === '${item.id}'); if (idx >= 0) showDrawer(idx); else openItemDrawer(${JSON.stringify(item).replace(/'/g, "\\'")}); }, 300);">
+                listCards += `<div class="friend-item-card" onclick="closeFriendDrawer(); setTimeout(() => { const idx = allDiscoveries.findIndex(d => d.id === '${item.id}'); if (idx >= 0) showDrawer(idx); else openItemDrawer(${JSON.stringify(item).replace(/'/g, "\\'")}); }, 300);">
                     <div class="friend-item-photo-wrap">${photo}</div>
                     <div class="friend-item-info">
                         <div class="friend-item-title">${escapeHtml(item.title)}</div>
@@ -1191,7 +1254,16 @@ async function openFriendProfile(userId, displayName) {
                     </div>
                 </div>`;
             });
-            itemsHtml += '</div>';
+            itemsHtml = `<div class="friend-discoveries-toggle">
+                <button class="friend-show-discoveries-btn" onclick="this.parentElement.nextElementSibling.style.display='block'; this.parentElement.style.display='none';">
+                    Show their ${items.length} discovery${items.length !== 1 ? 'ies' : ''}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+            </div>
+            <div class="friend-discoveries-content" style="display:none;">
+                <div class="friend-profile-count">${items.length} discovery${items.length !== 1 ? 'ies' : ''}</div>
+                <div class="friend-profile-list">${listCards}</div>
+            </div>`;
         }
 
         content.innerHTML = `
@@ -1199,6 +1271,7 @@ async function openFriendProfile(userId, displayName) {
                 <div class="friend-profile-avatar">${initial}</div>
                 <h2 class="friend-profile-name">${escapeHtml(displayName)}</h2>
             </div>
+            ${commonHtml}
             ${itemsHtml}
         `;
     } catch (err) {
