@@ -123,6 +123,35 @@
             display: none;
         }
 
+        /* Header App-mode pills */
+        .header-mode-pills {
+            display: flex;
+            background: rgba(250, 246, 238, 0.9);
+            border: 1.5px solid var(--border);
+            border-radius: 18px;
+            padding: 2px;
+            gap: 1px;
+        }
+
+        .hdr-pill {
+            padding: 3px 12px;
+            border-radius: 15px;
+            border: none;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+            transition: all 0.18s;
+        }
+
+        .hdr-pill.active {
+            background: #7B2D45;
+            color: #fff;
+        }
+
         /* Keep avatar styles for profile page internal use */
         .header-avatar-wrap {
             position: relative;
@@ -2820,6 +2849,56 @@
             transform: scale(0.93);
         }
 
+        /* Input bar — Refresh/New button (left) */
+        .input-new-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: color 0.18s, background 0.18s;
+        }
+
+        .input-new-btn:hover {
+            color: #7B2D45;
+            background: rgba(123, 45, 69, 0.08);
+        }
+
+        .input-new-btn:active {
+            transform: rotate(-30deg);
+        }
+
+        /* Input bar — Location toggle (beside send) */
+        .input-loc-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: color 0.18s, background 0.18s;
+        }
+
+        .input-loc-btn:hover {
+            color: #7B2D45;
+        }
+
+        .input-loc-btn.active {
+            color: #7B2D45;
+            background: rgba(123, 45, 69, 0.1);
+        }
+
         /* INPUT MODE */
         .input-form-container {
             max-width: 600px;
@@ -3382,7 +3461,7 @@
 .header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
 /* ========================================

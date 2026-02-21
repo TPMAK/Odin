@@ -1838,6 +1838,7 @@ function setMode(mode) {
     } else if (mode === 'search') {
         document.getElementById('searchMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.remove('hidden');
+        if (typeof updateSearchLocBtn === 'function') updateSearchLocBtn();
     } else if (mode === 'discover') {
         document.getElementById('discoverMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');

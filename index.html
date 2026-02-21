@@ -576,6 +576,11 @@
                 <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
             </div>
             <div class="header-right">
+                <!-- App mode toggle -->
+                <div class="header-mode-pills">
+                    <button class="hdr-pill" id="headerPillFeed" onclick="setHomeStyle('feed')">Discover</button>
+                    <button class="hdr-pill" id="headerPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
+                </div>
                 <!-- Bell icon replaces avatar — profile still in tab bar -->
                 <button class="header-bell-btn" onclick="setMode('profile')" aria-label="Notifications">
                     <svg class="header-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -664,36 +669,6 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- App mode toggle -->
-                    <div class="launcher-mode-toggle">
-                        <span class="profile-style-label">App mode</span>
-                        <div class="profile-style-pills">
-                            <button class="style-pill" id="launcherPillFeed" onclick="setHomeStyle('feed')">Discover</button>
-                            <button class="style-pill" id="launcherPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ── STYLE PICKER BANNER (shown once) ── -->
-            <div id="homeStyleBanner" style="display:none;" class="style-picker-banner">
-                <div class="style-picker-content">
-                    <p class="style-picker-title">Choose your home style</p>
-                    <p class="style-picker-sub">You can change this anytime in your profile</p>
-                    <div class="style-picker-options">
-                        <button class="style-option" onclick="setHomeStyle('feed')">
-                            <span class="style-option-icon">📰</span>
-                            <span class="style-option-label">Discover</span>
-                            <span class="style-option-desc">Feed & friend activity</span>
-                        </button>
-                        <button class="style-option" onclick="setHomeStyle('launcher')">
-                            <span class="style-option-icon">⚡</span>
-                            <span class="style-option-label">Focus</span>
-                            <span class="style-option-desc">Quick action buttons</span>
-                        </button>
-                    </div>
-                    <button class="style-picker-dismiss" onclick="dismissStylePicker()">Not now</button>
                 </div>
             </div>
 
@@ -798,14 +773,6 @@
                     <div class="home-saves-list" id="homeSavesList"></div>
                 </div>
 
-                <!-- App mode toggle -->
-                <div class="feed-mode-toggle">
-                    <span class="profile-style-label">App mode</span>
-                    <div class="profile-style-pills">
-                        <button class="style-pill" id="feedPillFeed" onclick="setHomeStyle('feed')">Discover</button>
-                        <button class="style-pill" id="feedPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
-                    </div>
-                </div>
             </div>
             </div><!-- /#feedHome -->
         </div>
@@ -817,9 +784,7 @@
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
                 <span class="search-header-title"></span>
-                <button class="new-session-btn" onclick="startNewSession()" title="New search session" aria-label="New session">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
-                </button>
+                <div style="width:32px;"></div>
             </div>
             <div class="chat-container" id="chatContainer">
                 <div class="welcome">
@@ -1087,7 +1052,13 @@
     <!-- Input Area - Only visible in Search mode -->
     <div class="input-area hidden" id="inputArea">
         <div class="input-wrapper">
+            <button class="input-new-btn" onclick="startNewSession()" title="New search" aria-label="New search">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+            </button>
             <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+            <button class="input-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" aria-label="Toggle location">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </button>
             <button id="sendButton" onclick="sendMessage()" aria-label="Send">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
@@ -1317,7 +1288,6 @@
 
     // ===== HOME STYLE (Discover vs Simple/Launcher) =====
     var _HOME_STYLE_KEY = 'vouch_home_style';
-    var _STYLE_PICKER_KEY = 'vouch_style_picker_seen';
 
     function getHomeStyle() {
         return localStorage.getItem(_HOME_STYLE_KEY) || 'launcher'; // default: Focus mode
@@ -1325,12 +1295,8 @@
 
     function setHomeStyle(style) {
         localStorage.setItem(_HOME_STYLE_KEY, style);
-        localStorage.setItem(_STYLE_PICKER_KEY, 'true');
         applyHomeStyle();
         updateStyleToggleUI();
-        // Hide banner if it's showing
-        var banner = document.getElementById('homeStyleBanner');
-        if (banner) banner.style.display = 'none';
     }
 
     function applyHomeStyle() {
@@ -1378,7 +1344,8 @@
         var ids = [
             ['stylePillFeed','stylePillLauncher'],
             ['launcherPillFeed','launcherPillLauncher'],
-            ['feedPillFeed','feedPillLauncher']
+            ['feedPillFeed','feedPillLauncher'],
+            ['headerPillFeed','headerPillLauncher']
         ];
         ids.forEach(function(pair) {
             var f = document.getElementById(pair[0]);
@@ -1386,29 +1353,6 @@
             if (f) f.classList.toggle('active', style === 'feed');
             if (l) l.classList.toggle('active', style === 'launcher');
         });
-    }
-
-    function showHomeStyleBanner() {
-        // Only show once, only after onboarding is done
-        if (localStorage.getItem(_STYLE_PICKER_KEY)) return;
-        var banner = document.getElementById('homeStyleBanner');
-        if (banner) {
-            // Show after a short delay so it doesn't feel instant
-            setTimeout(function() {
-                banner.style.display = 'block';
-                localStorage.setItem(_STYLE_PICKER_KEY, 'shown');
-            }, 3000);
-        }
-    }
-
-    function dismissStylePicker() {
-        localStorage.setItem(_STYLE_PICKER_KEY, 'true');
-        var banner = document.getElementById('homeStyleBanner');
-        if (banner) {
-            banner.style.opacity = '0';
-            banner.style.transition = 'opacity 0.2s';
-            setTimeout(function() { banner.style.display = 'none'; }, 200);
-        }
     }
 
     // ===== HOME PAGE ENHANCEMENTS =====
@@ -1532,6 +1476,46 @@
             }, { timeout: 8000, maximumAge: 300000 }); // reuse cached position up to 5 min old
         } else {
             updateLocationLine();
+        }
+    }
+
+    // ── Search location toggle (reuses the same userLocation state) ──
+    function updateSearchLocBtn() {
+        var btn = document.getElementById('searchLocBtn');
+        if (!btn) return;
+        if (_homeLocationEnabled && userLocation.available) {
+            btn.classList.add('active');
+            btn.title = 'Location on';
+        } else {
+            btn.classList.remove('active');
+            btn.title = 'Location off';
+        }
+    }
+
+    function toggleSearchLocation() {
+        if (_homeLocationEnabled && userLocation.available) {
+            _homeLocationEnabled = false;
+            localStorage.setItem('homeLocationEnabled', 'false');
+            userLocation.available = false;
+            userLocation.latitude = null;
+            userLocation.longitude = null;
+            updateSearchLocBtn();
+            updateLocationLine();
+        } else {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                _homeLocationEnabled = true;
+                localStorage.setItem('homeLocationEnabled', 'true');
+                userLocation.latitude = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                updateSearchLocBtn();
+                updateLocationLine();
+            }, function() {
+                _homeLocationEnabled = false;
+                localStorage.setItem('homeLocationEnabled', 'false');
+                updateSearchLocBtn();
+            });
         }
     }
 
@@ -1976,6 +1960,7 @@
         showHome = function() {
             _origShowHome();
             applyHomeStyle();
+            updateStyleToggleUI();
             updateHomeGreeting();
             updateHomeSubtitle();
             renderHomeChips();
@@ -1984,7 +1969,6 @@
             loadFriendFeed().then(function() { initFeedScrollHint(); });
             loadRecentlyViewed();
             loadHomeSaves();
-            showHomeStyleBanner();
         };
     }
 
@@ -1994,6 +1978,7 @@
         var homePage = document.getElementById('homePage');
         if (homePage && !homePage.classList.contains('hidden')) {
             applyHomeStyle();
+            updateStyleToggleUI();
             updateHomeGreeting();
             updateHomeSubtitle();
             renderHomeChips();
@@ -2002,7 +1987,6 @@
             loadFriendFeed().then(function() { initFeedScrollHint(); });
             loadRecentlyViewed();
             loadHomeSaves();
-            showHomeStyleBanner();
         }
     })();
 
