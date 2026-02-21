@@ -639,14 +639,14 @@
 
                     <!-- Main action tiles -->
                     <div class="launcher-tiles">
-                        <!-- AI Search — hero tile -->
+                        <!-- Search — hero tile -->
                         <button class="launcher-tile tile-search" onclick="setMode('search')">
                             <div class="launcher-tile-icon">
                                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             </div>
                             <div class="launcher-tile-text">
-                                <span class="launcher-tile-label">AI Search</span>
-                                <span class="launcher-tile-sub">Ask anything from your circle</span>
+                                <span class="launcher-tile-label">Search</span>
+                                <span class="launcher-tile-sub">Search like you’d ask a friend</span>
                             </div>
                             <svg class="launcher-tile-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </button>
@@ -658,7 +658,7 @@
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                                 </div>
                                 <span class="launcher-tile-label">Add</span>
-                                <span class="launcher-tile-sub">Save a new place</span>
+                                <span class="launcher-tile-sub">Save something new</span>
                             </button>
                             <button class="launcher-tile tile-browse" onclick="setMode('discover')">
                                 <div class="launcher-tile-icon">
@@ -1317,24 +1317,131 @@
 
     function updateLauncherGreeting() {
         var lineEl = document.getElementById('launcherGreetingLine');
-        var nameSpan = document.getElementById('launcherGreetingName');
         var subEl = document.getElementById('launcherSubGreeting');
         if (!lineEl) return;
         var hour = new Date().getHours();
-        var greeting = hour < 12 ? 'Good morning,' : hour < 17 ? 'Good afternoon,' : 'Good evening,';
         var name = (typeof currentProfile !== 'undefined' && currentProfile)
             ? (currentProfile.display_name || '').split(' ')[0] : '';
-        // Rebuild the h1 keeping the span intact
         var safeName = (name || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        lineEl.innerHTML = greeting + ' <span id="launcherGreetingName" class="launcher-name">' + safeName + '</span>';
-        // Random sub-greeting
-        var subs = [
-            'What are you looking for today?',
-            'How are you doing?',
-            'Ready to discover something new?',
-            'What\'s on your mind?',
-            'Looking for a recommendation?'
-        ];
+
+        // Time-aware greetings + sub-greetings
+        var greetings, subs;
+        if (hour >= 0 && hour < 4) {
+            // Late night / early hours
+            greetings = [
+                'Still awake, ',
+                'Burning the midnight oil, ',
+                'Can\'t sleep either, ',
+                'Night owl mode, ',
+                'The city\'s asleep, but not you, '
+            ];
+            subs = [
+                'Hope you\'re doing alright.',
+                'Anything on your mind?',
+                'Late-night cravings?',
+                'Quiet hours, good vibes.',
+                'Need something to wind down?'
+            ];
+        } else if (hour < 7) {
+            // Early morning
+            greetings = [
+                'You\'re up early, ',
+                'Rise and shine, ',
+                'Early bird, ',
+                'Fresh start today, ',
+                'The world is still quiet, '
+            ];
+            subs = [
+                'What\'s the plan today?',
+                'Coffee first?',
+                'Make it a good one.',
+                'The day is yours.',
+                'Anywhere you need to be?'
+            ];
+        } else if (hour < 12) {
+            // Morning
+            greetings = [
+                'Good morning, ',
+                'Morning, ',
+                'Hey there, ',
+                'Good morning, ',
+                'Morning, '
+            ];
+            subs = [
+                'What\'s the plan today?',
+                'Hope you slept well.',
+                'Ready for today?',
+                'What sounds good?',
+                'Looking for something?'
+            ];
+        } else if (hour < 14) {
+            // Lunchtime
+            greetings = [
+                'Lunchtime, ',
+                'Midday, ',
+                'Hey, ',
+                'Good afternoon, ',
+                'Hey there, '
+            ];
+            subs = [
+                'Hungry yet?',
+                'What are you craving?',
+                'Time for a break.',
+                'Treat yourself today.',
+                'Need a recommendation?'
+            ];
+        } else if (hour < 17) {
+            // Afternoon
+            greetings = [
+                'Good afternoon, ',
+                'Hey, ',
+                'Afternoon, ',
+                'Good afternoon, ',
+                'Hey there, '
+            ];
+            subs = [
+                'How\'s your day going?',
+                'Afternoon pick-me-up?',
+                'Need a coffee break?',
+                'Halfway through the day.',
+                'Looking for something good?'
+            ];
+        } else if (hour < 21) {
+            // Evening
+            greetings = [
+                'Good evening, ',
+                'Evening, ',
+                'Hey, ',
+                'Good evening, ',
+                'Hey there, '
+            ];
+            subs = [
+                'Winding down?',
+                'What are you in the mood for?',
+                'Time to relax.',
+                'Done for the day?',
+                'Craving anything?'
+            ];
+        } else {
+            // Night (9pm–midnight)
+            greetings = [
+                'Hey night owl, ',
+                'Still going, ',
+                'Hey, ',
+                'Evening, ',
+                'Late night, '
+            ];
+            subs = [
+                'Late-night cravings?',
+                'Quiet hours, good vibes.',
+                'Wrapping up your day?',
+                'Need something nearby?',
+                'What\'s on your mind?'
+            ];
+        }
+
+        var gi = Math.floor(Math.random() * greetings.length);
+        lineEl.innerHTML = greetings[gi] + '<span id="launcherGreetingName" class="launcher-name">' + safeName + '</span>';
         if (subEl) subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
     }
 
