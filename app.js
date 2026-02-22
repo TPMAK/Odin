@@ -1767,31 +1767,10 @@ initApp();
 initLocation();
 
 function initApp() {
-    const hasVisited = localStorage.getItem('hasVisited');
-
-    if (!hasVisited) {
-        showLanding();
-    } else {
-        showHome();
-    }
-}
-
-function showLanding() {
-    document.getElementById('landingPage').classList.remove('hidden');
-    document.getElementById('homePage').classList.add('hidden');
-    document.getElementById('searchMode').classList.add('hidden');
-    document.getElementById('discoverMode').classList.add('hidden');
-    document.getElementById('inputMode').classList.add('hidden');
-    document.getElementById('profileMode').classList.add('hidden');
-    var savedEl = document.getElementById('savedMode');
-    if (savedEl) savedEl.classList.add('hidden');
-    document.getElementById('inputArea').classList.add('hidden');
-    updateTabBar('home');
-    loadDiscoveryCount();
+    showHome();
 }
 
 function showHome() {
-    document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('homePage').classList.remove('hidden');
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
@@ -1803,27 +1782,7 @@ function showHome() {
     updateTabBar('home');
 }
 
-function fromLanding(mode) {
-    localStorage.setItem('hasVisited', 'true');
-    setMode(mode);
-}
-
-async function loadDiscoveryCount() {
-    try {
-        const el = document.getElementById('landingDiscoveryCount');
-        if (!el) return;
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_items?select=id`, {
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-        });
-        const data = await response.json();
-        el.textContent = data.length;
-    } catch (error) {
-        console.error('Error loading count:', error);
-    }
-}
-
 function setMode(mode) {
-    document.getElementById('landingPage').classList.add('hidden');
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
@@ -2633,7 +2592,7 @@ function sendMessage(text) {
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
-                        <span class="top-pick-badge">🔥 Top Pick</span>
+                        <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
                             <div class="top-pick-title">${escapeHtml(r.title)}</div>
@@ -2681,7 +2640,6 @@ function sendMessage(text) {
             html += `
                 <div class="top-picks-section">
                     <div class="results-header">
-                        <span class="results-header-icon">⭐</span>
                         <span class="results-header-title">Top Picks For You</span>
                     </div>
             `;
@@ -2692,37 +2650,32 @@ function sendMessage(text) {
             html += '</div>';
 
             const moreResults = data.results.slice(topPickCount);
-            const initialShowCount = 4;
-            const visibleMore = moreResults.slice(0, initialShowCount);
-            const hiddenMore = moreResults.slice(initialShowCount);
 
             if (moreResults.length > 0) {
+                const scrollId = 'moreScroll_' + Date.now();
                 html += `
                     <div class="more-options-section">
                         <div class="results-header">
-                            <span class="results-header-icon">✨</span>
                             <span class="results-header-title">More Great Options</span>
                             <span class="results-header-count">${moreResults.length} more</span>
                         </div>
-                        <div class="more-options-grid" id="moreOptionsGrid">
+                        <div class="more-options-wrapper">
+                            <button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <div class="more-options-scroll" id="${scrollId}">
                 `;
 
-                visibleMore.forEach((r, i) => {
+                moreResults.forEach((r, i) => {
                     html += buildCompactCard(r, i + topPickCount);
                 });
 
-                html += '</div>';
-
-                if (hiddenMore.length > 0) {
-                    html += `<div class="more-options-grid hidden-results" id="hiddenResults" style="display:none;margin-top:12px;">`;
-                    hiddenMore.forEach((r, i) => {
-                        html += buildCompactCard(r, i + topPickCount + initialShowCount);
-                    });
-                    html += '</div>';
-                    html += `<button class="show-more-btn" onclick="toggleMoreResults(this)">Show ${hiddenMore.length} more results</button>`;
-                }
-
-                html += '</div>';
+                html += `</div>
+                            <button class="scroll-arrow scroll-arrow-right" onclick="scrollMoreOptions('${scrollId}',1)" aria-label="Scroll right">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
+                    </div>`;
             }
 
             html += '</div>';
@@ -2735,6 +2688,12 @@ function sendMessage(text) {
             container.innerHTML += html;
             container.scrollTop = container.scrollHeight;
             setTimeout(() => initSearchMap(mapId, currentResults), 100);
+            // Init scroll arrow visibility
+            var moreScroll = container.querySelector('.more-options-scroll');
+            if (moreScroll && moreScroll.id) {
+                setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
+                moreScroll.addEventListener('scroll', function() { updateScrollArrows(moreScroll.id); });
+            }
 
             sessionMessages.push({
                 role: 'assistant',
@@ -2790,6 +2749,32 @@ function initSearchMap(mapId, results) {
     if (bounds.length > 0) searchMap.fitBounds(bounds, { padding: [30, 30] });
 }
 
+// ===== SCROLL ARROWS FOR MORE OPTIONS =====
+function scrollMoreOptions(scrollId, direction) {
+    var el = document.getElementById(scrollId);
+    if (!el) return;
+    var cardWidth = 192; // 180px card + 12px gap
+    el.scrollBy({ left: direction * cardWidth * 2, behavior: 'smooth' });
+    // Update arrow visibility after scroll
+    setTimeout(function() { updateScrollArrows(scrollId); }, 350);
+}
+
+function updateScrollArrows(scrollId) {
+    var el = document.getElementById(scrollId);
+    if (!el) return;
+    var wrapper = el.parentElement;
+    if (!wrapper) return;
+    var leftBtn = wrapper.querySelector('.scroll-arrow-left');
+    var rightBtn = wrapper.querySelector('.scroll-arrow-right');
+    if (leftBtn) leftBtn.style.opacity = el.scrollLeft <= 5 ? '0' : '1';
+    if (leftBtn) leftBtn.style.pointerEvents = el.scrollLeft <= 5 ? 'none' : 'auto';
+    if (rightBtn) {
+        var atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 5;
+        rightBtn.style.opacity = atEnd ? '0' : '1';
+        rightBtn.style.pointerEvents = atEnd ? 'none' : 'auto';
+    }
+}
+
 function generateSessionId() {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
@@ -2819,6 +2804,11 @@ function startNewSession() {
     document.getElementById('messageInput').value = '';
     // Refresh search greeting after session reset
     if (typeof updateSearchGreeting === 'function') updateSearchGreeting();
+    // Hide suggestion chips in Focus mode
+    if (typeof getHomeStyle === 'function' && getHomeStyle() === 'launcher') {
+        var chipsEl = container.querySelector('.suggestions');
+        if (chipsEl) chipsEl.style.display = 'none';
+    }
     console.log('New session started:', currentSessionId);
 }
 
@@ -2946,21 +2936,6 @@ function escapeHtml(t) {
     d.textContent = t;
     return d.innerHTML;
 }
-
-function toggleMoreResults(btn) {
-    const hidden = document.getElementById('hiddenResults');
-    if (hidden) {
-        if (hidden.style.display === 'none') {
-            hidden.style.display = 'grid';
-            btn.textContent = 'Show less';
-        } else {
-            hidden.style.display = 'none';
-            const count = hidden.querySelectorAll('.compact-card').length;
-            btn.textContent = `Show ${count} more results`;
-        }
-    }
-}
-
 
 // ===== SAVED PAGE =====
 async function loadSavedPage() {

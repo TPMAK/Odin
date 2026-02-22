@@ -283,105 +283,7 @@
 
         .hidden { display: none !important; }
 
-        /* LANDING PAGE - First-time users */
-        .landing-page {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 60px 24px;
-            text-align: center;
-        }
-
-        .landing-logo {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        .landing-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 12px;
-            color: var(--ink);
-        }
-
-        .landing-subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            line-height: 1.6;
-            margin-bottom: 32px;
-        }
-
-        .landing-preview {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 32px;
-        }
-
-        .preview-stat {
-            font-size: 15px;
-            color: #374151;
-            margin-bottom: 16px;
-        }
-
-        .preview-stat strong {
-            color: #7B2D45;
-            font-size: 24px;
-        }
-
-        .preview-examples {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            text-align: left;
-        }
-
-        .preview-example {
-            background: var(--bg);
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .landing-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .landing-btn {
-            padding: 16px 24px;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .landing-btn-primary {
-            background: #7B2D45;
-            color: #ffffff;
-        }
-
-        .landing-btn-primary:hover {
-            background: #5A1F30;
-        }
-
-        .landing-btn-secondary {
-            background: #ffffff;
-            color: #374151;
-            border: 1px solid var(--border);
-        }
-
-        .landing-btn-secondary:hover {
-            background: var(--bg);
-        }
+        /* (Landing page removed) */
 
         /* HOME PAGE - Recurring users */
         .home-page {
@@ -2278,10 +2180,64 @@
             margin-bottom: 16px;
         }
 
-        .more-options-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
+        /* Horizontal scrolling carousel for more results */
+        .more-options-scroll {
+            display: flex;
             gap: 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 8px;
+            touch-action: pan-x;
+            margin: 0 -20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .more-options-scroll::-webkit-scrollbar { display: none; }
+
+        .more-options-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .scroll-arrow {
+            position: absolute;
+            z-index: 3;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: opacity 0.2s, transform 0.15s;
+        }
+        .scroll-arrow:hover {
+            border-color: #7B2D45;
+            color: #7B2D45;
+            transform: scale(1.08);
+        }
+        .scroll-arrow-left {
+            left: -4px;
+        }
+        .scroll-arrow-right {
+            right: -4px;
+        }
+
+        /* Hide scroll arrows on mobile — swipe is natural */
+        @media (max-width: 600px) {
+            .scroll-arrow {
+                display: none;
+            }
         }
 
         .compact-card {
@@ -2293,6 +2249,9 @@
             transition: all 0.2s;
             display: flex;
             flex-direction: column;
+            flex-shrink: 0;
+            width: 180px;
+            scroll-snap-align: start;
         }
 
         .compact-card:hover {
@@ -2326,11 +2285,13 @@
         .compact-title {
             font-weight: 600;
             color: var(--ink);
-            font-size: 14px;
+            font-size: 13px;
             margin-bottom: 4px;
-            white-space: nowrap;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
             overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .compact-meta {
@@ -2354,27 +2315,6 @@
 
         .compact-snippet strong {
             color: #374151;
-        }
-
-        /* Show More Button */
-        .show-more-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--bg);
-            border: 1px dashed #DDD8D2;
-            border-radius: 12px;
-            color: var(--muted);
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 8px;
-        }
-
-        .show-more-btn:hover {
-            background: var(--mason);
-            border-color: #7B2D45;
-            color: #7B2D45;
         }
 
         /* LEGACY - Keep for backwards compat */
@@ -2792,11 +2732,8 @@
 
         .input-wrapper {
             display: flex;
+            align-items: center;
             gap: 10px;
-            background: var(--mason);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 6px 6px 6px 18px;
             max-width: 600px;
             margin: 0 auto;
         }
@@ -2805,24 +2742,58 @@
             .input-wrapper { max-width: 720px; }
         }
 
-        .input-wrapper:focus-within {
+        /* Pill-shaped search bar — mirrors home search bar */
+        .search-input-inner {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 50px;
+            transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                        box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input-inner:focus-within {
             border-color: #7B2D45;
-            background: #ffffff;
-            box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
+            box-shadow: 0 0 0 4px rgba(123, 45, 69, 0.12);
+        }
+
+        .search-input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--muted);
+            pointer-events: none;
+            transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .search-input-inner:focus-within .search-input-icon {
+            color: #7B2D45;
         }
 
         #messageInput {
-            flex: 1;
+            width: 100%;
             border: none;
             outline: none;
             background: transparent;
             font-size: 15px;
-            padding: 10px 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 10px 44px 10px 40px;
+            border-radius: 50px;
+            color: var(--ink);
         }
 
         #sendButton {
-            width: 36px;
-            height: 36px;
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             border: none;
             background: #7B2D45;
@@ -2831,13 +2802,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-shrink: 0;
+            padding: 0;
             transition: background 0.18s, transform 0.18s;
         }
 
         #sendButton svg {
-            width: 15px;
-            height: 15px;
+            width: 14px;
+            height: 14px;
             stroke: white;
         }
 
@@ -2846,57 +2817,33 @@
         }
 
         #sendButton:active {
-            transform: scale(0.93);
+            transform: translateY(-50%) scale(0.93);
         }
 
-        /* Input bar — Refresh/New button (left) */
+        /* Refresh/New session button — standalone */
         .input-new-btn {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            border: none;
-            background: transparent;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
             color: var(--muted);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: color 0.18s, background 0.18s;
+            transition: color 0.18s, background 0.18s, border-color 0.18s;
         }
 
         .input-new-btn:hover {
             color: #7B2D45;
-            background: rgba(123, 45, 69, 0.08);
+            border-color: #7B2D45;
+            background: rgba(123, 45, 69, 0.06);
         }
 
         .input-new-btn:active {
             transform: rotate(-30deg);
-        }
-
-        /* Input bar — Location toggle (beside send) */
-        .input-loc-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: transparent;
-            color: var(--muted);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: color 0.18s, background 0.18s;
-        }
-
-        .input-loc-btn:hover {
-            color: #7B2D45;
-        }
-
-        .input-loc-btn.active {
-            color: #7B2D45;
-            background: rgba(123, 45, 69, 0.1);
         }
 
         /* INPUT MODE */
@@ -3083,8 +3030,7 @@
                 font-size: 15px;
             }
 
-            .more-options-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .more-options-scroll {
                 gap: 10px;
             }
 

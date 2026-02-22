@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=38">
+    <link rel="stylesheet" href="styles.css?v=40">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -594,39 +594,7 @@
     </div>
 
     <div class="content">
-        <!-- LANDING PAGE (First-time users only) -->
-        <div id="landingPage" class="hidden">
-            <div class="landing-page">
-                <div class="landing-logo">🏠</div>
-                <h1 class="landing-title">Vouch</h1>
-                <p class="landing-subtitle">Google finds strangers' opinions.<br>We find your friends' stories.</p>
-
-                <div class="landing-preview">
-                    <div class="preview-stat">
-                        Trusted recommendations from people you know.
-                    </div>
-                    <div class="preview-examples">
-                        <div class="preview-example">💭 "Good coffee for working"</div>
-                        <div class="preview-example">💭 "Fun things for kids"</div>
-                        <div class="preview-example">💭 "Stanley's restaurant picks"</div>
-                    </div>
-                </div>
-
-                <div class="landing-actions">
-                    <button class="landing-btn landing-btn-primary" onclick="fromLanding('search')">
-                        🔍 Start Searching
-                    </button>
-                    <button class="landing-btn landing-btn-secondary" onclick="fromLanding('discover')">
-                        🎯 Browse Discoveries
-                    </button>
-                    <button class="landing-btn landing-btn-secondary" onclick="fromLanding('input')">
-                        ➕ Add Discovery
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- HOME PAGE (Recurring users) -->
+        <!-- HOME PAGE -->
         <div id="homePage" class="hidden">
 
             <!-- ── LAUNCHER HOME (Simple mode) ── -->
@@ -881,14 +849,6 @@
                         Edit Profile
                     </button>
 
-                    <!-- App mode toggle -->
-                    <div class="profile-style-toggle">
-                        <span class="profile-style-label">App mode</span>
-                        <div class="profile-style-pills" id="homeStyleToggle">
-                            <button class="style-pill" id="stylePillFeed" onclick="setHomeStyle('feed')">Discover</button>
-                            <button class="style-pill" id="stylePillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Edit Mode (hidden by default) -->
@@ -1055,13 +1015,13 @@
             <button class="input-new-btn" onclick="startNewSession()" title="New search" aria-label="New search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
             </button>
-            <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
-            <button class="input-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" aria-label="Toggle location">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </button>
-            <button id="sendButton" onclick="sendMessage()" aria-label="Send">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
+            <div class="search-input-inner">
+                <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <button id="sendButton" onclick="sendMessage()" aria-label="Send">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1179,7 +1139,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=27"></script>
+    <script src="app.js?v=29"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
@@ -1229,6 +1189,12 @@
         };
         var pool = hour < 12 ? prompts.morning : hour < 14 ? prompts.lunch : hour < 18 ? prompts.afternoon : prompts.evening;
         sub.textContent = pool[Math.floor(Math.random() * pool.length)];
+
+        // Hide suggestion chips in Focus mode
+        var chipsEl = document.querySelector('#chatContainer .suggestions');
+        if (chipsEl) {
+            chipsEl.style.display = (getHomeStyle() === 'launcher') ? 'none' : '';
+        }
     }
 
     // Patch setMode to track history + trigger search greeting
@@ -1297,6 +1263,11 @@
         localStorage.setItem(_HOME_STYLE_KEY, style);
         applyHomeStyle();
         updateStyleToggleUI();
+        // Update suggestion chips visibility on search page
+        var chipsEl = document.querySelector('#chatContainer .suggestions');
+        if (chipsEl) {
+            chipsEl.style.display = (style === 'launcher') ? 'none' : '';
+        }
     }
 
     function applyHomeStyle() {
