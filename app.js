@@ -359,7 +359,10 @@ async function handleForgotPassword() {
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
         currentUser = session.user;
-        showMainApp();
+        // Only show main app if we're on the login screen (not during token refresh)
+        if (document.getElementById('loginScreen').style.display !== 'none') {
+            showMainApp();
+        }
     } else if (event === 'SIGNED_OUT') {
         currentUser = null;
         showLoginScreen();
@@ -1746,6 +1749,7 @@ function getCategoryEmoji(type) {
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
+const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 
 let userLocation = { latitude: null, longitude: null, available: false };
 let allDiscoveries = [];
@@ -1761,6 +1765,127 @@ let isFirstMessage = true;
 let currentResults = [];
 let currentSessionId = generateSessionId();
 let sessionMessages = [];
+
+// ===== TRANSLATION SUPPORT =====
+let translationCache = {};
+
+function getPersonalNoteGlobal(r) {
+    if (r.PersonalNote) return r.PersonalNote;
+    if (r.personal_note) return r.personal_note;
+    if (r.metadata) {
+        try {
+            const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata;
+            return meta.personal_note;
+        } catch (e) {}
+    }
+    return null;
+}
+
+async function translateResultFields(idx, targetLang) {
+    if (translationCache[idx]) return translationCache[idx];
+
+    const r = currentResults[idx];
+    const texts = {};
+    if (r.title) texts.title = r.title;
+    if (r.description) texts.description = r.description;
+    const note = getPersonalNoteGlobal(r);
+    if (note) texts.personal_note = note;
+
+    const resp = await fetch(TRANSLATE_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts, target_language: targetLang })
+    });
+    const data = await resp.json();
+    // Handle both formats: { translated: {...} } from n8n webhook or flat { title, description, ... }
+    const translated = data.translated || data;
+    translationCache[idx] = translated;
+    return translated;
+}
+
+function updateCardContent(card, r, showTranslated, translated) {
+    const titleEl = card.querySelector('.top-pick-title');
+    const reasonEl = card.querySelector('.top-pick-reason');
+    if (showTranslated && translated) {
+        if (titleEl && translated.title) titleEl.textContent = translated.title;
+        if (reasonEl) {
+            const label = reasonEl.querySelector('.top-pick-reason-label');
+            const labelHtml = label ? label.outerHTML : '';
+            const text = translated.personal_note || translated.description || '';
+            reasonEl.innerHTML = labelHtml + escapeHtml(text).substring(0, 100) + (text.length > 100 ? '...' : '');
+        }
+    } else {
+        if (titleEl) titleEl.textContent = r.title;
+        if (reasonEl) {
+            const label = reasonEl.querySelector('.top-pick-reason-label');
+            const labelHtml = label ? label.outerHTML : '';
+            const rawNote = getPersonalNoteGlobal(r);
+            const canSeeNote = rawNote && typeof isFriend === 'function' && isFriend(r.added_by || r.added_by_name);
+            const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
+            reasonEl.innerHTML = labelHtml + escapeHtml(snippet).substring(0, 100) + (snippet.length > 100 ? '...' : '');
+        }
+    }
+}
+
+async function toggleLang(btn, idx) {
+    const r = currentResults[idx];
+    const card = btn.closest('.top-pick-card');
+    const state = btn.dataset.state;
+
+    if (state === 'translated') {
+        btn.dataset.state = 'original';
+        btn.textContent = 'Translate 🌐';
+        updateCardContent(card, r, false);
+    } else {
+        btn.textContent = 'Translating...';
+        btn.disabled = true;
+        try {
+            const translated = await translateResultFields(idx, r._queryLanguage);
+            updateCardContent(card, r, true, translated);
+            btn.dataset.state = 'translated';
+            btn.textContent = 'Show original';
+        } catch (e) {
+            btn.textContent = 'Translation failed — retry';
+        }
+        btn.disabled = false;
+    }
+}
+
+async function toggleDrawerLang(btn) {
+    const item = currentDrawerItem;
+    if (!item) return;
+    const idx = currentResults.indexOf(item);
+    const state = btn.dataset.state;
+
+    if (state === 'original') {
+        btn.textContent = 'Translating...';
+        btn.disabled = true;
+        try {
+            const translated = await translateResultFields(idx, item._queryLanguage);
+            const titleEl = document.querySelector('.drawer-title');
+            const descEl = document.querySelector('.drawer-description');
+            const storyEl = document.querySelector('.drawer-story-text');
+            if (titleEl && translated.title) titleEl.textContent = translated.title;
+            if (descEl && translated.description) descEl.textContent = translated.description;
+            if (storyEl && translated.personal_note) storyEl.textContent = translated.personal_note;
+            btn.dataset.state = 'translated';
+            btn.textContent = 'Show original';
+        } catch (e) {
+            btn.textContent = 'Translation failed — retry';
+        }
+        btn.disabled = false;
+    } else {
+        const titleEl = document.querySelector('.drawer-title');
+        const descEl = document.querySelector('.drawer-description');
+        const storyEl = document.querySelector('.drawer-story-text');
+        if (titleEl) titleEl.textContent = item.title;
+        if (descEl) descEl.textContent = item.description || '';
+        const note = getPersonalNoteGlobal(item);
+        if (storyEl && note) storyEl.textContent = note;
+        btn.dataset.state = 'original';
+        btn.textContent = 'Translate 🌐';
+    }
+}
 
 // Initialize app
 initApp();
@@ -2228,6 +2353,12 @@ function openItemDrawer(item) {
 
     // === SECTION 2: Practical Info (description, address, actions) ===
     if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
+
+    // Language toggle for non-English queries — under description, above address
+    if (item._queryLanguage && item._queryLanguage !== 'en') {
+        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
+    }
+
     if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
 
     // Extract URL from multiple possible fields
@@ -2515,6 +2646,9 @@ function sendMessage(text) {
     const query = text || input.value.trim();
     if (!query) return;
 
+    // Reset translation cache for new search
+    translationCache = {};
+
     if (isFirstMessage) {
         document.querySelector('.welcome').style.display = 'none';
         isFirstMessage = false;
@@ -2552,6 +2686,10 @@ function sendMessage(text) {
         document.getElementById('typing').remove();
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
+            const queryLanguage = data.query_language || 'en';
+
+            // Tag each result with the query language for translation toggle
+            currentResults.forEach(r => { r._queryLanguage = queryLanguage; });
 
             // Match search results to Supabase IDs via allDiscoveries
             currentResults.forEach(r => {
@@ -2565,17 +2703,7 @@ function sendMessage(text) {
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
 
-            const getPersonalNote = (r) => {
-                if (r.PersonalNote) return r.PersonalNote;
-                if (r.personal_note) return r.personal_note;
-                if (r.metadata) {
-                    try {
-                        const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata;
-                        return meta.personal_note;
-                    } catch (e) {}
-                }
-                return null;
-            };
+            const getPersonalNote = getPersonalNoteGlobal;
 
             const formatDistance = (km) => {
                 if (!km) return '';
@@ -2589,6 +2717,7 @@ function sendMessage(text) {
                 const distText = formatDistance(r.distance_km);
                 const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
                 const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
+                const needsToggle = r._queryLanguage && r._queryLanguage !== 'en';
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
@@ -2680,14 +2809,10 @@ function sendMessage(text) {
 
             html += '</div>';
 
-            const mapId = 'searchMap_' + Date.now();
-            html += `</div><div class="search-map-container">
-                <div id="${mapId}" style="width:100%;height:100%;"></div>
-            </div>`;
+            html += `</div>`;
 
             container.innerHTML += html;
             container.scrollTop = container.scrollHeight;
-            setTimeout(() => initSearchMap(mapId, currentResults), 100);
             // Init scroll arrow visibility
             var moreScroll = container.querySelector('.more-options-scroll');
             if (moreScroll && moreScroll.id) {

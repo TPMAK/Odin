@@ -2175,6 +2175,31 @@
             margin-bottom: 3px;
         }
 
+        /* Language toggle button */
+        .lang-toggle-btn {
+            background: none;
+            border: none;
+            color: #7B2D45;
+            font-size: 12px;
+            padding: 4px 0;
+            cursor: pointer;
+            text-decoration: underline;
+            opacity: 0.8;
+            font-family: inherit;
+        }
+        .lang-toggle-btn:active {
+            opacity: 1;
+        }
+        .lang-toggle-btn:disabled {
+            opacity: 0.5;
+            cursor: wait;
+            text-decoration: none;
+        }
+        .drawer-lang-toggle {
+            margin: 8px 0;
+            display: block;
+        }
+
         /* MORE OPTIONS - 2 Column Grid */
         .more-options-section {
             margin-bottom: 16px;
@@ -2782,9 +2807,35 @@
             background: transparent;
             font-size: 15px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            padding: 10px 44px 10px 40px;
+            padding: 10px 72px 10px 40px;
             border-radius: 50px;
             color: var(--ink);
+        }
+
+        /* Search bar location toggle */
+        .search-loc-btn {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: none;
+            background: none;
+            color: var(--muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: color 0.18s, background 0.18s;
+        }
+        .search-loc-btn.active {
+            color: #7B2D45;
+        }
+        .search-loc-btn:hover {
+            background: rgba(123, 45, 69, 0.08);
         }
 
         #sendButton {
