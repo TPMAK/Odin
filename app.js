@@ -1786,10 +1786,11 @@ async function translateResultFields(idx, targetLang) {
 
     const r = currentResults[idx];
     const texts = {};
-    if (r.title) texts.title = r.title;
+    // Never translate title — keep original always
     if (r.description) texts.description = r.description;
+    // Only include personal note for translation if user has permission
     const note = getPersonalNoteGlobal(r);
-    if (note) texts.personal_note = note;
+    if (note && isFriend(r.added_by)) texts.personal_note = note;
 
     const resp = await fetch(TRANSLATE_WEBHOOK, {
         method: 'POST',
@@ -1807,7 +1808,7 @@ function updateCardContent(card, r, showTranslated, translated) {
     const titleEl = card.querySelector('.top-pick-title');
     const reasonEl = card.querySelector('.top-pick-reason');
     if (showTranslated && translated) {
-        if (titleEl && translated.title) titleEl.textContent = translated.title;
+        // Title always stays original — never translate
         if (reasonEl) {
             const label = reasonEl.querySelector('.top-pick-reason-label');
             const labelHtml = label ? label.outerHTML : '';
@@ -1862,12 +1863,13 @@ async function toggleDrawerLang(btn) {
         btn.disabled = true;
         try {
             const translated = await translateResultFields(idx, item._queryLanguage);
-            const titleEl = document.querySelector('.drawer-title');
+            // Title always stays original — only translate description + personal note
             const descEl = document.querySelector('.drawer-description');
             const storyEl = document.querySelector('.drawer-story-text');
-            if (titleEl && translated.title) titleEl.textContent = translated.title;
             if (descEl && translated.description) descEl.textContent = translated.description;
-            if (storyEl && translated.personal_note) storyEl.textContent = translated.personal_note;
+            // Only show translated personal note if user has permission (is a friend)
+            const canSeeStory = isFriend(item.added_by);
+            if (storyEl && translated.personal_note && canSeeStory) storyEl.textContent = translated.personal_note;
             btn.dataset.state = 'translated';
             btn.textContent = 'Show original';
         } catch (e) {
@@ -1875,13 +1877,13 @@ async function toggleDrawerLang(btn) {
         }
         btn.disabled = false;
     } else {
-        const titleEl = document.querySelector('.drawer-title');
+        // Revert description + personal note to original (title never changes)
         const descEl = document.querySelector('.drawer-description');
         const storyEl = document.querySelector('.drawer-story-text');
-        if (titleEl) titleEl.textContent = item.title;
         if (descEl) descEl.textContent = item.description || '';
         const note = getPersonalNoteGlobal(item);
-        if (storyEl && note) storyEl.textContent = note;
+        const canSeeStory = isFriend(item.added_by);
+        if (storyEl && note && canSeeStory) storyEl.textContent = note;
         btn.dataset.state = 'original';
         btn.textContent = 'Translate 🌐';
     }

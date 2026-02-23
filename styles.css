@@ -2807,19 +2807,17 @@
             background: transparent;
             font-size: 15px;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            padding: 10px 72px 10px 40px;
+            padding: 10px 44px 10px 40px;
             border-radius: 50px;
             color: var(--ink);
         }
 
-        /* Search bar location toggle */
+        /* Search bar location toggle — sits outside pill, after send btn */
         .search-loc-btn {
-            position: absolute;
-            right: 40px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 28px;
-            height: 28px;
+            position: relative;
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             border: none;
             background: none;
@@ -2829,6 +2827,7 @@
             align-items: center;
             justify-content: center;
             padding: 0;
+            margin-left: 4px;
             transition: color 0.18s, background 0.18s;
         }
         .search-loc-btn.active {
@@ -4105,11 +4104,13 @@
 
 .recently-viewed-row {
     display: flex;
+    align-items: flex-start;
     gap: 14px;
     overflow-x: auto;
     overflow-y: visible;
     padding-top: 6px;
     padding-bottom: 4px;
+    padding-left: 2px;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -4122,6 +4123,9 @@
     text-align: center;
     cursor: pointer;
     width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .rv-thumb-wrap {

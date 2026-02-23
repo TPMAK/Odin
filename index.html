@@ -1018,13 +1018,13 @@
             <div class="search-input-inner">
                 <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
-                <button class="search-loc-btn active" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location on" aria-label="Toggle location">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                </button>
                 <button id="sendButton" onclick="sendMessage()" aria-label="Send">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
             </div>
+            <button class="search-loc-btn active" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location on" aria-label="Toggle location">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </button>
         </div>
     </div>
 
