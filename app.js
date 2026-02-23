@@ -18,9 +18,8 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
 // Initialize Supabase client
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ===== VOUCH HQ SEED ACCOUNT =====
-// Replace this UUID with the actual Vouch HQ profile ID from Supabase
-const VOUCH_HQ_USER_ID = 'REPLACE_WITH_VOUCH_HQ_UUID';
+// ===== FOUNDING MEMBERS ACCOUNT =====
+const VOUCH_HQ_USER_ID = 'fec29546-cabd-44c7-96c9-4dfa6e952e93';
 
 // ===== AUTHENTICATION =====
 let currentUser = null;
@@ -979,8 +978,17 @@ async function handleSendFriendRequest(receiverId, btn) {
             return;
         }
         if (data && data.length > 0 && data[0].out_success) {
-            if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
-            showToast('Friend request sent!');
+            // Check if this was auto-accepted (Founding Members)
+            if (receiverId === VOUCH_HQ_USER_ID) {
+                if (btn) { btn.textContent = 'Added!'; btn.classList.add('sent'); }
+                showToast('Founding Members added! Their discoveries are now visible.');
+                await loadFriends();
+                await loadPendingRequests();
+                renderFriendsUI();
+            } else {
+                if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
+                showToast('Friend request sent!');
+            }
             // Clear search bar and hide results after a short delay
             setTimeout(() => {
                 const searchInput = document.getElementById('friendSearchInput');
@@ -3174,9 +3182,9 @@ function showToast(message, duration = 3000) {
 
 // ===== ONBOARDING =====
 
-// Auto-connect new users with Vouch HQ
+// Disabled: Let users manually add Founding Members to learn the Add Friend flow
 async function autoFriendVouchHQ() {
-    if (!currentUser || VOUCH_HQ_USER_ID === 'REPLACE_WITH_VOUCH_HQ_UUID') return;
+    return; // Skip auto-connect — users add Founding Members manually
     if (currentUser.id === VOUCH_HQ_USER_ID) return; // Don't friend yourself
 
     // Check if already friends with Vouch HQ
