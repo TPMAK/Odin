@@ -80,17 +80,17 @@ async function showMainApp() {
     // Set avatar initial in header
     updateAvatarInitials(userName);
 
+    // Start notification polling
+    startNotifPolling();
+
+    // Load friends first, then discoveries (discoveries filter by friends)
+    await loadFriends();
+    loadPendingFriendRequests();
+
     // Pre-load discoveries so search results can match IDs
     if (allDiscoveries.length === 0) {
         loadDiscoveries();
     }
-
-    // Start notification polling
-    startNotifPolling();
-
-    // Load friends network
-    loadFriends();
-    loadPendingFriendRequests();
     loadBlockedUsers();
 
     // Auto-connect with Vouch HQ for new users
@@ -2175,6 +2175,11 @@ async function loadDiscoveries() {
 
         let data = await response.json();
         data = data.filter(item => new Date(item.created_at) >= twoWeeksAgo);
+
+        // Only show items from the user's friends (and their own items)
+        const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+        if (currentUser) friendIds.add(currentUser.id);
+        data = data.filter(item => item.added_by && friendIds.has(item.added_by));
 
         // Hide discoveries from blocked users
         if (blockedUsersCache.length > 0) {
