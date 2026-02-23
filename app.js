@@ -1453,8 +1453,9 @@ function getTimeAgo(dateStr) {
 // ===== NOTIFICATIONS =====
 let notifPollInterval = null;
 const _NOTIFS_CLEARED_KEY = 'vouch_notifs_cleared_at';
-// Initialise from localStorage so cleared state survives page navigation
-let _notificationsCleared = !!localStorage.getItem(_NOTIFS_CLEARED_KEY);
+// We store a timestamp in localStorage when user clears all notifications.
+// Any notification created BEFORE this timestamp is permanently hidden,
+// even if the Supabase delete didn't fully propagate.
 
 async function checkUnreadNotifications() {
     const badge = document.getElementById('notifBadge');
@@ -1463,22 +1464,26 @@ async function checkUnreadNotifications() {
         return;
     }
     try {
-        const { data, error } = await supabaseClient.rpc('get_unread_notification_count', {
-            p_user_id: currentUser.id
+        // Fetch actual notifications to check if any exist after clearedAt
+        const { data, error } = await supabaseClient.rpc('get_user_notifications', {
+            p_user_id: currentUser.id,
+            p_limit: 1
         });
-        // Only show dot if RPC succeeded and count is a positive number
-        const count = (!error && typeof data === 'number') ? data : 0;
-        if (count > 0) {
-            // Only reset cleared flag if enough time has passed since clearing
-            // (gives the DB time to propagate the delete before we re-show)
-            const clearedAt = parseInt(localStorage.getItem(_NOTIFS_CLEARED_KEY) || '0');
-            const gracePeriod = 20000; // 20 seconds
-            if (!clearedAt || Date.now() - clearedAt > gracePeriod) {
-                _notificationsCleared = false;
-                localStorage.removeItem(_NOTIFS_CLEARED_KEY);
+        if (error) {
+            if (badge) badge.style.display = 'none';
+            return;
+        }
+        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        let hasVisible = false;
+        if (data && data.length > 0) {
+            if (clearedAt) {
+                // Only count notifications created AFTER the clear timestamp
+                hasVisible = data.some(n => new Date(n.out_created_at) > new Date(parseInt(clearedAt)));
+            } else {
+                hasVisible = true;
             }
         }
-        if (badge) badge.style.display = count > 0 && !_notificationsCleared ? 'block' : 'none';
+        if (badge) badge.style.display = hasVisible ? 'block' : 'none';
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
         if (badge) badge.style.display = 'none';
@@ -1506,15 +1511,6 @@ async function loadNotifications() {
     const section = document.getElementById('notificationsList');
     if (!container || !section) return;
 
-    // If user just cleared all notifications, don't re-fetch
-    // Check both in-memory flag and localStorage (so it survives page navigation)
-    const _clearedAt = parseInt(localStorage.getItem(_NOTIFS_CLEARED_KEY) || '0');
-    if (_notificationsCleared || _clearedAt > 0) {
-        section.style.display = 'none';
-        container.innerHTML = '';
-        return;
-    }
-
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
             p_user_id: currentUser.id,
@@ -1526,13 +1522,22 @@ async function loadNotifications() {
             return;
         }
 
-        if (!data || data.length === 0) {
+        // Filter out notifications created before the last "Clear all"
+        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        let filtered = data || [];
+        if (clearedAt) {
+            const clearedDate = new Date(parseInt(clearedAt));
+            filtered = filtered.filter(n => new Date(n.out_created_at) > clearedDate);
+        }
+
+        if (filtered.length === 0) {
             section.style.display = 'none';
+            container.innerHTML = '';
             return;
         }
 
         section.style.display = 'block';
-        container.innerHTML = data.map(n => {
+        container.innerHTML = filtered.map(n => {
             let icon = '📝';
             if (n.out_type === 'endorsement') icon = '🙌';
             else if (n.out_type === 'friend_request') icon = '🤝';
@@ -1574,21 +1579,24 @@ async function deleteNotification(notifId) {
         await supabaseClient.from('notifications').delete().eq('id', notifId);
     } catch (e) { console.error('Error deleting notification:', e); }
 
-    // Hide section if empty; mark all cleared when last one deleted
+    // Hide section if empty; store cleared timestamp when last one deleted
     setTimeout(() => {
         const container = document.getElementById('notifItems');
         const section = document.getElementById('notificationsList');
         if (container && section && container.children.length === 0) {
             section.style.display = 'none';
-            _notificationsCleared = true;
             localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+            // Also hide the badge dot
+            const badge = document.getElementById('notifBadge');
+            if (badge) badge.style.display = 'none';
         }
     }, 250);
 }
 
 async function clearAllNotifications() {
     if (!currentUser) return;
-    _notificationsCleared = true;
+    // Store the cleared timestamp permanently — any notification created
+    // before this time will never be shown again, even if the DB delete fails
     localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
     const container = document.getElementById('notifItems');
     const section = document.getElementById('notificationsList');
@@ -1601,7 +1609,7 @@ async function clearAllNotifications() {
         });
     }
 
-    // Delete all from Supabase
+    // Delete all from Supabase (best effort — client-side filter is the safety net)
     try {
         await supabaseClient.from('notifications').delete().eq('user_id', currentUser.id);
     } catch (e) { console.error('Error clearing notifications:', e); }
