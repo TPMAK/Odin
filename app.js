@@ -2531,7 +2531,7 @@ async function saveItemEdit(itemId) {
             description: newDescription || null,
             type: newCategory,
             address: newAddress || null,
-            url: newUrl || null,
+            URL: newUrl ? [newUrl] : [],
             personal_note: newNote || null
         };
 
