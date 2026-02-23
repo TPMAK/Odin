@@ -768,18 +768,28 @@ function toggleSaveItem(itemId, event) {
 }
 
 function buildEndorseSection(itemId) {
-    const cached = endorsementsCache[itemId] || { count: 0, names: [], userEndorsed: false };
+    const cached = endorsementsCache[itemId] || { count: 0, names: [], ids: [], userEndorsed: false };
     const bookmarkActive = cached.userEndorsed ? ' active' : '';
     const fillColor = cached.userEndorsed ? '#7B2D45' : 'none';
     const strokeColor = '#7B2D45';
 
+    // Only show names of friends (not all users)
+    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+    const friendNames = [];
+    (cached.ids || []).forEach((id, i) => {
+        if (friendIds.has(id) && cached.names[i]) {
+            friendNames.push(cached.names[i]);
+        }
+    });
+
     let namesText = '';
-    if (cached.count > 0) {
-        const displayNames = cached.names.slice(0, 3);
-        if (cached.count <= 3) {
+    const friendCount = friendNames.length;
+    if (friendCount > 0) {
+        const displayNames = friendNames.slice(0, 3);
+        if (friendCount <= 3) {
             namesText = displayNames.join(', ') + ' saved this';
         } else {
-            namesText = displayNames.join(', ') + ` and ${cached.count - 3} others saved this`;
+            namesText = displayNames.join(', ') + ` and ${friendCount - 3} others saved this`;
         }
     }
 
