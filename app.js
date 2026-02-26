@@ -2769,15 +2769,20 @@ function sendMessage(text) {
             );
 
             // Check if top result meets relevance threshold.
-            // Also check drop ratio — if n8n found many items but the AI dropped most of them,
-            // nothing truly matched. >70% dropped = weak match, show honest empty state.
+            // Signal 1 — drop ratio: if n8n found items but AI dropped most, nothing truly matched.
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
             const dropRatio = (data.original_count > 3)
                 ? ((data.original_count - data.filtered_count) / data.original_count)
                 : 0;
+            // Signal 2 — safety net: if every result title appears in _debug.dropped_titles,
+            // the AI explicitly rejected everything (catches the Merge Response fallback bug).
+            const debugDropped = (data._debug && data._debug.dropped_titles) || [];
+            const allResultsDropped = currentResults.length > 0
+                && currentResults.every(r => debugDropped.includes(r.title));
             const hasRelevantResults = currentResults.length > 0
                 && topScore >= RELEVANCE_THRESHOLD
-                && dropRatio < 0.7;
+                && dropRatio < 0.7
+                && !allResultsDropped;
 
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
