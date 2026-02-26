@@ -723,6 +723,7 @@ async function toggleEndorsement(itemId, event) {
 
 function updateEndorsementUI(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
+    const friendCount = getFriendSaveCount(itemId);
 
     // Update card overlay buttons
     document.querySelectorAll(`.react-btn[data-endorse-id="${itemId}"]`).forEach(btn => {
@@ -733,7 +734,7 @@ function updateEndorsementUI(itemId) {
             svg.setAttribute('stroke', cached.userEndorsed ? '#ffffff' : '#5a5a5a');
         }
         const countEl = btn.querySelector('.react-count');
-        if (countEl) countEl.textContent = cached.count > 0 ? cached.count : '';
+        if (countEl) countEl.textContent = friendCount > 0 ? friendCount : '';
     });
 
     // Update drawer bookmark button
@@ -749,11 +750,21 @@ function updateEndorsementUI(itemId) {
 function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
-    const countHtml = cached.count > 0 ? `<span class="react-count">${cached.count}</span>` : '';
+    const friendCount = getFriendSaveCount(itemId);
+    const countHtml = friendCount > 0 ? `<span class="react-count">${friendCount}</span>` : '';
 
     return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Save">
         <svg class="bookmark-icon" width="16" height="16" viewBox="0 0 24 24" fill="${cached.userEndorsed ? '#ffffff' : 'none'}" stroke="${cached.userEndorsed ? '#ffffff' : '#5a5a5a'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>${countHtml}
     </button>`;
+}
+
+// Returns save count filtered to friends + self only (new users see 0)
+function getFriendSaveCount(itemId) {
+    const cached = endorsementsCache[itemId];
+    if (!cached || !cached.ids) return 0;
+    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+    if (currentUser) friendIds.add(currentUser.id);
+    return cached.ids.filter(id => friendIds.has(id)).length;
 }
 
 // ===== SAVE (Bookmark) - now unified with endorsements =====
@@ -773,8 +784,9 @@ function buildEndorseSection(itemId) {
     const fillColor = cached.userEndorsed ? '#7B2D45' : 'none';
     const strokeColor = '#7B2D45';
 
-    // Only show names of friends (not all users)
+    // Only show names and count of friends + self (not global)
     const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+    if (currentUser) friendIds.add(currentUser.id);
     const friendNames = [];
     (cached.ids || []).forEach((id, i) => {
         if (friendIds.has(id) && cached.names[i]) {
@@ -798,7 +810,7 @@ function buildEndorseSection(itemId) {
             <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
                 <svg class="bookmark-icon-lg" width="22" height="22" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                 <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
-                ${cached.count > 0 ? `<span class="drawer-bookmark-count">${cached.count}</span>` : ''}
+                ${friendCount > 0 ? `<span class="drawer-bookmark-count">${friendCount}</span>` : ''}
             </button>
         </div>
         ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
@@ -2702,7 +2714,8 @@ function sendMessage(text) {
     const body = {
         query,
         session_id: currentSessionId,
-        conversation_history: sessionMessages
+        conversation_history: sessionMessages,
+        user_id: currentUser ? currentUser.id : null
     };
     if (userLocation.available) {
         body.user_latitude = userLocation.latitude;
@@ -2724,14 +2737,28 @@ function sendMessage(text) {
             // Tag each result with the query language for translation toggle
             currentResults.forEach(r => { r._queryLanguage = queryLanguage; });
 
-            // Match search results to Supabase IDs via allDiscoveries
+            // Match and enrich search results from allDiscoveries (friends + self only)
             currentResults.forEach(r => {
-                if (!r.id) {
-                    // Try matching by title against loaded discoveries
-                    const match = allDiscoveries.find(d => d.title === r.title);
-                    if (match) r.id = match.id;
+                // Find match by id first, then fall back to title
+                const match = (r.id && allDiscoveries.find(d => d.id === r.id))
+                    || allDiscoveries.find(d => d.title === r.title);
+                if (match) {
+                    // Preserve search-specific fields before merging
+                    const relevance_reason = r.relevance_reason;
+                    const distance_km = r.distance_km || match.distance_km;
+                    const _queryLanguage = r._queryLanguage;
+                    // Merge full Supabase data (adds added_by, personal_note, photo_url etc.)
+                    Object.assign(r, match);
+                    r.relevance_reason = relevance_reason;
+                    if (distance_km) r.distance_km = distance_km;
+                    r._queryLanguage = _queryLanguage;
                 }
             });
+
+            // Filter to friends + self only — no strangers in search results
+            currentResults = currentResults.filter(r =>
+                r.id && allDiscoveries.find(d => d.id === r.id)
+            );
 
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
@@ -2861,12 +2888,64 @@ function sendMessage(text) {
             });
 
         } else {
-            const responseText = data.text || 'No results';
-            container.innerHTML += `<div class="message message-assistant"><div class="message-content">${escapeHtml(responseText)}</div></div>`;
+            // 0 results — show friendly fallback with preview from friends' network
+            if (allDiscoveries.length > 0) {
+                // Pick up to 4 random items from friends' discoveries
+                const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
+                const preview = shuffled.slice(0, 4);
+                // Store for onclick access
+                window._searchPreviewItems = preview;
+
+                const formatDistance = (km) => {
+                    if (!km) return '';
+                    return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
+                };
+
+                let previewCards = preview.map((item, idx) => {
+                    const photo = item.photo_url
+                        ? `<img src="${escapeHtml(item.photo_url)}">`
+                        : '<span class="compact-photo-placeholder">📍</span>';
+                    const distText = formatDistance(item.distance_km);
+                    const note = getPersonalNoteGlobal(item);
+                    const snippet = (note && isFriend(item.added_by)) ? note : (item.description || '');
+                    return `
+                        <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
+                            <div class="compact-photo">${photo}</div>
+                            <div class="compact-title">${escapeHtml(item.title)}</div>
+                            <div class="compact-meta">
+                                ${distText ? `<span>📍 ${distText}</span>` : ''}
+                                ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
+                            </div>
+                            ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        </div>`;
+                }).join('');
+
+                const noResultHtml = `
+                    <div class="message message-assistant">
+                        <div class="message-content">Nothing found for that in your network yet — but here's what your friends have saved 👇</div>
+                        <div class="results-section">
+                            <div class="more-options-section">
+                                <div class="results-header">
+                                    <span class="results-header-title">From Your Network</span>
+                                </div>
+                                <div class="more-options-wrapper">
+                                    <div class="more-options-scroll">${previewCards}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                container.innerHTML += noResultHtml;
+            } else {
+                // New user — no friends yet
+                container.innerHTML += `
+                    <div class="message message-assistant">
+                        <div class="message-content">Nothing found yet — your network is empty. Invite friends to start building your shared discovery list! 🤝</div>
+                    </div>`;
+            }
 
             sessionMessages.push({
                 role: 'assistant',
-                content: responseText,
+                content: 'No results found',
                 timestamp: Date.now()
             });
         }
