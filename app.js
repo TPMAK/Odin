@@ -1789,6 +1789,10 @@ const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 
+// Minimum relevance score for a result to be shown as a real match.
+// Below this = honest "nothing found" state + suggestions instead.
+const RELEVANCE_THRESHOLD = 0.28;
+
 let userLocation = { latitude: null, longitude: null, available: false };
 let allDiscoveries = [];
 let filteredDiscoveries = [];
@@ -2747,11 +2751,15 @@ function sendMessage(text) {
                     const relevance_reason = r.relevance_reason;
                     const distance_km = r.distance_km || match.distance_km;
                     const _queryLanguage = r._queryLanguage;
+                    const combined_score = r.combined_score;
+                    const relevance_score = r.relevance_score;
                     // Merge full Supabase data (adds added_by, personal_note, photo_url etc.)
                     Object.assign(r, match);
                     r.relevance_reason = relevance_reason;
                     if (distance_km) r.distance_km = distance_km;
                     r._queryLanguage = _queryLanguage;
+                    r.combined_score = combined_score;
+                    r.relevance_score = relevance_score;
                 }
             });
 
@@ -2759,6 +2767,10 @@ function sendMessage(text) {
             currentResults = currentResults.filter(r =>
                 r.id && allDiscoveries.find(d => d.id === r.id)
             );
+
+            // Check if top result meets relevance threshold
+            const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
+            const hasRelevantResults = currentResults.length > 0 && topScore >= RELEVANCE_THRESHOLD;
 
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
@@ -2823,69 +2835,127 @@ function sendMessage(text) {
                 `;
             };
 
-            let html = `<div class="message message-assistant"><div class="message-content">Found ${data.results.length} discoveries:</div><div class="results-section">`;
+            if (hasRelevantResults) {
+                // ── Good matches found — show normal results ──
+                let html = `<div class="message message-assistant"><div class="message-content">Found ${currentResults.length} discoveries:</div><div class="results-section">`;
 
-            const topPickCount = data.results.length === 1 ? 1 : Math.min(2, data.results.length);
-            html += `
-                <div class="top-picks-section">
-                    <div class="results-header">
-                        <span class="results-header-title">Top Picks For You</span>
-                    </div>
-            `;
-
-            for (let i = 0; i < topPickCount; i++) {
-                html += buildTopPick(data.results[i], i);
-            }
-            html += '</div>';
-
-            const moreResults = data.results.slice(topPickCount);
-
-            if (moreResults.length > 0) {
-                const scrollId = 'moreScroll_' + Date.now();
+                const topPickCount = currentResults.length === 1 ? 1 : Math.min(2, currentResults.length);
                 html += `
-                    <div class="more-options-section">
+                    <div class="top-picks-section">
                         <div class="results-header">
-                            <span class="results-header-title">More Great Options</span>
-                            <span class="results-header-count">${moreResults.length} more</span>
+                            <span class="results-header-title">Top Picks For You</span>
                         </div>
-                        <div class="more-options-wrapper">
-                            <button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                            </button>
-                            <div class="more-options-scroll" id="${scrollId}">
                 `;
 
-                moreResults.forEach((r, i) => {
-                    html += buildCompactCard(r, i + topPickCount);
+                for (let i = 0; i < topPickCount; i++) {
+                    html += buildTopPick(currentResults[i], i);
+                }
+                html += '</div>';
+
+                const moreResults = currentResults.slice(topPickCount);
+                if (moreResults.length > 0) {
+                    const scrollId = 'moreScroll_' + Date.now();
+                    html += `
+                        <div class="more-options-section">
+                            <div class="results-header">
+                                <span class="results-header-title">More Great Options</span>
+                                <span class="results-header-count">${moreResults.length} more</span>
+                            </div>
+                            <div class="more-options-wrapper">
+                                <button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                                </button>
+                                <div class="more-options-scroll" id="${scrollId}">
+                    `;
+                    moreResults.forEach((r, i) => {
+                        html += buildCompactCard(r, i + topPickCount);
+                    });
+                    html += `</div>
+                                <button class="scroll-arrow scroll-arrow-right" onclick="scrollMoreOptions('${scrollId}',1)" aria-label="Scroll right">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                                </button>
+                            </div>
+                        </div>`;
+                }
+
+                html += '</div></div>';
+                container.innerHTML += html;
+                container.scrollTop = container.scrollHeight;
+                var moreScroll = container.querySelector('.more-options-scroll');
+                if (moreScroll && moreScroll.id) {
+                    setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
+                    moreScroll.addEventListener('scroll', function() { updateScrollArrows(moreScroll.id); });
+                }
+
+                sessionMessages.push({
+                    role: 'assistant',
+                    content: `Found ${currentResults.length} results`,
+                    results: currentResults.map(r => ({ title: r.title, id: r.id })),
+                    timestamp: Date.now()
                 });
 
-                html += `</div>
-                            <button class="scroll-arrow scroll-arrow-right" onclick="scrollMoreOptions('${scrollId}',1)" aria-label="Scroll right">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            } else {
+                // ── No relevant match — honest message + suggestions + CTA ──
+                const buildSuggestionPreview = () => {
+                    if (allDiscoveries.length === 0) return '';
+                    const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
+                    window._searchPreviewItems = shuffled.slice(0, 4);
+                    return window._searchPreviewItems.map((item, idx) => {
+                        const photo = item.photo_url
+                            ? `<img src="${escapeHtml(item.photo_url)}">`
+                            : '<span class="compact-photo-placeholder">📍</span>';
+                        const note = getPersonalNoteGlobal(item);
+                        const snippet = (note && isFriend(item.added_by)) ? note : (item.description || '');
+                        const dist = item.distance_km
+                            ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
+                            : '';
+                        return `
+                            <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
+                                <div class="compact-photo">${photo}</div>
+                                <div class="compact-title">${escapeHtml(item.title)}</div>
+                                <div class="compact-meta">
+                                    ${dist ? `<span>📍 ${dist}</span>` : ''}
+                                    ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
+                                </div>
+                                ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                            </div>`;
+                    }).join('');
+                };
+
+                const previewCards = buildSuggestionPreview();
+                const noMatchHtml = `
+                    <div class="message message-assistant">
+                        <div class="message-content">
+                            <strong>Nothing found for "${escapeHtml(query)}" in your network yet.</strong><br>
+                            Your friends haven't saved anything matching that — yet. Be the first to add it! 👇
+                        </div>
+                        <div style="padding: 8px 0;">
+                            <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
+                                ＋ Add a recommendation
                             </button>
                         </div>
+                        ${previewCards ? `
+                        <div class="results-section">
+                            <div class="more-options-section">
+                                <div class="results-header">
+                                    <span class="results-header-title">Meanwhile, from your network</span>
+                                </div>
+                                <div class="more-options-wrapper">
+                                    <div class="more-options-scroll">${previewCards}</div>
+                                </div>
+                            </div>
+                        </div>` : ''}
                     </div>`;
+
+                container.innerHTML += noMatchHtml;
+                container.scrollTop = container.scrollHeight;
+
+                sessionMessages.push({
+                    role: 'assistant',
+                    content: `No relevant results for "${query}"`,
+                    timestamp: Date.now()
+                });
             }
-
-            html += '</div>';
-
-            html += `</div>`;
-
-            container.innerHTML += html;
-            container.scrollTop = container.scrollHeight;
-            // Init scroll arrow visibility
-            var moreScroll = container.querySelector('.more-options-scroll');
-            if (moreScroll && moreScroll.id) {
-                setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
-                moreScroll.addEventListener('scroll', function() { updateScrollArrows(moreScroll.id); });
-            }
-
-            sessionMessages.push({
-                role: 'assistant',
-                content: `Found ${data.results.length} results`,
-                results: data.results.map(r => ({ title: r.title, id: r.id })),
-                timestamp: Date.now()
-            });
 
         } else {
             // 0 results — show friendly fallback with preview from friends' network
@@ -2922,7 +2992,15 @@ function sendMessage(text) {
 
                 const noResultHtml = `
                     <div class="message message-assistant">
-                        <div class="message-content">Nothing found for that in your network yet — but here's what your friends have saved 👇</div>
+                        <div class="message-content">
+                            <strong>Nothing found for "${escapeHtml(query)}" in your network yet.</strong><br>
+                            Be the first to add it! 👇
+                        </div>
+                        <div style="padding: 8px 0;">
+                            <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
+                                ＋ Add a recommendation
+                            </button>
+                        </div>
                         <div class="results-section">
                             <div class="more-options-section">
                                 <div class="results-header">
