@@ -2768,9 +2768,16 @@ function sendMessage(text) {
                 r.id && allDiscoveries.find(d => d.id === r.id)
             );
 
-            // Check if top result meets relevance threshold
+            // Check if top result meets relevance threshold.
+            // Also check drop ratio — if n8n found many items but the AI dropped most of them,
+            // nothing truly matched. >70% dropped = weak match, show honest empty state.
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
-            const hasRelevantResults = currentResults.length > 0 && topScore >= RELEVANCE_THRESHOLD;
+            const dropRatio = (data.original_count > 3)
+                ? ((data.original_count - data.filtered_count) / data.original_count)
+                : 0;
+            const hasRelevantResults = currentResults.length > 0
+                && topScore >= RELEVANCE_THRESHOLD
+                && dropRatio < 0.7;
 
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
