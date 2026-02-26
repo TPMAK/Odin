@@ -2909,15 +2909,34 @@ function sendMessage(text) {
             } else {
                 // ── No relevant match — honest message + suggestions + CTA ──
                 const buildSuggestionPreview = () => {
-                    if (allDiscoveries.length === 0) return '';
-                    const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
-                    window._searchPreviewItems = shuffled.slice(0, 4);
+                    // Prefer n8n's suggested_results (semantically closest, nearby, with relevance_reason)
+                    // Fall back to random allDiscoveries only if nothing nearby was returned
+                    const hasSuggested = data.suggested_results && data.suggested_results.length > 0;
+
+                    if (hasSuggested) {
+                        // Enrich with full Supabase data (photo, added_by etc.) via allDiscoveries match
+                        window._searchPreviewItems = data.suggested_results.map(r => {
+                            const match = allDiscoveries.find(d => d.id === r.id || d.title === r.title);
+                            if (match) {
+                                const relevance_reason = r.relevance_reason;
+                                const distance_km = r.distance_km || match.distance_km;
+                                return Object.assign({}, match, { relevance_reason, distance_km });
+                            }
+                            return r;
+                        });
+                    } else if (allDiscoveries.length > 0) {
+                        const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
+                        window._searchPreviewItems = shuffled.slice(0, 4);
+                    } else {
+                        return '';
+                    }
+
                     return window._searchPreviewItems.map((item, idx) => {
                         const photo = item.photo_url
                             ? `<img src="${escapeHtml(item.photo_url)}">`
                             : '<span class="compact-photo-placeholder">📍</span>';
-                        const note = getPersonalNoteGlobal(item);
-                        const snippet = (note && isFriend(item.added_by)) ? note : (item.description || '');
+                        // Show relevance_reason if available (from n8n), else fall back to description
+                        const snippet = item.relevance_reason || item.description || '';
                         const dist = item.distance_km
                             ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                             : '';
@@ -2929,7 +2948,7 @@ function sendMessage(text) {
                                     ${dist ? `<span>📍 ${dist}</span>` : ''}
                                     ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
                                 </div>
-                                ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                                ${snippet ? `<div class="compact-snippet">💡 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                             </div>`;
                     }).join('');
                 };
@@ -2988,8 +3007,7 @@ function sendMessage(text) {
                         ? `<img src="${escapeHtml(item.photo_url)}">`
                         : '<span class="compact-photo-placeholder">📍</span>';
                     const distText = formatDistance(item.distance_km);
-                    const note = getPersonalNoteGlobal(item);
-                    const snippet = (note && isFriend(item.added_by)) ? note : (item.description || '');
+                    const snippet = item.description || '';
                     return `
                         <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
                             <div class="compact-photo">${photo}</div>
@@ -2998,7 +3016,7 @@ function sendMessage(text) {
                                 ${distText ? `<span>📍 ${distText}</span>` : ''}
                                 ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
                             </div>
-                            ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                            ${snippet ? `<div class="compact-snippet">💡 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                         </div>`;
                 }).join('');
 
