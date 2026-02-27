@@ -1998,20 +1998,35 @@ function switchDiscoverView(view) {
 function setMapScreenHeight() {
     var header  = document.querySelector('.header');
     var tabBar  = document.querySelector('.bottom-tab-bar');
-    var mapView = document.getElementById('discoverMapView');
-    if (!mapView) return;
-    var headerH = header  ? header.offsetHeight  : 56;
-    var tabH    = tabBar  ? tabBar.offsetHeight   : 65;
+    var headerH = header ? header.offsetHeight : 56;
+    var tabH    = tabBar ? tabBar.offsetHeight  : 65;
     var h = window.innerHeight - headerH - tabH;
-    mapView.style.height = h + 'px';
-    // Also tell Leaflet to resize if already initialised
-    if (discoverMap) discoverMap.invalidateSize();
+    if (h < 100) h = window.innerHeight * 0.6; // fallback
+
+    // Set height explicitly on every element in the chain
+    // so Leaflet always gets a concrete pixel size regardless of CSS flex
+    var ids = ['discoverMapView'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.style.height = h + 'px';
+    });
+    var inner = document.querySelector('.dmap-inner');
+    var area  = document.querySelector('.dmap-area');
+    var mapEl = document.getElementById('discoverMap');
+    if (inner) inner.style.height = h + 'px';
+    if (area)  area.style.height  = h + 'px';
+    // #discoverMap uses position:absolute so no direct height needed,
+    // but call invalidateSize so Leaflet redraws tiles for the new size
+    if (discoverMap) setTimeout(function(){ discoverMap.invalidateSize(); }, 50);
 }
 
-// Re-compute on window resize
-window.addEventListener('resize', function() {
-    if (discoverViewMode === 'map') setMapScreenHeight();
-});
+// Re-compute on window resize / orientation change
+window.addEventListener('resize',       function(){ if (discoverViewMode === 'map') setMapScreenHeight(); });
+window.addEventListener('orientationchange', function(){ setTimeout(function(){ if (discoverViewMode === 'map') setMapScreenHeight(); }, 200); });
+
+// Custom zoom functions (replaces Leaflet's built-in control)
+function zoomMapIn()  { if (discoverMap) discoverMap.zoomIn(); }
+function zoomMapOut() { if (discoverMap) discoverMap.zoomOut(); }
 
 // ── Collection grouping ──
 var collectionGrouping = 'friend'; // 'friend' | 'category'
@@ -2125,7 +2140,7 @@ function showAllCollections() {
 
 // ── Locate me button ──
 function locateOnMap() {
-    var btn = document.querySelector('.dmap-locate-btn');
+    var btn = document.getElementById('dmapLocateBtn');
     if (!navigator.geolocation) return;
     if (btn) btn.classList.add('locating');
     navigator.geolocation.getCurrentPosition(
@@ -2161,8 +2176,12 @@ function setMode(mode) {
 
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
-    // Remove map-view-open when leaving Discover
-    if (mode !== 'discover') document.body.classList.remove('map-view-open');
+    // Clean up map state when leaving Discover
+    if (mode !== 'discover') {
+        document.body.classList.remove('map-view-open');
+        discoverMapInitialized = false; // force re-init next time
+        if (discoverMap) { discoverMap.remove(); discoverMap = null; }
+    }
 
     if (mode === 'home') {
         showHome();
@@ -2626,8 +2645,17 @@ function initDiscoverMap() {
     if (!mapEl) return;
     if (discoverMap) { discoverMap.remove(); discoverMap = null; }
 
+    // Apply height before Leaflet reads container size
+    setMapScreenHeight();
+
     var source = (filteredDiscoveries && filteredDiscoveries.length > 0) ? filteredDiscoveries : allDiscoveries;
-    var located = (source || []).filter(function(d){ return d.latitude && d.longitude; });
+    // Pre-filter AND pre-parse so indices are consistent everywhere
+    var located = (source || []).reduce(function(acc, d) {
+        var lat = parseFloat(d.latitude);
+        var lng = parseFloat(d.longitude);
+        if (!isNaN(lat) && !isNaN(lng)) acc.push({ data: d, lat: lat, lng: lng });
+        return acc;
+    }, []);
 
     discoverMap = L.map('discoverMap', { zoomControl: false });
 
@@ -2637,8 +2665,6 @@ function initDiscoverMap() {
         subdomains: 'abcd',
         maxZoom: 19
     }).addTo(discoverMap);
-
-    L.control.zoom({ position: 'bottomright' }).addTo(discoverMap);
 
     // User location dot
     if (userLocation.available) {
@@ -2650,20 +2676,30 @@ function initDiscoverMap() {
     var bounds = [];
     dmapMarkers = [];
 
-    located.forEach(function(d, i) {
-        var lat = parseFloat(d.latitude);
-        var lng = parseFloat(d.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
+    // Clear panel + strip before rebuilding inline
+    var _list  = document.getElementById('dmapPanelList');
+    var _strip = document.getElementById('dmapCardsStrip');
+    if (_list)  _list.innerHTML  = '';
+    if (_strip) _strip.innerHTML = '';
+
+    // Build markers — index matches located[] exactly (no skips)
+    located.forEach(function(entry, idx) {
+        var d   = entry.data;
+        var lat = entry.lat;
+        var lng = entry.lng;
         bounds.push([lat, lng]);
 
-        var col = catColour(d.category || d.type);
+        var col        = catColour(d.category || d.type);
         var catInitial = (d.category || 'P').charAt(0).toUpperCase();
+        var avInit     = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol      = strColour(d.added_by_name || '?');
+        var distText   = d.distance_km
+            ? (d.distance_km < 1 ? Math.round(d.distance_km * 1000) + 'm' : d.distance_km.toFixed(1) + 'km')
+            : '';
 
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
-        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-        var avCol  = strColour(d.added_by_name || '?');
         var popHtml =
             '<div class="vouch-pop">' +
                 '<div class="vouch-pop-cat">' +
@@ -2681,17 +2717,63 @@ function initDiscoverMap() {
             .addTo(discoverMap)
             .bindPopup(popHtml, { maxWidth: 240 });
 
-        (function(idx, item){ marker.on('click', function(){ focusMapItem(idx); openItemDrawer(item); }); })(i, d);
-        dmapMarkers.push({ lat: lat, lng: lng, marker: marker });
+        (function(i, item){ marker.on('click', function(){ focusMapItem(i); openItemDrawer(item); }); })(idx, d);
+        dmapMarkers.push({ lat: lat, lng: lng, marker: marker, data: d });
+
+        // ── Build panel item inline (same loop = guaranteed index match) ──
+        var list  = document.getElementById('dmapPanelList');
+        if (list) {
+            var pi = document.createElement('div');
+            pi.className = 'dmap-panel-item';
+            pi.id = 'dpi-' + idx;
+            pi.innerHTML =
+                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmap-pi-info">' +
+                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
+                '</div>' +
+                '<div class="dmap-pi-right">' +
+                    '<div class="dmap-pi-dist">' + distText + '</div>' +
+                '</div>';
+            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(pi);
+        }
+
+        // ── Build card strip item inline ──
+        var strip = document.getElementById('dmapCardsStrip');
+        if (strip) {
+            var card = document.createElement('div');
+            card.className = 'dmap-card';
+            card.id = 'dmc-' + idx;
+            card.innerHTML =
+                '<div class="dmc-header">' +
+                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmc-dist">' + distText + '</div>' +
+                '</div>' +
+                '<div class="dmc-by">' +
+                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<div class="dmc-vouch-row">' +
+                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                    (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) !== 1 ? 'es' : '') +
+                '</div>';
+            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
+            strip.appendChild(card);
+        }
     });
+
+    // Update panel count
+    var countEl = document.getElementById('dmapPanelCount');
+    if (countEl) countEl.textContent = located.length + ' place' + (located.length !== 1 ? 's' : '') + ' nearby';
 
     if (userLocation.available) bounds.push([userLocation.latitude, userLocation.longitude]);
     if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] });
 
-    buildMapPanelList();
-    buildMapCardStrip();
-
-    if (located.length > 0) setTimeout(function(){ focusMapItem(0); }, 300);
+    // Force Leaflet to redraw after layout settles
+    setTimeout(function(){ discoverMap.invalidateSize(); }, 150);
+    if (located.length > 0) setTimeout(function(){ focusMapItem(0); }, 400);
 }
 
 function showDrawer(index) {

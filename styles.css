@@ -6257,16 +6257,20 @@ body.map-view-open .content {
 .dmap-pi-dist { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
 .dmap-pi-vouches { font-size: 11px; font-weight: 700; color: #7B2D45; }
 
-/* Map area */
+/* Map area — position:relative so children can use position:absolute */
 .dmap-area {
     flex: 1;
     position: relative;
     overflow: hidden;
     min-height: 0;
-    display: flex;
-    flex-direction: column;
 }
-#discoverMap { width: 100%; flex: 1; min-height: 0; }
+/* Leaflet map fills the area absolutely — most reliable cross-browser */
+#discoverMap {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100%;
+    height: 100%;
+}
 
 /* Floating search bar — mobile only */
 .dmap-float-search {
@@ -6312,33 +6316,44 @@ body.map-view-open .content {
     stroke: #2A1E14; stroke-width: 2; fill: none;
 }
 
-/* Locate me button */
-.dmap-locate-btn {
+/* ── Map controls: zoom + locate group ── */
+.dmap-controls {
     position: absolute;
-    bottom: 130px; right: 14px;
-    z-index: 400;
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(250,246,238,0.96);
+    right: 14px;
+    bottom: 145px; /* sits above card strip */
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    background: rgba(250,246,238,0.97);
     border: 1px solid var(--border-light);
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 12px rgba(42,30,20,0.18);
+    border-radius: 12px;
+    box-shadow: 0 2px 14px rgba(42,30,20,0.18);
     backdrop-filter: blur(10px);
-    transition: transform 0.15s, box-shadow 0.15s;
+    overflow: hidden;
 }
-.dmap-locate-btn:hover {
-    transform: scale(1.08);
-    box-shadow: 0 4px 18px rgba(42,30,20,0.22);
+@media(min-width: 768px) {
+    .dmap-controls { bottom: 24px; }
+}
+.dmap-ctrl-btn {
+    width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.dmap-ctrl-btn:hover { background: rgba(123,45,69,0.07); }
+.dmap-ctrl-btn svg {
+    width: 16px; height: 16px;
+    stroke: #2A1E14; stroke-width: 2.5; fill: none;
 }
 .dmap-locate-btn svg {
-    width: 18px; height: 18px;
-    stroke: #7B2D45; stroke-width: 2; fill: none;
+    stroke: #7B2D45 !important;
 }
-.dmap-locate-btn.locating svg { stroke: #2979FF; }
-
-@media(min-width: 768px) {
-    .dmap-locate-btn { bottom: 60px; right: 14px; }
+.dmap-locate-btn.locating svg { stroke: #2979FF !important; }
+.dmap-ctrl-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 0 8px;
 }
 
 /* Bottom card strip — mobile only */
