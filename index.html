@@ -575,9 +575,17 @@
             <div class="header-logo" aria-label="Vouch">
                 <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
             </div>
+            <!-- Discover / Map pill — only visible on Discover screen -->
+            <div class="header-discover-pill" id="headerDiscoverPill" style="display:none;">
+                <div class="hdr-toggle-pill">
+                    <button class="hdr-toggle-btn active" id="pillBtnDiscover" onclick="switchDiscoverView('collections')">Discover</button>
+                    <button class="hdr-toggle-btn" id="pillBtnMap" onclick="switchDiscoverView('map')">Map</button>
+                </div>
+            </div>
+
             <div class="header-right">
-                <!-- App mode toggle -->
-                <div class="header-mode-pills">
+                <!-- App mode toggle (home screen only) -->
+                <div class="header-mode-pills" id="headerModePills">
                     <button class="hdr-pill" id="headerPillFeed" onclick="setHomeStyle('feed')">Discover</button>
                     <button class="hdr-pill" id="headerPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
                 </div>
@@ -774,45 +782,111 @@
 
         <!-- DISCOVER MODE -->
         <div id="discoverMode" class="hidden">
-            <div class="discover-container">
-                <div class="discover-header">
-                    <h2 class="page-title">Discover</h2>
-                    <p class="page-subtitle">Curated finds from your circle</p>
-                </div>
 
-                <div class="discover-search-wrapper">
-                    <svg class="discover-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="search-input" id="discoverSearch" placeholder="Search discoveries..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter') searchFromDiscover()"/>
-                    <button class="filter-pill" onclick="openFilterModal()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-                        <span class="filter-badge" id="filterBadge" style="display: none;">0</span>
-                    </button>
-                </div>
-
-                <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
-                    <div class="recently-viewed-header">Recently viewed</div>
-                    <div class="recently-viewed-row" id="recentlyViewedRow"></div>
-                </div>
-
-                <div class="active-filters-bar" id="activeFiltersBar"></div>
-
-                <div class="discover-grid" id="discoverGrid"></div>
-
-                <div class="load-more-container hidden" id="loadMoreContainer">
-                    <button class="load-more-btn" onclick="loadMore()">Load More</button>
-                </div>
-
-                <div class="map-section">
-                    <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMap('discover')">
-                        <svg class="map-toggle-icon-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a7 7 0 0 1 7 7c0 5-7 11-7 11S5 14 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                        <span id="mapToggleText">Show Map</span>
-                        <span class="map-toggle-icon">▼</span>
-                    </button>
-                    <div class="discover-map-container hidden" id="discoverMapContainer">
-                        <div id="discoverMap"></div>
+            <!-- ══ COLLECTIONS VIEW ══ -->
+            <div id="discoverCollections" class="discover-collections-screen">
+                <div class="discover-scroll-wrap">
+                    <div class="discover-header">
+                        <h1 class="dc-heading">Discover</h1>
+                        <p class="dc-subheading">Curated finds from your circle</p>
                     </div>
+
+                    <div class="dc-search-row">
+                        <div class="dc-search-bar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="discoverSearch" placeholder="Search discoveries..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter') searchFromDiscover()"/>
+                        </div>
+                        <button class="dc-filter-btn" onclick="openFilterModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                            <span class="filter-badge" id="filterBadge" style="display:none;">0</span>
+                        </button>
+                    </div>
+
+                    <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
+                        <div class="recently-viewed-header">Recently viewed</div>
+                        <div class="recently-viewed-row" id="recentlyViewedRow"></div>
+                    </div>
+
+                    <div class="active-filters-bar" id="activeFiltersBar"></div>
+
+                    <!-- Collection cards grouped by friend / category -->
+                    <div class="dc-section-header">
+                        <h2 class="dc-section-title">From your circle</h2>
+                        <div class="dc-group-toggle">
+                            <button class="dc-group-btn active" id="dcGroupFriend" onclick="setCollectionGrouping('friend')">By Friend</button>
+                            <button class="dc-group-btn" id="dcGroupCat" onclick="setCollectionGrouping('category')">By Type</button>
+                        </div>
+                    </div>
+                    <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
+
+                    <!-- All items flat grid (shown when a collection is selected) -->
+                    <div id="dcAllItemsSection" style="display:none;">
+                        <div class="dc-section-header" style="margin-top:20px;">
+                            <h2 class="dc-section-title" id="dcAllItemsTitle">All items</h2>
+                            <button class="dc-back-btn" onclick="showAllCollections()">← Back</button>
+                        </div>
+                        <div class="discover-grid" id="discoverGrid"></div>
+                        <div class="load-more-container hidden" id="loadMoreContainer">
+                            <button class="load-more-btn" onclick="loadMore()">Load More</button>
+                        </div>
+                    </div>
+
+                    <div class="scroll-end-pad"></div>
                 </div>
             </div>
+
+            <!-- ══ MAP VIEW ══ -->
+            <div id="discoverMapView" class="discover-map-screen" style="display:none;">
+                <div class="dmap-inner">
+
+                    <!-- Desktop: side panel -->
+                    <div class="dmap-side-panel" id="dmapSidePanel">
+                        <div class="dmap-panel-search">
+                            <div class="dmap-panel-search-bar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" placeholder="Search map..." oninput="filterMapList(this.value)" />
+                            </div>
+                            <div class="dmap-panel-filter-row">
+                                <span class="dmap-panel-count" id="dmapPanelCount">Loading…</span>
+                                <button class="dmap-panel-filter-btn" onclick="openFilterModal()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                                    Filter
+                                </button>
+                            </div>
+                        </div>
+                        <div class="dmap-panel-list" id="dmapPanelList"></div>
+                    </div>
+
+                    <!-- Map area -->
+                    <div class="dmap-area">
+                        <div id="discoverMap"></div>
+
+                        <!-- Mobile: floating search -->
+                        <div class="dmap-float-search">
+                            <div class="dmap-float-bar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" placeholder="Search map..." oninput="filterMapList(this.value)" />
+                            </div>
+                            <button class="dmap-float-filter" onclick="openFilterModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Locate me button -->
+                        <button class="dmap-locate-btn" onclick="locateOnMap()" title="My location">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><path d="M12 7a5 5 0 1 0 0 10A5 5 0 0 0 12 7z"/></svg>
+                        </button>
+
+                        <!-- Mobile: bottom card strip -->
+                        <div class="dmap-cards-wrap" id="dmapCardsWrap">
+                            <div class="dmap-cards-label">Vouched nearby</div>
+                            <div class="dmap-cards-strip" id="dmapCardsStrip"></div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </div>
 
         <!-- PROFILE MODE -->

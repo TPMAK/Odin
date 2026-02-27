@@ -1951,6 +1951,175 @@ function showHome() {
     updateTabBar('home');
 }
 
+// ── Discover pill + header management ──
+function showDiscoverPill(show) {
+    var pill = document.getElementById('headerDiscoverPill');
+    var pills = document.getElementById('headerModePills');
+    if (pill) pill.style.display = show ? 'block' : 'none';
+    if (pills) pills.style.display = show ? 'none' : '';
+}
+
+// ── Switch between Discover collections and Map ──
+var discoverViewMode = 'collections'; // 'collections' | 'map'
+var discoverMapInitialized = false;
+
+function switchDiscoverView(view) {
+    discoverViewMode = view;
+    var collScreen = document.getElementById('discoverCollections');
+    var mapScreen  = document.getElementById('discoverMapView');
+    var pillDisc   = document.getElementById('pillBtnDiscover');
+    var pillMap    = document.getElementById('pillBtnMap');
+
+    if (view === 'collections') {
+        if (collScreen) collScreen.style.display = '';
+        if (mapScreen)  mapScreen.style.display  = 'none';
+        if (pillDisc)   pillDisc.classList.add('active');
+        if (pillMap)    pillMap.classList.remove('active');
+    } else {
+        if (collScreen) collScreen.style.display = 'none';
+        if (mapScreen)  mapScreen.style.display  = '';
+        if (pillDisc)   pillDisc.classList.remove('active');
+        if (pillMap)    pillMap.classList.add('active');
+        if (!discoverMapInitialized) {
+            setTimeout(initDiscoverMap, 80);
+            discoverMapInitialized = true;
+        } else if (discoverMap) {
+            setTimeout(function(){ discoverMap.invalidateSize(); }, 100);
+        }
+    }
+}
+
+// ── Collection grouping ──
+var collectionGrouping = 'friend'; // 'friend' | 'category'
+
+function setCollectionGrouping(type) {
+    collectionGrouping = type;
+    document.getElementById('dcGroupFriend').classList.toggle('active', type === 'friend');
+    document.getElementById('dcGroupCat').classList.toggle('active', type === 'category');
+    buildCollectionCards();
+}
+
+// Colour palette for avatars / category dots
+var COLL_COLOURS = ['#7B2D45','#3D6B8C','#4A7A5C','#A0682A','#8B5E72','#5A6BAD','#6BAD5A'];
+function strColour(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i);
+    return COLL_COLOURS[Math.abs(h) % COLL_COLOURS.length];
+}
+
+var CATEGORY_EMOJI = { place:'🍽️', product:'📦', service:'🔧', advice:'💡', book:'📚', experience:'✨' };
+
+function buildCollectionCards() {
+    var grid = document.getElementById('dcCollectionsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (!allDiscoveries || allDiscoveries.length === 0) {
+        grid.innerHTML = '<div style="color:var(--text-secondary);font-size:14px;padding:20px 0;">No discoveries yet. Add some!</div>';
+        return;
+    }
+
+    // Group
+    var groups = {};
+    allDiscoveries.forEach(function(item) {
+        var key = collectionGrouping === 'friend'
+            ? (item.added_by_name || 'Unknown')
+            : (item.category || item.type || 'Other');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(item);
+    });
+
+    var entries = Object.entries(groups).sort(function(a,b){ return b[1].length - a[1].length; });
+
+    entries.forEach(function(entry, i) {
+        var groupName = entry[0];
+        var items     = entry[1];
+        var featured  = (i === 0);
+
+        // Pick cover image from first item with a photo
+        var coverItem = items.find(function(it){ return it.photo_url; });
+        var coverHtml = coverItem
+            ? '<img class="dc-coll-img" src="' + escapeHtml(coverItem.photo_url) + '" alt="' + escapeHtml(groupName) + '" loading="lazy">'
+            : '<div class="dc-coll-placeholder">' + (CATEGORY_EMOJI[groupName.toLowerCase()] || '📍') + '</div>';
+
+        // Avatars (for friend grouping show category colours; for category grouping show contributor initials)
+        var avatarSet = {};
+        items.forEach(function(it) {
+            var avKey = collectionGrouping === 'friend'
+                ? (it.category || it.type || 'other')
+                : (it.added_by_name || '?');
+            avatarSet[avKey] = true;
+        });
+        var avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
+            var init = k.charAt(0).toUpperCase();
+            var col  = strColour(k);
+            return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
+        }).join('');
+
+        var label = items.length + ' ' + (items.length === 1 ? 'item' : 'items');
+
+        var card = document.createElement('div');
+        card.className = 'dc-coll-card' + (featured ? ' featured' : '');
+        card.style.animationDelay = (i * 55) + 'ms';
+        card.innerHTML =
+            coverHtml +
+            '<div class="dc-coll-overlay">' +
+                '<div class="dc-coll-title">' + escapeHtml(groupName) + '</div>' +
+                '<div class="dc-coll-meta">' +
+                    '<div class="dc-coll-avatars">' + avHtml + '</div>' +
+                    '<div class="dc-coll-count">' + label + '</div>' +
+                '</div>' +
+            '</div>';
+
+        card.onclick = function() { openCollection(groupName, items); };
+        grid.appendChild(card);
+    });
+}
+
+// When a collection card is tapped, show filtered grid
+function openCollection(groupName, items) {
+    filteredDiscoveries = items;
+    displayedCount = 0;
+    document.getElementById('dcCollectionsGrid').parentElement.style.display = 'none';
+    document.getElementById('dcAllItemsSection').style.display = '';
+    document.getElementById('dcAllItemsTitle').textContent = groupName;
+    renderGrid();
+}
+
+function showAllCollections() {
+    document.getElementById('dcAllItemsSection').style.display = 'none';
+    var grid = document.getElementById('dcCollectionsGrid');
+    if (grid) grid.parentElement.style.display = '';
+    filteredDiscoveries = allDiscoveries.slice();
+}
+
+// ── Locate me button ──
+function locateOnMap() {
+    var btn = document.querySelector('.dmap-locate-btn');
+    if (!navigator.geolocation) return;
+    if (btn) btn.classList.add('locating');
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            userLocation.latitude  = lat;
+            userLocation.longitude = lng;
+            userLocation.available = true;
+            if (discoverMap) {
+                discoverMap.setView([lat, lng], 15, { animate: true });
+                if (userLocMarker) userLocMarker.setLatLng([lat, lng]);
+            }
+            if (btn) btn.classList.remove('locating');
+        },
+        function() {
+            if (btn) btn.classList.remove('locating');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
+}
+
+var userLocMarker = null;
+
 function setMode(mode) {
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
@@ -1959,6 +2128,9 @@ function setMode(mode) {
     document.getElementById('profileMode').classList.add('hidden');
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
+
+    // Show/hide the Discover|Map pill in header
+    showDiscoverPill(mode === 'discover');
 
     if (mode === 'home') {
         showHome();
@@ -1970,6 +2142,8 @@ function setMode(mode) {
     } else if (mode === 'discover') {
         document.getElementById('discoverMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+        // Always start on Collections sub-view when entering Discover
+        switchDiscoverView('collections');
         loadDiscoveries();
     } else if (mode === 'saved') {
         if (savedEl) savedEl.classList.remove('hidden');
@@ -2227,6 +2401,9 @@ async function loadDiscoveries() {
         populateFilters();
         filterAndRender();
         renderRecentlyViewed();
+        buildCollectionCards();
+        // Refresh map panel list if map is already open
+        if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
         console.error('Error:', error);
     }
@@ -2314,40 +2491,175 @@ function loadMore() {
     renderGrid();
 }
 
+// Category → colour mapping for map pins
+var CAT_COLOURS = {
+    place: '#C4693A', food: '#C4693A', restaurant: '#C4693A',
+    service: '#3D6B8C', services: '#3D6B8C',
+    beauty: '#8B5E72',
+    health: '#7B2D45',
+    education: '#4A7A5C',
+    home: '#A0682A',
+    product: '#5A6BAD', products: '#5A6BAD',
+    advice: '#6BAD5A'
+};
+function catColour(cat) {
+    return CAT_COLOURS[(cat||'').toLowerCase()] || '#7B2D45';
+}
+
+var dmapMarkers = []; // { item, marker }
+
+function buildMapPanelList() {
+    var list = document.getElementById('dmapPanelList');
+    var countEl = document.getElementById('dmapPanelCount');
+    if (!list) return;
+    var located = (filteredDiscoveries || allDiscoveries || []).filter(function(d){ return d.latitude && d.longitude; });
+    if (countEl) countEl.textContent = located.length + ' place' + (located.length !== 1 ? 's' : '') + ' nearby';
+    list.innerHTML = '';
+    located.forEach(function(d, i) {
+        var col = catColour(d.category || d.type);
+        var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
+        var item = document.createElement('div');
+        item.className = 'dmap-panel-item';
+        item.id = 'dpi-' + i;
+        item.innerHTML =
+            '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
+            '<div class="dmap-pi-info">' +
+                '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong> &middot; ' + escapeHtml(d.category || '') + '</div>' +
+            '</div>' +
+            '<div class="dmap-pi-right">' +
+                '<div class="dmap-pi-dist">' + distText + '</div>' +
+            '</div>';
+        item.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
+        list.appendChild(item);
+    });
+}
+
+function buildMapCardStrip() {
+    var strip = document.getElementById('dmapCardsStrip');
+    if (!strip) return;
+    var located = (filteredDiscoveries || allDiscoveries || []).filter(function(d){ return d.latitude && d.longitude; });
+    strip.innerHTML = '';
+    located.forEach(function(d, i) {
+        var col = catColour(d.category || d.type);
+        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol  = strColour(d.added_by_name || '?');
+        var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
+        var card = document.createElement('div');
+        card.className = 'dmap-card';
+        card.id = 'dmc-' + i;
+        card.innerHTML =
+            '<div class="dmc-header">' +
+                '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="dmc-dist">' + distText + '</div>' +
+            '</div>' +
+            '<div class="dmc-by">' +
+                '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
+                '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+            '</div>' +
+            '<div class="dmc-vouch-row">' +
+                '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) > 1 ? 'es' : '') +
+            '</div>';
+        card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
+        strip.appendChild(card);
+    });
+}
+
+function focusMapItem(idx) {
+    // Activate card strip
+    document.querySelectorAll('.dmap-card').forEach(function(c){ c.classList.remove('active-card'); });
+    var card = document.getElementById('dmc-' + idx);
+    if (card) { card.classList.add('active-card'); card.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }); }
+    // Activate panel item
+    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+    var pItem = document.getElementById('dpi-' + idx);
+    if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    // Pan map
+    var m = dmapMarkers[idx];
+    if (m && discoverMap) { discoverMap.setView([m.lat, m.lng], 16, { animate: true }); m.marker.openPopup(); }
+}
+
+function filterMapList(query) {
+    var q = query.toLowerCase();
+    document.querySelectorAll('.dmap-panel-item').forEach(function(el) {
+        var name = el.querySelector('.dmap-pi-name');
+        el.style.display = (!q || (name && name.textContent.toLowerCase().includes(q))) ? '' : 'none';
+    });
+}
+
 function initDiscoverMap() {
-    const mapEl = document.getElementById('discoverMap');
-    if (discoverMap) discoverMap.remove();
+    var mapEl = document.getElementById('discoverMap');
+    if (!mapEl) return;
+    if (discoverMap) { discoverMap.remove(); discoverMap = null; }
 
-    const located = filteredDiscoveries
-        .map((d, index) => ({ ...d, originalIndex: index }))
-        .filter(d => d.latitude && d.longitude);
+    var source = (filteredDiscoveries && filteredDiscoveries.length > 0) ? filteredDiscoveries : allDiscoveries;
+    var located = (source || []).filter(function(d){ return d.latitude && d.longitude; });
 
-    if (located.length === 0) return;
+    discoverMap = L.map('discoverMap', { zoomControl: false });
 
-    discoverMap = L.map('discoverMap');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(discoverMap);
+    // CartoDB Positron — clean minimal tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(discoverMap);
 
-    const bounds = [];
-    located.forEach((d) => {
-        const lat = parseFloat(d.latitude);
-        const lng = parseFloat(d.longitude);
+    L.control.zoom({ position: 'bottomright' }).addTo(discoverMap);
+
+    // User location dot
+    if (userLocation.available) {
+        userLocMarker = L.circleMarker([userLocation.latitude, userLocation.longitude], {
+            radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
+        }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
+    }
+
+    var bounds = [];
+    dmapMarkers = [];
+
+    located.forEach(function(d, i) {
+        var lat = parseFloat(d.latitude);
+        var lng = parseFloat(d.longitude);
         if (isNaN(lat) || isNaN(lng)) return;
         bounds.push([lat, lng]);
 
-        L.marker([lat, lng])
+        var col = catColour(d.category || d.type);
+        var catInitial = (d.category || 'P').charAt(0).toUpperCase();
+
+        var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
+        var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
+
+        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol  = strColour(d.added_by_name || '?');
+        var popHtml =
+            '<div class="vouch-pop">' +
+                '<div class="vouch-pop-cat">' +
+                    '<div class="vouch-pop-dot" style="background:' + col + ';"></div>' +
+                    '<span class="vouch-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
+                '</div>' +
+                '<div class="vouch-pop-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="vouch-pop-by">' +
+                    '<div class="vouch-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="vouch-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+            '</div>';
+
+        var marker = L.marker([lat, lng], { icon: icon })
             .addTo(discoverMap)
-            .bindTooltip(`<strong>${escapeHtml(d.title)}</strong>`)
-            .on('click', () => showDrawer(d.originalIndex));
+            .bindPopup(popHtml, { maxWidth: 240 });
+
+        (function(idx, item){ marker.on('click', function(){ focusMapItem(idx); openItemDrawer(item); }); })(i, d);
+        dmapMarkers.push({ lat: lat, lng: lng, marker: marker });
     });
 
-    if (userLocation.available) {
-        L.circleMarker([userLocation.latitude, userLocation.longitude], {
-            radius: 8, fillColor: '#059669', color: '#fff', weight: 2, fillOpacity: 0.8
-        }).addTo(discoverMap).bindTooltip('You are here');
-        bounds.push([userLocation.latitude, userLocation.longitude]);
-    }
+    if (userLocation.available) bounds.push([userLocation.latitude, userLocation.longitude]);
+    if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] });
 
-    if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [30, 30] });
+    buildMapPanelList();
+    buildMapCardStrip();
+
+    if (located.length > 0) setTimeout(function(){ focusMapItem(0); }, 300);
 }
 
 function showDrawer(index) {
