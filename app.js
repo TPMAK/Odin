@@ -1799,7 +1799,6 @@ let filteredDiscoveries = [];
 let displayedCount = 0;
 let discoverMap = null;
 let searchMap = null;
-let vouchMap = null;
 let mapVisible = { discover: false, search: false };
 const LOAD_INCREMENT = 12;
 
@@ -1958,8 +1957,6 @@ function setMode(mode) {
     document.getElementById('discoverMode').classList.add('hidden');
     document.getElementById('inputMode').classList.add('hidden');
     document.getElementById('profileMode').classList.add('hidden');
-    var mapModeEl = document.getElementById('mapMode');
-    if (mapModeEl) mapModeEl.classList.add('hidden');
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
 
@@ -1974,15 +1971,6 @@ function setMode(mode) {
         document.getElementById('discoverMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         loadDiscoveries();
-    } else if (mode === 'map') {
-        if (mapModeEl) mapModeEl.classList.remove('hidden');
-        document.getElementById('inputArea').classList.add('hidden');
-        // Load discoveries first if not yet loaded, then init map
-        if (allDiscoveries.length === 0) {
-            loadDiscoveries().then(() => initVouchMap());
-        } else {
-            setTimeout(() => initVouchMap(), 80);
-        }
     } else if (mode === 'saved') {
         if (savedEl) savedEl.classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -1995,12 +1983,6 @@ function setMode(mode) {
         document.getElementById('inputArea').classList.add('hidden');
         loadProfilePage();
     }
-
-    // Sync header pills
-    var pillFeed = document.getElementById('headerPillFeed');
-    var pillMap = document.getElementById('headerPillMap');
-    if (pillFeed) pillFeed.classList.toggle('active', mode === 'discover' || mode === 'home');
-    if (pillMap)  pillMap.classList.toggle('active', mode === 'map');
 
     updateTabBar(mode);
 }
@@ -2176,21 +2158,6 @@ function filterAndRender() {
 
     updateActiveFiltersBar();
     displayedCount = 0;
-
-    // Toggle between category overview and detail grid
-    const hasActiveFilters = filters.categories.length > 0 || filters.users.length > 0
-        || filters.searchText || filters.endorsed || filters.distances.length > 0;
-    const catSection = document.getElementById('discoverCatSection');
-    const detailSection = document.getElementById('discoverDetailSection');
-    if (hasActiveFilters) {
-        if (catSection) catSection.style.display = 'none';
-        if (detailSection) detailSection.style.display = 'block';
-    } else {
-        if (catSection) catSection.style.display = 'block';
-        if (detailSection) detailSection.style.display = 'none';
-        return; // no need to renderGrid when showing category view
-    }
-
     renderGrid();
 }
 
@@ -2258,193 +2225,11 @@ async function loadDiscoveries() {
         allDiscoveries = data;
         await loadEndorsementsForItems(data);
         populateFilters();
-        renderCategoryGrid();
         filterAndRender();
-        renderCircleStrip();
         renderRecentlyViewed();
     } catch (error) {
         console.error('Error:', error);
     }
-}
-
-// ===== CATEGORY GRID — Default Discover view =====
-const CAT_IMAGES = {
-    'Place':         'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=700&h=420&fit=crop',
-    'Service':       'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=700&h=420&fit=crop',
-    'Product':       'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=700&h=420&fit=crop',
-    'Food':          'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=700&h=500&fit=crop',
-    'Health':        'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=700&h=420&fit=crop',
-    'Advice':        'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=700&h=420&fit=crop',
-    'Education':     'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=700&h=420&fit=crop',
-    'Beauty':        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=700&h=420&fit=crop',
-    'Entertainment': 'https://images.unsplash.com/photo-1574267432553-4b4628081c31?w=700&h=420&fit=crop',
-    'Travel':        'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&h=420&fit=crop',
-    'Restaurant':    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=700&h=420&fit=crop',
-    'Shopping':      'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=700&h=420&fit=crop',
-};
-const CAT_FALLBACK = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=700&h=420&fit=crop';
-
-function renderCategoryGrid() {
-    const catGrid = document.getElementById('discoverCatGrid');
-    if (!catGrid) return;
-
-    // Group allDiscoveries by type
-    const catMap = {};
-    allDiscoveries.forEach(item => {
-        const type = item.type || 'Other';
-        if (!catMap[type]) catMap[type] = { type, items: [], contributors: new Map() };
-        catMap[type].items.push(item);
-        if (item.added_by_name && item.added_by) {
-            catMap[type].contributors.set(item.added_by, {
-                name: item.added_by_name,
-                letter: (item.added_by_name || '?').charAt(0).toUpperCase(),
-                color: getAvatarColor(item.added_by_name)
-            });
-        }
-    });
-
-    const categories = Object.values(catMap).sort((a, b) => b.items.length - a.items.length);
-
-    if (categories.length === 0) {
-        catGrid.innerHTML = '<div class="empty-state"><div class="empty-state-title">No vouches yet</div><div class="empty-state-text">Add your first vouch to get started!</div></div>';
-        return;
-    }
-
-    catGrid.innerHTML = '';
-    categories.forEach((cat, i) => {
-        // Use a photo from an actual item, fall back to Unsplash by type
-        const photoItem = cat.items.find(it => it.photo_url);
-        const imgSrc = (photoItem && photoItem.photo_url) || CAT_IMAGES[cat.type] || CAT_FALLBACK;
-
-        const contributors = [...cat.contributors.values()].slice(0, 4);
-        const avatarsHtml = contributors.map(c =>
-            `<div class="cat-av" style="background:${c.color};">${c.letter}</div>`
-        ).join('');
-
-        const count = cat.items.length;
-        const countText = `${count} vouch${count !== 1 ? 'es' : ''}`;
-        const featured = (i === 0) ? ' featured' : '';
-
-        const card = document.createElement('div');
-        card.className = `cat-card${featured}`;
-        card.onclick = () => showCategoryDetail(cat.type);
-        card.innerHTML = `
-            <img class="cat-card-img" src="${escapeHtml(imgSrc)}" alt="${escapeHtml(cat.type)}" loading="lazy">
-            <div class="cat-card-overlay">
-                <div class="cat-card-title">${escapeHtml(cat.type)}</div>
-                <div class="cat-card-meta">
-                    <div class="cat-card-avatars">${avatarsHtml}</div>
-                    <div class="cat-card-count">${countText}</div>
-                </div>
-            </div>`;
-        catGrid.appendChild(card);
-    });
-}
-
-function showCategoryDetail(type) {
-    // Switch to detail view filtered by category
-    document.getElementById('discoverCatSection').style.display = 'none';
-    document.getElementById('discoverDetailSection').style.display = 'block';
-    filters.categories = [type];
-    filterAndRender();
-}
-
-function backToCategories() {
-    // Reset filters and return to category grid view
-    filters.categories = [];
-    filters.searchText = '';
-    filters.users = [];
-    filters.endorsed = false;
-    document.getElementById('discoverSearch').value = '';
-    const detailSection = document.getElementById('discoverDetailSection');
-    const catSection = document.getElementById('discoverCatSection');
-    if (detailSection) detailSection.style.display = 'none';
-    if (catSection) catSection.style.display = 'block';
-    updateActiveFiltersBar();
-}
-
-// ===== CIRCLE STRIP — By Person on Discover page =====
-const CATEGORY_COLORS = {
-    'Place':   '#E8854A',
-    'Service': '#4A90D9',
-    'Product': '#5DAE7C',
-    'Advice':  '#8B5DAE',
-    'Food':    '#E85A7A',
-    'Health':  '#CF6679',
-    'Home':    '#D4713A',
-    'Other':   '#9A8A7A'
-};
-
-function getAvatarColor(name) {
-    // Generate a warm, consistent colour from a name
-    const colors = ['#7B2D45','#4A90D9','#E85A7A','#5DAE7C','#D4713A','#8B5DAE','#3AAFA9','#CF6679','#7B68A8'];
-    let hash = 0;
-    for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return colors[Math.abs(hash) % colors.length];
-}
-
-function renderCircleStrip() {
-    const section = document.getElementById('circleSection');
-    const strip = document.getElementById('circleStrip');
-    const catLabel = document.getElementById('byCategoryLabel');
-    if (!strip || !section) return;
-
-    // Build per-friend stats from allDiscoveries
-    const friendMap = {};
-    friendsCache.forEach(f => {
-        if (!f.out_display_name) return;
-        friendMap[f.out_user_id] = {
-            id: f.out_user_id,
-            name: f.out_display_name,
-            letter: (f.out_display_name || '?').charAt(0).toUpperCase(),
-            color: getAvatarColor(f.out_display_name),
-            count: 0,
-            cats: new Set()
-        };
-    });
-
-    allDiscoveries.forEach(d => {
-        if (d.added_by && friendMap[d.added_by]) {
-            friendMap[d.added_by].count++;
-            if (d.type) friendMap[d.added_by].cats.add(d.type);
-        }
-    });
-
-    // Sort by vouch count descending, filter out zero
-    const people = Object.values(friendMap)
-        .filter(p => p.count > 0)
-        .sort((a, b) => b.count - a.count);
-
-    if (people.length === 0) {
-        section.style.display = 'none';
-        if (catLabel) catLabel.style.display = 'none';
-        return;
-    }
-
-    section.style.display = 'block';
-    if (catLabel) catLabel.style.display = 'flex';
-    strip.innerHTML = '';
-
-    people.forEach(p => {
-        const dots = [...p.cats].slice(0, 4).map(cat => {
-            const c = CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'];
-            return `<div class="circle-cat-dot" style="background:${c};"></div>`;
-        }).join('');
-
-        const card = document.createElement('div');
-        card.className = 'circle-card';
-        card.onclick = () => {
-            // Filter discover grid to this person
-            document.getElementById('discoverSearch').value = p.name;
-            handleSearchInput();
-        };
-        card.innerHTML = `
-            <div class="circle-avatar" style="background:${p.color};">${p.letter}</div>
-            <div class="circle-name">${escapeHtml(p.name)}</div>
-            <div class="circle-vouch-count">${p.count} vouch${p.count !== 1 ? 'es' : ''}</div>
-            <div class="circle-cats">${dots}</div>`;
-        strip.appendChild(card);
-    });
 }
 
 function renderGrid() {
@@ -2563,159 +2348,6 @@ function initDiscoverMap() {
     }
 
     if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [30, 30] });
-}
-
-// ===== VOUCH MAP MODE =====
-const TYPE_PIN_COLORS = {
-    'Place':         '#E8854A',
-    'Service':       '#4A90D9',
-    'Product':       '#5DAE7C',
-    'Food':          '#E85A7A',
-    'Health':        '#CF6679',
-    'Advice':        '#8B5DAE',
-    'Education':     '#3AAFA9',
-    'Beauty':        '#D4713A',
-    'Entertainment': '#7B68A8',
-    'Travel':        '#3D6B8C',
-};
-const PIN_FALLBACK = '#7B2D45';
-
-function initVouchMap() {
-    const mapEl = document.getElementById('vouchMap');
-    if (!mapEl) return;
-
-    // Destroy previous instance
-    if (vouchMap) { vouchMap.remove(); vouchMap = null; }
-
-    const items = allDiscoveries.filter(d => d.latitude && d.longitude);
-
-    vouchMap = L.map('vouchMap', { zoomControl: false });
-
-    // CartoDB Voyager — warm, clean, no API key needed
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(vouchMap);
-
-    // Zoom control — bottom right
-    L.control.zoom({ position: 'bottomright' }).addTo(vouchMap);
-
-    const bounds = [];
-
-    items.forEach(item => {
-        const lat = parseFloat(item.latitude);
-        const lng = parseFloat(item.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
-        bounds.push([lat, lng]);
-
-        const pinColor = TYPE_PIN_COLORS[item.type] || PIN_FALLBACK;
-        const initial = (item.type || 'V').charAt(0).toUpperCase();
-
-        const icon = L.divIcon({
-            className: '',
-            html: `<div class="vouch-pin" style="background:${pinColor};"><div class="vouch-pin-inner">${initial}</div></div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 28],
-            popupAnchor: [0, -28]
-        });
-
-        const by = item.added_by_name ? `by ${escapeHtml(item.added_by_name)}` : '';
-        L.marker([lat, lng], { icon })
-            .addTo(vouchMap)
-            .bindPopup(`
-                <div style="font-family:'Inter',sans-serif;min-width:160px;">
-                    <div style="font-family:'DM Serif Display',serif;font-size:14px;color:#2A1E14;margin-bottom:3px;">${escapeHtml(item.title)}</div>
-                    <div style="font-size:11px;color:#9A8A7A;">${escapeHtml(item.type || '')} · ${by}</div>
-                </div>`)
-            .on('click', () => openItemDrawer(item));
-    });
-
-    // User location dot
-    if (userLocation.available) {
-        L.circleMarker([userLocation.latitude, userLocation.longitude], {
-            radius: 8, fillColor: '#059669', color: '#fff', weight: 2, fillOpacity: 0.9
-        }).addTo(vouchMap).bindTooltip('You are here');
-        bounds.push([userLocation.latitude, userLocation.longitude]);
-    }
-
-    if (bounds.length > 0) {
-        vouchMap.fitBounds(bounds, { padding: [40, 40] });
-    } else {
-        // Default to Auckland if no located items
-        vouchMap.setView([-36.848461, 174.763336], 13);
-    }
-
-    // Build side panel list (desktop)
-    buildMapPanelList(items);
-
-    // Build mobile card strip
-    buildMapCardStrip(items);
-}
-
-function buildMapPanelList(items) {
-    const list = document.getElementById('mapPanelList');
-    const count = document.getElementById('mapPanelCount');
-    if (!list) return;
-    if (count) count.textContent = `${items.length} vouch${items.length !== 1 ? 'es' : ''} nearby`;
-    list.innerHTML = '';
-    items.forEach(item => {
-        const pinColor = TYPE_PIN_COLORS[item.type] || PIN_FALLBACK;
-        const dist = item.distance_km ? `${item.distance_km.toFixed(1)} km` : '';
-        const row = document.createElement('div');
-        row.className = 'map-panel-item';
-        row.innerHTML = `
-            <div class="mpi-dot" style="background:${pinColor};"></div>
-            <div class="mpi-info">
-                <div class="mpi-name">${escapeHtml(item.title)}</div>
-                <div class="mpi-by">${escapeHtml(item.added_by_name || '')}</div>
-            </div>
-            ${dist ? `<div class="mpi-dist">${dist}</div>` : ''}`;
-        row.onclick = () => openItemDrawer(item);
-        list.appendChild(row);
-    });
-}
-
-function buildMapCardStrip(items) {
-    const strip = document.getElementById('mapCardsStrip');
-    const wrap = document.getElementById('mapCardsWrap');
-    if (!strip) return;
-    strip.innerHTML = '';
-    if (items.length === 0) { if (wrap) wrap.style.display = 'none'; return; }
-    if (wrap) wrap.style.display = 'block';
-    items.forEach(item => {
-        const pinColor = TYPE_PIN_COLORS[item.type] || PIN_FALLBACK;
-        const dist = item.distance_km ? `${item.distance_km.toFixed(1)} km` : '';
-        const card = document.createElement('div');
-        card.className = 'map-card';
-        card.innerHTML = `
-            <div class="map-card-header">
-                <div class="map-card-dot" style="background:${pinColor};"></div>
-                <div class="map-card-name">${escapeHtml(item.title)}</div>
-                ${dist ? `<div class="map-card-dist">${dist}</div>` : ''}
-            </div>
-            <div class="map-card-by">${escapeHtml(item.added_by_name || '')}</div>`;
-        card.onclick = () => openItemDrawer(item);
-        strip.appendChild(card);
-    });
-}
-
-function locateOnVouchMap() {
-    if (!vouchMap) return;
-    if (userLocation.available) {
-        vouchMap.flyTo([userLocation.latitude, userLocation.longitude], 15, { duration: 1 });
-        return;
-    }
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        userLocation = { available: true, latitude: lat, longitude: lng };
-        vouchMap.flyTo([lat, lng], 15, { duration: 1 });
-        L.circleMarker([lat, lng], {
-            radius: 8, fillColor: '#059669', color: '#fff', weight: 2, fillOpacity: 0.9
-        }).addTo(vouchMap).bindTooltip('You are here');
-    });
 }
 
 function showDrawer(index) {
