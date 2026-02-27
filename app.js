@@ -1971,23 +1971,47 @@ function switchDiscoverView(view) {
     var pillMap    = document.getElementById('pillBtnMap');
 
     if (view === 'collections') {
+        document.body.classList.remove('map-view-open');
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
         if (pillDisc)   pillDisc.classList.add('active');
         if (pillMap)    pillMap.classList.remove('active');
     } else {
+        document.body.classList.add('map-view-open');
         if (collScreen) collScreen.style.display = 'none';
         if (mapScreen)  mapScreen.style.display  = '';
         if (pillDisc)   pillDisc.classList.remove('active');
         if (pillMap)    pillMap.classList.add('active');
+
+        // Set explicit pixel height so Leaflet always knows its container size
+        setMapScreenHeight();
+
         if (!discoverMapInitialized) {
-            setTimeout(initDiscoverMap, 80);
+            setTimeout(function() { initDiscoverMap(); setMapScreenHeight(); }, 80);
             discoverMapInitialized = true;
         } else if (discoverMap) {
-            setTimeout(function(){ discoverMap.invalidateSize(); }, 100);
+            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 100);
         }
     }
 }
+
+function setMapScreenHeight() {
+    var header  = document.querySelector('.header');
+    var tabBar  = document.querySelector('.bottom-tab-bar');
+    var mapView = document.getElementById('discoverMapView');
+    if (!mapView) return;
+    var headerH = header  ? header.offsetHeight  : 56;
+    var tabH    = tabBar  ? tabBar.offsetHeight   : 65;
+    var h = window.innerHeight - headerH - tabH;
+    mapView.style.height = h + 'px';
+    // Also tell Leaflet to resize if already initialised
+    if (discoverMap) discoverMap.invalidateSize();
+}
+
+// Re-compute on window resize
+window.addEventListener('resize', function() {
+    if (discoverViewMode === 'map') setMapScreenHeight();
+});
 
 // ── Collection grouping ──
 var collectionGrouping = 'friend'; // 'friend' | 'category'
@@ -2019,12 +2043,18 @@ function buildCollectionCards() {
         return;
     }
 
-    // Group
+    // Group — normalise category keys to avoid "service" vs "Service" duplicates
+    function normaliseKey(raw) {
+        if (!raw) return 'Other';
+        var s = raw.trim().toLowerCase();
+        return s.charAt(0).toUpperCase() + s.slice(1);
+    }
     var groups = {};
     allDiscoveries.forEach(function(item) {
-        var key = collectionGrouping === 'friend'
+        var raw = collectionGrouping === 'friend'
             ? (item.added_by_name || 'Unknown')
             : (item.category || item.type || 'Other');
+        var key = collectionGrouping === 'friend' ? raw : normaliseKey(raw);
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);
     });
@@ -2131,6 +2161,8 @@ function setMode(mode) {
 
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
+    // Remove map-view-open when leaving Discover
+    if (mode !== 'discover') document.body.classList.remove('map-view-open');
 
     if (mode === 'home') {
         showHome();

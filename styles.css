@@ -5853,7 +5853,7 @@
    DISCOVER / MAP  —  NEW MOCKUP STYLES
 ══════════════════════════════════════════ */
 
-/* ── Header: Discover|Map pill toggle ── */
+/* ── Header: Discover|Map pill toggle — matches .header-mode-pills / .hdr-pill ── */
 .header-discover-pill {
     position: absolute;
     left: 50%;
@@ -5862,29 +5862,29 @@
 }
 .hdr-toggle-pill {
     display: flex;
-    background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
+    background: rgba(250, 246, 238, 0.9);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 2px;
+    gap: 1px;
 }
 .hdr-toggle-btn {
-    padding: 6px 18px;
-    border-radius: 7px;
+    padding: 3px 12px;
+    border-radius: 15px;
     border: none;
-    font-family: var(--font-family, 'Inter', sans-serif);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.02em;
     cursor: pointer;
-    transition: all 0.22s cubic-bezier(0.4,0,0.2,1);
-    color: var(--text-secondary);
     background: transparent;
+    color: var(--muted);
+    transition: all 0.18s;
     white-space: nowrap;
 }
 .hdr-toggle-btn.active {
-    background: #2A1E14;
-    color: #EDE0CC;
-    box-shadow: 0 1px 4px rgba(42,30,20,0.18);
+    background: #7B2D45;
+    color: #fff;
 }
 
 /* ── Collections screen ── */
@@ -5901,6 +5901,15 @@
     padding: 0 20px;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    /* Match mockup app shell width */
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    align-self: center;
+}
+/* On very wide screens give it breathing room */
+@media(min-width: 1100px) {
+    .discover-scroll-wrap { padding: 0 40px; }
 }
 .discover-scroll-wrap::-webkit-scrollbar { display: none; }
 
@@ -6131,19 +6140,29 @@
 }
 #discoverMode.hidden { display: none !important; }
 
+/* When full-screen map is active, make .content a proper flex column
+   so the height chain reaches #discoverMap */
+body.map-view-open .content {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+    overflow: hidden;
+}
+
 .discover-map-screen {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    height: calc(100vh - 112px); /* header + tab bar */
-    position: relative;
+    overflow: hidden;
 }
 .dmap-inner {
     flex: 1;
     display: flex;
     overflow: hidden;
     position: relative;
+    min-height: 0;
+    height: 100%;
 }
 
 /* Desktop side panel */
@@ -6239,8 +6258,15 @@
 .dmap-pi-vouches { font-size: 11px; font-weight: 700; color: #7B2D45; }
 
 /* Map area */
-.dmap-area { flex: 1; position: relative; overflow: hidden; }
-#discoverMap { width: 100%; height: 100%; }
+.dmap-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+#discoverMap { width: 100%; flex: 1; min-height: 0; }
 
 /* Floating search bar — mobile only */
 .dmap-float-search {
