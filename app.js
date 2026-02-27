@@ -2226,10 +2226,95 @@ async function loadDiscoveries() {
         await loadEndorsementsForItems(data);
         populateFilters();
         filterAndRender();
+        renderCircleStrip();
         renderRecentlyViewed();
     } catch (error) {
         console.error('Error:', error);
     }
+}
+
+// ===== CIRCLE STRIP — By Person on Discover page =====
+const CATEGORY_COLORS = {
+    'Place':   '#E8854A',
+    'Service': '#4A90D9',
+    'Product': '#5DAE7C',
+    'Advice':  '#8B5DAE',
+    'Food':    '#E85A7A',
+    'Health':  '#CF6679',
+    'Home':    '#D4713A',
+    'Other':   '#9A8A7A'
+};
+
+function getAvatarColor(name) {
+    // Generate a warm, consistent colour from a name
+    const colors = ['#7B2D45','#4A90D9','#E85A7A','#5DAE7C','#D4713A','#8B5DAE','#3AAFA9','#CF6679','#7B68A8'];
+    let hash = 0;
+    for (let i = 0; i < (name || '').length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+}
+
+function renderCircleStrip() {
+    const section = document.getElementById('circleSection');
+    const strip = document.getElementById('circleStrip');
+    const catLabel = document.getElementById('byCategoryLabel');
+    if (!strip || !section) return;
+
+    // Build per-friend stats from allDiscoveries
+    const friendMap = {};
+    friendsCache.forEach(f => {
+        if (!f.out_display_name) return;
+        friendMap[f.out_user_id] = {
+            id: f.out_user_id,
+            name: f.out_display_name,
+            letter: (f.out_display_name || '?').charAt(0).toUpperCase(),
+            color: getAvatarColor(f.out_display_name),
+            count: 0,
+            cats: new Set()
+        };
+    });
+
+    allDiscoveries.forEach(d => {
+        if (d.added_by && friendMap[d.added_by]) {
+            friendMap[d.added_by].count++;
+            if (d.type) friendMap[d.added_by].cats.add(d.type);
+        }
+    });
+
+    // Sort by vouch count descending, filter out zero
+    const people = Object.values(friendMap)
+        .filter(p => p.count > 0)
+        .sort((a, b) => b.count - a.count);
+
+    if (people.length === 0) {
+        section.style.display = 'none';
+        if (catLabel) catLabel.style.display = 'none';
+        return;
+    }
+
+    section.style.display = 'block';
+    if (catLabel) catLabel.style.display = 'flex';
+    strip.innerHTML = '';
+
+    people.forEach(p => {
+        const dots = [...p.cats].slice(0, 4).map(cat => {
+            const c = CATEGORY_COLORS[cat] || CATEGORY_COLORS['Other'];
+            return `<div class="circle-cat-dot" style="background:${c};"></div>`;
+        }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'circle-card';
+        card.onclick = () => {
+            // Filter discover grid to this person
+            document.getElementById('discoverSearch').value = p.name;
+            handleSearchInput();
+        };
+        card.innerHTML = `
+            <div class="circle-avatar" style="background:${p.color};">${p.letter}</div>
+            <div class="circle-name">${escapeHtml(p.name)}</div>
+            <div class="circle-vouch-count">${p.count} vouch${p.count !== 1 ? 'es' : ''}</div>
+            <div class="circle-cats">${dots}</div>`;
+        strip.appendChild(card);
+    });
 }
 
 function renderGrid() {
