@@ -3358,7 +3358,8 @@ function sendMessage(text) {
     .then(async (rawData) => {
         // n8n sometimes wraps the response in an array — unwrap it
         const data = Array.isArray(rawData) ? rawData[0] : rawData;
-        document.getElementById('typing').remove();
+        const typingEl = document.getElementById('typing');
+        if (typingEl) typingEl.remove();
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
             const queryLanguage = data.query_language || 'en';
@@ -3388,13 +3389,20 @@ function sendMessage(text) {
                 }
             });
 
-            // Filter to friends + self only — no strangers in search results
-            currentResults = currentResults.filter(r =>
+            // Layer 1: friends + self results (full access including personal notes)
+            const friendResults = currentResults.filter(r =>
                 r.id && allDiscoveries.find(d => d.id === r.id)
             );
 
-            // Check if top result meets relevance threshold.
-            // Signal 1 — drop ratio: if n8n found items but AI dropped most, nothing truly matched.
+            // Layer 2: everyone else in DB (teaser only — no personal notes shown)
+            const otherResults = currentResults.filter(r =>
+                r.id && !allDiscoveries.find(d => d.id === r.id)
+            ).map(r => ({ ...r, _isOutsideNetwork: true }));
+
+            // Main results = friends only
+            currentResults = friendResults;
+
+            // Relevance check — but always trust a single friend result unconditionally
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
             const dropRatio = (data.original_count > 3)
                 ? ((data.original_count - data.filtered_count) / data.original_count)
@@ -3405,8 +3413,10 @@ function sendMessage(text) {
             const allResultsDropped = currentResults.length > 0
                 && currentResults.every(r => debugDropped.includes(r.title));
             const hasRelevantResults = currentResults.length > 0
-                && topScore >= RELEVANCE_THRESHOLD
-                && dropRatio < 0.7
+                && (
+                    currentResults.length === 1  // always trust the only friend result
+                    || (topScore >= RELEVANCE_THRESHOLD && dropRatio < 0.7)
+                )
                 && !allResultsDropped;
 
             // Load endorsements for search results
@@ -3597,6 +3607,32 @@ function sendMessage(text) {
                     </div>`;
 
                 container.innerHTML += noMatchHtml;
+
+                // Layer 2 — show outside-network teaser if DB has related results
+                if (otherResults.length > 0) {
+                    const teaserHtml = `
+                        <div class="message message-assistant">
+                            <div class="message-content" style="color:#888;font-size:0.9em;">
+                                👥 People outside your network saved something similar:
+                            </div>
+                            <div class="results-section">
+                                <div class="more-options-scroll">
+                                    ${otherResults.slice(0, 3).map(r => `
+                                        <div class="compact-card" style="opacity:0.8;">
+                                            <div class="compact-photo">📍</div>
+                                            <div class="compact-title">${escapeHtml(r.title)}</div>
+                                            <div class="compact-meta">${escapeHtml(r.type || '')}</div>
+                                            <div class="compact-snippet" style="color:#aaa;font-style:italic;">
+                                                🔒 Add friends to see their stories
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>`;
+                    container.innerHTML += teaserHtml;
+                }
+
                 container.scrollTop = container.scrollHeight;
 
                 sessionMessages.push({
