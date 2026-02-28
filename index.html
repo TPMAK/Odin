@@ -575,14 +575,6 @@
             <div class="header-logo" aria-label="Vouch">
                 <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
             </div>
-            <!-- Discover / Map pill — only visible on Discover screen -->
-            <div class="header-discover-pill" id="headerDiscoverPill" style="display:none;">
-                <div class="hdr-toggle-pill">
-                    <button class="hdr-toggle-btn active" id="pillBtnDiscover" onclick="switchDiscoverView('collections')">Discover</button>
-                    <button class="hdr-toggle-btn" id="pillBtnMap" onclick="switchDiscoverView('map')">Map</button>
-                </div>
-            </div>
-
             <div class="header-right">
                 <!-- App mode toggle (home screen only) -->
                 <div class="header-mode-pills" id="headerModePills">
@@ -791,6 +783,14 @@
                         <p class="dc-subheading">Curated finds from your circle</p>
                     </div>
 
+                    <!-- Discover|Map toggle — below heading, easy thumb reach -->
+                    <div class="dc-view-toggle">
+                        <div class="dc-toggle-pill" id="dcTogglePill">
+                            <button class="dc-toggle-btn active" id="pillBtnDiscover" onclick="switchDiscoverView('collections')">Discover</button>
+                            <button class="dc-toggle-btn" id="pillBtnMap" onclick="switchDiscoverView('map')">Map</button>
+                        </div>
+                    </div>
+
                     <div class="dc-search-row">
                         <div class="dc-search-bar">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -810,7 +810,7 @@
                     <div class="active-filters-bar" id="activeFiltersBar"></div>
 
                     <!-- Collection cards grouped by friend / category -->
-                    <div class="dc-section-header">
+                    <div class="dc-section-header" id="dcCircleHeader">
                         <h2 class="dc-section-title">From your circle</h2>
                         <div class="dc-group-toggle">
                             <button class="dc-group-btn active" id="dcGroupFriend" onclick="setCollectionGrouping('friend')">By Friend</button>
@@ -860,6 +860,14 @@
                     <!-- Map area -->
                     <div class="dmap-area">
                         <div id="discoverMap"></div>
+
+                        <!-- Floating toggle on map view -->
+                        <div class="dmap-float-toggle">
+                            <div class="dc-toggle-pill">
+                                <button class="dc-toggle-btn" id="pillBtnDiscover2" onclick="switchDiscoverView('collections')">Discover</button>
+                                <button class="dc-toggle-btn active" id="pillBtnMap2" onclick="switchDiscoverView('map')">Map</button>
+                            </div>
+                        </div>
 
                         <!-- Mobile: floating search -->
                         <div class="dmap-float-search">
@@ -1193,6 +1201,7 @@
     <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
     <div class="detail-drawer" id="detailDrawer">
         <div class="drawer-header">
+            <div class="drawer-handle"></div>
             <button class="drawer-close" onclick="closeDrawer()">×</button>
         </div>
         <div class="drawer-content" id="drawerContent"></div>

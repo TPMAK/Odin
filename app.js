@@ -2135,17 +2135,32 @@ function buildCollectionCards() {
 function openCollection(groupName, items) {
     filteredDiscoveries = items;
     displayedCount = 0;
-    document.getElementById('dcCollectionsGrid').parentElement.style.display = 'none';
+
+    // Hide the circle section header, collection grid, and view toggle
+    // (do NOT hide the entire scroll-wrap — dcAllItemsSection lives inside it)
+    var circleHeader = document.getElementById('dcCircleHeader');
+    var collGrid     = document.getElementById('dcCollectionsGrid');
+    var viewToggle   = document.querySelector('#discoverCollections .dc-view-toggle');
+    if (circleHeader) circleHeader.style.display = 'none';
+    if (collGrid)     collGrid.style.display     = 'none';
+    if (viewToggle)   viewToggle.style.display   = 'none';
+
     document.getElementById('dcAllItemsSection').style.display = '';
     document.getElementById('dcAllItemsTitle').textContent = groupName;
     renderGrid();
 }
 
 function showAllCollections() {
+    // Restore the circle section header, collection grid, and view toggle
+    var circleHeader = document.getElementById('dcCircleHeader');
+    var collGrid     = document.getElementById('dcCollectionsGrid');
+    var viewToggle   = document.querySelector('#discoverCollections .dc-view-toggle');
+    if (circleHeader) circleHeader.style.display = '';
+    if (collGrid)     collGrid.style.display     = '';
+    if (viewToggle)   viewToggle.style.display   = '';
+
     document.getElementById('dcAllItemsSection').style.display = 'none';
-    var grid = document.getElementById('dcCollectionsGrid');
-    if (grid) grid.parentElement.style.display = '';
-    filteredDiscoveries = allDiscoveries.slice();
+    filteredDiscoveries = allDiscoveries ? allDiscoveries.slice() : [];
 }
 
 // ── Locate me button ──
@@ -2642,6 +2657,12 @@ function focusMapItem(idx) {
     if (m && discoverMap) { discoverMap.setView([m.lat, m.lng], 16, { animate: true }); m.marker.openPopup(); }
 }
 
+// Opens the full detail drawer from a map popup "View" button
+function openMapItemDrawer(idx) {
+    var m = dmapMarkers[idx];
+    if (m && m.data) openItemDrawer(m.data);
+}
+
 function filterMapList(query) {
     var q = query.toLowerCase();
     document.querySelectorAll('.dmap-panel-item').forEach(function(el) {
@@ -2721,13 +2742,18 @@ function initDiscoverMap() {
                     '<div class="vouch-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="vouch-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
+                '<button class="vouch-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
             '</div>';
 
         var marker = L.marker([lat, lng], { icon: icon })
             .addTo(discoverMap)
             .bindPopup(popHtml, { maxWidth: 240 });
 
-        (function(i, item){ marker.on('click', function(){ focusMapItem(i); openItemDrawer(item); }); })(idx, d);
+        // Desktop: hover opens popup preview; Click: pan + highlight only (popup opens via Leaflet default)
+        (function(i){
+            marker.on('mouseover', function(){ this.openPopup(); });
+            marker.on('click', function(){ focusMapItem(i); });
+        })(idx);
         dmapMarkers.push({ lat: lat, lng: lng, marker: marker, data: d });
 
         // ── Build panel item inline (same loop = guaranteed index match) ──

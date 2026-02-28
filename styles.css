@@ -2577,6 +2577,9 @@
             z-index: 10;
         }
 
+        /* Hidden on desktop, shown on mobile via media query */
+        .drawer-handle { display: none; }
+
         .drawer-close {
             width: 36px;
             height: 36px;
@@ -5853,38 +5856,62 @@
    DISCOVER / MAP  —  NEW MOCKUP STYLES
 ══════════════════════════════════════════ */
 
-/* ── Header: Discover|Map pill toggle — matches .header-mode-pills / .hdr-pill ── */
-.header-discover-pill {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-}
-.hdr-toggle-pill {
+/* ── Discover|Map toggle pill — shared styles ── */
+.dc-view-toggle {
     display: flex;
-    background: rgba(250, 246, 238, 0.9);
-    border: 1.5px solid var(--border);
-    border-radius: 18px;
-    padding: 2px;
-    gap: 1px;
+    justify-content: center;
+    margin-bottom: 14px;
 }
-.hdr-toggle-btn {
-    padding: 3px 12px;
-    border-radius: 15px;
+.dc-toggle-pill {
+    display: inline-flex;
+    background: rgba(250, 246, 238, 0.95);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+}
+.dc-toggle-btn {
+    padding: 7px 20px;
+    border-radius: 17px;
     border: none;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     cursor: pointer;
     background: transparent;
     color: var(--muted);
     transition: all 0.18s;
     white-space: nowrap;
 }
-.hdr-toggle-btn.active {
+.dc-toggle-btn.active {
     background: #7B2D45;
     color: #fff;
+    box-shadow: 0 1px 4px rgba(123,45,69,0.25);
+}
+
+/* Floating toggle on the map view — sits at top center above the map */
+.dmap-float-toggle {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+}
+.dmap-float-toggle .dc-toggle-pill {
+    box-shadow: 0 2px 16px rgba(42,30,20,0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* On desktop, hide the floating toggle (sidebar has enough context) */
+@media(min-width: 768px) {
+    .dmap-float-toggle { display: none; }
+}
+
+/* Push the floating search bar down to make room for the toggle */
+.dmap-float-search {
+    top: 60px !important;
 }
 
 /* ── Collections screen ── */
@@ -6066,22 +6093,32 @@
 
 .dc-coll-img {
     width: 100%;
-    height: 200px;
+    height: 180px;
     object-fit: cover;
     display: block;
     background: var(--border-light);
 }
+/* Slightly taller cards on larger screens */
+@media(min-width: 768px) {
+    .dc-coll-img { height: 200px; }
+}
 /* No-photo fallback */
 .dc-coll-placeholder {
     width: 100%;
-    height: 200px;
+    height: 180px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48px;
     background: linear-gradient(135deg, #EDE0CC 0%, #D4C8B0 100%);
 }
-.dc-coll-card.featured .dc-coll-placeholder { height: 250px; }
+@media(min-width: 768px) {
+    .dc-coll-placeholder { height: 200px; }
+}
+.dc-coll-card.featured .dc-coll-placeholder { height: 220px; }
+@media(min-width: 768px) {
+    .dc-coll-card.featured .dc-coll-placeholder { height: 250px; }
+}
 
 .dc-coll-overlay {
     position: absolute;
@@ -6137,11 +6174,12 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    /* iOS Safari needs this to properly size flex children */
+    height: 0;
 }
 #discoverMode.hidden { display: none !important; }
 
-/* When full-screen map is active, make .content a proper flex column
-   so the height chain reaches #discoverMap */
+/* When full-screen map is active, make .content a proper flex column */
 body.map-view-open .content {
     display: flex;
     flex-direction: column;
@@ -6155,6 +6193,8 @@ body.map-view-open .content {
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
+    /* iOS Safari fallback: JS sets explicit pixel height too */
+    height: 100%;
 }
 .dmap-inner {
     flex: 1;
@@ -6266,10 +6306,14 @@ body.map-view-open .content {
 }
 /* Leaflet map fills the area absolutely — most reliable cross-browser */
 #discoverMap {
-    position: absolute;
+    position: absolute !important;
     top: 0; left: 0; right: 0; bottom: 0;
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1;
+    /* iOS Safari sometimes won't render transforms without this */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
 }
 
 /* Floating search bar — mobile only */
@@ -6455,4 +6499,59 @@ body.map-view-open .content {
 }
 .vouch-pop-by-text { font-size: 11px; color: var(--text-secondary); }
 .vouch-pop-by-text strong { color: #2A1E14; }
+
+/* ── Popup "View details" button ── */
+.vouch-pop-view {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 7px 0;
+    border: none;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    color: #7B2D45;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.02em;
+    transition: color 0.15s;
+}
+.vouch-pop-view:hover { color: #5a1e32; }
+
+/* ── Mobile drawer: slide up from bottom ── */
+@media (max-width: 767px) {
+    .detail-drawer {
+        top: auto !important;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        max-width: 100vw !important;
+        height: 88vh;
+        max-height: 88vh;
+        border-radius: 18px 18px 0 0;
+        box-shadow: 0 -4px 30px rgba(42, 30, 20, 0.18);
+        transform: translateY(100%) !important;
+    }
+    .detail-drawer.open {
+        transform: translateY(0) !important;
+    }
+    /* Pull handle indicator */
+    .drawer-handle {
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 4px;
+    }
+    .drawer-header {
+        border-bottom: none;
+        padding: 10px 20px 6px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
 
