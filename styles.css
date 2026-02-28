@@ -6174,8 +6174,6 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    /* iOS Safari needs this to properly size flex children */
-    height: 0;
 }
 #discoverMode.hidden { display: none !important; }
 
