@@ -5890,29 +5890,7 @@
     box-shadow: 0 1px 4px rgba(123,45,69,0.25);
 }
 
-/* Floating toggle on the map view — sits at top center above the map */
-.dmap-float-toggle {
-    position: absolute;
-    top: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 500;
-}
-.dmap-float-toggle .dc-toggle-pill {
-    box-shadow: 0 2px 16px rgba(42,30,20,0.18);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-}
-
-/* On desktop, hide the floating toggle (sidebar has enough context) */
-@media(min-width: 768px) {
-    .dmap-float-toggle { display: none; }
-}
-
-/* Push the floating search bar down to make room for the toggle */
-.dmap-float-search {
-    top: 60px !important;
-}
+/* (Floating map toggle removed — toggle now lives in the sticky header) */
 
 /* ── Collections screen ── */
 .discover-collections-screen {
@@ -5938,23 +5916,39 @@
 }
 .discover-scroll-wrap::-webkit-scrollbar { display: none; }
 
-/* Pinned search bar — sits directly below the header, never scrolls */
+/* Pinned search bar — sits directly below the header, never scrolls.
+   Full width so the background fills edge-to-edge on all screen sizes. */
 .dc-search-pinned {
     flex-shrink: 0;
     background: var(--bg, #FAF6EE);
-    padding: 8px 20px 6px;
     border-bottom: 1px solid var(--border-light);
-    max-width: 720px;
     width: 100%;
-    margin: 0 auto;
-    align-self: stretch;
     box-sizing: border-box;
 }
+/* Inner content mirrors discover-scroll-wrap centering */
+.dc-search-pinned .dc-search-row,
+.dc-search-pinned .recently-viewed-section,
+.dc-search-pinned .active-filters-bar {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+}
+.dc-search-pinned .dc-search-row { padding-top: 8px; padding-bottom: 8px; }
+.dc-search-pinned .recently-viewed-section { padding-top: 6px; margin-bottom: 8px; }
+.dc-search-pinned .active-filters-bar { margin-bottom: 0; padding-bottom: 8px; }
 @media(min-width: 768px) {
-    .dc-search-pinned { padding: 8px 28px 6px; }
+    .dc-search-pinned .dc-search-row,
+    .dc-search-pinned .recently-viewed-section,
+    .dc-search-pinned .active-filters-bar {
+        padding-left: 28px;
+        padding-right: 28px;
+    }
 }
 
-.discover-header { padding: 14px 0 8px; }
+.discover-header { padding: 16px 0 12px; }
 .dc-heading {
     font-family: 'DM Serif Display', Georgia, serif;
     font-size: 27px;
