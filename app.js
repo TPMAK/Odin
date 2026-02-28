@@ -1980,8 +1980,10 @@ function switchDiscoverView(view) {
 
     if (view === 'collections') {
         document.body.classList.remove('map-view-open');
-        // Clear any JS-set heights so the collections view scrolls normally
+        // Clear all JS-set heights so the collections view scrolls normally
+        var contentEl = document.querySelector('.content');
         var discoverModeEl = document.getElementById('discoverMode');
+        if (contentEl)      contentEl.style.height      = '';
         if (discoverModeEl) discoverModeEl.style.height = '';
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
@@ -2029,19 +2031,23 @@ function setMapScreenHeight() {
     var h = vh - headerH - tabH;
     if (h < 100) h = vh * 0.6; // fallback
 
-    // Set height explicitly on every element in the chain so iOS Safari
-    // doesn't collapse any flex container to zero
+    // Set explicit pixel height on EVERY element in the chain.
+    // On iOS Safari, flex:1 / height:100% chains collapse to 0 unless each
+    // ancestor has an explicit pixel height.
+    var contentEl      = document.querySelector('.content');
     var discoverModeEl = document.getElementById('discoverMode');
-    var mapView = document.getElementById('discoverMapView');
-    var inner   = document.querySelector('.dmap-inner');
-    var area    = document.querySelector('.dmap-area');
-    var mapEl   = document.getElementById('discoverMap');
+    var mapView        = document.getElementById('discoverMapView');
+    var inner          = document.querySelector('.dmap-inner');
+    var area           = document.querySelector('.dmap-area');
+    var mapEl          = document.getElementById('discoverMap');
 
+    var contentH = vh - headerH;   // .content sits below the header
+    if (contentEl)      contentEl.style.height      = contentH + 'px';
     if (discoverModeEl) discoverModeEl.style.height = h + 'px';
-    if (mapView) mapView.style.height = h + 'px';
-    if (inner)   inner.style.height   = h + 'px';
-    if (area)    area.style.height    = h + 'px';
-    if (mapEl)   mapEl.style.height   = h + 'px';
+    if (mapView)        mapView.style.height        = h + 'px';
+    if (inner)          inner.style.height          = h + 'px';
+    if (area)           area.style.height           = h + 'px';
+    if (mapEl)          mapEl.style.height          = h + 'px';
 
     // Leaflet redraws for the new size
     if (discoverMap) setTimeout(function(){ discoverMap.invalidateSize(); }, 50);
@@ -2667,9 +2673,12 @@ function focusMapItem(idx) {
     document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
     var pItem = document.getElementById('dpi-' + idx);
     if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
-    // Pan map
+    // Pan map to exact center, then open popup (autoPan disabled on popup so it won't fight setView)
     var m = dmapMarkers[idx];
-    if (m && discoverMap) { discoverMap.setView([m.lat, m.lng], 16, { animate: true }); m.marker.openPopup(); }
+    if (m && discoverMap) {
+        discoverMap.setView([m.lat, m.lng], 16, { animate: true });
+        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
+    }
 }
 
 // Opens the full detail drawer from a map popup "View" button
@@ -2679,11 +2688,37 @@ function openMapItemDrawer(idx) {
 }
 
 function filterMapList(query) {
-    var q = query.toLowerCase();
-    document.querySelectorAll('.dmap-panel-item').forEach(function(el) {
-        var name = el.querySelector('.dmap-pi-name');
-        el.style.display = (!q || (name && name.textContent.toLowerCase().includes(q))) ? '' : 'none';
+    var q = query.toLowerCase().trim();
+    var count = 0;
+
+    dmapMarkers.forEach(function(m, idx) {
+        var title = (m.data.title || '').toLowerCase();
+        var cat   = (m.data.category || m.data.type || '').toLowerCase();
+        var by    = (m.data.added_by_name || '').toLowerCase();
+        var match = !q || title.includes(q) || cat.includes(q) || by.includes(q);
+
+        // Show/hide panel item
+        var pi = document.getElementById('dpi-' + idx);
+        if (pi) pi.style.display = match ? '' : 'none';
+
+        // Show/hide card strip card
+        var card = document.getElementById('dmc-' + idx);
+        if (card) card.style.display = match ? '' : 'none';
+
+        // Show/hide map marker
+        if (discoverMap) {
+            if (match) {
+                if (!discoverMap.hasLayer(m.marker)) m.marker.addTo(discoverMap);
+                count++;
+            } else {
+                if (discoverMap.hasLayer(m.marker)) discoverMap.removeLayer(m.marker);
+            }
+        }
     });
+
+    // Update count label
+    var countEl = document.getElementById('dmapPanelCount');
+    if (countEl) countEl.textContent = (q ? count : dmapMarkers.length) + ' place' + ((q ? count : dmapMarkers.length) !== 1 ? 's' : '') + (q ? ' found' : ' nearby');
 }
 
 // Rebuild panel list and card strip sorted by distance from (lat, lng).
@@ -2838,7 +2873,7 @@ function initDiscoverMap() {
 
         var marker = L.marker([lat, lng], { icon: icon })
             .addTo(discoverMap)
-            .bindPopup(popHtml, { maxWidth: 240 });
+            .bindPopup(popHtml, { maxWidth: 240, autoPan: false });
 
         // Desktop: hover opens popup preview; Click: pan + highlight only (popup opens via Leaflet default)
         (function(i){

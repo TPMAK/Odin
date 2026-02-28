@@ -6326,7 +6326,7 @@ body.map-view-open .content {
 /* Floating search bar — mobile only */
 .dmap-float-search {
     position: absolute;
-    top: 12px; left: 12px; right: 12px;
+    top: 4px; left: 8px; right: 8px;
     z-index: 400;
     display: flex; align-items: center; gap: 8px;
 }
