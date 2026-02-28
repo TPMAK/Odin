@@ -1951,46 +1951,56 @@ function showHome() {
     updateTabBar('home');
 }
 
-// ── Discover pill + header management ──
+// ── Discover pill management (toggle now lives in page content, not header) ──
 function showDiscoverPill(show) {
-    var pill = document.getElementById('headerDiscoverPill');
+    // No header pill to manage anymore — just hide home mode pills when on Discover
     var pills = document.getElementById('headerModePills');
-    if (pill) pill.style.display = show ? 'block' : 'none';
     if (pills) pills.style.display = show ? 'none' : '';
 }
 
 // ── Switch between Discover collections and Map ──
-var discoverViewMode = 'collections'; // 'collections' | 'map'
+var discoverViewMode = 'collections';
 var discoverMapInitialized = false;
+
+function syncToggleButtons(view) {
+    // Sync both sets of toggle buttons (in-page + floating on map)
+    var discBtns = [document.getElementById('pillBtnDiscover'), document.getElementById('pillBtnDiscover2')];
+    var mapBtns  = [document.getElementById('pillBtnMap'),      document.getElementById('pillBtnMap2')];
+    discBtns.forEach(function(b){ if (b) b.classList.toggle('active', view === 'collections'); });
+    mapBtns.forEach(function(b){  if (b) b.classList.toggle('active', view === 'map'); });
+}
 
 function switchDiscoverView(view) {
     discoverViewMode = view;
     var collScreen = document.getElementById('discoverCollections');
     var mapScreen  = document.getElementById('discoverMapView');
-    var pillDisc   = document.getElementById('pillBtnDiscover');
-    var pillMap    = document.getElementById('pillBtnMap');
+
+    syncToggleButtons(view);
 
     if (view === 'collections') {
         document.body.classList.remove('map-view-open');
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
-        if (pillDisc)   pillDisc.classList.add('active');
-        if (pillMap)    pillMap.classList.remove('active');
     } else {
         document.body.classList.add('map-view-open');
         if (collScreen) collScreen.style.display = 'none';
         if (mapScreen)  mapScreen.style.display  = '';
-        if (pillDisc)   pillDisc.classList.remove('active');
-        if (pillMap)    pillMap.classList.add('active');
 
-        // Set explicit pixel height so Leaflet always knows its container size
+        // Set explicit pixel height so Leaflet works on all browsers incl. iOS Safari
         setMapScreenHeight();
 
         if (!discoverMapInitialized) {
-            setTimeout(function() { initDiscoverMap(); setMapScreenHeight(); }, 80);
+            // Longer delay for iOS Safari which is slower at layout
+            var delay = /iPhone|iPad|iPod/.test(navigator.userAgent) ? 300 : 100;
+            setTimeout(function() {
+                setMapScreenHeight();
+                initDiscoverMap();
+                // iOS needs a second invalidateSize after tiles start loading
+                setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
+            }, delay);
             discoverMapInitialized = true;
         } else if (discoverMap) {
-            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 100);
+            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 150);
         }
     }
 }
@@ -2000,23 +2010,23 @@ function setMapScreenHeight() {
     var tabBar  = document.querySelector('.bottom-tab-bar');
     var headerH = header ? header.offsetHeight : 56;
     var tabH    = tabBar ? tabBar.offsetHeight  : 65;
-    var h = window.innerHeight - headerH - tabH;
-    if (h < 100) h = window.innerHeight * 0.6; // fallback
+
+    // iOS Safari: window.innerHeight includes the URL bar dynamically,
+    // use visualViewport.height when available for the actual visible area
+    var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    var h = vh - headerH - tabH;
+    if (h < 100) h = vh * 0.6; // fallback
 
     // Set height explicitly on every element in the chain
-    // so Leaflet always gets a concrete pixel size regardless of CSS flex
-    var ids = ['discoverMapView'];
-    ids.forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.style.height = h + 'px';
-    });
-    var inner = document.querySelector('.dmap-inner');
-    var area  = document.querySelector('.dmap-area');
-    var mapEl = document.getElementById('discoverMap');
-    if (inner) inner.style.height = h + 'px';
-    if (area)  area.style.height  = h + 'px';
-    // #discoverMap uses position:absolute so no direct height needed,
-    // but call invalidateSize so Leaflet redraws tiles for the new size
+    var mapView = document.getElementById('discoverMapView');
+    var inner   = document.querySelector('.dmap-inner');
+    var area    = document.querySelector('.dmap-area');
+
+    if (mapView) mapView.style.height = h + 'px';
+    if (inner)   inner.style.height   = h + 'px';
+    if (area)    area.style.height    = h + 'px';
+
+    // Leaflet redraws for the new size
     if (discoverMap) setTimeout(function(){ discoverMap.invalidateSize(); }, 50);
 }
 
