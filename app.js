@@ -3355,7 +3355,9 @@ function sendMessage(text) {
         body: JSON.stringify(body)
     })
     .then(r => r.json())
-    .then(async (data) => {
+    .then(async (rawData) => {
+        // n8n sometimes wraps the response in an array — unwrap it
+        const data = Array.isArray(rawData) ? rawData[0] : rawData;
         document.getElementById('typing').remove();
         if (data.results && data.results.length > 0) {
             currentResults = data.results;
