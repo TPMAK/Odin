@@ -3532,35 +3532,28 @@ function sendMessage(text) {
                 });
 
             } else {
-                // ── No relevant match — honest message + suggestions + CTA ──
+                // ── No relevant match — honest message + CTA only ──
+                // Only show n8n's suggested_results if explicitly provided (semantically related).
+                // Never show random cards — that's misleading when someone asks for Mongolian food.
                 const buildSuggestionPreview = () => {
-                    // Prefer n8n's suggested_results (semantically closest, nearby, with relevance_reason)
-                    // Fall back to random allDiscoveries only if nothing nearby was returned
                     const hasSuggested = data.suggested_results && data.suggested_results.length > 0;
+                    if (!hasSuggested) return '';
 
-                    if (hasSuggested) {
-                        // Enrich with full Supabase data (photo, added_by etc.) via allDiscoveries match
-                        window._searchPreviewItems = data.suggested_results.map(r => {
-                            const match = allDiscoveries.find(d => d.id === r.id || d.title === r.title);
-                            if (match) {
-                                const relevance_reason = r.relevance_reason;
-                                const distance_km = r.distance_km || match.distance_km;
-                                return Object.assign({}, match, { relevance_reason, distance_km });
-                            }
-                            return r;
-                        });
-                    } else if (allDiscoveries.length > 0) {
-                        const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
-                        window._searchPreviewItems = shuffled.slice(0, 4);
-                    } else {
-                        return '';
-                    }
+                    // Enrich with full Supabase data (photo, added_by etc.) via allDiscoveries match
+                    window._searchPreviewItems = data.suggested_results.map(r => {
+                        const match = allDiscoveries.find(d => d.id === r.id || d.title === r.title);
+                        if (match) {
+                            const relevance_reason = r.relevance_reason;
+                            const distance_km = r.distance_km || match.distance_km;
+                            return Object.assign({}, match, { relevance_reason, distance_km });
+                        }
+                        return r;
+                    });
 
                     return window._searchPreviewItems.map((item, idx) => {
                         const photo = item.photo_url
                             ? `<img src="${escapeHtml(item.photo_url)}">`
                             : '<span class="compact-photo-placeholder">📍</span>';
-                        // Show relevance_reason if available (from n8n), else fall back to description
                         const snippet = item.relevance_reason || item.description || '';
                         const dist = item.distance_km
                             ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
@@ -3594,7 +3587,7 @@ function sendMessage(text) {
                         <div class="results-section">
                             <div class="more-options-section">
                                 <div class="results-header">
-                                    <span class="results-header-title">Meanwhile, from your network</span>
+                                    <span class="results-header-title">Closest matches in your network</span>
                                 </div>
                                 <div class="more-options-wrapper">
                                     <div class="more-options-scroll">${previewCards}</div>
@@ -3614,67 +3607,22 @@ function sendMessage(text) {
             }
 
         } else {
-            // 0 results — show friendly fallback with preview from friends' network
-            if (allDiscoveries.length > 0) {
-                // Pick up to 4 random items from friends' discoveries
-                const shuffled = [...allDiscoveries].sort(() => Math.random() - 0.5);
-                const preview = shuffled.slice(0, 4);
-                // Store for onclick access
-                window._searchPreviewItems = preview;
-
-                const formatDistance = (km) => {
-                    if (!km) return '';
-                    return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
-                };
-
-                let previewCards = preview.map((item, idx) => {
-                    const photo = item.photo_url
-                        ? `<img src="${escapeHtml(item.photo_url)}">`
-                        : '<span class="compact-photo-placeholder">📍</span>';
-                    const distText = formatDistance(item.distance_km);
-                    const snippet = item.description || '';
-                    return `
-                        <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
-                            <div class="compact-photo">${photo}</div>
-                            <div class="compact-title">${escapeHtml(item.title)}</div>
-                            <div class="compact-meta">
-                                ${distText ? `<span>📍 ${distText}</span>` : ''}
-                                ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
-                            </div>
-                            ${snippet ? `<div class="compact-snippet">💡 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
-                        </div>`;
-                }).join('');
-
-                const noResultHtml = `
-                    <div class="message message-assistant">
-                        <div class="message-content">
-                            <strong>Nothing found for "${escapeHtml(query)}" in your network yet.</strong><br>
-                            Be the first to add it! 👇
-                        </div>
-                        <div style="padding: 8px 0;">
-                            <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
-                                ＋ Add a recommendation
-                            </button>
-                        </div>
-                        <div class="results-section">
-                            <div class="more-options-section">
-                                <div class="results-header">
-                                    <span class="results-header-title">From Your Network</span>
-                                </div>
-                                <div class="more-options-wrapper">
-                                    <div class="more-options-scroll">${previewCards}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-                container.innerHTML += noResultHtml;
-            } else {
-                // New user — no friends yet
-                container.innerHTML += `
-                    <div class="message message-assistant">
-                        <div class="message-content">Nothing found yet — your network is empty. Invite friends to start building your shared discovery list! 🤝</div>
-                    </div>`;
-            }
+            // 0 results returned by n8n — honest message only, no random cards
+            container.innerHTML += `
+                <div class="message message-assistant">
+                    <div class="message-content">
+                        <strong>Nothing found for "${escapeHtml(query)}" in your network yet.</strong><br>
+                        ${allDiscoveries.length > 0
+                            ? "Your friends haven't saved anything matching that — yet. Be the first to add it! 👇"
+                            : "Your network is empty. Invite friends to start building your shared discovery list! 🤝"}
+                    </div>
+                    ${allDiscoveries.length > 0 ? `
+                    <div style="padding: 8px 0;">
+                        <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
+                            ＋ Add a recommendation
+                        </button>
+                    </div>` : ''}
+                </div>`;
 
             sessionMessages.push({
                 role: 'assistant',
