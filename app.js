@@ -1951,11 +1951,12 @@ function showHome() {
     updateTabBar('home');
 }
 
-// ── Discover pill management (toggle now lives in page content, not header) ──
+// ── Discover pill management — show Discover|Map toggle in header when on Discover ──
 function showDiscoverPill(show) {
-    // No header pill to manage anymore — just hide home mode pills when on Discover
-    var pills = document.getElementById('headerModePills');
-    if (pills) pills.style.display = show ? 'none' : '';
+    var homePills     = document.getElementById('headerModePills');
+    var discoverPills = document.getElementById('headerDiscoverPills');
+    if (homePills)     homePills.style.display     = show ? 'none' : '';
+    if (discoverPills) discoverPills.style.display  = show ? ''     : 'none';
 }
 
 // ── Switch between Discover collections and Map ──
@@ -1963,9 +1964,9 @@ var discoverViewMode = 'collections';
 var discoverMapInitialized = false;
 
 function syncToggleButtons(view) {
-    // Sync both sets of toggle buttons (in-page + floating on map)
-    var discBtns = [document.getElementById('pillBtnDiscover'), document.getElementById('pillBtnDiscover2')];
-    var mapBtns  = [document.getElementById('pillBtnMap'),      document.getElementById('pillBtnMap2')];
+    // Sync header pill buttons
+    var discBtns = [document.getElementById('hdrPillDiscover')];
+    var mapBtns  = [document.getElementById('hdrPillMap')];
     discBtns.forEach(function(b){ if (b) b.classList.toggle('active', view === 'collections'); });
     mapBtns.forEach(function(b){  if (b) b.classList.toggle('active', view === 'map'); });
 }
@@ -1979,6 +1980,9 @@ function switchDiscoverView(view) {
 
     if (view === 'collections') {
         document.body.classList.remove('map-view-open');
+        // Clear any JS-set heights so the collections view scrolls normally
+        var discoverModeEl = document.getElementById('discoverMode');
+        if (discoverModeEl) discoverModeEl.style.height = '';
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
     } else {
@@ -1990,17 +1994,25 @@ function switchDiscoverView(view) {
         setMapScreenHeight();
 
         if (!discoverMapInitialized) {
-            // Longer delay for iOS Safari which is slower at layout
-            var delay = /iPhone|iPad|iPod/.test(navigator.userAgent) ? 300 : 100;
+            // iOS Safari needs more time for layout to settle before Leaflet reads sizes
+            var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+            var delay = isIOS ? 400 : 100;
             setTimeout(function() {
                 setMapScreenHeight();
                 initDiscoverMap();
-                // iOS needs a second invalidateSize after tiles start loading
-                setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
+                // Multiple invalidateSize calls at increasing intervals for iOS
+                if (isIOS) {
+                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 400);
+                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 900);
+                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 1500);
+                } else {
+                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
+                }
             }, delay);
             discoverMapInitialized = true;
         } else if (discoverMap) {
             setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 150);
+            setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
         }
     }
 }
@@ -2011,28 +2023,36 @@ function setMapScreenHeight() {
     var headerH = header ? header.offsetHeight : 56;
     var tabH    = tabBar ? tabBar.offsetHeight  : 65;
 
-    // iOS Safari: window.innerHeight includes the URL bar dynamically,
-    // use visualViewport.height when available for the actual visible area
+    // iOS Safari: use visualViewport.height for the actual visible area
+    // (window.innerHeight can include the address bar)
     var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
     var h = vh - headerH - tabH;
     if (h < 100) h = vh * 0.6; // fallback
 
-    // Set height explicitly on every element in the chain
+    // Set height explicitly on every element in the chain so iOS Safari
+    // doesn't collapse any flex container to zero
+    var discoverModeEl = document.getElementById('discoverMode');
     var mapView = document.getElementById('discoverMapView');
     var inner   = document.querySelector('.dmap-inner');
     var area    = document.querySelector('.dmap-area');
+    var mapEl   = document.getElementById('discoverMap');
 
+    if (discoverModeEl) discoverModeEl.style.height = h + 'px';
     if (mapView) mapView.style.height = h + 'px';
     if (inner)   inner.style.height   = h + 'px';
     if (area)    area.style.height    = h + 'px';
+    if (mapEl)   mapEl.style.height   = h + 'px';
 
     // Leaflet redraws for the new size
     if (discoverMap) setTimeout(function(){ discoverMap.invalidateSize(); }, 50);
 }
 
-// Re-compute on window resize / orientation change
-window.addEventListener('resize',       function(){ if (discoverViewMode === 'map') setMapScreenHeight(); });
+// Re-compute on window resize / orientation change / iOS Safari viewport resize
+window.addEventListener('resize',            function(){ if (discoverViewMode === 'map') setMapScreenHeight(); });
 window.addEventListener('orientationchange', function(){ setTimeout(function(){ if (discoverViewMode === 'map') setMapScreenHeight(); }, 200); });
+if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function(){ if (discoverViewMode === 'map') setMapScreenHeight(); });
+}
 
 // Custom zoom functions (replaces Leaflet's built-in control)
 function zoomMapIn()  { if (discoverMap) discoverMap.zoomIn(); }
@@ -2136,14 +2156,11 @@ function openCollection(groupName, items) {
     filteredDiscoveries = items;
     displayedCount = 0;
 
-    // Hide the circle section header, collection grid, and view toggle
-    // (do NOT hide the entire scroll-wrap — dcAllItemsSection lives inside it)
+    // Hide the circle section header and collection grid
     var circleHeader = document.getElementById('dcCircleHeader');
     var collGrid     = document.getElementById('dcCollectionsGrid');
-    var viewToggle   = document.querySelector('#discoverCollections .dc-view-toggle');
     if (circleHeader) circleHeader.style.display = 'none';
     if (collGrid)     collGrid.style.display     = 'none';
-    if (viewToggle)   viewToggle.style.display   = 'none';
 
     document.getElementById('dcAllItemsSection').style.display = '';
     document.getElementById('dcAllItemsTitle').textContent = groupName;
@@ -2151,13 +2168,11 @@ function openCollection(groupName, items) {
 }
 
 function showAllCollections() {
-    // Restore the circle section header, collection grid, and view toggle
+    // Restore the circle section header and collection grid
     var circleHeader = document.getElementById('dcCircleHeader');
     var collGrid     = document.getElementById('dcCollectionsGrid');
-    var viewToggle   = document.querySelector('#discoverCollections .dc-view-toggle');
     if (circleHeader) circleHeader.style.display = '';
     if (collGrid)     collGrid.style.display     = '';
-    if (viewToggle)   viewToggle.style.display   = '';
 
     document.getElementById('dcAllItemsSection').style.display = 'none';
     filteredDiscoveries = allDiscoveries ? allDiscoveries.slice() : [];
@@ -2671,6 +2686,73 @@ function filterMapList(query) {
     });
 }
 
+// Rebuild panel list and card strip sorted by distance from (lat, lng).
+// Called after async geolocation resolves so the lists update in place.
+function rebuildMapListsSorted(userLat, userLng) {
+    if (!dmapMarkers || dmapMarkers.length === 0) return;
+    // Re-sort dmapMarkers by distance
+    dmapMarkers.forEach(function(m) {
+        m.dist = calculateDistance(userLat, userLng, m.lat, m.lng);
+        m.data.distance_km = m.dist;
+    });
+    dmapMarkers.sort(function(a, b) { return a.dist - b.dist; });
+
+    var list  = document.getElementById('dmapPanelList');
+    var strip = document.getElementById('dmapCardsStrip');
+    var countEl = document.getElementById('dmapPanelCount');
+    if (list)  list.innerHTML  = '';
+    if (strip) strip.innerHTML = '';
+
+    dmapMarkers.forEach(function(m, idx) {
+        var d = m.data;
+        var col = catColour(d.category || d.type);
+        var distText = m.dist < 1 ? Math.round(m.dist * 1000) + 'm' : m.dist.toFixed(1) + 'km';
+
+        // Rebind click with new index
+        m.marker.off('click');
+        (function(i){ m.marker.on('click', function(){ focusMapItem(i); }); })(idx);
+
+        if (list) {
+            var pi = document.createElement('div');
+            pi.className = 'dmap-panel-item';
+            pi.id = 'dpi-' + idx;
+            pi.innerHTML =
+                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmap-pi-info">' +
+                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
+                '</div>' +
+                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + distText + '</div></div>';
+            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(pi);
+        }
+        if (strip) {
+            var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+            var avCol  = strColour(d.added_by_name || '?');
+            var card = document.createElement('div');
+            card.className = 'dmap-card';
+            card.id = 'dmc-' + idx;
+            card.innerHTML =
+                '<div class="dmc-header">' +
+                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmc-dist">' + distText + '</div>' +
+                '</div>' +
+                '<div class="dmc-by">' +
+                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<div class="dmc-vouch-row">' +
+                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                    (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) !== 1 ? 'es' : '') +
+                '</div>';
+            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
+            strip.appendChild(card);
+        }
+    });
+    if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
+}
+
 function initDiscoverMap() {
     var mapEl = document.getElementById('discoverMap');
     if (!mapEl) return;
@@ -2687,6 +2769,15 @@ function initDiscoverMap() {
         if (!isNaN(lat) && !isNaN(lng)) acc.push({ data: d, lat: lat, lng: lng });
         return acc;
     }, []);
+
+    // Compute distances and sort closest-first if user location is available
+    if (userLocation.available) {
+        located.forEach(function(entry) {
+            entry.dist = calculateDistance(userLocation.latitude, userLocation.longitude, entry.lat, entry.lng);
+            entry.data.distance_km = entry.dist;
+        });
+        located.sort(function(a, b) { return a.dist - b.dist; });
+    }
 
     discoverMap = L.map('discoverMap', { zoomControl: false });
 
@@ -2830,6 +2921,8 @@ function initDiscoverMap() {
                 userLocation.longitude = pos.coords.longitude;
                 userLocation.available = true;
                 centreOnUser(userLocation.latitude, userLocation.longitude);
+                // Re-sort panel + card lists by distance now that we have location
+                rebuildMapListsSorted(userLocation.latitude, userLocation.longitude);
             },
             function() {
                 // GPS denied/failed — keep the interim bounds view

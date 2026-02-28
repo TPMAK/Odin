@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=42">
+    <link rel="stylesheet" href="styles.css?v=43">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -581,6 +581,11 @@
                     <button class="hdr-pill" id="headerPillFeed" onclick="setHomeStyle('feed')">Discover</button>
                     <button class="hdr-pill" id="headerPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
                 </div>
+                <!-- Discover / Map toggle (discover screen only) -->
+                <div class="header-mode-pills" id="headerDiscoverPills" style="display:none;">
+                    <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
+                    <button class="hdr-pill" id="hdrPillMap" onclick="switchDiscoverView('map')">Map</button>
+                </div>
                 <!-- Bell icon replaces avatar — profile still in tab bar -->
                 <button class="header-bell-btn" onclick="setMode('profile')" aria-label="Notifications">
                     <svg class="header-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -783,14 +788,6 @@
                         <p class="dc-subheading">Curated finds from your circle</p>
                     </div>
 
-                    <!-- Discover|Map toggle — below heading, easy thumb reach -->
-                    <div class="dc-view-toggle">
-                        <div class="dc-toggle-pill" id="dcTogglePill">
-                            <button class="dc-toggle-btn active" id="pillBtnDiscover" onclick="switchDiscoverView('collections')">Discover</button>
-                            <button class="dc-toggle-btn" id="pillBtnMap" onclick="switchDiscoverView('map')">Map</button>
-                        </div>
-                    </div>
-
                     <div class="dc-search-row">
                         <div class="dc-search-bar">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -860,14 +857,6 @@
                     <!-- Map area -->
                     <div class="dmap-area">
                         <div id="discoverMap"></div>
-
-                        <!-- Floating toggle on map view -->
-                        <div class="dmap-float-toggle">
-                            <div class="dc-toggle-pill">
-                                <button class="dc-toggle-btn" id="pillBtnDiscover2" onclick="switchDiscoverView('collections')">Discover</button>
-                                <button class="dc-toggle-btn active" id="pillBtnMap2" onclick="switchDiscoverView('map')">Map</button>
-                            </div>
-                        </div>
 
                         <!-- Mobile: floating search -->
                         <div class="dmap-float-search">
@@ -1235,7 +1224,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=31"></script>
+    <script src="app.js?v=32"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings

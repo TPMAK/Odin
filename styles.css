@@ -6177,12 +6177,19 @@
 }
 #discoverMode.hidden { display: none !important; }
 
-/* When full-screen map is active, make .content a proper flex column */
+/* When full-screen map is active — override body padding and lock scroll */
+body.map-view-open {
+    padding-bottom: 0 !important;
+    overflow: hidden;
+}
 body.map-view-open .content {
     display: flex;
     flex-direction: column;
     padding-bottom: 0;
     overflow: hidden;
+    /* iOS Safari: ensure the content column doesn't collapse */
+    min-height: 0;
+    flex: 1 1 auto;
 }
 
 .discover-map-screen {
@@ -6297,10 +6304,12 @@ body.map-view-open .content {
 
 /* Map area — position:relative so children can use position:absolute */
 .dmap-area {
-    flex: 1;
+    flex: 1 1 auto;
     position: relative;
     overflow: hidden;
     min-height: 0;
+    /* Prevent iOS from collapsing this to zero before JS sets explicit height */
+    min-height: 200px;
 }
 /* Leaflet map fills the area absolutely — most reliable cross-browser */
 #discoverMap {
