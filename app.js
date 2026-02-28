@@ -2804,12 +2804,45 @@ function initDiscoverMap() {
     var countEl = document.getElementById('dmapPanelCount');
     if (countEl) countEl.textContent = located.length + ' place' + (located.length !== 1 ? 's' : '') + ' nearby';
 
-    if (userLocation.available) bounds.push([userLocation.latitude, userLocation.longitude]);
-    if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] });
+    // Update panel count
+    // ── Centre on user location; fall back to fitBounds ──
+    function centreOnUser(lat, lng) {
+        discoverMap.setView([lat, lng], 14, { animate: false });
+        // Add / update the blue "you are here" dot
+        if (userLocMarker) {
+            userLocMarker.setLatLng([lat, lng]);
+        } else {
+            userLocMarker = L.circleMarker([lat, lng], {
+                radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
+            }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
+        }
+    }
+
+    if (userLocation.available) {
+        // Already have location — centre immediately
+        centreOnUser(userLocation.latitude, userLocation.longitude);
+    } else if (navigator.geolocation) {
+        // Request GPS; centre when we get it, fall back to marker bounds if it fails/times out
+        if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] }); // interim view
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                userLocation.latitude  = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                centreOnUser(userLocation.latitude, userLocation.longitude);
+            },
+            function() {
+                // GPS denied/failed — keep the interim bounds view
+            },
+            { timeout: 6000, enableHighAccuracy: true }
+        );
+    } else {
+        // No GPS support — fit all markers
+        if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] });
+    }
 
     // Force Leaflet to redraw after layout settles
     setTimeout(function(){ discoverMap.invalidateSize(); }, 150);
-    if (located.length > 0) setTimeout(function(){ focusMapItem(0); }, 400);
 }
 
 function showDrawer(index) {
