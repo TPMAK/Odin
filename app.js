@@ -2252,7 +2252,6 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
-        prefillCaptureLocation();
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -3887,6 +3886,18 @@ function togglePrivacy(inputId) {
     input.value = isActive ? 'false' : 'true';
     track.classList.toggle('active', !isActive);
     text.classList.toggle('active', !isActive);
+}
+
+// ===== CAPTURE: CLEAR FORM =====
+function clearCaptureForm() {
+    document.getElementById('addForm').reset();
+    document.getElementById('userLat').value = '';
+    document.getElementById('userLng').value = '';
+    document.getElementById('locationStatus').textContent = '';
+    document.getElementById('urlFetchStatus').textContent = '';
+    document.getElementById('formMessage').innerHTML = '';
+    const dd = document.getElementById('addressDropdown');
+    if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====

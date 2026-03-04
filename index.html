@@ -1042,8 +1042,16 @@
         <!-- INPUT MODE -->
         <div id="inputMode" class="hidden">
             <div class="input-form-container">
-                <h2>Add Discovery</h2>
-                <p>Save a recommendation from a friend</p>
+                <div class="capture-form-header">
+                    <div>
+                        <h2>Add Discovery</h2>
+                        <p>Save a recommendation from a friend</p>
+                    </div>
+                    <button type="button" class="clear-form-btn" onclick="clearCaptureForm()" title="Clear form">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
+                        Reset
+                    </button>
+                </div>
                 <div id="formMessage"></div>
                 <form id="addForm" onsubmit="submitDiscovery(event)">
                     <div class="form-group">
@@ -1074,7 +1082,12 @@
                     </div>
                     <div class="form-group" style="position: relative;">
                         <label>Address (optional)</label>
-                        <input type="text" id="address" placeholder="123 Queen St, Auckland" autocomplete="off">
+                        <div class="address-input-row">
+                            <input type="text" id="address" placeholder="Type or detect location" autocomplete="off">
+                            <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Detect my location">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </button>
+                        </div>
                         <div id="addressDropdown" class="address-dropdown hidden"></div>
                         <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
                         <input type="hidden" id="userLat" value="">

@@ -289,7 +289,7 @@
         .home-page {
             max-width: 600px;
             margin: 0 auto;
-            padding: 16px 20px 40px;
+            padding: 16px 24px 40px;
         }
 
         @media (min-width: 768px) {
@@ -3025,6 +3025,80 @@
 
         .submit-btn:active {
             transform: scale(0.98);
+        }
+
+        /* Capture form header row */
+        .capture-form-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .capture-form-header h2 {
+            margin: 0 0 4px;
+        }
+
+        .capture-form-header p {
+            margin: 0;
+        }
+
+        .clear-form-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 7px 12px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            margin-top: 4px;
+        }
+
+        .clear-form-btn:hover {
+            border-color: #7B2D45;
+            color: #7B2D45;
+            background: rgba(123, 45, 69, 0.05);
+        }
+
+        /* Address input row with detect button */
+        .address-input-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .address-input-row input {
+            flex: 1;
+        }
+
+        .detect-loc-btn {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #7B2D45;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .detect-loc-btn:hover {
+            background: rgba(123, 45, 69, 0.07);
+            border-color: #7B2D45;
+        }
+
+        .detect-loc-btn:active {
+            transform: scale(0.95);
         }
 
         /* Address autocomplete dropdown */
@@ -6014,8 +6088,8 @@
     max-width: 720px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-left: 24px;
+    padding-right: 24px;
     box-sizing: border-box;
 }
 .dc-search-pinned .dc-search-row { padding-top: 8px; padding-bottom: 8px; }
