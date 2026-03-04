@@ -3892,6 +3892,7 @@ function clearCaptureForm() {
     document.getElementById('formMessage').innerHTML = '';
     const dd = document.getElementById('addressDropdown');
     if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+    resetOGFetchState();
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -4110,17 +4111,22 @@ async function fetchAndPrefillOG(url) {
     }
 }
 
+// Track last fetched URL at module level so clearCaptureForm can reset it
+let _lastOGFetchedUrl = '';
+
+function resetOGFetchState() {
+    _lastOGFetchedUrl = '';
+}
+
 // Attach URL paste/blur listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const urlInput = document.getElementById('url');
     if (!urlInput) return;
 
-    let lastFetchedUrl = '';
-
     const triggerOGFetch = () => {
         const val = urlInput.value.trim();
-        if (val && val !== lastFetchedUrl && val.startsWith('http')) {
-            lastFetchedUrl = val;
+        if (val && val !== _lastOGFetchedUrl && val.startsWith('http')) {
+            _lastOGFetchedUrl = val;
             fetchAndPrefillOG(val);
         }
     };
