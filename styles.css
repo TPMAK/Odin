@@ -6572,50 +6572,47 @@ body.map-view-open .content {
 }
 
 /* ── Privacy Toggle ── */
-.privacy-toggle-label {
+.privacy-toggle-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    user-select: none;
+    justify-content: space-between;
     padding: 10px 0;
-}
-.privacy-toggle-label input[type="checkbox"] {
-    display: none;
-}
-.privacy-toggle-switch {
-    width: 40px;
-    height: 22px;
-    background: var(--border);
-    border-radius: 11px;
-    position: relative;
-    transition: background 0.25s;
-    flex-shrink: 0;
-}
-.privacy-toggle-switch::after {
-    content: '';
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 16px;
-    height: 16px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform 0.25s;
-}
-.privacy-toggle-label input:checked + .privacy-toggle-switch {
-    background: var(--wb);
-}
-.privacy-toggle-label input:checked + .privacy-toggle-switch::after {
-    transform: translateX(18px);
 }
 .privacy-toggle-text {
     font-size: 14px;
     color: var(--muted);
+    transition: color 0.25s;
 }
-.privacy-toggle-label input:checked ~ .privacy-toggle-text {
+.privacy-toggle-text.active {
     color: var(--wb);
     font-weight: 500;
+}
+.privacy-toggle-track {
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+.privacy-toggle-track.active {
+    background: var(--wb);
+}
+.privacy-toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.privacy-toggle-track.active .privacy-toggle-knob {
+    transform: translateX(20px);
 }
 
 /* Private badge on discovery cards */
@@ -6629,5 +6626,14 @@ body.map-view-open .content {
     padding: 2px 8px;
     border-radius: 10px;
     font-weight: 500;
+}
+
+/* ── Search progress messages ── */
+.search-status-text {
+    display: block;
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    transition: opacity 0.2s ease;
 }
 

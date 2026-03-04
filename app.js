@@ -2576,7 +2576,7 @@ function createCard(item, index) {
     }
 
     let tagsHtml = '<div class="discovery-card-tags">';
-    if (item.visibility === 'private') tagsHtml += `<span class="private-badge">🔒 Private</span>`;
+    if (item.visibility === 'private') tagsHtml += `<span class="private-badge">Private</span>`;
     if (distText) tagsHtml += `<span class="discovery-tag discovery-tag-distance">📍 ${distText}</span>`;
     if (item.added_by_name) tagsHtml += `<span class="discovery-tag discovery-tag-person">${escapeHtml(item.added_by_name)}</span>`;
     tagsHtml += `<span class="discovery-tag discovery-tag-time">${dateText}</span>`;
@@ -3160,11 +3160,13 @@ function enterEditMode() {
         <label class="edit-label">URL</label>
         <input class="edit-input" id="editUrl" value="${escapeHtml(url)}">
 
-        <label class="privacy-toggle-label" style="margin-top: 8px;">
-            <input type="checkbox" id="editPrivateToggle" ${item.visibility === 'private' ? 'checked' : ''}>
-            <span class="privacy-toggle-switch"></span>
-            <span class="privacy-toggle-text">🔒 Private — only visible to me</span>
-        </label>
+        <div class="privacy-toggle-row" style="margin-top: 8px;" onclick="togglePrivacy('editPrivateToggle')">
+            <span class="privacy-toggle-text ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleText">Private — only visible to me</span>
+            <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
+                <div class="privacy-toggle-knob"></div>
+            </div>
+        </div>
+        <input type="hidden" id="editPrivateToggle" value="${item.visibility === 'private' ? 'true' : 'false'}">
 
         <div class="edit-actions">
             <button class="edit-cancel-btn" onclick="openItemDrawer(currentDrawerItem)">Cancel</button>
@@ -3190,7 +3192,7 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
-    const newVisibility = document.getElementById('editPrivateToggle').checked ? 'private' : 'friends';
+    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'private' : 'friends';
 
     if (!newTitle) {
         document.getElementById('editMessage').innerHTML = '<div class="error-msg">Title is required</div>';
@@ -3332,6 +3334,45 @@ function toggleFriendsSection() {
     }
 }
 
+// ── Progressive search status messages ──
+let _searchMsgTimer = null;
+const _searchMessages = [
+    { delay: 3000,  text: 'Looking through your network...' },
+    { delay: 6000,  text: 'Digging a bit deeper...' },
+    { delay: 9000,  text: 'Almost there...' },
+    { delay: 12000, text: 'Tidying up results...' }
+];
+const _searchMessagesAlt = [
+    { delay: 3000,  text: 'Scanning your friends\' picks...' },
+    { delay: 6000,  text: 'Your friends have a lot to say...' },
+    { delay: 9000,  text: 'Narrowing it down...' },
+    { delay: 12000, text: 'Putting it all together...' }
+];
+
+function startSearchMessages() {
+    stopSearchMessages();
+    const msgs = Math.random() < 0.5 ? _searchMessages : _searchMessagesAlt;
+    const timers = [];
+    msgs.forEach(m => {
+        const t = setTimeout(() => {
+            const el = document.querySelector('#typing .search-status-text');
+            if (el) {
+                el.style.opacity = '0';
+                setTimeout(() => { el.textContent = m.text; el.style.opacity = '1'; }, 200);
+            }
+        }, m.delay);
+        timers.push(t);
+    });
+    _searchMsgTimer = timers;
+}
+
+function stopSearchMessages() {
+    if (_searchMsgTimer) {
+        _searchMsgTimer.forEach(t => clearTimeout(t));
+        _searchMsgTimer = null;
+    }
+}
+
 function sendMessage(text) {
     const input = document.getElementById('messageInput');
     const query = text || input.value.trim();
@@ -3347,8 +3388,9 @@ function sendMessage(text) {
 
     const container = document.getElementById('chatContainer');
     container.innerHTML += `<div class="message message-user"><div class="message-bubble">${escapeHtml(query)}</div></div>`;
-    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><span class="search-status-text">Searching...</span><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
     container.scrollTop = container.scrollHeight;
+    startSearchMessages();
     input.value = '';
 
     sessionMessages.push({
@@ -3377,6 +3419,7 @@ function sendMessage(text) {
     .then(async (rawData) => {
         // n8n sometimes wraps the response in an array — unwrap it
         const data = Array.isArray(rawData) ? rawData[0] : rawData;
+        stopSearchMessages();
         const typingEl = document.getElementById('typing');
         if (typingEl) typingEl.remove();
         if (data.results && data.results.length > 0) {
@@ -3688,6 +3731,7 @@ function sendMessage(text) {
         container.scrollTop = container.scrollHeight;
     })
     .catch(() => {
+        stopSearchMessages();
         document.getElementById('typing').remove();
         container.innerHTML += `<div class="message message-assistant"><div class="message-content">Error searching</div></div>`;
     });
@@ -3817,6 +3861,16 @@ function toggleSearchSheet() {
     }
 }
 
+function togglePrivacy(inputId) {
+    const input = document.getElementById(inputId);
+    const track = document.getElementById(inputId + 'Track');
+    const text = document.getElementById(inputId + 'Text');
+    const isActive = input.value === 'true';
+    input.value = isActive ? 'false' : 'true';
+    track.classList.toggle('active', !isActive);
+    text.classList.toggle('active', !isActive);
+}
+
 async function submitDiscovery(e) {
     e.preventDefault();
     
@@ -3839,7 +3893,7 @@ async function submitDiscovery(e) {
         });
     }
 
-    const isPrivate = document.getElementById('privateToggle').checked;
+    const isPrivate = document.getElementById('privateToggle').value === 'true';
 
     const payload = {
         title: document.getElementById('title').value.trim(),
