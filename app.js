@@ -2995,24 +2995,36 @@ function openItemDrawer(item) {
     // Track recently viewed
     trackRecentlyViewed(item);
 
-    let html = '';
-    if (item.photo_url) {
-        html += `<div class="drawer-photo" onclick="event.stopPropagation(); openLightbox('${escapeHtml(item.photo_url)}');"><img src="${escapeHtml(item.photo_url)}"></div>`;
-    }
-    // Check if current user owns this item
     const isOwner = currentUser && (item.added_by === currentUser.id);
+    let html = '';
 
+    // === HERO PHOTO ===
+    if (item.photo_url) {
+        html += `<div class="drawer-hero" onclick="event.stopPropagation(); openLightbox('${escapeHtml(item.photo_url)}');">
+            <img src="${escapeHtml(item.photo_url)}">
+            <div class="drawer-hero-fade"></div>
+        </div>`;
+    }
+
+    // === TITLE + EDIT ===
+    html += `<div class="drawer-body">`;
     html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(item.title)}</h1>`;
     if (isOwner) {
         html += `<button class="drawer-edit-btn" onclick="enterEditMode()" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
     }
-    html += `</div><div class="drawer-meta">`;
+    html += `</div>`;
+
+    // === META LINE (inline) ===
+    let metaParts = [];
     if (item.distance_km) {
         const dist = item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km';
-        html += `<span class="drawer-distance">${dist}</span>`;
+        metaParts.push(`<span class="drawer-meta-dist">${dist} away</span>`);
     }
-    html += `<span class="drawer-added-by">Added by ${escapeHtml(item.added_by_name || 'Community Member')}</span>`;
-    html += '</div>';
+    metaParts.push(`<span class="drawer-meta-by">${escapeHtml(item.added_by_name || 'Community Member')}</span>`);
+    const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
+    const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
+    metaParts.push(`<span class="drawer-meta-time">${dateText}</span>`);
+    html += `<div class="drawer-meta-line">${metaParts.join('<span class="drawer-meta-dot">·</span>')}</div>`;
 
     // Extract personal note from multiple possible fields
     let note = null;
@@ -3025,26 +3037,30 @@ function openItemDrawer(item) {
         } catch (e) {}
     }
 
-    // === SECTION 1: Personal Story (friends-only) ===
+    // === PERSONAL STORY (pull-quote style) ===
     if (note) {
         if (isFriend(item.added_by)) {
-            html += `<div class="drawer-story"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">${escapeHtml(note)}</div></div>`;
+            html += `<div class="drawer-quote">
+                <div class="drawer-quote-label">Personal Story</div>
+                <div class="drawer-quote-text">${escapeHtml(note)}</div>
+            </div>`;
         } else {
-            html += `<div class="drawer-story privacy-teaser"><div class="drawer-story-label">Personal Story</div><div class="drawer-story-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their personal story</div></div>`;
+            html += `<div class="drawer-quote drawer-quote-locked">
+                <div class="drawer-quote-label">Personal Story</div>
+                <div class="drawer-quote-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their story</div>
+            </div>`;
         }
     }
 
-    // === SECTION 2: Practical Info (description, address, actions) ===
-    if (item.description) html += `<div class="drawer-description">${escapeHtml(item.description)}</div>`;
+    // === DESCRIPTION (secondary) ===
+    if (item.description) html += `<p class="drawer-desc">${escapeHtml(item.description)}</p>`;
 
-    // Language toggle for non-English queries — under description, above address
+    // Language toggle
     if (item._queryLanguage && item._queryLanguage !== 'en') {
         html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
     }
 
-    if (item.address) html += `<div class="drawer-address">${escapeHtml(item.address)}</div>`;
-
-    // Extract URL from multiple possible fields
+    // === QUICK ACTIONS (compact pills) ===
     let url = null;
     if (item.URL) {
         if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
@@ -3054,29 +3070,29 @@ function openItemDrawer(item) {
     if (!url && item.website) url = item.website;
 
     if (url || item.address) {
-        html += '<div class="drawer-actions">';
-        if (url) html += `<button class="drawer-btn drawer-btn-primary" onclick="window.open('${escapeHtml(url)}', '_blank')">Visit Website</button>`;
+        html += '<div class="drawer-quick-actions">';
+        if (item.address) {
+            html += `<div class="drawer-address-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHtml(item.address)}</div>`;
+        }
+        html += '<div class="drawer-action-pills">';
+        if (url) html += `<button class="drawer-pill" onclick="window.open('${escapeHtml(url)}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Website</button>`;
         if (item.address) {
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
-            html += `<button class="drawer-btn drawer-btn-secondary" onclick="window.open('${mapsUrl}', '_blank')">Open in Google Maps</button>`;
+            html += `<button class="drawer-pill" onclick="window.open('${mapsUrl}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
         }
-        html += '</div>';
+        html += '</div></div>';
     }
 
-    // === SECTION 3: You + Friends (collapsible — reactions + community notes) ===
+    // === SOCIAL: Save + Friends ===
     if (item.id) {
         currentDrawerItemId = item.id;
-        html += `<div class="friends-section">
-            <div class="friends-section-toggle" onclick="toggleFriendsSection()">
-                <span class="friends-section-title">You + Friends</span>
-                <span class="friends-section-arrow" id="friendsSectionArrow">▼</span>
-            </div>
-            <div class="friends-section-body" id="friendsSectionBody">
-                ${buildEndorseSection(item.id)}
-                <div id="communityNotesContainer"><div class="notes-loading">Loading notes...</div></div>
-            </div>
+        html += `<div class="drawer-social">
+            ${buildEndorseSection(item.id)}
+            <div class="drawer-comments" id="communityNotesContainer"><div class="notes-loading">Loading comments...</div></div>
         </div>`;
     }
+
+    html += `</div>`; // close .drawer-body
 
     document.getElementById('drawerContent').innerHTML = html;
     document.getElementById('drawerBackdrop').classList.add('active');
@@ -3138,10 +3154,10 @@ function enterEditMode() {
 
     let html = '';
     if (item.photo_url) {
-        html += `<div class="drawer-photo"><img src="${escapeHtml(item.photo_url)}"></div>`;
+        html += `<div class="drawer-hero"><img src="${escapeHtml(item.photo_url)}"></div>`;
     }
 
-    html += `<div class="edit-form" id="drawerEditForm">
+    html += `<div class="drawer-body"><div class="edit-form" id="drawerEditForm">
         <label class="edit-label">Title</label>
         <input class="edit-input" id="editTitle" value="${escapeHtml(item.title)}" maxlength="200">
 
@@ -3173,7 +3189,7 @@ function enterEditMode() {
             <button class="edit-save-btn" id="editSaveBtn" onclick="saveItemEdit('${item.id}')">Save Changes</button>
         </div>
         <div id="editMessage"></div>
-    </div>`;
+    </div></div>`;
 
     document.getElementById('drawerContent').innerHTML = html;
 }
