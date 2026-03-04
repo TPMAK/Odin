@@ -696,10 +696,12 @@ async function toggleEndorsement(itemId, event) {
             cached.names = cached.names.filter(n => n !== myName);
         }
     } else {
-        // Endorse
+        // Endorse — if the item is private, save privately too
+        const item = allDiscoveries.find(d => d.id === itemId);
+        const saveVisibility = (item && item.visibility === 'private') ? 'private' : 'friends';
         const { error } = await supabaseClient
             .from('endorsements')
-            .insert({ user_id: currentUser.id, item_id: itemId });
+            .insert({ user_id: currentUser.id, item_id: itemId, visibility: saveVisibility });
 
         if (!error) {
             cached.count += 1;
@@ -2478,6 +2480,14 @@ async function loadDiscoveries() {
         if (currentUser) friendIds.add(currentUser.id);
         data = data.filter(item => item.added_by && friendIds.has(item.added_by));
 
+        // Hide private discoveries — only the owner can see their own private items
+        data = data.filter(item => {
+            if (item.visibility === 'private') {
+                return currentUser && item.added_by === currentUser.id;
+            }
+            return true; // 'friends' visibility passes through
+        });
+
         // Hide discoveries from blocked users
         if (blockedUsersCache.length > 0) {
             const blockedIds = new Set(blockedUsersCache.map(b => b.out_blocked_user_id));
@@ -2566,6 +2576,7 @@ function createCard(item, index) {
     }
 
     let tagsHtml = '<div class="discovery-card-tags">';
+    if (item.visibility === 'private') tagsHtml += `<span class="private-badge">🔒 Private</span>`;
     if (distText) tagsHtml += `<span class="discovery-tag discovery-tag-distance">📍 ${distText}</span>`;
     if (item.added_by_name) tagsHtml += `<span class="discovery-tag discovery-tag-person">${escapeHtml(item.added_by_name)}</span>`;
     tagsHtml += `<span class="discovery-tag discovery-tag-time">${dateText}</span>`;
@@ -3149,6 +3160,12 @@ function enterEditMode() {
         <label class="edit-label">URL</label>
         <input class="edit-input" id="editUrl" value="${escapeHtml(url)}">
 
+        <label class="privacy-toggle-label" style="margin-top: 8px;">
+            <input type="checkbox" id="editPrivateToggle" ${item.visibility === 'private' ? 'checked' : ''}>
+            <span class="privacy-toggle-switch"></span>
+            <span class="privacy-toggle-text">🔒 Private — only visible to me</span>
+        </label>
+
         <div class="edit-actions">
             <button class="edit-cancel-btn" onclick="openItemDrawer(currentDrawerItem)">Cancel</button>
             <button class="edit-save-btn" id="editSaveBtn" onclick="saveItemEdit('${item.id}')">Save Changes</button>
@@ -3173,6 +3190,7 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
+    const newVisibility = document.getElementById('editPrivateToggle').checked ? 'private' : 'friends';
 
     if (!newTitle) {
         document.getElementById('editMessage').innerHTML = '<div class="error-msg">Title is required</div>';
@@ -3194,7 +3212,8 @@ async function saveItemEdit(itemId) {
             type: newCategory,
             address: newAddress || null,
             URL: newUrl ? [newUrl] : [],
-            personal_note: newNote || null
+            personal_note: newNote || null,
+            visibility: newVisibility
         };
 
         // Also update metadata.personal_note
@@ -3820,6 +3839,8 @@ async function submitDiscovery(e) {
         });
     }
 
+    const isPrivate = document.getElementById('privateToggle').checked;
+
     const payload = {
         title: document.getElementById('title').value.trim(),
         description: document.getElementById('description').value.trim(),
@@ -3831,7 +3852,8 @@ async function submitDiscovery(e) {
         UserID: currentUser.id,
         familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,
-        photoFilename: photoFile ? photoFile.name : null
+        photoFilename: photoFile ? photoFile.name : null,
+        visibility: isPrivate ? 'private' : 'friends'
     };
 
     try {
