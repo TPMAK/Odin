@@ -3883,6 +3883,15 @@ function togglePrivacy(inputId) {
 }
 
 // ===== CAPTURE: CLEAR FORM =====
+function clearOGImage() {
+    const ogImageUrl = document.getElementById('ogImageUrl');
+    const ogPreview  = document.getElementById('ogImagePreview');
+    const ogThumb    = document.getElementById('ogImageThumb');
+    if (ogImageUrl) ogImageUrl.value = '';
+    if (ogThumb)    ogThumb.src = '';
+    if (ogPreview)  ogPreview.classList.add('hidden');
+}
+
 function clearCaptureForm() {
     document.getElementById('addForm').reset();
     document.getElementById('userLat').value = '';
@@ -3892,6 +3901,7 @@ function clearCaptureForm() {
     document.getElementById('formMessage').innerHTML = '';
     const dd = document.getElementById('addressDropdown');
     if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+    clearOGImage();
     resetOGFetchState();
 }
 
@@ -4086,6 +4096,7 @@ async function fetchAndPrefillOG(url) {
                 const data = await res.json();
                 og.title = data.title || '';
                 og.description = data.author_name ? `Video by ${data.author_name}` : '';
+                og.image = data.thumbnail_url || '';
             }
         } else {
             // Everything else (channels, playlists, FB, IG, regular sites) — route through n8n
@@ -4103,6 +4114,20 @@ async function fetchAndPrefillOG(url) {
         if (og.description && descField && !descField.value.trim()) {
             descField.value = og.description;
         }
+
+        // Show OG image preview if returned and no manual photo chosen
+        const ogImageUrl   = document.getElementById('ogImageUrl');
+        const ogPreview    = document.getElementById('ogImagePreview');
+        const ogThumb      = document.getElementById('ogImageThumb');
+        const manualPhoto  = document.getElementById('photo');
+        const hasManualPhoto = manualPhoto && manualPhoto.files.length > 0;
+
+        if (og.image && !hasManualPhoto && ogImageUrl && ogPreview && ogThumb) {
+            ogImageUrl.value = og.image;
+            ogThumb.src = og.image;
+            ogPreview.classList.remove('hidden');
+        }
+
         if (urlStatus) urlStatus.textContent = og.title ? '✓ Preview loaded' : '';
         setTimeout(() => { if (urlStatus) urlStatus.textContent = ''; }, 3000);
 
@@ -4176,6 +4201,7 @@ async function submitDiscovery(e) {
         familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
+        ogImageUrl: !photoFile ? (document.getElementById('ogImageUrl')?.value || null) : null,
         visibility: isPrivate ? 'private' : 'friends'
     };
 
@@ -4204,6 +4230,8 @@ async function submitDiscovery(e) {
 document.getElementById('photo').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
+        // Manual photo takes priority — hide OG image preview
+        clearOGImage();
         const reader = new FileReader();
         reader.onload = (e) => {
             document.getElementById('previewImg').src = e.target.result;

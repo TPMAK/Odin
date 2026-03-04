@@ -3066,6 +3066,61 @@
             background: rgba(123, 45, 69, 0.05);
         }
 
+        /* OG image preview */
+        .og-image-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .og-image-preview.hidden {
+            display: none;
+        }
+
+        .og-image-preview img {
+            width: 64px;
+            height: 64px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+
+        .og-image-actions {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .og-image-label {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .og-image-remove {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            line-height: 1;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .og-image-remove:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
         /* Address input row with detect button */
         .address-input-row {
             display: flex;
