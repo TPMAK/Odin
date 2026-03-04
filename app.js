@@ -3481,21 +3481,15 @@ function sendMessage(text) {
             // Main results = friends only
             currentResults = friendResults;
 
-            // Relevance check — but always trust a single friend result unconditionally
+            // Relevance check — trust results if score meets threshold
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
-            const dropRatio = (data.original_count > 3)
-                ? ((data.original_count - data.filtered_count) / data.original_count)
-                : 0;
             // Signal 2 — safety net: if every result title appears in _debug.dropped_titles,
             // the AI explicitly rejected everything (catches the Merge Response fallback bug).
             const debugDropped = (data._debug && data._debug.dropped_titles) || [];
             const allResultsDropped = currentResults.length > 0
                 && currentResults.every(r => debugDropped.includes(r.title));
             const hasRelevantResults = currentResults.length > 0
-                && (
-                    currentResults.length === 1  // always trust the only friend result
-                    || (topScore >= RELEVANCE_THRESHOLD && dropRatio < 0.7)
-                )
+                && (topScore >= RELEVANCE_THRESHOLD || currentResults.length === 1)
                 && !allResultsDropped;
 
             // Load endorsements for search results
