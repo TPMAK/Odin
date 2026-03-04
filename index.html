@@ -1072,9 +1072,10 @@
                         <input type="text" id="addedBy" placeholder="Friend's name" disabled>
                         <small style="color: #6b7280; font-size: 12px;">Auto-filled from your profile</small>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label>Address (optional)</label>
-                        <input type="text" id="address" placeholder="123 Queen St, Auckland">
+                        <input type="text" id="address" placeholder="123 Queen St, Auckland" autocomplete="off">
+                        <div id="addressDropdown" class="address-dropdown hidden"></div>
                         <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
                         <input type="hidden" id="userLat" value="">
                         <input type="hidden" id="userLng" value="">

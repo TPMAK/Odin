@@ -3934,6 +3934,130 @@ function prefillCaptureLocation() {
     }, { timeout: 8000 });
 }
 
+// ===== CAPTURE: ADDRESS AUTOCOMPLETE =====
+(function initAddressAutocomplete() {
+    let debounceTimer = null;
+    let focusedIndex = -1;
+
+    function getOptions() {
+        return document.querySelectorAll('#addressDropdown .address-option');
+    }
+
+    function showDropdown(items) {
+        const dd = document.getElementById('addressDropdown');
+        if (!dd) return;
+        if (!items.length) { hideDropdown(); return; }
+
+        dd.innerHTML = items.map((item, i) => {
+            const nameParts = item.display_name.split(',');
+            const main = nameParts.slice(0, 2).join(',').trim();
+            const sub  = nameParts.slice(2).join(',').trim();
+            return `<div class="address-option" data-index="${i}" data-lat="${item.lat}" data-lng="${item.lon}" data-full="${escapeHtml(item.display_name)}">
+                <div class="address-option-main">${escapeHtml(main)}</div>
+                ${sub ? `<div class="address-option-sub">${escapeHtml(sub)}</div>` : ''}
+            </div>`;
+        }).join('');
+
+        dd.classList.remove('hidden');
+        focusedIndex = -1;
+
+        dd.querySelectorAll('.address-option').forEach(opt => {
+            opt.addEventListener('mousedown', (e) => {
+                e.preventDefault(); // prevent blur firing first
+                selectOption(opt);
+            });
+        });
+    }
+
+    function hideDropdown() {
+        const dd = document.getElementById('addressDropdown');
+        if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
+        focusedIndex = -1;
+    }
+
+    function selectOption(opt) {
+        const address = document.getElementById('address');
+        const latField = document.getElementById('userLat');
+        const lngField = document.getElementById('userLng');
+        if (address) address.value = opt.dataset.full;
+        if (latField) latField.value = opt.dataset.lat;
+        if (lngField) lngField.value = opt.dataset.lng;
+        hideDropdown();
+    }
+
+    async function searchAddress(query) {
+        const dd = document.getElementById('addressDropdown');
+        if (!query || query.length < 3) { hideDropdown(); return; }
+
+        // Show searching indicator
+        if (dd) {
+            dd.innerHTML = '<div class="address-searching">Searching...</div>';
+            dd.classList.remove('hidden');
+        }
+
+        // Bias results toward user's current location if we have it
+        const lat = document.getElementById('userLat')?.value;
+        const lng = document.getElementById('userLng')?.value;
+        let viewboxParam = '';
+        if (lat && lng) {
+            const delta = 0.05; // ~5km radius bias
+            viewboxParam = `&viewbox=${+lng - delta},${+lat + delta},${+lng + delta},${+lat - delta}&bounded=0`;
+        }
+
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5${viewboxParam}`,
+                { headers: { 'Accept-Language': 'en' } }
+            );
+            const results = await res.json();
+            showDropdown(results);
+        } catch (e) {
+            hideDropdown();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const addressInput = document.getElementById('address');
+        if (!addressInput) return;
+
+        addressInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => searchAddress(addressInput.value.trim()), 350);
+        });
+
+        addressInput.addEventListener('keydown', (e) => {
+            const options = getOptions();
+            if (!options.length) return;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                focusedIndex = Math.min(focusedIndex + 1, options.length - 1);
+                options.forEach((o, i) => o.classList.toggle('focused', i === focusedIndex));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                focusedIndex = Math.max(focusedIndex - 1, 0);
+                options.forEach((o, i) => o.classList.toggle('focused', i === focusedIndex));
+            } else if (e.key === 'Enter' && focusedIndex >= 0) {
+                e.preventDefault();
+                selectOption(options[focusedIndex]);
+            } else if (e.key === 'Escape') {
+                hideDropdown();
+            }
+        });
+
+        addressInput.addEventListener('blur', () => {
+            // Small delay so mousedown on option fires first
+            setTimeout(hideDropdown, 150);
+        });
+
+        // Close dropdown if user clicks outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#address') && !e.target.closest('#addressDropdown')) {
+                hideDropdown();
+            }
+        });
+    });
+})();
+
 // ===== CAPTURE: URL OG PREFILL =====
 async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
