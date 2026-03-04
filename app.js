@@ -4076,8 +4076,10 @@ async function fetchAndPrefillOG(url) {
     try {
         let og = {};
 
-        // YouTube — use free oEmbed, no CORS issues
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        // YouTube videos only — oEmbed works for /watch?v= and youtu.be/ links
+        const isYouTubeVideo = /youtube\.com\/watch\?|youtu\.be\//i.test(url);
+
+        if (isYouTubeVideo) {
             const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
             if (res.ok) {
                 const data = await res.json();
@@ -4085,7 +4087,7 @@ async function fetchAndPrefillOG(url) {
                 og.description = data.author_name ? `Video by ${data.author_name}` : '';
             }
         } else {
-            // Everything else — route through n8n to avoid CORS
+            // Everything else (channels, playlists, FB, IG, regular sites) — route through n8n
             const res = await fetch(OG_FETCH_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
