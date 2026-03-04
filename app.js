@@ -1790,6 +1790,7 @@ function getCategoryEmoji(type) {
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
+const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 
 // Minimum relevance score for a result to be shown as a real match.
 // Below this = honest "nothing found" state + suggestions instead.
@@ -2251,6 +2252,7 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+        prefillCaptureLocation();
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -3887,9 +3889,121 @@ function togglePrivacy(inputId) {
     text.classList.toggle('active', !isActive);
 }
 
+// ===== CAPTURE: LOCATION PREFILL =====
+function prefillCaptureLocation() {
+    const addressField = document.getElementById('address');
+    const locStatus = document.getElementById('locationStatus');
+    const latField = document.getElementById('userLat');
+    const lngField = document.getElementById('userLng');
+
+    if (!navigator.geolocation) return;
+    if (addressField && addressField.value.trim()) return; // don't overwrite if already filled
+
+    if (locStatus) locStatus.textContent = '📍 Detecting location...';
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        if (latField) latField.value = lat;
+        if (lngField) lngField.value = lng;
+
+        try {
+            const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+                { headers: { 'Accept-Language': 'en' } }
+            );
+            const data = await res.json();
+            const a = data.address || {};
+            const parts = [
+                a.road,
+                a.suburb || a.neighbourhood,
+                a.city || a.town || a.village,
+                a.country
+            ].filter(Boolean);
+            const formatted = parts.join(', ');
+            if (formatted && addressField && !addressField.value.trim()) {
+                addressField.value = formatted;
+            }
+            if (locStatus) locStatus.textContent = '';
+        } catch (e) {
+            if (locStatus) locStatus.textContent = '';
+        }
+    }, () => {
+        if (locStatus) locStatus.textContent = '';
+    }, { timeout: 8000 });
+}
+
+// ===== CAPTURE: URL OG PREFILL =====
+async function fetchAndPrefillOG(url) {
+    if (!url || !url.startsWith('http')) return;
+
+    const urlStatus = document.getElementById('urlFetchStatus');
+    const titleField = document.getElementById('title');
+    const descField = document.getElementById('description');
+
+    if (urlStatus) urlStatus.textContent = '🔍 Fetching preview...';
+
+    try {
+        let og = {};
+
+        // YouTube — use free oEmbed, no CORS issues
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+            if (res.ok) {
+                const data = await res.json();
+                og.title = data.title || '';
+                og.description = data.author_name ? `Video by ${data.author_name}` : '';
+            }
+        } else {
+            // Everything else — route through n8n to avoid CORS
+            const res = await fetch(OG_FETCH_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            if (res.ok) og = await res.json();
+        }
+
+        if (og.title && titleField && !titleField.value.trim()) {
+            titleField.value = og.title;
+        }
+        if (og.description && descField && !descField.value.trim()) {
+            descField.value = og.description;
+        }
+        if (urlStatus) urlStatus.textContent = og.title ? '✓ Preview loaded' : '';
+        setTimeout(() => { if (urlStatus) urlStatus.textContent = ''; }, 3000);
+
+    } catch (e) {
+        if (urlStatus) urlStatus.textContent = '';
+    }
+}
+
+// Attach URL paste/blur listener once DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const urlInput = document.getElementById('url');
+    if (!urlInput) return;
+
+    let lastFetchedUrl = '';
+
+    const triggerOGFetch = () => {
+        const val = urlInput.value.trim();
+        if (val && val !== lastFetchedUrl && val.startsWith('http')) {
+            lastFetchedUrl = val;
+            fetchAndPrefillOG(val);
+        }
+    };
+
+    urlInput.addEventListener('paste', () => {
+        // paste fires before value updates, so wait one tick
+        setTimeout(triggerOGFetch, 100);
+    });
+    urlInput.addEventListener('blur', triggerOGFetch);
+});
+
 async function submitDiscovery(e) {
     e.preventDefault();
-    
+
     if (!currentUser) {
         alert('Please login first');
         return;
@@ -3919,6 +4033,8 @@ async function submitDiscovery(e) {
         addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
         address: document.getElementById('address').value.trim() || null,
         url: document.getElementById('url').value.trim() || null,
+        userLat: document.getElementById('userLat').value || null,
+        userLng: document.getElementById('userLng').value || null,
         UserID: currentUser.id,
         familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,

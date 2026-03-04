@@ -1075,10 +1075,14 @@
                     <div class="form-group">
                         <label>Address (optional)</label>
                         <input type="text" id="address" placeholder="123 Queen St, Auckland">
+                        <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
+                        <input type="hidden" id="userLat" value="">
+                        <input type="hidden" id="userLng" value="">
                     </div>
                     <div class="form-group">
                         <label>URL (optional)</label>
                         <input type="url" id="url" placeholder="https://...">
+                        <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px;"></small>
                     </div>
                     <div class="form-group">
                         <label>Photo (optional)</label>
@@ -1089,11 +1093,13 @@
                     </div>
                     <!-- Privacy Toggle -->
                     <div class="form-group">
-                        <label class="privacy-toggle-label">
-                            <input type="checkbox" id="privateToggle">
-                            <span class="privacy-toggle-switch"></span>
-                            <span class="privacy-toggle-text">🔒 Private — only visible to me</span>
-                        </label>
+                        <div class="privacy-toggle-row" onclick="togglePrivacy('privateToggle')">
+                            <span class="privacy-toggle-text" id="privateToggleText">Private — only visible to me</span>
+                            <div class="privacy-toggle-track" id="privateToggleTrack">
+                                <div class="privacy-toggle-knob"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="privateToggle" value="false">
                     </div>
 
                     <button type="submit" class="submit-btn" id="submitBtn">Save Discovery</button>
