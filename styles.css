@@ -644,14 +644,22 @@
             -ms-overflow-style: none;
             padding-bottom: 8px;
             touch-action: pan-x;
-            /* bleed to page edge on mobile */
+            /* bleed to page edge on mobile — padding is ignored by iOS Safari
+               on overflow flex containers, so we use ::before / ::after instead */
             margin: 0 -24px;
-            padding-left: 24px;
+            padding-left: 0;
             padding-right: 0;
         }
 
-        /* Right-edge spacer — padding-right is ignored on scrollable containers.
-           Width = 24px (desired inset) minus 12px (gap before this pseudo) = 12px */
+        /* Left spacer: 24px wide, no gap before first card */
+        .home-feed-scroll::before {
+            content: '';
+            flex-shrink: 0;
+            width: 24px;
+            min-height: 1px;
+        }
+
+        /* Right spacer: 24px desired inset minus 12px gap = 12px */
         .home-feed-scroll::after {
             content: '';
             flex-shrink: 0;
@@ -662,9 +670,8 @@
         @media (min-width: 768px) {
             .home-feed-scroll {
                 margin: 0;
-                padding-left: 0;
-                padding-right: 0;
             }
+            .home-feed-scroll::before,
             .home-feed-scroll::after {
                 display: none;
             }
@@ -964,11 +971,19 @@
             -ms-overflow-style: none;
             padding-bottom: 4px;
             margin: 0 -24px;
-            padding-left: 24px;
+            padding-left: 0;
             padding-right: 0;
         }
 
-        /* Right-edge spacer — 24px inset minus 10px gap = 14px */
+        /* Left spacer */
+        .home-recent-scroll::before {
+            content: '';
+            flex-shrink: 0;
+            width: 24px;
+            min-height: 1px;
+        }
+
+        /* Right spacer: 24px minus 10px gap = 14px */
         .home-recent-scroll::after {
             content: '';
             flex-shrink: 0;
@@ -1028,9 +1043,8 @@
         @media (min-width: 768px) {
             .home-recent-scroll {
                 margin: 0;
-                padding-left: 0;
-                padding-right: 0;
             }
+            .home-recent-scroll::before,
             .home-recent-scroll::after {
                 display: none;
             }
