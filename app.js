@@ -4125,6 +4125,29 @@ async function fetchAndPrefillOG(url) {
             descField.value = og.description;
         }
 
+        // Auto-fill address if returned (e.g. from Google Maps)
+        const addressField = document.getElementById('address');
+        if (og.address && addressField && !addressField.value.trim()) {
+            addressField.value = og.address;
+        }
+        // Auto-fill lat/lng if returned
+        if (og.lat && og.lng) {
+            const latField = document.getElementById('userLat');
+            const lngField = document.getElementById('userLng');
+            if (latField) latField.value = og.lat;
+            if (lngField) lngField.value = og.lng;
+            const locStatus = document.getElementById('locationStatus');
+            if (locStatus) locStatus.textContent = 'Location detected from link';
+        }
+
+        // Auto-select "Place" category for Google Maps links
+        if (og.source === 'googlemaps') {
+            document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+            const placePill = document.querySelector('.category-pill[data-value="place"]');
+            if (placePill) placePill.classList.add('active');
+            document.getElementById('category').value = 'place';
+        }
+
         // Show OG preview card
         if (og.title && ogCard) {
             const ogImg = document.getElementById('ogPreviewImg');
@@ -4141,7 +4164,11 @@ async function fetchAndPrefillOG(url) {
             if (ogTitle) ogTitle.textContent = og.title;
             if (ogDesc) ogDesc.textContent = og.description || '';
             if (ogUrl) {
-                try { ogUrl.textContent = new URL(url).hostname; } catch(e) { ogUrl.textContent = url; }
+                if (og.site_name) {
+                    ogUrl.textContent = og.site_name;
+                } else {
+                    try { ogUrl.textContent = new URL(url).hostname; } catch(e) { ogUrl.textContent = url; }
+                }
             }
             ogCard.classList.remove('hidden');
         }
