@@ -289,7 +289,7 @@
         .home-page {
             max-width: 600px;
             margin: 0 auto;
-            padding: 16px 24px 40px;
+            padding: 16px 20px 40px;
         }
 
         @media (min-width: 768px) {
@@ -644,9 +644,9 @@
             padding-bottom: 8px;
             touch-action: pan-x;
             /* bleed to page edge on mobile */
-            margin: 0 -24px;
-            padding-left: 24px;
-            padding-right: 24px;
+            margin: 0 -20px;
+            padding-left: 20px;
+            padding-right: 20px;
         }
 
         @media (min-width: 768px) {
@@ -702,7 +702,7 @@
         /* Gradient fade hint on mobile right edge */
         .feed-scroll-hint {
             position: absolute;
-            right: -24px;
+            right: -20px;
             top: 0;
             bottom: 8px;
             width: 52px;
@@ -943,9 +943,9 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             padding-bottom: 4px;
-            margin: 0 -24px;
-            padding-left: 24px;
-            padding-right: 24px;
+            margin: 0 -20px;
+            padding-left: 20px;
+            padding-right: 20px;
         }
 
         .home-recent-scroll::-webkit-scrollbar { display: none; }
@@ -988,7 +988,7 @@
                 content: '';
                 position: absolute;
                 top: 0;
-                right: -24px;
+                right: -20px;
                 width: 40px;
                 height: 100%;
                 background: linear-gradient(to left, var(--bg) 30%, transparent);
@@ -6143,8 +6143,8 @@
     max-width: 720px;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-left: 20px;
+    padding-right: 20px;
     box-sizing: border-box;
 }
 .dc-search-pinned .dc-search-row { padding-top: 8px; padding-bottom: 8px; }
