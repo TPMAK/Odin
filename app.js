@@ -3885,14 +3885,28 @@ function togglePrivacy(inputId) {
 // ===== CAPTURE: CLEAR FORM =====
 function clearCaptureForm() {
     document.getElementById('addForm').reset();
+    document.getElementById('url').value = '';
     document.getElementById('userLat').value = '';
     document.getElementById('userLng').value = '';
     document.getElementById('locationStatus').textContent = '';
-    document.getElementById('urlFetchStatus').textContent = '';
+    const urlStatus = document.getElementById('urlFetchStatus');
+    if (urlStatus) urlStatus.textContent = '';
     document.getElementById('formMessage').innerHTML = '';
     const dd = document.getElementById('addressDropdown');
     if (dd) { dd.classList.add('hidden'); dd.innerHTML = ''; }
     resetOGFetchState();
+    // Reset category pills
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
+    if (defaultPill) defaultPill.classList.add('active');
+    document.getElementById('category').value = 'place';
+    // Reset photo
+    document.getElementById('photoPreview').style.display = 'none';
+    const uploadZone = document.getElementById('photoUploadZone');
+    if (uploadZone) uploadZone.style.display = 'flex';
+    // Show URL hint
+    const heroHint = document.getElementById('urlHeroHint');
+    if (heroHint) heroHint.style.display = 'flex';
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -4068,11 +4082,16 @@ function prefillCaptureLocation() {
 async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
 
-    const urlStatus = document.getElementById('urlFetchStatus');
     const titleField = document.getElementById('title');
     const descField = document.getElementById('description');
+    const ogLoading = document.getElementById('ogLoading');
+    const ogCard = document.getElementById('ogPreviewCard');
+    const heroHint = document.getElementById('urlHeroHint');
 
-    if (urlStatus) urlStatus.textContent = '🔍 Fetching preview...';
+    // Show loading shimmer, hide hint
+    if (ogLoading) ogLoading.classList.remove('hidden');
+    if (ogCard) ogCard.classList.add('hidden');
+    if (heroHint) heroHint.style.display = 'none';
 
     try {
         let og = {};
@@ -4086,9 +4105,10 @@ async function fetchAndPrefillOG(url) {
                 const data = await res.json();
                 og.title = data.title || '';
                 og.description = data.author_name ? `Video by ${data.author_name}` : '';
+                og.image = data.thumbnail_url || '';
             }
         } else {
-            // Everything else (channels, playlists, FB, IG, regular sites) — route through n8n
+            // Everything else — route through n8n
             const res = await fetch(OG_FETCH_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -4097,18 +4117,49 @@ async function fetchAndPrefillOG(url) {
             if (res.ok) og = await res.json();
         }
 
+        // Fill form fields if empty
         if (og.title && titleField && !titleField.value.trim()) {
             titleField.value = og.title;
         }
         if (og.description && descField && !descField.value.trim()) {
             descField.value = og.description;
         }
-        if (urlStatus) urlStatus.textContent = og.title ? '✓ Preview loaded' : '';
-        setTimeout(() => { if (urlStatus) urlStatus.textContent = ''; }, 3000);
+
+        // Show OG preview card
+        if (og.title && ogCard) {
+            const ogImg = document.getElementById('ogPreviewImg');
+            const ogTitle = document.getElementById('ogPreviewTitle');
+            const ogDesc = document.getElementById('ogPreviewDesc');
+            const ogUrl = document.getElementById('ogPreviewUrl');
+
+            if (og.image && ogImg) {
+                ogImg.src = og.image;
+                ogImg.style.display = 'block';
+            } else if (ogImg) {
+                ogImg.style.display = 'none';
+            }
+            if (ogTitle) ogTitle.textContent = og.title;
+            if (ogDesc) ogDesc.textContent = og.description || '';
+            if (ogUrl) {
+                try { ogUrl.textContent = new URL(url).hostname; } catch(e) { ogUrl.textContent = url; }
+            }
+            ogCard.classList.remove('hidden');
+        }
+
+        // Hide loading
+        if (ogLoading) ogLoading.classList.add('hidden');
 
     } catch (e) {
-        if (urlStatus) urlStatus.textContent = '';
+        if (ogLoading) ogLoading.classList.add('hidden');
+        if (heroHint) heroHint.style.display = 'flex';
     }
+}
+
+function clearOGPreview() {
+    const ogCard = document.getElementById('ogPreviewCard');
+    const heroHint = document.getElementById('urlHeroHint');
+    if (ogCard) ogCard.classList.add('hidden');
+    if (heroHint) heroHint.style.display = 'flex';
 }
 
 // Track last fetched URL at module level so clearCaptureForm can reset it
@@ -4116,9 +4167,10 @@ let _lastOGFetchedUrl = '';
 
 function resetOGFetchState() {
     _lastOGFetchedUrl = '';
+    clearOGPreview();
 }
 
-// Attach URL paste/blur listener once DOM is ready
+// Attach URL paste/blur/input listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     const urlInput = document.getElementById('url');
     if (!urlInput) return;
@@ -4136,6 +4188,10 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(triggerOGFetch, 100);
     });
     urlInput.addEventListener('blur', triggerOGFetch);
+    // Also trigger on Enter key in the URL field
+    urlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); triggerOGFetch(); }
+    });
 });
 
 async function submitDiscovery(e) {
@@ -4183,6 +4239,9 @@ async function submitDiscovery(e) {
     const overlay = document.getElementById('saveSuccessOverlay');
     overlay.classList.remove('hidden');
     document.getElementById('addForm').reset();
+    // Reset URL field (outside form) and OG preview
+    document.getElementById('url').value = '';
+    resetOGFetchState();
     // Reset photo preview
     document.getElementById('photoPreview').style.display = 'none';
     // Reset photo upload zone visibility
@@ -4193,6 +4252,9 @@ async function submitDiscovery(e) {
     const defaultPill = document.querySelector('.category-pill[data-value="place"]');
     if (defaultPill) defaultPill.classList.add('active');
     document.getElementById('category').value = 'place';
+    // Show URL hint again
+    const heroHint = document.getElementById('urlHeroHint');
+    if (heroHint) heroHint.style.display = 'flex';
 
     btn.disabled = false;
 

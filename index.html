@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=47">
+    <link rel="stylesheet" href="styles.css?v=48">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -1053,6 +1053,44 @@
                     </button>
                 </div>
                 <div id="formMessage"></div>
+
+                <!-- ✦ QUICK ADD — URL paste bar (hero) -->
+                <div class="url-hero-bar" id="urlHeroBar">
+                    <div class="url-hero-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </div>
+                    <input type="url" id="url" placeholder="Paste a link to auto-fill..." autocomplete="off">
+                    <div class="url-hero-hint" id="urlHeroHint">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                        Auto-fills title, description &amp; more
+                    </div>
+                    <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px; display: none;"></small>
+                </div>
+
+                <!-- OG Preview Card (appears after URL fetch) -->
+                <div class="og-preview-card hidden" id="ogPreviewCard">
+                    <img id="ogPreviewImg" class="og-preview-img" src="" alt="">
+                    <div class="og-preview-body">
+                        <div class="og-preview-title" id="ogPreviewTitle"></div>
+                        <div class="og-preview-desc" id="ogPreviewDesc"></div>
+                        <div class="og-preview-url" id="ogPreviewUrl"></div>
+                    </div>
+                    <button type="button" class="og-preview-close" onclick="clearOGPreview()" title="Remove preview">&times;</button>
+                </div>
+
+                <!-- Loading shimmer (during OG fetch) -->
+                <div class="og-loading hidden" id="ogLoading">
+                    <div class="og-loading-shimmer"></div>
+                    <div class="og-loading-lines">
+                        <div class="shimmer-line w70"></div>
+                        <div class="shimmer-line w50"></div>
+                    </div>
+                </div>
+
+                <div class="url-hero-divider">
+                    <span>or fill in manually</span>
+                </div>
+
                 <form id="addForm" onsubmit="submitDiscovery(event)">
                     <!-- Essential info section -->
                     <div class="form-section">
@@ -1106,11 +1144,6 @@
                         <div class="form-group">
                             <label>Personal Note (optional)</label>
                             <textarea id="personalNote" placeholder="Why you love it, a memory, or a tip for others..." style="min-height: 70px;"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>URL (optional)</label>
-                            <input type="url" id="url" placeholder="https://...">
-                            <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px;"></small>
                         </div>
                     </div>
 
@@ -1316,7 +1349,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=34"></script>
+    <script src="app.js?v=35"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
