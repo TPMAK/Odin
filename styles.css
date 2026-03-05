@@ -651,11 +651,11 @@
             padding-right: 0;
         }
 
-        /* Left spacer: 24px wide, no gap before first card */
+        /* Left spacer: 24px inset minus 12px gap = 12px */
         .home-feed-scroll::before {
             content: '';
             flex-shrink: 0;
-            width: 24px;
+            width: 12px;
             min-height: 1px;
         }
 
@@ -975,15 +975,15 @@
             padding-right: 0;
         }
 
-        /* Left spacer */
+        /* Left spacer: 24px inset minus 10px gap = 14px */
         .home-recent-scroll::before {
             content: '';
             flex-shrink: 0;
-            width: 24px;
+            width: 14px;
             min-height: 1px;
         }
 
-        /* Right spacer: 24px minus 10px gap = 14px */
+        /* Right spacer: 24px inset minus 10px gap = 14px */
         .home-recent-scroll::after {
             content: '';
             flex-shrink: 0;
