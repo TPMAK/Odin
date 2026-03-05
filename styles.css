@@ -3395,6 +3395,73 @@
             color: var(--muted);
         }
 
+        /* ── Photo Preview with controls ── */
+        .photo-preview-wrap {
+            position: relative;
+            margin-top: 12px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1.5px solid var(--border);
+        }
+
+        .photo-preview-wrap img {
+            width: 100%;
+            display: block;
+            max-height: 200px;
+            object-fit: cover;
+        }
+
+        .photo-preview-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .photo-preview-actions {
+            display: flex;
+            gap: 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .photo-action-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 10px;
+            background: var(--surface);
+            border: none;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .photo-action-btn:first-child {
+            border-right: 1px solid var(--border);
+        }
+
+        .photo-action-btn:hover {
+            background: rgba(123, 45, 69, 0.05);
+            color: #7B2D45;
+        }
+
+        .photo-action-remove:hover {
+            background: rgba(220, 38, 38, 0.05);
+            color: #dc2626;
+        }
+
         /* ── Save Success Overlay ── */
         .save-success-overlay {
             position: fixed;

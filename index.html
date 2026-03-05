@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=48">
+    <link rel="stylesheet" href="styles.css?v=49">
     <style>
         /* ── LANDING PAGE STYLES ── */
         #loginScreen {
@@ -1178,9 +1178,21 @@
                                 <span>Tap to add a photo</span>
                             </div>
                             <input type="file" id="photo" accept="image/*" style="display: none;">
-                            <div id="photoPreview" style="margin-top: 12px; display: none;">
-                                <img id="previewImg" style="max-width: 100%; border-radius: 12px;" />
+                            <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
+                                <img id="previewImg" />
+                                <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
+                                <div class="photo-preview-actions">
+                                    <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        Replace
+                                    </button>
+                                    <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        Remove
+                                    </button>
+                                </div>
                             </div>
+                            <input type="hidden" id="ogImageUrl" value="">
                         </div>
                     </div>
 
@@ -1349,7 +1361,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=36"></script>
+    <script src="app.js?v=37"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings

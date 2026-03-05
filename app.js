@@ -4140,12 +4140,22 @@ async function fetchAndPrefillOG(url) {
             if (locStatus) locStatus.textContent = 'Location detected from link';
         }
 
-        // Auto-select "Place" category for Google Maps links
+        // Auto-select category for Google Maps links (uses category from Places API)
         if (og.source === 'googlemaps') {
+            const cat = og.category || 'place';
             document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-            const placePill = document.querySelector('.category-pill[data-value="place"]');
-            if (placePill) placePill.classList.add('active');
-            document.getElementById('category').value = 'place';
+            const targetPill = document.querySelector(`.category-pill[data-value="${cat}"]`);
+            if (targetPill) targetPill.classList.add('active');
+            document.getElementById('category').value = cat;
+        }
+
+        // Preload OG image into the photo section (if no user photo already)
+        if (og.image) {
+            const photoFile = document.getElementById('photo');
+            const hasUserPhoto = photoFile && photoFile.files && photoFile.files.length > 0;
+            if (!hasUserPhoto) {
+                preloadOGPhoto(og.image);
+            }
         }
 
         // Show OG preview card
@@ -4162,7 +4172,14 @@ async function fetchAndPrefillOG(url) {
                 ogImg.style.display = 'none';
             }
             if (ogTitle) ogTitle.textContent = og.title;
-            if (ogDesc) ogDesc.textContent = og.description || '';
+            if (ogDesc) {
+                // Show rating inline if available from Google Places
+                let descText = og.description || '';
+                if (og.rating && !descText.includes('⭐')) {
+                    descText = `⭐ ${og.rating}` + (og.rating_count ? ` (${og.rating_count} reviews)` : '') + (descText ? ' · ' + descText : '');
+                }
+                ogDesc.textContent = descText;
+            }
             if (ogUrl) {
                 if (og.site_name) {
                     ogUrl.textContent = og.site_name;
@@ -4187,6 +4204,47 @@ function clearOGPreview() {
     const heroHint = document.getElementById('urlHeroHint');
     if (ogCard) ogCard.classList.add('hidden');
     if (heroHint) heroHint.style.display = 'flex';
+}
+
+// ===== PHOTO: OG image preload & controls =====
+let _photoSource = 'none'; // 'none' | 'og' | 'user'
+
+function preloadOGPhoto(imageUrl) {
+    const preview = document.getElementById('photoPreview');
+    const previewImg = document.getElementById('previewImg');
+    const uploadZone = document.getElementById('photoUploadZone');
+    const badge = document.getElementById('photoSourceBadge');
+    const ogUrlField = document.getElementById('ogImageUrl');
+
+    if (!preview || !previewImg) return;
+
+    previewImg.src = imageUrl;
+    preview.style.display = 'block';
+    if (uploadZone) uploadZone.style.display = 'none';
+    if (badge) { badge.textContent = 'From link'; badge.style.display = 'block'; }
+    if (ogUrlField) ogUrlField.value = imageUrl;
+    _photoSource = 'og';
+}
+
+function replacePhoto() {
+    document.getElementById('photo').click();
+}
+
+function removePhoto() {
+    const preview = document.getElementById('photoPreview');
+    const previewImg = document.getElementById('previewImg');
+    const uploadZone = document.getElementById('photoUploadZone');
+    const badge = document.getElementById('photoSourceBadge');
+    const ogUrlField = document.getElementById('ogImageUrl');
+    const photoInput = document.getElementById('photo');
+
+    if (preview) preview.style.display = 'none';
+    if (previewImg) previewImg.src = '';
+    if (uploadZone) uploadZone.style.display = 'flex';
+    if (badge) badge.style.display = 'none';
+    if (ogUrlField) ogUrlField.value = '';
+    if (photoInput) photoInput.value = '';
+    _photoSource = 'none';
 }
 
 // Track last fetched URL at module level so clearCaptureForm can reset it
@@ -4259,6 +4317,7 @@ async function submitDiscovery(e) {
         familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
+        ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
         visibility: isPrivate ? 'private' : 'friends'
     };
 
@@ -4270,10 +4329,7 @@ async function submitDiscovery(e) {
     document.getElementById('url').value = '';
     resetOGFetchState();
     // Reset photo preview
-    document.getElementById('photoPreview').style.display = 'none';
-    // Reset photo upload zone visibility
-    const uploadZone = document.getElementById('photoUploadZone');
-    if (uploadZone) uploadZone.style.display = 'flex';
+    removePhoto();
     // Reset category pills to default
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
     const defaultPill = document.querySelector('.category-pill[data-value="place"]');
@@ -4313,11 +4369,17 @@ document.getElementById('photo').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-            document.getElementById('previewImg').src = e.target.result;
+        reader.onload = (ev) => {
+            document.getElementById('previewImg').src = ev.target.result;
             document.getElementById('photoPreview').style.display = 'block';
             const uploadZone = document.getElementById('photoUploadZone');
             if (uploadZone) uploadZone.style.display = 'none';
+            // Mark as user photo, clear OG image, update badge
+            _photoSource = 'user';
+            const ogUrlField = document.getElementById('ogImageUrl');
+            if (ogUrlField) ogUrlField.value = '';
+            const badge = document.getElementById('photoSourceBadge');
+            if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
         };
         reader.readAsDataURL(file);
     }
