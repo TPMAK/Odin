@@ -634,6 +634,7 @@
 
         .home-feed-scroll {
             display: flex;
+            align-items: stretch;
             gap: 12px;
             overflow-x: auto;
             overflow-y: hidden;
@@ -646,7 +647,16 @@
             /* bleed to page edge on mobile */
             margin: 0 -24px;
             padding-left: 24px;
-            padding-right: 24px;
+            padding-right: 0;
+        }
+
+        /* Right-edge spacer — padding-right is ignored on scrollable containers.
+           Width = 24px (desired inset) minus 12px (gap before this pseudo) = 12px */
+        .home-feed-scroll::after {
+            content: '';
+            flex-shrink: 0;
+            width: 12px;
+            min-height: 1px;
         }
 
         @media (min-width: 768px) {
@@ -654,6 +664,9 @@
                 margin: 0;
                 padding-left: 0;
                 padding-right: 0;
+            }
+            .home-feed-scroll::after {
+                display: none;
             }
         }
 
@@ -777,6 +790,8 @@
             scroll-snap-align: start;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
         }
 
         .hf-card:hover {
@@ -804,6 +819,10 @@
 
         .hf-card-body {
             padding: 10px 12px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .hf-card-title {
@@ -815,7 +834,7 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            margin-bottom: 8px;
+            margin-bottom: 0;
         }
 
         .hf-card-by {
@@ -936,6 +955,7 @@
 
         .home-recent-scroll {
             display: flex;
+            align-items: stretch;
             gap: 10px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -945,7 +965,15 @@
             padding-bottom: 4px;
             margin: 0 -24px;
             padding-left: 24px;
-            padding-right: 24px;
+            padding-right: 0;
+        }
+
+        /* Right-edge spacer — 24px inset minus 10px gap = 14px */
+        .home-recent-scroll::after {
+            content: '';
+            flex-shrink: 0;
+            width: 14px;
+            min-height: 1px;
         }
 
         .home-recent-scroll::-webkit-scrollbar { display: none; }
@@ -1003,6 +1031,9 @@
                 padding-left: 0;
                 padding-right: 0;
             }
+            .home-recent-scroll::after {
+                display: none;
+            }
         }
 
         .hr-card {
@@ -1015,6 +1046,8 @@
             scroll-snap-align: start;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
         }
 
         .hr-card:hover {
@@ -1042,6 +1075,10 @@
 
         .hr-card-body {
             padding: 8px 10px 10px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         .hr-card-title {
