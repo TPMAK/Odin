@@ -23,8 +23,6 @@
             padding-bottom: 80px;
         }
 
-        /* Header */
-        .header {
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -39,8 +37,6 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            max-width: 1400px;
-            margin: 0 auto;
         }
 
         .header-title {
@@ -207,8 +203,6 @@
         }
 
         .tab-item {
-            flex: 1;
-            display: flex;
             flex-direction: column;
             align-items: center;
             gap: 4px;
@@ -216,8 +210,6 @@
             cursor: pointer;
             border: none;
             background: transparent;
-            transition: all 0.2s;
-        }
 
         .tab-icon {
             font-size: 24px;
@@ -1065,8 +1057,10 @@
             display: flex;
             gap: 12px;
             overflow-x: auto;
-            padding-bottom: 8px;
+            padding: 4px 24px 10px 24px;
             scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             -ms-overflow-style: none;
         }
@@ -4219,8 +4213,9 @@
     display: flex;
     gap: 12px;
     overflow-x: auto;
-    padding-bottom: 8px;
+    padding: 4px 24px 10px 24px;
     scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -4322,9 +4317,9 @@
     gap: 14px;
     overflow-x: auto;
     overflow-y: visible;
-    padding-top: 6px;
-    padding-bottom: 4px;
-    padding-left: 2px;
+    padding: 6px 24px 4px 24px;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
 
@@ -4340,6 +4335,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    scroll-snap-align: start;
 }
 
 .rv-thumb-wrap {
