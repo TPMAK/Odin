@@ -3055,27 +3055,224 @@
 
         .submit-btn {
             width: 100%;
-            padding: 14px;
-            background: #7B2D45;
+            padding: 16px;
+            background: linear-gradient(135deg, #7B2D45 0%, #9B3A5A 100%);
             color: #ffffff;
             border: none;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 14px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(123, 45, 69, 0.2);
-            margin-top: 8px;
+            transition: all 0.25s;
+            box-shadow: 0 4px 14px rgba(123, 45, 69, 0.25);
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
         .submit-btn:hover {
-            background: #5A1F30;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(123, 45, 69, 0.3);
+            background: linear-gradient(135deg, #5A1F30 0%, #7B2D45 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(123, 45, 69, 0.35);
         }
 
         .submit-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* ── Form Sections ── */
+        .form-section {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .form-section .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-section-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #7B2D45;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .form-section-label svg {
+            opacity: 0.7;
+        }
+
+        /* ── Category Pills ── */
+        .category-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .category-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            background: var(--bg);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .category-pill:hover {
+            border-color: #7B2D45;
+            color: #7B2D45;
+        }
+
+        .category-pill.active {
+            background: rgba(123, 45, 69, 0.08);
+            border-color: #7B2D45;
+            color: #7B2D45;
+            font-weight: 600;
+        }
+
+        .category-pill svg {
+            flex-shrink: 0;
+        }
+
+        /* ── Photo Upload Zone ── */
+        .photo-upload-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 24px;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg);
+        }
+
+        .photo-upload-zone:hover {
+            border-color: #7B2D45;
+            background: rgba(123, 45, 69, 0.03);
+        }
+
+        .photo-upload-zone span {
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        /* ── Save Success Overlay ── */
+        .save-success-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(250, 246, 238, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            animation: fadeInOverlay 0.3s ease;
+        }
+
+        .save-success-overlay.hidden {
+            display: none;
+        }
+
+        .save-success-content {
+            text-align: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .save-success-check {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(123, 45, 69, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            animation: checkPulse 0.6s ease;
+        }
+
+        .save-success-content h3 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 28px;
+            color: var(--ink);
+            margin: 0 0 6px;
+        }
+
+        .save-success-content p {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        @keyframes fadeInOverlay {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes checkPulse {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        /* ── Mobile textarea / input improvements ── */
+        .form-group textarea {
+            resize: vertical;
+            min-height: 70px;
+            -webkit-appearance: none;
+        }
+
+        @media (max-width: 600px) {
+            .form-group textarea {
+                min-height: 60px;
+                font-size: 16px; /* prevents iOS zoom */
+            }
+            .form-group input,
+            .form-group select {
+                font-size: 16px; /* prevents iOS zoom */
+            }
+            .input-form-container {
+                padding: 0 16px 140px;
+            }
+            .form-section {
+                padding: 16px;
+            }
+            .category-pills {
+                gap: 6px;
+            }
+            .category-pill {
+                padding: 7px 12px;
+                font-size: 12px;
+            }
         }
 
         /* Capture form header row */

@@ -4145,11 +4145,11 @@ async function submitDiscovery(e) {
         alert('Please login first');
         return;
     }
-    
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Saving...';
 
+    // Read photo BEFORE showing success (needs to happen synchronously)
     let photoBase64 = null;
     const photoFile = document.getElementById('photo').files[0];
     if (photoFile) {
@@ -4179,26 +4179,45 @@ async function submitDiscovery(e) {
         visibility: isPrivate ? 'private' : 'friends'
     };
 
-    try {
-        const res = await fetch(CAPTURE_WEBHOOK, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+    // Show instant "Saved!" overlay immediately
+    const overlay = document.getElementById('saveSuccessOverlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('addForm').reset();
+    // Reset photo preview
+    document.getElementById('photoPreview').style.display = 'none';
+    // Reset photo upload zone visibility
+    const uploadZone = document.getElementById('photoUploadZone');
+    if (uploadZone) uploadZone.style.display = 'flex';
+    // Reset category pills to default
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
+    if (defaultPill) defaultPill.classList.add('active');
+    document.getElementById('category').value = 'place';
 
-        if (res.ok) {
-            document.getElementById('formMessage').innerHTML = '<div class="success-msg">Discovery saved!</div>';
-            document.getElementById('addForm').reset();
-            setTimeout(() => setMode('discover'), 2000);
-        } else {
-            throw new Error('Failed');
-        }
-    } catch (err) {
-        document.getElementById('formMessage').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Save Discovery';
-    }
+    btn.disabled = false;
+
+    // Navigate away after a brief moment
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        setMode('discover');
+    }, 1500);
+
+    // Send to backend in the background (fire-and-forget)
+    fetch(CAPTURE_WEBHOOK, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).catch(err => {
+        console.error('Background save failed:', err);
+        // Optionally show a subtle toast later if needed
+    });
+}
+
+// Category pill selector
+function selectCategory(el) {
+    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('category').value = el.dataset.value;
 }
 
 document.getElementById('photo').addEventListener('change', function(e) {
@@ -4208,6 +4227,8 @@ document.getElementById('photo').addEventListener('change', function(e) {
         reader.onload = (e) => {
             document.getElementById('previewImg').src = e.target.result;
             document.getElementById('photoPreview').style.display = 'block';
+            const uploadZone = document.getElementById('photoUploadZone');
+            if (uploadZone) uploadZone.style.display = 'none';
         };
         reader.readAsDataURL(file);
     }
