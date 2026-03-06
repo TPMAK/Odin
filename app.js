@@ -170,16 +170,36 @@ async function executeDeleteAccount() {
     try {
         const uid = currentUser.id;
 
-        // Delete user's data from all tables (best-effort, client-side)
+        // Anonymise knowledge_items — keep content for the community (Google Maps model).
+        // Strip identity so nothing traces back to the deleted user.
+        await supabaseClient
+            .from('knowledge_items')
+            .update({ added_by: null, added_by_name: 'Deleted User' })
+            .eq('added_by', uid);
+
+        // Remove their personal saves (endorsements were private bookmarks)
         await supabaseClient.from('endorsements').delete().eq('user_id', uid);
-        await supabaseClient.from('knowledge_items').delete().eq('added_by', uid);
+
+        // Remove from all friend circles
         await supabaseClient.from('friendships').delete().or(`user_id.eq.${uid},friend_id.eq.${uid}`);
+
+        // Clear notifications and profile
         await supabaseClient.from('notifications').delete().eq('user_id', uid);
         await supabaseClient.from('profiles').delete().eq('id', uid);
 
-        // Sign out — the auth user itself can only be deleted server-side via Admin API.
-        // We clean the data and sign out, leaving a shell auth record that can't log in
-        // (no profile, no data). For full removal, delete from Supabase Auth dashboard.
+        // Call n8n to delete the Supabase Auth record server-side.
+        // Must await BEFORE signOut() — signing out invalidates the session
+        // and the webhook would arrive with a dead token.
+        try {
+            await fetch(DELETE_ACCOUNT_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: uid })
+            });
+        } catch (webhookErr) {
+            console.warn('Auth deletion webhook failed (non-critical):', webhookErr);
+        }
+
         stopNotifPolling();
         await supabaseClient.auth.signOut();
 
@@ -192,7 +212,11 @@ async function executeDeleteAccount() {
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
 
+        // Show landing page, then display confirmation message
         showLoginScreen();
+        const overlay = document.getElementById('deleteConfirmOverlay');
+        if (overlay) overlay.style.display = 'none';
+        showToast('Your account has been deleted.', 4000);
     } catch (err) {
         console.error('Delete account error:', err);
         if (msg) { msg.textContent = 'Something went wrong. Please try again.'; msg.style.display = 'block'; }
@@ -1914,6 +1938,7 @@ const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
+const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
 
 // Minimum relevance score for a result to be shown as a real match.
 // Below this = honest "nothing found" state + suggestions instead.
@@ -3316,6 +3341,17 @@ function enterEditMode() {
             <button class="edit-save-btn" id="editSaveBtn" onclick="saveItemEdit('${item.id}')">Save Changes</button>
         </div>
         <div id="editMessage"></div>
+
+        <div class="edit-delete-zone">
+            <button class="edit-delete-btn" onclick="confirmDeleteItem('${item.id}')">Delete this item</button>
+        </div>
+        <div class="edit-delete-confirm hidden" id="deleteItemConfirm_${item.id}">
+            <p class="edit-delete-warning" id="deleteItemWarning_${item.id}">Loading...</p>
+            <div class="edit-delete-confirm-actions">
+                <button class="edit-delete-cancel-btn" onclick="cancelDeleteItem('${item.id}')">Keep it</button>
+                <button class="edit-delete-go-btn" id="deleteItemGoBtn_${item.id}" onclick="executeDeleteItem('${item.id}')">Yes, delete</button>
+            </div>
+        </div>
     </div></div>`;
 
     document.getElementById('drawerContent').innerHTML = html;
@@ -3417,6 +3453,66 @@ async function saveItemEdit(itemId) {
         document.getElementById('editMessage').innerHTML = `<div class="error-msg">Error: ${err.message}</div>`;
         btn.disabled = false;
         btn.textContent = 'Save Changes';
+    }
+}
+
+// ===== DELETE ITEM =====
+
+async function confirmDeleteItem(itemId) {
+    const confirmEl = document.getElementById(`deleteItemConfirm_${itemId}`);
+    const warningEl = document.getElementById(`deleteItemWarning_${itemId}`);
+    if (!confirmEl || !warningEl) return;
+
+    confirmEl.classList.remove('hidden');
+
+    // Count how many OTHER users have saved (endorsed) this item
+    try {
+        const { data, error } = await supabaseClient
+            .from('endorsements')
+            .select('user_id')
+            .eq('item_id', itemId)
+            .neq('user_id', currentUser.id);
+
+        const count = (!error && data) ? data.length : 0;
+        if (count > 0) {
+            warningEl.textContent = `${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} saved this. Deleting will remove it for everyone.`;
+        } else {
+            warningEl.textContent = 'No one else has saved this. It will be permanently deleted.';
+        }
+    } catch (e) {
+        warningEl.textContent = 'This will permanently delete the item for everyone.';
+    }
+}
+
+function cancelDeleteItem(itemId) {
+    const confirmEl = document.getElementById(`deleteItemConfirm_${itemId}`);
+    if (confirmEl) confirmEl.classList.add('hidden');
+}
+
+async function executeDeleteItem(itemId) {
+    const btn = document.getElementById(`deleteItemGoBtn_${itemId}`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
+
+    try {
+        // Delete all endorsements for this item first (foreign key safety)
+        await supabaseClient.from('endorsements').delete().eq('item_id', itemId);
+        // Delete the item itself
+        await supabaseClient.from('knowledge_items').delete().eq('id', itemId).eq('added_by', currentUser.id);
+
+        // Remove from local cache
+        allDiscoveries = allDiscoveries.filter(d => d.id !== itemId);
+        delete endorsementsCache[itemId];
+
+        // Close the drawer
+        closeDrawer();
+        showToast('Item deleted.');
+
+        // Refresh discover view if open
+        filterAndRender();
+    } catch (err) {
+        console.error('Delete item error:', err);
+        if (btn) { btn.disabled = false; btn.textContent = 'Yes, delete'; }
+        showToast('Could not delete. Please try again.');
     }
 }
 
