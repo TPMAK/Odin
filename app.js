@@ -183,8 +183,10 @@ async function executeDeleteAccount() {
         // Remove from all friend circles
         await supabaseClient.from('friendships').delete().or(`user_id.eq.${uid},friend_id.eq.${uid}`);
 
-        // Clear notifications and profile
+        // Clear notifications — both received (user_id) and sent (actor_id).
+        // actor_id has a FK to auth.users so both must be gone before auth deletion.
         await supabaseClient.from('notifications').delete().eq('user_id', uid);
+        await supabaseClient.from('notifications').delete().eq('actor_id', uid);
         await supabaseClient.from('profiles').delete().eq('id', uid);
 
         // Call n8n to delete the Supabase Auth record server-side.
