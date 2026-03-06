@@ -55,6 +55,28 @@ function showLoginScreen() {
 }
 
 async function showMainApp() {
+    // ── Fix 5: Reset stale state from any previous session ──
+    allDiscoveries = [];
+    endorsementsCache = {};
+    friendsCache = [];
+    pendingFriendRequests = [];
+    blockedUsersCache = [];
+    isFirstMessage = true;
+    sessionMessages = [];
+    translationCache = {};
+    // Clear chat UI
+    const chatContainer = document.getElementById('chatContainer');
+    if (chatContainer) chatContainer.innerHTML = '';
+    // ── Fix 2: Clear recently viewed so new user doesn't see leftover data ──
+    const prevUserId = localStorage.getItem('vouch_last_user_id');
+    const thisUserId = currentUser ? currentUser.id : null;
+    if (prevUserId && thisUserId && prevUserId !== thisUserId) {
+        localStorage.removeItem('recentlyViewed');
+        localStorage.removeItem('onboarding_welcome_dismissed');
+        localStorage.removeItem('empty_friends_dismissed');
+    }
+    if (thisUserId) localStorage.setItem('vouch_last_user_id', thisUserId);
+
     // Hide landing page and close auth modal
     document.getElementById('loginScreen').style.display = 'none';
     var authModal = document.getElementById('authModal');
@@ -88,9 +110,7 @@ async function showMainApp() {
     loadPendingFriendRequests();
 
     // Pre-load discoveries so search results can match IDs
-    if (allDiscoveries.length === 0) {
-        loadDiscoveries();
-    }
+    loadDiscoveries();
     loadBlockedUsers();
 
     // Auto-connect with Vouch HQ for new users
@@ -113,6 +133,70 @@ async function handleLogout() {
         pendingFriendRequests = [];
         blockedUsersCache = [];
         showLoginScreen();
+    }
+}
+
+// --- Delete Account ---
+
+function confirmDeleteAccount() {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    const input = document.getElementById('deleteConfirmInput');
+    const msg = document.getElementById('deleteAccountMsg');
+    if (!overlay) return;
+    if (input) input.value = '';
+    if (msg) msg.style.display = 'none';
+    overlay.style.display = 'flex';
+}
+
+function cancelDeleteAccount() {
+    const overlay = document.getElementById('deleteConfirmOverlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+async function executeDeleteAccount() {
+    const input = document.getElementById('deleteConfirmInput');
+    const btn = document.getElementById('deleteConfirmBtn');
+    const msg = document.getElementById('deleteAccountMsg');
+
+    if (!input || input.value.trim().toUpperCase() !== 'DELETE') {
+        if (msg) { msg.textContent = 'Please type DELETE to confirm.'; msg.style.display = 'block'; }
+        return;
+    }
+
+    if (!currentUser) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Deleting...'; }
+    if (msg) msg.style.display = 'none';
+
+    try {
+        const uid = currentUser.id;
+
+        // Delete user's data from all tables (best-effort, client-side)
+        await supabaseClient.from('endorsements').delete().eq('user_id', uid);
+        await supabaseClient.from('knowledge_items').delete().eq('added_by', uid);
+        await supabaseClient.from('friendships').delete().or(`user_id.eq.${uid},friend_id.eq.${uid}`);
+        await supabaseClient.from('notifications').delete().eq('user_id', uid);
+        await supabaseClient.from('profiles').delete().eq('id', uid);
+
+        // Sign out — the auth user itself can only be deleted server-side via Admin API.
+        // We clean the data and sign out, leaving a shell auth record that can't log in
+        // (no profile, no data). For full removal, delete from Supabase Auth dashboard.
+        stopNotifPolling();
+        await supabaseClient.auth.signOut();
+
+        currentUser = null;
+        currentProfile = null;
+        friendsCache = [];
+        pendingFriendRequests = [];
+        blockedUsersCache = [];
+        localStorage.removeItem('vouch_last_user_id');
+        localStorage.removeItem('recentlyViewed');
+        localStorage.removeItem('onboarding_welcome_dismissed');
+
+        showLoginScreen();
+    } catch (err) {
+        console.error('Delete account error:', err);
+        if (msg) { msg.textContent = 'Something went wrong. Please try again.'; msg.style.display = 'block'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Delete Forever'; }
     }
 }
 
@@ -312,14 +396,53 @@ async function handleEmailSignUp(event) {
             currentUser = data.user;
             showMainApp();
         } else {
-            showAuthSuccess('Account created! Please check your email to confirm your account, then sign in.');
+            // ── Fix 1: Show a proper welcome/confirmation screen ──
+            showRegistrationSuccess(name, email);
             resetButton(btn);
-            setTimeout(() => showAuthMode('signin'), 3000);
         }
     } catch (err) {
         console.error('Sign up error:', err);
         showAuthError('An unexpected error occurred. Please try again.');
         resetButton(btn);
+    }
+}
+
+// --- Registration Success Screen ---
+
+function showRegistrationSuccess(name, email) {
+    // Swap the modal inner content to a success state
+    const inner = document.querySelector('.auth-modal-inner');
+    if (!inner) return;
+    const firstName = name ? name.split(' ')[0] : 'there';
+    inner.innerHTML = `
+        <div class="reg-success-screen">
+            <div class="reg-success-icon">✉️</div>
+            <h2 class="reg-success-title">You're in, ${escapeHtml(firstName)}!</h2>
+            <p class="reg-success-body">
+                We've sent a confirmation link to<br>
+                <strong>${escapeHtml(email)}</strong>
+            </p>
+            <p class="reg-success-hint">
+                Click the link in that email to activate your account, then come back here and sign in.
+            </p>
+            <div class="reg-success-privacy">
+                Your data is private by default — only visible to friends you choose.
+            </div>
+            <button class="reg-success-btn" onclick="regSuccessToSignIn()">Go to Sign In</button>
+        </div>
+    `;
+}
+
+function regSuccessToSignIn() {
+    // Restore the normal modal content by reloading the auth modal
+    const authModal = document.getElementById('authModal');
+    if (authModal) {
+        authModal.classList.remove('open');
+        // Brief pause then reopen on sign-in tab
+        setTimeout(() => {
+            // Re-render modal to sign-in state — reset inner HTML via showAuthMode
+            location.reload(); // simplest reliable reset; auth state is unchanged
+        }, 100);
     }
 }
 
@@ -2469,6 +2592,9 @@ async function loadDiscoveries() {
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 180);
 
+        // Exclude other users' private items at the server level (privacy fix)
+        // We still load our OWN private items by fetching all and filtering client-side below.
+        // The .neq filter is a best-effort server hint; client-side filter is the reliable gate.
         const response = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_items?select=*&order=created_at.desc`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });

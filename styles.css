@@ -289,7 +289,12 @@
         .home-page {
             max-width: 600px;
             margin: 0 auto;
-            padding: 16px 24px 40px;
+            padding: 16px 16px 40px;   /* Fix 7: was 24px, reduced to prevent left cut-off on small screens */
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 480px) {
+            .home-page { padding: 16px 20px 40px; }
         }
 
         @media (min-width: 768px) {
@@ -646,24 +651,24 @@
             touch-action: pan-x;
             /* bleed to page edge on mobile — padding is ignored by iOS Safari
                on overflow flex containers, so we use ::before / ::after instead */
-            margin: 0 -24px;
+            margin: 0 -16px;   /* Fix 7: was -24px, now matches new 16px home-page padding */
             padding-left: 0;
             padding-right: 0;
         }
 
-        /* Left spacer: 24px inset minus 12px gap = 12px */
+        /* Left spacer: 16px inset minus 12px gap = 4px */
         .home-feed-scroll::before {
             content: '';
             flex-shrink: 0;
-            width: 12px;
+            width: 4px;
             min-height: 1px;
         }
 
-        /* Right spacer: 24px desired inset minus 12px gap = 12px */
+        /* Right spacer: 16px desired inset minus 12px gap = 4px */
         .home-feed-scroll::after {
             content: '';
             flex-shrink: 0;
-            width: 12px;
+            width: 4px;
             min-height: 1px;
         }
 
@@ -970,7 +975,7 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             padding-bottom: 4px;
-            margin: 0 -24px;
+            margin: 0 -16px;   /* Fix 7: match new 16px home-page padding */
             padding-left: 0;
             padding-right: 0;
         }
@@ -4333,6 +4338,146 @@
     background: #fef2f2;
     border-color: #dc2626;
 }
+
+/* ── Danger Zone ── */
+.danger-zone {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid #fca5a5;
+    border-radius: 12px;
+    background: #fff5f5;
+}
+
+.danger-zone-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #dc2626;
+    margin-bottom: 8px;
+}
+
+.danger-zone-desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+
+.delete-account-btn {
+    width: 100%;
+    padding: 11px;
+    background: transparent;
+    color: #dc2626;
+    border: 1px solid #fca5a5;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.delete-account-btn:hover {
+    background: #fef2f2;
+    border-color: #dc2626;
+}
+
+/* ── Delete confirmation overlay ── */
+.delete-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.delete-confirm-box {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+}
+
+.delete-confirm-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #dc2626;
+    margin-bottom: 12px;
+}
+
+.delete-confirm-body {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.delete-confirm-input {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+
+.delete-confirm-input:focus {
+    border-color: #dc2626;
+}
+
+.delete-account-msg {
+    font-size: 13px;
+    margin-top: 8px;
+    color: #dc2626;
+}
+
+.delete-confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.delete-confirm-cancel {
+    flex: 1;
+    padding: 12px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    color: #374151;
+    transition: background 0.2s;
+}
+
+.delete-confirm-cancel:hover { background: #e5e7eb; }
+
+.delete-confirm-go {
+    flex: 1;
+    padding: 12px;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.delete-confirm-go:hover { background: #b91c1c; }
+.delete-confirm-go:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ========================================
    REACTION BUTTON - Card photo overlay (🙌)
