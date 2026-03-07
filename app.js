@@ -2192,27 +2192,21 @@ function switchDiscoverView(view) {
         // Set explicit pixel height so Leaflet works on all browsers incl. iOS Safari
         setMapScreenHeight();
 
-        if (!discoverMapInitialized) {
-            // iOS Safari needs more time for layout to settle before Leaflet reads sizes
-            var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-            var delay = isIOS ? 400 : 100;
-            setTimeout(function() {
-                setMapScreenHeight();
-                initDiscoverMap();
-                // Multiple invalidateSize calls at increasing intervals for iOS
-                if (isIOS) {
-                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 400);
-                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 900);
-                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 1500);
-                } else {
-                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
-                }
-            }, delay);
-            discoverMapInitialized = true;
-        } else if (discoverMap) {
-            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 150);
-            setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
-        }
+        // Always re-init the map to ensure it renders correctly
+        // (previously used a flag that could get stale)
+        var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        var delay = isIOS ? 400 : 150;
+        setTimeout(function() {
+            setMapScreenHeight();
+            initDiscoverMap();
+            // Multiple invalidateSize calls at increasing intervals
+            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 300);
+            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 700);
+            if (isIOS) {
+                setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 1500);
+            }
+        }, delay);
+        discoverMapInitialized = true;
     }
 }
 
