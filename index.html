@@ -242,18 +242,90 @@
             text-align: center; margin-top: 20px;
             opacity: 0.6;
         }
+        /* ── MOBILE: full dark screen + bottom sheet ── */
         @media (max-width: 780px) {
-            #loginScreen { overflow-y: auto; }
-            #loginScreen .ls-layout { flex-direction: column; height: auto; min-height: 100dvh; }
-            #loginScreen .ls-left { padding: 52px 28px 40px; }
+            #loginScreen { overflow: hidden; }
+            #loginScreen .ls-layout { height: 100dvh; }
+            #loginScreen .ls-left { padding: 52px 32px 160px; }
             #loginScreen .ls-left-inner { max-width: 100%; }
-            #loginScreen .ls-headline { font-size: 32px; }
-            #loginScreen .ls-right {
-                width: 100%; border-left: none;
-                border-top: 1px solid rgba(221,208,184,0.08);
-                padding: 40px 28px 52px;
-            }
+            #loginScreen .ls-headline { font-size: 36px; }
+            #loginScreen .ls-right { display: none; }
         }
+
+        /* ── Mobile CTA bar (hidden on desktop) ── */
+        .ls-mobile-cta { display: none; }
+        @media (max-width: 780px) {
+            .ls-mobile-cta {
+                display: block;
+                position: fixed;
+                bottom: 0; left: 0; right: 0;
+                padding: 32px 24px 44px;
+                background: linear-gradient(to top, #1A100A 60%, transparent);
+                z-index: 510;
+                pointer-events: none;
+            }
+            .ls-mobile-cta > * { pointer-events: all; }
+            .ls-mcta-primary {
+                width: 100%;
+                background: var(--wb);
+                color: var(--bg);
+                border: none; border-radius: 14px;
+                padding: 17px;
+                font-family: 'Inter', sans-serif;
+                font-size: 16px; font-weight: 600;
+                cursor: pointer; margin-bottom: 12px;
+                box-shadow: 0 4px 20px rgba(123,45,69,0.45);
+                transition: opacity 0.15s;
+            }
+            .ls-mcta-primary:active { opacity: 0.85; }
+            .ls-mcta-secondary {
+                display: block; width: 100%;
+                background: none; border: none;
+                text-align: center;
+                font-size: 14px; color: rgba(221,208,184,0.5);
+                font-family: 'Inter', sans-serif;
+                cursor: pointer; padding: 4px;
+                letter-spacing: 0.01em;
+            }
+            .ls-mcta-secondary b { color: rgba(221,208,184,0.82); font-weight: 500; }
+        }
+
+        /* ── Bottom sheet ── */
+        .ls-sheet-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 590;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .ls-sheet {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: var(--bg);
+            border-radius: 24px 24px 0 0;
+            padding: 0 28px 48px;
+            transform: translateY(105%);
+            transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 600;
+            max-height: 88dvh;
+            overflow-y: auto;
+        }
+        @media (max-width: 780px) {
+            .ls-sheet-backdrop { display: block; }
+            .ls-sheet { display: block; }
+        }
+        .ls-sheet-backdrop.open { opacity: 1; pointer-events: all; }
+        .ls-sheet.open { transform: translateY(0); }
+        .ls-drag-handle {
+            width: 36px; height: 4px;
+            background: rgba(42,30,20,0.12);
+            border-radius: 2px;
+            margin: 14px auto 28px;
+        }
+        .ls-sheet-inner { max-width: 340px; margin: 0 auto; }
 
 /* ── AUTH MODAL ── */
         #authModal {
@@ -506,8 +578,52 @@
                 </div>
             </div>
 
+        </div><!-- /ls-layout -->
+
+        <!-- ── Mobile CTA bar ── -->
+        <div class="ls-mobile-cta">
+            <button class="ls-mcta-primary" onclick="lsOpenSheet('signup')">Get Started — it's free</button>
+            <button class="ls-mcta-secondary" onclick="lsOpenSheet('signin')">Already have an account? <b>Sign in</b></button>
         </div>
-    </div>
+
+        <!-- ── Sheet backdrop ── -->
+        <div class="ls-sheet-backdrop" id="lsBackdrop" onclick="lsCloseSheet()"></div>
+
+        <!-- ── Bottom sheet — auth ── -->
+        <div class="ls-sheet" id="lsSheet">
+            <div class="ls-drag-handle"></div>
+            <div class="ls-sheet-inner">
+                <h2 class="ls-auth-title" id="lsSheetTitle">Join Vouch free.</h2>
+                <p class="ls-auth-sub" id="lsSheetSub">Your circle is already keeping track of the good stuff. Get in.</p>
+
+                <button class="ls-btn-google" onclick="handleGoogleLogin()">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+                        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                    </svg>
+                    Continue with Google
+                </button>
+
+                <div class="ls-divider">
+                    <div class="ls-divider-line"></div>
+                    <span class="ls-divider-text">or</span>
+                    <div class="ls-divider-line"></div>
+                </div>
+
+                <button class="ls-btn-email" id="lsSheetEmailBtn" onclick="openAuthModal('create')">Create account with email</button>
+
+                <div class="ls-signin-row">
+                    <p id="lsSheetSigninLabel">Already have an account?</p>
+                    <button class="ls-btn-signin" id="lsSheetSigninBtn" onclick="openAuthModal('signin')">Sign in</button>
+                </div>
+
+                <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.<br>No credit card required.</p>
+            </div>
+        </div>
+
+    </div><!-- /#loginScreen -->
 <!-- ══════════════════════════════════════════
          AUTH MODAL (overlays landing page)
     ══════════════════════════════════════════ -->
@@ -1491,6 +1607,41 @@
         setMode(prev || 'home');
     }
 
+    // ===== LANDING PAGE — Mobile bottom sheet =====
+    function lsOpenSheet(mode) {
+        var sheet    = document.getElementById('lsSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        var title    = document.getElementById('lsSheetTitle');
+        var sub      = document.getElementById('lsSheetSub');
+        var emailBtn = document.getElementById('lsSheetEmailBtn');
+        var signinLabel = document.getElementById('lsSheetSigninLabel');
+        var signinBtn   = document.getElementById('lsSheetSigninBtn');
+        if (!sheet) return;
+        if (mode === 'signin') {
+            title.textContent    = 'Welcome back.';
+            sub.textContent      = 'Sign in to see what your circle is saving.';
+            emailBtn.textContent = 'Sign in with email';
+            emailBtn.onclick     = function(){ lsCloseSheet(); openAuthModal('signin'); };
+            signinLabel.style.display = 'none';
+            signinBtn.style.display   = 'none';
+        } else {
+            title.textContent    = 'Join Vouch free.';
+            sub.textContent      = 'Your circle is already keeping track of the good stuff. Get in.';
+            emailBtn.textContent = 'Create account with email';
+            emailBtn.onclick     = function(){ lsCloseSheet(); openAuthModal('create'); };
+            signinLabel.style.display = '';
+            signinBtn.style.display   = '';
+        }
+        sheet.classList.add('open');
+        backdrop.classList.add('open');
+    }
+    function lsCloseSheet() {
+        var sheet    = document.getElementById('lsSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        if (sheet)    sheet.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
         var lsIds  = ['lsh0','lsh1','lsh2','lsh3'];
@@ -1515,6 +1666,7 @@
     // ===== AUTH MODAL (landing page) =====
 
     function openAuthModal(mode) {
+        lsCloseSheet();
         var modal = document.getElementById('authModal');
         if (!modal) return;
         modal.classList.add('open');
