@@ -133,6 +133,10 @@ async function handleLogout() {
         friendsCache = [];
         pendingFriendRequests = [];
         blockedUsersCache = [];
+        // Privacy: wipe ALL client state on logout.
+        // localStorage is a shared unprotected store — clear it completely
+        // so nothing from this session survives to the next user of this browser.
+        localStorage.clear();
         showLoginScreen();
     }
 }
@@ -211,9 +215,7 @@ async function executeDeleteAccount() {
         friendsCache = [];
         pendingFriendRequests = [];
         blockedUsersCache = [];
-        localStorage.removeItem('vouch_last_user_id');
-        localStorage.removeItem('recentlyViewed');
-        localStorage.removeItem('onboarding_welcome_dismissed');
+        localStorage.clear();
 
         // Show landing page, then display confirmation message
         showLoginScreen();
