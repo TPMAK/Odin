@@ -665,11 +665,7 @@
                 <div class="ls-auth-card">
 
                     <h2 class="ls-auth-title">Join Vouch free.</h2>
-                    <p class="ls-auth-sub">Takes 30 seconds. Invite your circle after.</p>
-
-                    <div class="ls-onboard-hint">
-                        The pilot circle's been busy. Join to see what they've saved.
-                    </div>
+                    <p class="ls-auth-sub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                     <button class="ls-btn-google" onclick="handleGoogleLogin()">
                         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -680,7 +676,6 @@
                         </svg>
                         Continue with Google
                     </button>
-                    <p class="ls-google-trust">Free forever &middot; No credit card needed</p>
 
                     <div class="ls-divider">
                         <div class="ls-divider-line"></div>
@@ -716,11 +711,7 @@
             <div class="ls-drag-handle"></div>
             <div class="ls-sheet-inner">
                 <h2 class="ls-auth-title" id="lsSheetTitle">Join Vouch free.</h2>
-                <p class="ls-auth-sub" id="lsSheetSub">Takes 30 seconds. Invite your circle after.</p>
-
-                <div class="ls-onboard-hint">
-                    The pilot circle's been busy. Join to see what they've saved.
-                </div>
+                <p class="ls-auth-sub" id="lsSheetSub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                 <button class="ls-btn-google" onclick="handleGoogleLogin()">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -731,7 +722,6 @@
                     </svg>
                     Continue with Google
                 </button>
-                <p class="ls-google-trust">Free forever &middot; No credit card needed</p>
 
                 <div class="ls-divider">
                     <div class="ls-divider-line"></div>
@@ -1755,7 +1745,7 @@
             if (hint) hint.style.display = 'none';
         } else {
             title.textContent    = 'Join Vouch free.';
-            sub.textContent      = 'Takes 30 seconds. The pilot circle\u2019s already in there.';
+            sub.textContent      = 'The pilot circle\u2019s been busy. Join to see what they\u2019ve saved.';
             emailBtn.textContent = 'Create account with email';
             if (hint) hint.style.display = '';
             emailBtn.onclick     = function(){ lsCloseSheet(); openAuthModal('create'); };
