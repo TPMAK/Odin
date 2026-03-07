@@ -2053,6 +2053,143 @@
             background: #F5EDE8;
         }
 
+        /* ── Search page: Browse by type tiles ── */
+        .search-section-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 12px;
+        }
+        .search-browse { margin-bottom: 28px; }
+        .search-browse-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        @media (max-width: 480px) {
+            .search-browse-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        .sbrowse-tile {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 9px;
+            padding: 16px 10px 14px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+        }
+        .sbrowse-tile:hover {
+            border-color: #7B2D45;
+            background: rgba(123,45,69,0.03);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(123,45,69,0.1);
+        }
+        .sbrowse-tile:active { transform: translateY(0); }
+        .sbrowse-icon {
+            width: 42px; height: 42px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sbrowse-place   { background: rgba(123,45,69,0.09);  color: #7B2D45; }
+        .sbrowse-product { background: rgba(180,120,40,0.10); color: #A0622A; }
+        .sbrowse-service { background: rgba(45,90,160,0.10);  color: #2D5AA0; }
+        .sbrowse-advice  { background: rgba(40,140,90,0.10);  color: #288C5A; }
+        .sbrowse-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ink);
+            letter-spacing: 0.01em;
+        }
+        .search-suggestions { margin-bottom: 8px; }
+
+        /* ── Search results filter bar ── */
+        .srb {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .srb-inner {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        @media (min-width: 768px) { .srb-inner { padding: 8px 28px; } }
+        .srb-chips {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            flex: 1;
+        }
+        .srb-chips::-webkit-scrollbar { display: none; }
+        .srb-chip {
+            flex-shrink: 0;
+            padding: 5px 14px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px; font-weight: 500;
+            color: #6A5A4A;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .srb-chip:hover { border-color: #7B2D45; color: #7B2D45; }
+        .srb-chip.active { background: #7B2D45; border-color: #7B2D45; color: #FAF6EE; font-weight: 600; }
+        .srb-chip.active:hover { background: #5A1F30; }
+        .srb-map-btn {
+            flex-shrink: 0;
+            display: flex; align-items: center; gap: 6px;
+            padding: 5px 12px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 12px; font-weight: 500;
+            color: #6A5A4A;
+            cursor: pointer;
+            transition: all 0.18s;
+            white-space: nowrap;
+        }
+        .srb-map-btn:hover { border-color: #7B2D45; color: #7B2D45; }
+        .srb-map-btn.active { background: #7B2D45; border-color: #7B2D45; color: #FAF6EE; }
+
+        /* ── Search results map ── */
+        .srb-map-wrap {
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        #srbMapEl {
+            width: 100%;
+            height: 360px;
+        }
+        @media (min-width: 768px) { #srbMapEl { height: 420px; } }
+
+        /* ── Empty filter state ── */
+        .srb-no-results {
+            text-align: center;
+            padding: 32px 20px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+        .srb-no-results strong {
+            display: block;
+            font-size: 16px;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
         .message {
             margin-bottom: 24px;
             animation: fadeIn 0.3s;

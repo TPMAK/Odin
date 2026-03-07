@@ -3658,6 +3658,126 @@ function stopSearchMessages() {
     }
 }
 
+// ── Search results: module-scope helpers for filter/map ──
+
+function _srFormatDist(km) {
+    if (!km) return '';
+    return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
+}
+
+function _srBuildTopPick(r, idx) {
+    const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
+    const rawNote = typeof getPersonalNoteGlobal === 'function' ? getPersonalNoteGlobal(r) : '';
+    const canSeeNote = rawNote && typeof isFriend === 'function' && isFriend(r.added_by || r.added_by_name);
+    const distText = _srFormatDist(r.distance_km);
+    const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
+    const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
+    return `
+        <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
+            <span class="top-pick-badge">Top Pick</span>
+            <div class="top-pick-photo">${photo}</div>
+            <div class="top-pick-content">
+                <div class="top-pick-title">${escapeHtml(r.title)}</div>
+                <div class="top-pick-meta">
+                    ${distText ? `<span class="meta-tag meta-distance">📍 ${distText}</span>` : ''}
+                    ${r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : ''}
+                </div>
+                ${snippet ? `<div class="top-pick-reason"><div class="top-pick-reason-label">${snippetLabel}</div>${escapeHtml(snippet).substring(0,100)}${snippet.length>100?'...':''}</div>` : ''}
+            </div>
+        </div>`;
+}
+
+function _srBuildCompactCard(r, idx) {
+    const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span class="compact-photo-placeholder">📍</span>';
+    const rawNote = typeof getPersonalNoteGlobal === 'function' ? getPersonalNoteGlobal(r) : '';
+    const canSeeNote = rawNote && typeof isFriend === 'function' && isFriend(r.added_by);
+    const distText = _srFormatDist(r.distance_km);
+    const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
+    const snippetIcon = canSeeNote ? '💭' : '';
+    return `
+        <div class="compact-card" onclick="showSearchDrawer(${idx})">
+            <div class="compact-photo">${photo}</div>
+            <div class="compact-title">${escapeHtml(r.title)}</div>
+            <div class="compact-meta">
+                ${distText ? `<span>📍 ${distText}</span>` : ''}
+                ${r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : ''}
+            </div>
+            ${snippet ? `<div class="compact-snippet">${snippetIcon?snippetIcon+' ':''}${escapeHtml(snippet).substring(0,60)}${snippet.length>60?'...':''}</div>` : ''}
+        </div>`;
+}
+
+function _srBuildResultsHTML(results) {
+    if (!results || results.length === 0) {
+        return '<div class="srb-no-results"><strong>Nothing here</strong>No results of this type in this search.</div>';
+    }
+    const topCount = results.length === 1 ? 1 : Math.min(2, results.length);
+    let html = '<div class="top-picks-section"><div class="results-header"><span class="results-header-title">Top Picks For You</span></div>';
+    for (let i = 0; i < topCount; i++) html += _srBuildTopPick(results[i], i);
+    html += '</div>';
+    const more = results.slice(topCount);
+    if (more.length > 0) {
+        const scrollId = 'moreScroll_' + Date.now();
+        html += `<div class="more-options-section"><div class="results-header"><span class="results-header-title">More Great Options</span><span class="results-header-count">${more.length} more</span></div><div class="more-options-wrapper"><button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="more-options-scroll" id="${scrollId}">`;
+        more.forEach((r, i) => { html += _srBuildCompactCard(r, i + topCount); });
+        html += `</div><button class="scroll-arrow scroll-arrow-right" onclick="scrollMoreOptions('${scrollId}',1)" aria-label="Scroll right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>`;
+    }
+    return html;
+}
+
+function rebuildSearchResults(results) {
+    var container = document.getElementById('chatContainer');
+    if (!container) return;
+    var section = container.querySelector('.results-section');
+    if (!section) return;
+    section.innerHTML = _srBuildResultsHTML(results);
+    var moreScroll = section.querySelector('.more-options-scroll');
+    if (moreScroll && moreScroll.id) {
+        setTimeout(function() { if (typeof updateScrollArrows === 'function') updateScrollArrows(moreScroll.id); }, 150);
+        moreScroll.addEventListener('scroll', function() { if (typeof updateScrollArrows === 'function') updateScrollArrows(moreScroll.id); });
+    }
+}
+
+function filterSearchByType(el, type) {
+    document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) { c.classList.remove('active'); });
+    el.classList.add('active');
+    var filtered = type === 'all' ? currentResults : currentResults.filter(function(r) { return r.type === type; });
+    rebuildSearchResults(filtered);
+}
+
+var _srbMapActive = false;
+function toggleSrbMap() {
+    var mapWrap  = document.getElementById('srbMapWrap');
+    var chatCont = document.getElementById('chatContainer');
+    var mapBtn   = document.getElementById('srbMapBtn');
+    if (!mapWrap) return;
+    _srbMapActive = !_srbMapActive;
+    mapWrap.style.display  = _srbMapActive ? 'block' : 'none';
+    chatCont.style.display = _srbMapActive ? 'none'  : '';
+    if (mapBtn) mapBtn.classList.toggle('active', _srbMapActive);
+    if (_srbMapActive) {
+        var mapEl = document.getElementById('srbMapEl');
+        if (mapEl) {
+            mapEl.innerHTML = '';
+            setTimeout(function() { initSearchMap('srbMapEl', currentResults); }, 60);
+        }
+    }
+}
+
+function _srbReset() {
+    _srbMapActive = false;
+    var mapWrap  = document.getElementById('srbMapWrap');
+    var chatCont = document.getElementById('chatContainer');
+    var mapBtn   = document.getElementById('srbMapBtn');
+    var srb      = document.getElementById('searchResultsBar');
+    if (mapWrap)  mapWrap.style.display  = 'none';
+    if (chatCont) chatCont.style.display = '';
+    if (mapBtn)   mapBtn.classList.remove('active');
+    if (srb)      srb.style.display      = 'none';
+    document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) {
+        c.classList.toggle('active', c.dataset.type === 'all');
+    });
+}
+
 function sendMessage(text) {
     const input = document.getElementById('messageInput');
     const query = text || input.value.trim();
@@ -3870,6 +3990,20 @@ function sendMessage(text) {
                 html += '</div></div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
+
+                // ── Show search results bar & reset filter chips ──
+                var srb = document.getElementById('searchResultsBar');
+                if (srb) srb.style.display = '';
+                document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) {
+                    c.classList.toggle('active', c.dataset.type === 'all');
+                });
+                // Ensure map is hidden and chat is visible
+                var mapWrap = document.getElementById('srbMapWrap');
+                if (mapWrap) mapWrap.style.display = 'none';
+                var mapBtn = document.getElementById('srbMapBtn');
+                if (mapBtn) mapBtn.classList.remove('active');
+                _srbMapActive = false;
+
                 var moreScroll = container.querySelector('.more-options-scroll');
                 if (moreScroll && moreScroll.id) {
                     setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
@@ -4081,20 +4215,14 @@ function startNewSession() {
     sessionMessages = [];
 
     const container = document.getElementById('chatContainer');
-    container.innerHTML = `
-        <div class="welcome">
-            <h2>What are you looking for?</h2>
-            <p>Search your friends' best discoveries</p>
-            <div class="suggestions">
-                <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
-                <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
-                <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
-                <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
-                <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
-                <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
-            </div>
-        </div>
-    `;
+
+    // Surgically remove message divs — preserves the static .welcome DOM
+    container.querySelectorAll('.message').forEach(function(m) { m.remove(); });
+    const welcome = container.querySelector('.welcome');
+    if (welcome) welcome.style.display = '';
+
+    // Reset results bar, map, and filter state
+    _srbReset();
 
     isFirstMessage = true;
     currentResults = [];

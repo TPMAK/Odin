@@ -1038,19 +1038,78 @@
                 <span class="search-header-title"></span>
                 <div style="width:32px;"></div>
             </div>
+
+            <!-- Results filter bar — shown once search returns results -->
+            <div id="searchResultsBar" class="srb" style="display:none;">
+                <div class="srb-inner">
+                    <div class="srb-chips" id="srbChips">
+                        <button class="srb-chip active" data-type="all"     onclick="filterSearchByType(this,'all')">All</button>
+                        <button class="srb-chip"        data-type="place"   onclick="filterSearchByType(this,'place')">Places</button>
+                        <button class="srb-chip"        data-type="product" onclick="filterSearchByType(this,'product')">Products</button>
+                        <button class="srb-chip"        data-type="service" onclick="filterSearchByType(this,'service')">Services</button>
+                        <button class="srb-chip"        data-type="advice"  onclick="filterSearchByType(this,'advice')">Advice</button>
+                    </div>
+                    <button class="srb-map-btn" id="srbMapBtn" onclick="toggleSrbMap()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                        Map
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map view for search results — toggled by Map button -->
+            <div id="srbMapWrap" class="srb-map-wrap" style="display:none;">
+                <div id="srbMapEl"></div>
+            </div>
+
             <div class="chat-container" id="chatContainer">
                 <div class="welcome">
                     <div class="search-greeting">
                         <h1 id="searchGreeting"></h1>
                         <p id="searchGreetingSub"></p>
                     </div>
-                    <div class="suggestions">
-                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
-                        <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
-                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
+
+                    <!-- Browse by type -->
+                    <div class="search-browse">
+                        <p class="search-section-label">Browse by type</p>
+                        <div class="search-browse-grid">
+                            <button class="sbrowse-tile" onclick="sendMessage('show me the best places my friends have saved')">
+                                <div class="sbrowse-icon sbrowse-place">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <span class="sbrowse-label">Places</span>
+                            </button>
+                            <button class="sbrowse-tile" onclick="sendMessage('product recommendations from my friends')">
+                                <div class="sbrowse-icon sbrowse-product">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                                </div>
+                                <span class="sbrowse-label">Products</span>
+                            </button>
+                            <button class="sbrowse-tile" onclick="sendMessage('services my friends recommend')">
+                                <div class="sbrowse-icon sbrowse-service">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                                </div>
+                                <span class="sbrowse-label">Services</span>
+                            </button>
+                            <button class="sbrowse-tile" onclick="sendMessage('advice and tips from my circle')">
+                                <div class="sbrowse-icon sbrowse-advice">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <span class="sbrowse-label">Advice</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Try asking -->
+                    <div class="search-suggestions">
+                        <p class="search-section-label">Try asking</p>
+                        <div class="suggestions">
+                            <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
+                            <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
+                            <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
+                            <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
+                            <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
+                            <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
+                        </div>
                     </div>
                 </div>
             </div>
