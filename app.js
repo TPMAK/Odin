@@ -64,9 +64,13 @@ async function showMainApp() {
     isFirstMessage = true;
     sessionMessages = [];
     translationCache = {};
-    // Clear chat UI
+    // Clear chat UI — remove dynamic messages only; preserve the static .welcome div
     const chatContainer = document.getElementById('chatContainer');
-    if (chatContainer) chatContainer.innerHTML = '';
+    if (chatContainer) {
+        chatContainer.querySelectorAll('.message').forEach(m => m.remove());
+        const welcome = chatContainer.querySelector('.welcome');
+        if (welcome) welcome.style.display = '';
+    }
     // Clear recently viewed and onboarding state whenever the user changes
     // (includes new registrations where prevUserId is null)
     const prevUserId = localStorage.getItem('vouch_last_user_id');
@@ -3663,7 +3667,8 @@ function sendMessage(text) {
     translationCache = {};
 
     if (isFirstMessage) {
-        document.querySelector('.welcome').style.display = 'none';
+        const welcomeEl = document.querySelector('#chatContainer .welcome');
+        if (welcomeEl) welcomeEl.style.display = 'none';
         isFirstMessage = false;
     }
 
