@@ -427,6 +427,8 @@
             padding: 36px 32px 28px;
             width: 100%;
             max-width: 420px;
+            max-height: 92dvh;
+            overflow-y: auto;
             position: relative;
             box-shadow: 0 20px 60px rgba(0,0,0,0.2);
             animation: modalSlideUp 0.28s cubic-bezier(0.4,0,0.2,1);
@@ -587,7 +589,19 @@
             .lp-cta-title { font-size: 32px; }
             .lp-cta-subtitle { font-size: 16px; margin-bottom: 32px; }
             .lp-cta-primary { width: 100%; padding: 18px 40px; }
-            .auth-modal-inner { padding: 28px 20px 24px; }
+            /* Auth modal — compact on mobile */
+            #authModal { align-items: flex-end; padding: 0; }
+            .auth-modal-inner {
+                padding: 24px 20px 32px;
+                border-radius: 24px 24px 0 0;
+                max-height: 94dvh;
+                animation: modalSlideUp 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+            }
+            /* hide tagline — save vertical space */
+            .auth-modal-brandline { display: none; }
+            /* tighter brand block */
+            .auth-modal-brand { margin-bottom: 16px; }
+            .auth-modal-title { font-size: 22px; }
         }
     </style>
 </head>

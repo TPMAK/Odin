@@ -4716,6 +4716,83 @@
     cursor: not-allowed;
 }
 
+/* ── Delete item zone (inside edit form) ── */
+.edit-delete-zone {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.edit-delete-btn {
+    background: none;
+    border: none;
+    color: #dc2626;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 4px 8px;
+    text-decoration: underline;
+    opacity: 0.8;
+    transition: opacity 0.15s;
+}
+
+.edit-delete-btn:hover { opacity: 1; }
+
+.edit-delete-confirm {
+    margin-top: 14px;
+    background: #fff5f5;
+    border: 1px solid #fca5a5;
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.edit-delete-warning {
+    font-size: 13px;
+    color: #374151;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.edit-delete-confirm-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-delete-cancel-btn {
+    flex: 1;
+    padding: 10px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    color: #374151;
+    transition: background 0.2s;
+}
+
+.edit-delete-cancel-btn:hover { background: #e5e7eb; }
+
+.edit-delete-go-btn {
+    flex: 1;
+    padding: 10px;
+    background: #dc2626;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+}
+
+.edit-delete-go-btn:hover { background: #b91c1c; }
+.edit-delete-go-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* Note edit inline */
 .note-edit {
     background: none;
@@ -7475,3 +7552,13 @@ body.map-view-open .content {
     transition: opacity 0.2s ease;
 }
 
+
+/* ── Auth form — compact on mobile ── */
+@media (max-width: 780px) {
+    .auth-form { gap: 12px; }
+    .auth-field { gap: 4px; }
+    .auth-field label { font-size: 12px; }
+    .auth-field input { padding: 10px 12px; font-size: 14px; }
+    .auth-btn-primary { padding: 12px 16px; font-size: 14px; margin-top: 2px; }
+    .auth-btn-google { padding: 11px 16px; font-size: 14px; }
+}
