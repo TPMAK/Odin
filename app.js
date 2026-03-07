@@ -186,7 +186,7 @@ async function executeDeleteAccount() {
         await supabaseClient.from('endorsements').delete().eq('user_id', uid);
 
         // Remove from all friend circles
-        await supabaseClient.from('friendships').delete().or(`user_id.eq.${uid},friend_id.eq.${uid}`);
+        await supabaseClient.from('friendships').delete().or(`requester_id.eq.${uid},receiver_id.eq.${uid}`);
 
         // Clear notifications — both received (user_id) and sent (actor_id).
         // actor_id has a FK to auth.users so both must be gone before auth deletion.
@@ -552,12 +552,21 @@ async function loadUserProfile() {
             .single();
 
         if (error && error.code === 'PGRST116') {
-            // Profile doesn't exist yet, create it
+            // No profile row = fresh account (or auth user survived a prior deletion).
+            // Scrub ALL residual data for this UUID so the new session starts clean.
+            const uid = currentUser.id;
+            await Promise.all([
+                supabaseClient.from('notifications').delete().eq('user_id', uid),
+                supabaseClient.from('notifications').delete().eq('actor_id', uid),
+                supabaseClient.from('friendships').delete().or(`requester_id.eq.${uid},receiver_id.eq.${uid}`),
+                supabaseClient.from('endorsements').delete().eq('user_id', uid)
+            ]);
+
             const fallbackName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User';
-            const { data: newProfile } = await supabaseClient
+            const { data: newProfile, error: insertError } = await supabaseClient
                 .from('profiles')
                 .insert({
-                    id: currentUser.id,
+                    id: uid,
                     email: currentUser.email,
                     name: fallbackName,
                     display_name: fallbackName,
@@ -567,12 +576,35 @@ async function loadUserProfile() {
                 })
                 .select()
                 .single();
-            currentProfile = newProfile;
+
+            if (newProfile) {
+                currentProfile = newProfile;
+            } else {
+                // Insert failed — use a minimal in-memory profile so the UI
+                // doesn't stay frozen on "Loading..."
+                console.warn('Profile insert failed:', insertError);
+                currentProfile = {
+                    id: uid,
+                    email: currentUser.email,
+                    display_name: fallbackName,
+                    name: fallbackName,
+                    avatar_url: currentUser.user_metadata?.avatar_url || null
+                };
+            }
         } else if (data) {
             currentProfile = data;
         }
     } catch (err) {
         console.error('Error loading profile:', err);
+        // Last-resort fallback so the UI never stays on "Loading..."
+        if (!currentProfile && currentUser) {
+            currentProfile = {
+                id: currentUser.id,
+                email: currentUser.email,
+                display_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+                name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User'
+            };
+        }
     }
 }
 
@@ -589,7 +621,10 @@ function toggleProfileEdit(show) {
 }
 
 async function loadProfilePage() {
-    if (!currentUser || !currentProfile) return;
+    if (!currentUser) return;
+    // If profile still not loaded, try once more before giving up
+    if (!currentProfile) await loadUserProfile();
+    if (!currentProfile) return;
 
     // Load notifications list first, then mark as read
     await loadNotifications();
