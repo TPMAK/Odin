@@ -174,46 +174,55 @@
             font-weight: 300; line-height: 1.6;
             margin-bottom: 28px;
         }
+        /* Google is now the primary CTA */
         #loginScreen .ls-btn-google {
             width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 10px;
             background: var(--lp-surface);
-            border: 1.5px solid var(--border);
+            border: 1.5px solid #dadce0;
             border-radius: 10px;
-            padding: 13px 20px;
+            padding: 15px 20px;
             font-family: 'Inter', sans-serif;
-            font-size: 14px; font-weight: 600;
+            font-size: 15px; font-weight: 600;
             color: var(--ink);
             cursor: pointer; transition: all 0.2s;
-            margin-bottom: 18px;
-            box-shadow: 0 1px 4px rgba(42,30,20,0.06);
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(42,30,20,0.08);
         }
         #loginScreen .ls-btn-google:hover {
             border-color: #aaa;
-            box-shadow: 0 3px 12px rgba(42,30,20,0.1);
+            box-shadow: 0 4px 16px rgba(42,30,20,0.13);
             transform: translateY(-1px);
+        }
+        /* "No credit card required" badge under Google */
+        #loginScreen .ls-google-trust {
+            text-align: center;
+            font-size: 11px; color: var(--muted);
+            margin-bottom: 18px;
+            letter-spacing: 0.01em;
         }
         #loginScreen .ls-divider {
             display: flex; align-items: center; gap: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
         #loginScreen .ls-divider-line { flex: 1; height: 1px; background: var(--border); }
         #loginScreen .ls-divider-text { font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 0.04em; }
+        /* Email is now secondary — outlined style */
         #loginScreen .ls-btn-email {
             width: 100%;
-            background: var(--wb);
-            color: var(--bg);
-            border: none; border-radius: 10px;
-            padding: 13px 20px;
+            background: transparent;
+            color: var(--ink);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 20px;
             font-family: 'Inter', sans-serif;
-            font-size: 14px; font-weight: 600;
+            font-size: 14px; font-weight: 500;
             cursor: pointer; transition: all 0.2s;
             margin-bottom: 24px;
         }
         #loginScreen .ls-btn-email:hover {
-            background: var(--wb-light);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(123,45,69,0.3);
+            border-color: var(--muted);
+            background: rgba(42,30,20,0.03);
         }
         #loginScreen .ls-signin-row {
             text-align: center;
@@ -242,13 +251,84 @@
             text-align: center; margin-top: 20px;
             opacity: 0.6;
         }
+        /* ── Pilot badge (social proof) ── */
+        #loginScreen .ls-pilot-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 5px 12px;
+            background: rgba(123,45,69,0.12);
+            border: 1px solid rgba(123,45,69,0.3);
+            border-radius: 20px;
+            margin-bottom: 36px;
+        }
+        #loginScreen .ls-pilot-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #7B9B65; /* green — live/active */
+            box-shadow: 0 0 5px rgba(123,155,101,0.8);
+            flex-shrink: 0;
+        }
+        #loginScreen .ls-pilot-text {
+            font-size: 11px; color: rgba(221,208,184,0.7);
+            font-weight: 500; letter-spacing: 0.04em;
+        }
+        /* ── Feature bullets ── */
+        #loginScreen .ls-features {
+            margin-top: 32px;
+            display: flex; flex-direction: column; gap: 11px;
+        }
+        #loginScreen .ls-feature-row {
+            display: flex; align-items: baseline; gap: 10px;
+        }
+        #loginScreen .ls-feature-row::before {
+            content: '';
+            display: block;
+            width: 3px; height: 3px;
+            border-radius: 50%;
+            background: var(--wb);
+            flex-shrink: 0;
+            margin-top: 7px;
+            opacity: 0.7;
+        }
+        #loginScreen .ls-feature-text {
+            font-size: 13px; color: rgba(221,208,184,0.5);
+            line-height: 1.5; font-weight: 300;
+        }
+        #loginScreen .ls-feature-text b {
+            color: rgba(221,208,184,0.72); font-weight: 500;
+        }
+        /* ── Onboarding hint on auth card ── */
+        #loginScreen .ls-onboard-hint {
+            background: rgba(123,45,69,0.06);
+            border: 1px solid rgba(123,45,69,0.12);
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 24px;
+            font-size: 12px; color: var(--muted);
+            line-height: 1.6;
+        }
         /* ── MOBILE: full dark screen + bottom sheet ── */
         @media (max-width: 780px) {
             #loginScreen { overflow: hidden; }
             #loginScreen .ls-layout { height: 100dvh; }
-            #loginScreen .ls-left { padding: 52px 32px 160px; }
+
+            /* vertically centre the inner content */
+            #loginScreen .ls-left {
+                justify-content: center;
+                padding: 0 32px 150px;
+            }
             #loginScreen .ls-left-inner { max-width: 100%; }
-            #loginScreen .ls-headline { font-size: 36px; }
+
+            /* tighter spacing throughout */
+            #loginScreen .ls-pilot-badge { margin-bottom: 20px; }
+            #loginScreen .ls-logo { font-size: 24px; margin-bottom: 24px; }
+            #loginScreen .ls-headline-area { min-height: 155px; margin-bottom: 16px; }
+            #loginScreen .ls-headline { font-size: clamp(32px, 8vw, 40px); }
+            #loginScreen .ls-dots { margin-bottom: 20px; }
+            #loginScreen .ls-sub { font-size: 15px; margin-bottom: 20px; }
+            #loginScreen .ls-trust { margin-bottom: 0; }
+
+            /* hide feature bullets — too much for one screen */
+            #loginScreen .ls-features { display: none; }
+
             #loginScreen .ls-right { display: none; }
         }
 
@@ -523,6 +603,11 @@
             <div class="ls-left">
                 <div class="ls-left-inner">
 
+                    <div class="ls-pilot-badge">
+                        <div class="ls-pilot-dot"></div>
+                        <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
+                    </div>
+
                     <div class="ls-logo"><span class="lsv">v</span><span class="lso">ouch</span></div>
 
                     <div class="ls-headline-area">
@@ -532,12 +617,30 @@
                         <div class="ls-headline" id="lsh3">Be the <em>algorithm</em><br>for the people<br>you love.</div>
                     </div>
 
+                    <div class="ls-dots">
+                        <button class="ls-dot active" onclick="lsSetH(0)"></button>
+                        <button class="ls-dot" onclick="lsSetH(1)"></button>
+                        <button class="ls-dot" onclick="lsSetH(2)"></button>
+                        <button class="ls-dot" onclick="lsSetH(3)"></button>
+                    </div>
 
                     <p class="ls-sub">The places they go, the things they use, the finds they'd text you about — all in one place, waiting when you need it.</p>
 
                     <div class="ls-trust">
                         <div class="ls-trust-dot"></div>
-                        <span class="ls-trust-text">No ads. No algorithms. Just your people.</span>
+                        <span class="ls-trust-text">Private by default — only friends you approve can see your saves.</span>
+                    </div>
+
+                    <div class="ls-features">
+                        <div class="ls-feature-row">
+                            <span class="ls-feature-text"><b>Search naturally.</b> "Good coffee near work" — not just keywords.</span>
+                        </div>
+                        <div class="ls-feature-row">
+                            <span class="ls-feature-text"><b>Save anything.</b> Places, products, books — your circle's real recommendations.</span>
+                        </div>
+                        <div class="ls-feature-row">
+                            <span class="ls-feature-text"><b>No strangers.</b> Your saves are invisible outside friends you approve.</span>
+                        </div>
                     </div>
 
                 </div>
@@ -548,7 +651,11 @@
                 <div class="ls-auth-card">
 
                     <h2 class="ls-auth-title">Join Vouch free.</h2>
-                    <p class="ls-auth-sub">Your circle is already keeping track of the good stuff. Get in.</p>
+                    <p class="ls-auth-sub">Takes 30 seconds. Invite your circle after.</p>
+
+                    <div class="ls-onboard-hint">
+                        The pilot circle's been busy. Join to see what they've saved.
+                    </div>
 
                     <button class="ls-btn-google" onclick="handleGoogleLogin()">
                         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -559,6 +666,7 @@
                         </svg>
                         Continue with Google
                     </button>
+                    <p class="ls-google-trust">Free forever &middot; No credit card needed</p>
 
                     <div class="ls-divider">
                         <div class="ls-divider-line"></div>
@@ -573,7 +681,7 @@
                         <button class="ls-btn-signin" onclick="openAuthModal('signin')">Sign in</button>
                     </div>
 
-                    <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.<br>No credit card required.</p>
+                    <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.</p>
 
                 </div>
             </div>
@@ -594,7 +702,11 @@
             <div class="ls-drag-handle"></div>
             <div class="ls-sheet-inner">
                 <h2 class="ls-auth-title" id="lsSheetTitle">Join Vouch free.</h2>
-                <p class="ls-auth-sub" id="lsSheetSub">Your circle is already keeping track of the good stuff. Get in.</p>
+                <p class="ls-auth-sub" id="lsSheetSub">Takes 30 seconds. Invite your circle after.</p>
+
+                <div class="ls-onboard-hint">
+                    The pilot circle's been busy. Join to see what they've saved.
+                </div>
 
                 <button class="ls-btn-google" onclick="handleGoogleLogin()">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -605,6 +717,7 @@
                     </svg>
                     Continue with Google
                 </button>
+                <p class="ls-google-trust">Free forever &middot; No credit card needed</p>
 
                 <div class="ls-divider">
                     <div class="ls-divider-line"></div>
@@ -619,7 +732,7 @@
                     <button class="ls-btn-signin" id="lsSheetSigninBtn" onclick="openAuthModal('signin')">Sign in</button>
                 </div>
 
-                <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.<br>No credit card required.</p>
+                <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.</p>
             </div>
         </div>
 
@@ -1617,6 +1730,7 @@
         var signinLabel = document.getElementById('lsSheetSigninLabel');
         var signinBtn   = document.getElementById('lsSheetSigninBtn');
         if (!sheet) return;
+        var hint = sheet.querySelector('.ls-onboard-hint');
         if (mode === 'signin') {
             title.textContent    = 'Welcome back.';
             sub.textContent      = 'Sign in to see what your circle is saving.';
@@ -1624,10 +1738,12 @@
             emailBtn.onclick     = function(){ lsCloseSheet(); openAuthModal('signin'); };
             signinLabel.style.display = 'none';
             signinBtn.style.display   = 'none';
+            if (hint) hint.style.display = 'none';
         } else {
             title.textContent    = 'Join Vouch free.';
-            sub.textContent      = 'Your circle is already keeping track of the good stuff. Get in.';
+            sub.textContent      = 'Takes 30 seconds. The pilot circle\u2019s already in there.';
             emailBtn.textContent = 'Create account with email';
+            if (hint) hint.style.display = '';
             emailBtn.onclick     = function(){ lsCloseSheet(); openAuthModal('create'); };
             signinLabel.style.display = '';
             signinBtn.style.display   = '';
@@ -1641,6 +1757,37 @@
         if (sheet)    sheet.classList.remove('open');
         if (backdrop) backdrop.classList.remove('open');
     }
+
+    // Swipe-down to dismiss the sheet
+    (function() {
+        var sheet = document.getElementById('lsSheet');
+        if (!sheet) return;
+        var startY = 0, currentY = 0, dragging = false;
+        sheet.addEventListener('touchstart', function(e) {
+            if (sheet.scrollTop > 0) return; // don't interfere when scrolled
+            startY   = e.touches[0].clientY;
+            dragging = true;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+        sheet.addEventListener('touchmove', function(e) {
+            if (!dragging) return;
+            currentY = e.touches[0].clientY;
+            var delta = currentY - startY;
+            if (delta > 0) sheet.style.transform = 'translateY(' + delta + 'px)';
+        }, { passive: true });
+        sheet.addEventListener('touchend', function() {
+            if (!dragging) return;
+            dragging = false;
+            sheet.style.transition = '';
+            var delta = currentY - startY;
+            if (delta > 100) {
+                sheet.style.transform = '';
+                lsCloseSheet();
+            } else {
+                sheet.style.transform = '';
+            }
+        });
+    })();
 
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
@@ -1657,10 +1804,10 @@
             if (dots[lsCur]) dots[lsCur].classList.add('active');
             if (restart) {
                 clearInterval(lsTimer);
-                lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 5000);
+                lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
             }
         };
-        lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 5000);
+        lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
     })();
 
     // ===== AUTH MODAL (landing page) =====
@@ -2175,7 +2322,7 @@
                 _placeholderIdx = (_placeholderIdx + 1) % pool.length;
                 _showPlaceholder(el, pool[_placeholderIdx]);
             }, 420);
-        }, 5000);
+        }, 7000);
     }
 
     function stopPlaceholderCycle() {
