@@ -2379,6 +2379,15 @@ function showAllCollections() {
 
     document.getElementById('dcAllItemsSection').style.display = 'none';
     filteredDiscoveries = allDiscoveries ? allDiscoveries.slice() : [];
+
+    // Clear inline search/filter state when returning to collections
+    var searchInput = document.getElementById('discoverSearch');
+    if (searchInput && searchInput.value) searchInput.value = '';
+    filters.searchText = '';
+    filters.users = [];
+    filters.distances = [];
+    document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
+    if (typeof buildFriendsRow === 'function') buildFriendsRow();
 }
 
 // ── Locate me button ──
@@ -2486,6 +2495,7 @@ function initLocation() {
             userLocation.longitude = position.coords.longitude;
             userLocation.available = true;
             if (indicator) { indicator.textContent = '📍 Location on'; indicator.className = 'location-indicator active'; }
+            showDistanceRow();
         },
         (error) => {
             if (indicator) { indicator.textContent = '📍 Location off'; indicator.className = 'location-indicator error'; }
@@ -2580,6 +2590,16 @@ function clearFilters() {
     document.querySelectorAll('.filter-option input').forEach(cb => cb.checked = false);
     document.getElementById('discoverSearch').value = '';
     updateFilterState();
+    // Reset inline UI
+    document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
+    buildFriendsRow();
+    // Restore collections view
+    var ch  = document.getElementById('dcCircleHeader');
+    var cg  = document.getElementById('dcCollectionsGrid');
+    var ais = document.getElementById('dcAllItemsSection');
+    if (ch)  ch.style.display  = '';
+    if (cg)  cg.style.display  = '';
+    if (ais) ais.style.display = 'none';
 }
 
 function applyFilters() {
@@ -2588,8 +2608,35 @@ function applyFilters() {
 }
 
 function handleSearchInput() {
-    filters.searchText = document.getElementById('discoverSearch').value.trim().toLowerCase();
+    var text = document.getElementById('discoverSearch').value.trim();
+    filters.searchText = text.toLowerCase();
+
+    var ch  = document.getElementById('dcCircleHeader');
+    var cg  = document.getElementById('dcCollectionsGrid');
+    var ais = document.getElementById('dcAllItemsSection');
+    var ait = document.getElementById('dcAllItemsTitle');
+    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
+
+    if (text) {
+        // Show flat results grid, hide collections
+        if (ch)  ch.style.display  = 'none';
+        if (cg)  cg.style.display  = 'none';
+        if (ais) ais.style.display = '';
+        if (bb)  bb.style.display  = 'none';
+    } else if (filters.users.length === 0 && filters.distances.length === 0) {
+        // No inline filters — restore collections
+        if (ch)  ch.style.display  = '';
+        if (cg)  cg.style.display  = '';
+        if (ais) ais.style.display = 'none';
+        if (bb)  bb.style.display  = '';
+    }
+
     filterAndRender();
+
+    // Update results count in title
+    if (text && ait) {
+        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
+    }
 }
 
 function searchFromDiscover() {
@@ -2598,6 +2645,133 @@ function searchFromDiscover() {
     setMode('search');
     document.getElementById('messageInput').value = query;
     sendMessage();
+}
+
+// ── Discover page: friends filter bubbles ──
+
+function buildFriendsRow() {
+    var row = document.getElementById('dcFriendsRow');
+    if (!row) return;
+    if (!friendsCache || friendsCache.length === 0) { row.style.display = 'none'; return; }
+    row.style.display = '';
+
+    var html = '';
+    friendsCache.forEach(function(f) {
+        var name = f.out_display_name || 'Unknown';
+        var firstName = name.split(' ')[0];
+        var initial = name.charAt(0).toUpperCase();
+        var color = strColour(name);
+        var isActive = filters.users.includes(name);
+
+        var avatar = f.out_avatar_url
+            ? '<img src="' + escapeHtml(f.out_avatar_url) + '" class="dc-friend-img" alt="' + escapeHtml(firstName) + '">'
+            : '<div class="dc-friend-initial" style="background:' + color + ';">' + initial + '</div>';
+
+        html += '<button class="dc-friend-bubble' + (isActive ? ' active' : '') + '" onclick="toggleFriendFilter(\'' + escapeHtml(name).replace(/'/g, "\\'") + '\')">'
+            + avatar
+            + '<span class="dc-friend-name">' + escapeHtml(firstName) + '</span>'
+            + '</button>';
+    });
+    row.innerHTML = html;
+}
+
+function toggleFriendFilter(name) {
+    var idx = filters.users.indexOf(name);
+    if (idx >= 0) {
+        filters.users.splice(idx, 1);
+    } else {
+        filters.users.push(name);
+    }
+    buildFriendsRow();
+
+    // Toggle between flat grid and collections based on active inline filters
+    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
+    var ch  = document.getElementById('dcCircleHeader');
+    var cg  = document.getElementById('dcCollectionsGrid');
+    var ais = document.getElementById('dcAllItemsSection');
+    var ait = document.getElementById('dcAllItemsTitle');
+    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
+
+    if (hasInline) {
+        if (ch)  ch.style.display  = 'none';
+        if (cg)  cg.style.display  = 'none';
+        if (ais) ais.style.display = '';
+        if (bb)  bb.style.display  = 'none';
+    } else {
+        if (ch)  ch.style.display  = '';
+        if (cg)  cg.style.display  = '';
+        if (ais) ais.style.display = 'none';
+        if (bb)  bb.style.display  = '';
+    }
+
+    filterAndRender();
+    if (hasInline && ait) {
+        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
+    }
+    updateFilterState();
+}
+
+// ── Discover page: distance quick pills ──
+
+function toggleDistancePill(el, dist) {
+    var idx = filters.distances.indexOf(dist);
+    if (idx >= 0) {
+        filters.distances = [];
+        el.classList.remove('active');
+    } else {
+        filters.distances = [dist];
+        document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
+        el.classList.add('active');
+    }
+
+    // Toggle flat grid vs collections
+    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
+    var ch  = document.getElementById('dcCircleHeader');
+    var cg  = document.getElementById('dcCollectionsGrid');
+    var ais = document.getElementById('dcAllItemsSection');
+    var ait = document.getElementById('dcAllItemsTitle');
+    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
+
+    if (hasInline) {
+        if (ch)  ch.style.display  = 'none';
+        if (cg)  cg.style.display  = 'none';
+        if (ais) ais.style.display = '';
+        if (bb)  bb.style.display  = 'none';
+    } else {
+        if (ch)  ch.style.display  = '';
+        if (cg)  cg.style.display  = '';
+        if (ais) ais.style.display = 'none';
+        if (bb)  bb.style.display  = '';
+    }
+
+    filterAndRender();
+    if (hasInline && ait) {
+        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
+    }
+    updateFilterState();
+}
+
+function showDistanceRow() {
+    var row = document.getElementById('dcDistanceRow');
+    if (row && userLocation && userLocation.available) {
+        row.style.display = '';
+    }
+}
+
+// ── Discover page: count badges on category chips ──
+
+function updateDiscoverCounts() {
+    if (!allDiscoveries) return;
+    var counts = { all: allDiscoveries.length, place: 0, product: 0, service: 0, advice: 0 };
+    allDiscoveries.forEach(function(d) {
+        var t = (d.type || '').toLowerCase();
+        if (counts.hasOwnProperty(t)) counts[t]++;
+    });
+    var ids = { all: 'dcCountAll', place: 'dcCountPlace', product: 'dcCountProduct', service: 'dcCountService', advice: 'dcCountAdvice' };
+    Object.keys(ids).forEach(function(k) {
+        var el = document.getElementById(ids[k]);
+        if (el) el.textContent = counts[k] > 0 ? counts[k] : '';
+    });
 }
 
 function filterAndRender() {
@@ -2642,20 +2816,41 @@ function updateActiveFiltersBar() {
 function removeActiveFilter(type, value) {
     if (type === 'category') {
         filters.categories = filters.categories.filter(c => c !== value);
-        document.getElementById('cat-' + value).checked = false;
+        var catEl = document.getElementById('cat-' + value);
+        if (catEl) catEl.checked = false;
     } else if (type === 'user') {
         filters.users = filters.users.filter(u => u !== value);
-        document.getElementById('user-' + value).checked = false;
+        var userEl = document.getElementById('user-' + value);
+        if (userEl) userEl.checked = false;
+        buildFriendsRow();
     } else if (type === 'endorsed') {
         filters.endorsed = false;
         const cb = document.getElementById('endorsed-mine');
         if (cb) cb.checked = false;
     } else if (type === 'distance') {
         filters.distances = filters.distances.filter(d => d != value);
-        document.getElementById('dist-' + value).checked = false;
+        var distEl = document.getElementById('dist-' + value);
+        if (distEl) distEl.checked = false;
+        // Reset distance pills UI
+        document.querySelectorAll('.dc-dist-pill').forEach(function(p) {
+            p.classList.toggle('active', filters.distances.includes(Number(p.dataset.dist)));
+        });
     }
     updateFilterState();
     filterAndRender();
+
+    // If no inline filters remain, restore collections
+    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
+    if (!hasInline) {
+        var ch  = document.getElementById('dcCircleHeader');
+        var cg  = document.getElementById('dcCollectionsGrid');
+        var ais = document.getElementById('dcAllItemsSection');
+        var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
+        if (ch)  ch.style.display  = '';
+        if (cg)  cg.style.display  = '';
+        if (ais) ais.style.display = 'none';
+        if (bb)  bb.style.display  = '';
+    }
 }
 
 async function loadDiscoveries() {
@@ -2707,6 +2902,9 @@ async function loadDiscoveries() {
         filterAndRender();
         renderRecentlyViewed();
         buildCollectionCards();
+        buildFriendsRow();
+        updateDiscoverCounts();
+        showDistanceRow();
         // Refresh map panel list if map is already open
         if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
@@ -3658,126 +3856,6 @@ function stopSearchMessages() {
     }
 }
 
-// ── Search results: module-scope helpers for filter/map ──
-
-function _srFormatDist(km) {
-    if (!km) return '';
-    return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
-}
-
-function _srBuildTopPick(r, idx) {
-    const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
-    const rawNote = typeof getPersonalNoteGlobal === 'function' ? getPersonalNoteGlobal(r) : '';
-    const canSeeNote = rawNote && typeof isFriend === 'function' && isFriend(r.added_by || r.added_by_name);
-    const distText = _srFormatDist(r.distance_km);
-    const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-    const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
-    return `
-        <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
-            <span class="top-pick-badge">Top Pick</span>
-            <div class="top-pick-photo">${photo}</div>
-            <div class="top-pick-content">
-                <div class="top-pick-title">${escapeHtml(r.title)}</div>
-                <div class="top-pick-meta">
-                    ${distText ? `<span class="meta-tag meta-distance">📍 ${distText}</span>` : ''}
-                    ${r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : ''}
-                </div>
-                ${snippet ? `<div class="top-pick-reason"><div class="top-pick-reason-label">${snippetLabel}</div>${escapeHtml(snippet).substring(0,100)}${snippet.length>100?'...':''}</div>` : ''}
-            </div>
-        </div>`;
-}
-
-function _srBuildCompactCard(r, idx) {
-    const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span class="compact-photo-placeholder">📍</span>';
-    const rawNote = typeof getPersonalNoteGlobal === 'function' ? getPersonalNoteGlobal(r) : '';
-    const canSeeNote = rawNote && typeof isFriend === 'function' && isFriend(r.added_by);
-    const distText = _srFormatDist(r.distance_km);
-    const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-    const snippetIcon = canSeeNote ? '💭' : '';
-    return `
-        <div class="compact-card" onclick="showSearchDrawer(${idx})">
-            <div class="compact-photo">${photo}</div>
-            <div class="compact-title">${escapeHtml(r.title)}</div>
-            <div class="compact-meta">
-                ${distText ? `<span>📍 ${distText}</span>` : ''}
-                ${r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : ''}
-            </div>
-            ${snippet ? `<div class="compact-snippet">${snippetIcon?snippetIcon+' ':''}${escapeHtml(snippet).substring(0,60)}${snippet.length>60?'...':''}</div>` : ''}
-        </div>`;
-}
-
-function _srBuildResultsHTML(results) {
-    if (!results || results.length === 0) {
-        return '<div class="srb-no-results"><strong>Nothing here</strong>No results of this type in this search.</div>';
-    }
-    const topCount = results.length === 1 ? 1 : Math.min(2, results.length);
-    let html = '<div class="top-picks-section"><div class="results-header"><span class="results-header-title">Top Picks For You</span></div>';
-    for (let i = 0; i < topCount; i++) html += _srBuildTopPick(results[i], i);
-    html += '</div>';
-    const more = results.slice(topCount);
-    if (more.length > 0) {
-        const scrollId = 'moreScroll_' + Date.now();
-        html += `<div class="more-options-section"><div class="results-header"><span class="results-header-title">More Great Options</span><span class="results-header-count">${more.length} more</span></div><div class="more-options-wrapper"><button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button><div class="more-options-scroll" id="${scrollId}">`;
-        more.forEach((r, i) => { html += _srBuildCompactCard(r, i + topCount); });
-        html += `</div><button class="scroll-arrow scroll-arrow-right" onclick="scrollMoreOptions('${scrollId}',1)" aria-label="Scroll right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button></div></div>`;
-    }
-    return html;
-}
-
-function rebuildSearchResults(results) {
-    var container = document.getElementById('chatContainer');
-    if (!container) return;
-    var section = container.querySelector('.results-section');
-    if (!section) return;
-    section.innerHTML = _srBuildResultsHTML(results);
-    var moreScroll = section.querySelector('.more-options-scroll');
-    if (moreScroll && moreScroll.id) {
-        setTimeout(function() { if (typeof updateScrollArrows === 'function') updateScrollArrows(moreScroll.id); }, 150);
-        moreScroll.addEventListener('scroll', function() { if (typeof updateScrollArrows === 'function') updateScrollArrows(moreScroll.id); });
-    }
-}
-
-function filterSearchByType(el, type) {
-    document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) { c.classList.remove('active'); });
-    el.classList.add('active');
-    var filtered = type === 'all' ? currentResults : currentResults.filter(function(r) { return r.type === type; });
-    rebuildSearchResults(filtered);
-}
-
-var _srbMapActive = false;
-function toggleSrbMap() {
-    var mapWrap  = document.getElementById('srbMapWrap');
-    var chatCont = document.getElementById('chatContainer');
-    var mapBtn   = document.getElementById('srbMapBtn');
-    if (!mapWrap) return;
-    _srbMapActive = !_srbMapActive;
-    mapWrap.style.display  = _srbMapActive ? 'block' : 'none';
-    chatCont.style.display = _srbMapActive ? 'none'  : '';
-    if (mapBtn) mapBtn.classList.toggle('active', _srbMapActive);
-    if (_srbMapActive) {
-        var mapEl = document.getElementById('srbMapEl');
-        if (mapEl) {
-            mapEl.innerHTML = '';
-            setTimeout(function() { initSearchMap('srbMapEl', currentResults); }, 60);
-        }
-    }
-}
-
-function _srbReset() {
-    _srbMapActive = false;
-    var mapWrap  = document.getElementById('srbMapWrap');
-    var chatCont = document.getElementById('chatContainer');
-    var mapBtn   = document.getElementById('srbMapBtn');
-    var srb      = document.getElementById('searchResultsBar');
-    if (mapWrap)  mapWrap.style.display  = 'none';
-    if (chatCont) chatCont.style.display = '';
-    if (mapBtn)   mapBtn.classList.remove('active');
-    if (srb)      srb.style.display      = 'none';
-    document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) {
-        c.classList.toggle('active', c.dataset.type === 'all');
-    });
-}
-
 function sendMessage(text) {
     const input = document.getElementById('messageInput');
     const query = text || input.value.trim();
@@ -3990,20 +4068,6 @@ function sendMessage(text) {
                 html += '</div></div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
-
-                // ── Show search results bar & reset filter chips ──
-                var srb = document.getElementById('searchResultsBar');
-                if (srb) srb.style.display = '';
-                document.querySelectorAll('#srbChips .srb-chip').forEach(function(c) {
-                    c.classList.toggle('active', c.dataset.type === 'all');
-                });
-                // Ensure map is hidden and chat is visible
-                var mapWrap = document.getElementById('srbMapWrap');
-                if (mapWrap) mapWrap.style.display = 'none';
-                var mapBtn = document.getElementById('srbMapBtn');
-                if (mapBtn) mapBtn.classList.remove('active');
-                _srbMapActive = false;
-
                 var moreScroll = container.querySelector('.more-options-scroll');
                 if (moreScroll && moreScroll.id) {
                     setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
@@ -4220,9 +4284,6 @@ function startNewSession() {
     container.querySelectorAll('.message').forEach(function(m) { m.remove(); });
     const welcome = container.querySelector('.welcome');
     if (welcome) welcome.style.display = '';
-
-    // Reset results bar, map, and filter state
-    _srbReset();
 
     isFirstMessage = true;
     currentResults = [];
@@ -4784,7 +4845,7 @@ document.getElementById('photo').addEventListener('change', function(e) {
 
 function applyRecentSearch(query) {
     document.getElementById('discoverSearch').value = query;
-    searchFromDiscover();
+    handleSearchInput();
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
