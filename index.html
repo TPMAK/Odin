@@ -27,192 +27,235 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="styles.css?v=49">
     <style>
-        /* ── LANDING PAGE STYLES ── */
+                /* ── New Landing Page: Two-column split ── */
+        :root {
+          --wb:        #7B2D45;
+          --wb-light:  #9B4D65;
+          --wb-hover:  #5A1F30;
+          --ink:       #2A1E14;
+          --bg:        #FAF6EE;
+          --lp-surface: #FFFFFF;
+          --muted:     #9A8A7A;
+          --border:    #EAE0D2;
+          --mason:     #DDD0B8;
+          --dark:      #1A100A;
+        }
         #loginScreen {
             all: unset;
             display: block;
-        }
-        #loginScreen * {
-            box-sizing: border-box;
-        }
-        :root {
-            --primary-orange: #7B2D45;   /* Winterberry */
-            --primary-orange-hover: #5A1F30;
-            --primary-orange-light: #9B4D65;
-            --cream: #FAF6EE;            /* Cream / surface */
-            --lp-bg: #FAF6EE;            /* Page bg */
-            --surface: #FFFFFF;
-            --text-primary: #2A1E14;     /* Cumberland */
-            --text-secondary: #9A8A7A;   /* Warm grey */
-            --border-light: #EAE0D2;
-            --shadow-warm: 0 4px 20px rgba(123, 45, 69, 0.12);
-            --shadow-light: 0 2px 12px rgba(42, 30, 20, 0.06);
-            --shadow-button: 0 4px 16px rgba(123, 45, 69, 0.3);
-        }
-        .lp-body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--lp-bg);
-            color: var(--text-primary);
-            line-height: 1.6;
-            padding-bottom: 0;
-        }
-        /* TOP NAV */
-        .lp-top-nav {
             position: fixed;
-            top: 0; left: 0; right: 0;
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(10px);
-            height: 64px;
+            inset: 0;
+            z-index: 500;
+            overflow: hidden;
+        }
+        #loginScreen * { box-sizing: border-box; }
+        #loginScreen .ls-layout {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 32px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            z-index: 999;
+            height: 100dvh;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
         }
-        .lp-nav-brand {
+        #loginScreen .ls-left {
+            flex: 1;
+            background: var(--dark);
             display: flex;
-            align-items: center;
-            text-decoration: none;
-            line-height: 1;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 72px;
+            position: relative;
+            overflow: hidden;
         }
-        .lp-nav-brand svg { display: block; }
-        .lp-nav-right { display: flex; align-items: center; gap: 16px; }
-        .lp-nav-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 15px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: color 0.2s;
-            background: none;
-            border: none;
-            font-family: inherit;
+        #loginScreen .ls-left::before {
+            content: '';
+            position: absolute; inset: 0;
+            background:
+                radial-gradient(ellipse 70% 60% at -5% 90%, rgba(123,45,69,0.2) 0%, transparent 60%),
+                radial-gradient(ellipse 40% 35% at 100% 5%, rgba(123,45,69,0.07) 0%, transparent 55%);
+            pointer-events: none;
         }
-        .lp-nav-link:hover { color: var(--primary-orange); }
-        /* PRODUCT INTRO */
-        .lp-product-intro {
-            padding: 100px 20px 60px;
-            background: var(--surface);
+        #loginScreen .ls-left::after {
+            content: '';
+            position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; opacity: 0.45;
         }
-        .lp-intro-content {
-            max-width: 900px;
-            margin: 0 auto;
-            text-align: center;
+        #loginScreen .ls-left-inner {
+            position: relative; z-index: 2;
+            max-width: 540px;
         }
-        .lp-intro-tagline {
+        #loginScreen .ls-logo {
+            font-family: 'Inter', sans-serif;
+            font-weight: 900; font-size: 28px;
+            letter-spacing: -0.06em; line-height: 1;
+            margin-bottom: 48px;
+        }
+        #loginScreen .ls-logo .lsv { color: var(--wb); }
+        #loginScreen .ls-logo .lso { color: var(--mason); }
+        #loginScreen .ls-headline-area {
+            min-height: 210px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        #loginScreen .ls-headline {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 38px;
-            font-weight: 500;
-            margin-bottom: 20px;
-            color: var(--text-primary);
-            line-height: 1.3;
+            font-size: clamp(36px, 3.5vw, 54px);
+            font-weight: 400;
+            color: #fff;
+            line-height: 1.18;
+            letter-spacing: -0.01em;
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
         }
-        .lp-intro-description {
-            font-size: 17px;
-            color: var(--text-secondary);
-            line-height: 1.7;
+        #loginScreen .ls-headline.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        #loginScreen .ls-headline em { font-style: italic; color: var(--wb); }
+        #loginScreen .ls-dots {
+            display: flex; gap: 6px; align-items: center;
+            margin-bottom: 32px;
+        }
+        #loginScreen .ls-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+            background: rgba(221,208,184,0.18);
+            cursor: pointer; transition: all 0.35s;
+            border: none; padding: 0;
+        }
+        #loginScreen .ls-dot.active {
+            background: var(--wb);
+            width: 18px; border-radius: 3px;
+        }
+        #loginScreen .ls-sub {
+            font-size: 16px;
+            color: rgba(221,208,184,0.72);
+            line-height: 1.8; font-weight: 400;
+            max-width: 440px;
             margin-bottom: 40px;
-            max-width: 800px;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: left;
         }
-        .lp-features-grid {
-            display: grid;
-            grid-template-columns: repeat(4,1fr);
-            gap: 16px;
-            max-width: 1100px;
-            margin: 0 auto;
+        #loginScreen .ls-trust {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 9px 16px;
+            background: rgba(123,45,69,0.18);
+            border: 1px solid rgba(123,45,69,0.45);
+            border-radius: 20px;
         }
-        .lp-feature-card {
-            background: var(--lp-bg);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border-light);
-            text-align: left;
-            transition: all 0.3s ease;
+        #loginScreen .ls-trust-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--wb);
+            box-shadow: 0 0 6px rgba(123,45,69,0.9);
         }
-        .lp-feature-card:hover {
-            border-color: var(--primary-orange);
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-warm);
+        #loginScreen .ls-trust-text {
+            font-size: 12px; color: rgba(221,208,184,0.85);
+            font-weight: 500; letter-spacing: 0.03em;
         }
-        .lp-feature-card-image {
-            height: 120px;
-            background-size: cover;
-            background-position: center;
+        #loginScreen .ls-right {
+            width: 420px;
+            flex-shrink: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px;
+            border-left: 1px solid rgba(221,208,184,0.08);
+        }
+        #loginScreen .ls-auth-card { width: 100%; max-width: 340px; }
+        #loginScreen .ls-auth-title {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 22px; font-weight: 400;
+            color: var(--ink); line-height: 1.3;
+            margin-bottom: 6px; letter-spacing: -0.01em;
+        }
+        #loginScreen .ls-auth-sub {
+            font-size: 13px; color: var(--muted);
+            font-weight: 300; line-height: 1.6;
+            margin-bottom: 28px;
+        }
+        #loginScreen .ls-btn-google {
+            width: 100%;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: var(--lp-surface);
+            border: 1.5px solid var(--border);
             border-radius: 10px;
-            margin-bottom: 14px;
+            padding: 13px 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px; font-weight: 600;
+            color: var(--ink);
+            cursor: pointer; transition: all 0.2s;
+            margin-bottom: 18px;
+            box-shadow: 0 1px 4px rgba(42,30,20,0.06);
         }
-        .lp-feature-card-icon { font-size: 28px; margin-bottom: 12px; }
-        .lp-feature-card-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
-        .lp-feature-card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
-        /* MISSION */
-        .lp-mission-section {
-            padding: 80px 20px;
-            background: linear-gradient(180deg, var(--lp-bg), var(--cream));
+        #loginScreen .ls-btn-google:hover {
+            border-color: #aaa;
+            box-shadow: 0 3px 12px rgba(42,30,20,0.1);
+            transform: translateY(-1px);
         }
-        .lp-mission-content { max-width: 900px; margin: 0 auto; text-align: center; }
-        .lp-mission-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 36px; font-weight: 500; margin-bottom: 24px; color: var(--text-primary); }
-        .lp-mission-description { font-size: 18px; color: var(--text-secondary); line-height: 1.8; margin-bottom: 48px; }
-        .lp-mission-values { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 48px; }
-        .lp-value-item { background: var(--surface); border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-light); border: 1px solid rgba(123, 45, 69,0.1); }
-        .lp-value-icon { font-size: 48px; margin-bottom: 16px; }
-        .lp-value-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-        .lp-value-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
-        /* EXPECTATIONS */
-        .lp-expectations-section { background: var(--surface); padding: 70px 20px; }
-        .lp-container { max-width: 900px; margin: 0 auto; }
-        .lp-section-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 32px; font-weight: 500; text-align: center; margin-bottom: 12px; color: var(--text-primary); }
-        .lp-section-subtitle { font-size: 16px; color: var(--text-secondary); text-align: center; margin-bottom: 40px; }
-        .lp-expectations-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
-        .lp-expectation-card { background: var(--lp-bg); border: 1px solid var(--border-light); border-radius: 16px; padding: 28px 20px; text-align: center; transition: all 0.3s ease; }
-        .lp-expectation-card:hover { border-color: var(--primary-orange); transform: translateY(-4px); box-shadow: var(--shadow-warm); }
-        .lp-expectation-icon { font-size: 40px; margin-bottom: 16px; filter: drop-shadow(0 2px 8px rgba(123, 45, 69,0.2)); }
-        .lp-expectation-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-        .lp-expectation-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
-        /* BENEFITS */
-        .lp-benefits-section { padding: 70px 20px; background: var(--lp-bg); }
-        .lp-benefits-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 24px; max-width: 750px; margin: 0 auto; }
-        .lp-benefit-card { background: var(--surface); border-radius: 16px; padding: 32px; box-shadow: var(--shadow-light); border: 1px solid rgba(123, 45, 69,0.1); }
-        .lp-benefit-icon { font-size: 36px; margin-bottom: 16px; }
-        .lp-benefit-title { font-size: 19px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
-        .lp-benefit-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
-        /* HOW IT WORKS */
-        .lp-process-section { background: var(--surface); padding: 70px 20px; }
-        .lp-process-steps { display: flex; justify-content: center; align-items: flex-start; gap: 32px; max-width: 800px; margin: 0 auto; }
-        .lp-process-step { flex: 1; text-align: center; position: relative; }
-        .lp-process-step:not(:last-child)::after { content: '→'; position: absolute; right: -24px; top: 24px; font-size: 20px; color: var(--primary-orange); font-weight: bold; }
-        .lp-step-number { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; margin: 0 auto 16px; box-shadow: var(--shadow-warm); }
-        .lp-step-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
-        .lp-step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
-        /* FINAL CTA */
-        .lp-final-cta { padding: 100px 20px; text-align: center; background: linear-gradient(180deg, var(--lp-bg), var(--cream)); }
-        .lp-cta-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 44px; font-weight: 500; margin-bottom: 20px; color: var(--text-primary); line-height: 1.2; }
-        .lp-cta-subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 40px; line-height: 1.6; }
-        .lp-cta-primary {
-            display: inline-block;
-            padding: 20px 56px;
-            background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light));
-            color: white;
-            font-size: 18px;
-            font-weight: 600;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: var(--shadow-button);
-            transition: all 0.2s ease;
-            text-decoration: none;
-            font-family: inherit;
+        #loginScreen .ls-divider {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 18px;
         }
-        .lp-cta-primary:hover { background: linear-gradient(135deg, var(--primary-orange-hover), var(--primary-orange)); transform: translateY(-2px); box-shadow: 0 6px 24px rgba(123, 45, 69,0.4); }
-        .lp-cta-primary:active { transform: scale(0.98); }
-        /* FOOTER */
-        .lp-footer { background: var(--surface); padding: 40px 20px; text-align: center; border-top: 1px solid var(--border-light); }
-        .lp-footer-text { font-size: 14px; color: var(--text-secondary); }
+        #loginScreen .ls-divider-line { flex: 1; height: 1px; background: var(--border); }
+        #loginScreen .ls-divider-text { font-size: 11px; color: var(--muted); font-weight: 400; letter-spacing: 0.04em; }
+        #loginScreen .ls-btn-email {
+            width: 100%;
+            background: var(--wb);
+            color: var(--bg);
+            border: none; border-radius: 10px;
+            padding: 13px 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            margin-bottom: 24px;
+        }
+        #loginScreen .ls-btn-email:hover {
+            background: var(--wb-light);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(123,45,69,0.3);
+        }
+        #loginScreen .ls-signin-row {
+            text-align: center;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+        #loginScreen .ls-signin-row p {
+            font-size: 13px; color: var(--muted); font-weight: 300; margin-bottom: 10px;
+        }
+        #loginScreen .ls-btn-signin {
+            width: 100%;
+            background: transparent;
+            border: 1.5px solid var(--wb);
+            color: var(--wb);
+            border-radius: 10px;
+            padding: 11px 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            letter-spacing: 0.01em;
+        }
+        #loginScreen .ls-btn-signin:hover { background: rgba(123,45,69,0.06); }
+        #loginScreen .ls-auth-footnote {
+            font-size: 10px; color: var(--muted);
+            line-height: 1.7; font-weight: 300;
+            text-align: center; margin-top: 20px;
+            opacity: 0.6;
+        }
+        @media (max-width: 780px) {
+            #loginScreen { overflow-y: auto; }
+            #loginScreen .ls-layout { flex-direction: column; height: auto; min-height: 100dvh; }
+            #loginScreen .ls-left { padding: 52px 28px 40px; }
+            #loginScreen .ls-left-inner { max-width: 100%; }
+            #loginScreen .ls-headline { font-size: 32px; }
+            #loginScreen .ls-right {
+                width: 100%; border-left: none;
+                border-top: 1px solid rgba(221,208,184,0.08);
+                padding: 40px 28px 52px;
+            }
+        }
 
-        /* ── AUTH MODAL ── */
+/* ── AUTH MODAL ── */
         #authModal {
             display: none;
             position: fixed;
@@ -398,177 +441,74 @@
 </head>
 <body>
 
-    <!-- ══════════════════════════════════════════
+        <!-- ════════════════════════════════════════════
          LANDING / PRE-LOGIN SCREEN
-    ══════════════════════════════════════════ -->
-    <div id="loginScreen" class="lp-body" style="display:none;">
+    ════════════════════════════════════════════ -->
+    <div id="loginScreen" style="display:none;">
+        <div class="ls-layout">
 
-        <!-- TOP NAV -->
-        <nav class="lp-top-nav">
-            <a href="#" class="lp-nav-brand" aria-label="Vouch">
-                <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
-            </a>
-            <div class="lp-nav-right">
-                <button class="lp-nav-link" onclick="openAuthModal('signin')">Sign In</button>
-            </div>
-        </nav>
+            <!-- LEFT - brand story -->
+            <div class="ls-left">
+                <div class="ls-left-inner">
 
-        <!-- PRODUCT INTRO -->
-        <section class="lp-product-intro">
-            <div class="lp-intro-content">
-                <h1 class="lp-intro-tagline">Ask your friends — without asking your friends</h1>
-                <p class="lp-intro-description">
-                    <strong>Vouch</strong> is a private search engine for your friend group. Everyone saves the places, products, and things they love. You search and instantly find what <em>your</em> people actually recommend — not strangers on the internet.<br><br>
-                    Type anything: "good coffee to work from", "best dentist near me", "book recommendations for travel". Vouch searches your circle's saves and tells you who loves what.
-                </p>
-                <div class="lp-privacy-badge">
-                    <strong>Private by default.</strong> Only your friends see your saves. No ads. No data selling. Your circle, your rules.
-                </div>
+                    <div class="ls-logo"><span class="lsv">v</span><span class="lso">ouch</span></div>
 
-                <div class="lp-features-grid">
-                    <div class="lp-feature-card">
-                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1531746790731-6c087fecd65a?w=800&q=80');"></div>
-                        <div class="lp-feature-card-icon">💬</div>
-                        <h3 class="lp-feature-card-title">AI Semantic Search</h3>
-                        <p class="lp-feature-card-desc">Ask questions like you're texting a friend. "Good coffee for studying?" The AI understands what you mean, not just exact keywords—like having a conversation with all your friends at once.</p>
+                    <div class="ls-headline-area">
+                        <div class="ls-headline visible" id="lsh0">Ask your friends —<br><em>without asking</em><br>your friends.</div>
+                        <div class="ls-headline" id="lsh1">Your circle knows<br>more than <em>Google.</em></div>
+                        <div class="ls-headline" id="lsh2">The finds they'd<br>text you about —<br><em>all in one place.</em></div>
+                        <div class="ls-headline" id="lsh3">Be the <em>algorithm</em><br>for the people<br>you love.</div>
                     </div>
-                    <div class="lp-feature-card">
-                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80');"></div>
-                        <div class="lp-feature-card-icon">🔒</div>
-                        <h3 class="lp-feature-card-title">Private by Default</h3>
-                        <p class="lp-feature-card-desc">Like a private group chat, not social media. Only your friends see what you share. No strangers, no companies mining your data to sell you stuff.</p>
+
+
+                    <p class="ls-sub">The places they go, the things they use, the finds they'd text you about — all in one place, waiting when you need it.</p>
+
+                    <div class="ls-trust">
+                        <div class="ls-trust-dot"></div>
+                        <span class="ls-trust-text">No ads. No algorithms. Just your people.</span>
                     </div>
-                    <div class="lp-feature-card">
-                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80');"></div>
-                        <div class="lp-feature-card-icon">🌍</div>
-                        <h3 class="lp-feature-card-title">Anything & Everything</h3>
-                        <p class="lp-feature-card-desc">Not just cafes and restaurants. Your friend's favourite YouTuber, the book that changed their life, the dentist who doesn't hurt, the best budget laptop—if your friend loves it, you can find it.</p>
-                    </div>
-                    <div class="lp-feature-card">
-                        <div class="lp-feature-card-image" style="background-image: url('https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80');"></div>
-                        <div class="lp-feature-card-icon">👥</div>
-                        <h3 class="lp-feature-card-title">Your Friend Network</h3>
-                        <p class="lp-feature-card-desc">Stop asking the same question in 5 different group chats. Your friends have already answered—you just didn't see it. Like having all your friends' recommendations in one searchable place.</p>
-                    </div>
+
                 </div>
             </div>
-        </section>
 
-        <!-- WHY THIS MATTERS -->
-        <section class="lp-mission-section">
-            <div class="lp-mission-content">
-                <h2 class="lp-mission-title">Why this matters</h2>
-                <p class="lp-mission-description">
-                    Every place you add, everything you save—you're planting seeds that help you and your friends discover something meaningful. Your contributions aren't just data points. They're connections. They bring people closer, no matter the distance.<br><br>
-                    You're not just testing an app. You're helping build a community where trust and genuine experiences matter more than algorithms and ads.
-                </p>
-                <div class="lp-mission-values">
-                    <div class="lp-value-item">
-                        <div class="lp-value-icon">🌱</div>
-                        <h3 class="lp-value-title">Plant Seeds</h3>
-                        <p class="lp-value-desc">Every save helps your friends discover something new</p>
+            <!-- RIGHT - auth panel -->
+            <div class="ls-right">
+                <div class="ls-auth-card">
+
+                    <h2 class="ls-auth-title">Join Vouch free.</h2>
+                    <p class="ls-auth-sub">Your circle is already keeping track of the good stuff. Get in.</p>
+
+                    <button class="ls-btn-google" onclick="handleGoogleLogin()">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
+                            <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                        </svg>
+                        Continue with Google
+                    </button>
+
+                    <div class="ls-divider">
+                        <div class="ls-divider-line"></div>
+                        <span class="ls-divider-text">or</span>
+                        <div class="ls-divider-line"></div>
                     </div>
-                    <div class="lp-value-item">
-                        <div class="lp-value-icon">🤝</div>
-                        <h3 class="lp-value-title">Bring People Closer</h3>
-                        <p class="lp-value-desc">Build connections that matter, no matter where they are</p>
+
+                    <button class="ls-btn-email" onclick="openAuthModal('create')">Create account with email</button>
+
+                    <div class="ls-signin-row">
+                        <p>Already have an account?</p>
+                        <button class="ls-btn-signin" onclick="openAuthModal('signin')">Sign in</button>
                     </div>
-                    <div class="lp-value-item">
-                        <div class="lp-value-icon">💫</div>
-                        <h3 class="lp-value-title">Your Value to the World</h3>
-                        <p class="lp-value-desc">Be part of something bigger than just an app</p>
-                    </div>
+
+                    <p class="ls-auth-footnote">By joining you agree to our Terms &amp; Privacy Policy.<br>No credit card required.</p>
+
                 </div>
             </div>
-        </section>
 
-        <!-- WHAT WE NEED -->
-        <section class="lp-expectations-section">
-            <div class="lp-container">
-                <h2 class="lp-section-title">What we're looking for</h2>
-                <p class="lp-section-subtitle">Help us grow this community</p>
-                <div class="lp-expectations-grid">
-                    <div class="lp-expectation-card">
-                        <div class="lp-expectation-icon">📱</div>
-                        <h3 class="lp-expectation-title">Use it regularly</h3>
-                        <p class="lp-expectation-desc">Try the app in your daily life. The more you use it, the better we can make it.</p>
-                    </div>
-                    <div class="lp-expectation-card">
-                        <div class="lp-expectation-icon">💬</div>
-                        <h3 class="lp-expectation-title">Share feedback</h3>
-                        <p class="lp-expectation-desc">Tell us what works, what doesn't, and what you'd love to see.</p>
-                    </div>
-                    <div class="lp-expectation-card">
-                        <div class="lp-expectation-icon">🐛</div>
-                        <h3 class="lp-expectation-title">Report bugs</h3>
-                        <p class="lp-expectation-desc">Help us catch issues early so we can fix them before launch.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- WHAT YOU GET -->
-        <section class="lp-benefits-section">
-            <div class="lp-container">
-                <h2 class="lp-section-title">What you get</h2>
-                <p class="lp-section-subtitle">Be part of something meaningful</p>
-                <div class="lp-benefits-grid">
-                    <div class="lp-benefit-card">
-                        <div class="lp-benefit-icon">🎨</div>
-                        <h3 class="lp-benefit-title">Shape the product</h3>
-                        <p class="lp-benefit-desc">Your feedback directly influences what we build. Help create something that brings people together.</p>
-                    </div>
-                    <div class="lp-benefit-card">
-                        <div class="lp-benefit-icon">👥</div>
-                        <h3 class="lp-benefit-title">Founding community</h3>
-                        <p class="lp-benefit-desc">Be part of the inner circle. Build a movement that values trust and connection from day one.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- HOW IT WORKS -->
-        <section class="lp-process-section">
-            <div class="lp-container">
-                <h2 class="lp-section-title">How it works</h2>
-                <p class="lp-section-subtitle">Simple, transparent process</p>
-                <div class="lp-process-steps">
-                    <div class="lp-process-step">
-                        <div class="lp-step-number">1</div>
-                        <h3 class="lp-step-title">Sign up</h3>
-                        <p class="lp-step-desc">Create your account in 30 seconds</p>
-                    </div>
-                    <div class="lp-process-step">
-                        <div class="lp-step-number">2</div>
-                        <h3 class="lp-step-title">Get access</h3>
-                        <p class="lp-step-desc">Instant access to the beta app</p>
-                    </div>
-                    <div class="lp-process-step">
-                        <div class="lp-step-number">3</div>
-                        <h3 class="lp-step-title">Start exploring</h3>
-                        <p class="lp-step-desc">Use the app and share your thoughts</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- FINAL CTA -->
-        <section class="lp-final-cta">
-            <h1 class="lp-cta-title">Let's build something special, together</h1>
-            <p class="lp-cta-subtitle">
-                Be part of our founding community.<br>
-                Shape the product with your feedback.
-            </p>
-            <button class="lp-cta-primary" onclick="openAuthModal('create')">Join as a Tester</button>
-        </section>
-
-        <!-- FOOTER -->
-        <footer class="lp-footer">
-            <p class="lp-footer-text">© 2026 Vouch · Built with testers in mind</p>
-        </footer>
+        </div>
     </div>
-
-    <!-- ══════════════════════════════════════════
+<!-- ══════════════════════════════════════════
          AUTH MODAL (overlays landing page)
     ══════════════════════════════════════════ -->
     <div id="authModal" role="dialog" aria-modal="true" aria-label="Sign in or create account" onclick="authModalBackdropClick(event)">
@@ -1550,6 +1490,27 @@
         _navIgnoreNext = true;   // don't push current onto stack when going back
         setMode(prev || 'home');
     }
+
+    // ===== LANDING PAGE — Rotating headlines =====
+    (function() {
+        var lsIds  = ['lsh0','lsh1','lsh2','lsh3'];
+        var lsCur  = 0;
+        var lsTimer;
+        window.lsSetH = function(n, restart) {
+            if (restart === undefined) restart = true;
+            document.getElementById(lsIds[lsCur]).classList.remove('visible');
+            var dots = document.querySelectorAll('.ls-dot');
+            if (dots[lsCur]) dots[lsCur].classList.remove('active');
+            lsCur = n;
+            document.getElementById(lsIds[lsCur]).classList.add('visible');
+            if (dots[lsCur]) dots[lsCur].classList.add('active');
+            if (restart) {
+                clearInterval(lsTimer);
+                lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 5000);
+            }
+        };
+        lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 5000);
+    })();
 
     // ===== AUTH MODAL (landing page) =====
 
