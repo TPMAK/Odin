@@ -67,10 +67,11 @@ async function showMainApp() {
     // Clear chat UI
     const chatContainer = document.getElementById('chatContainer');
     if (chatContainer) chatContainer.innerHTML = '';
-    // ── Fix 2: Clear recently viewed so new user doesn't see leftover data ──
+    // Clear recently viewed and onboarding state whenever the user changes
+    // (includes new registrations where prevUserId is null)
     const prevUserId = localStorage.getItem('vouch_last_user_id');
     const thisUserId = currentUser ? currentUser.id : null;
-    if (prevUserId && thisUserId && prevUserId !== thisUserId) {
+    if (thisUserId && prevUserId !== thisUserId) {
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
         localStorage.removeItem('empty_friends_dismissed');
@@ -246,6 +247,8 @@ function showAuthMode(mode) {
         createAccountTab.classList.add('active');
         signInForm.style.display = 'none';
         createAccountForm.style.display = 'flex';
+        // Always clear form so no stale/pre-filled data appears
+        createAccountForm.reset();
     }
 }
 
@@ -4798,7 +4801,7 @@ function checkOnboardingBanner() {
     const hasNoEndorsements = Object.values(endorsementsCache || {}).every(e => !e.userEndorsed);
 
     if (hasNoRealFriends && hasNoEndorsements) {
-        banner.style.display = 'block';
+        banner.style.display = 'flex';
     } else {
         banner.style.display = 'none';
     }
@@ -4809,7 +4812,14 @@ function dismissOnboarding() {
     const banner = document.getElementById('onboardingBanner');
     if (banner) {
         banner.style.opacity = '0';
-        setTimeout(() => { banner.style.display = 'none'; }, 300);
+        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = ''; }, 300);
+    }
+}
+
+function handleOnbOverlayClick(e) {
+    // Dismiss when clicking the backdrop (not the card itself)
+    if (e.target === document.getElementById('onboardingBanner')) {
+        dismissOnboarding();
     }
 }
 
