@@ -7074,11 +7074,22 @@
     border-color: #7B2D45;
     box-shadow: 0 0 0 3px rgba(123,45,69,0.10);
 }
+.dc-search-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
 .dc-search-bar svg {
     width: 16px; height: 16px;
     stroke: var(--text-secondary);
     flex-shrink: 0;
 }
+.dc-search-icon-btn:hover svg { stroke: #7B2D45; }
 .dc-search-bar input {
     flex: 1;
     border: none;

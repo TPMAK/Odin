@@ -4656,7 +4656,7 @@ document.getElementById('photo').addEventListener('change', function(e) {
 
 function applyRecentSearch(query) {
     document.getElementById('discoverSearch').value = query;
-    handleSearchInput();
+    searchFromDiscover();
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
