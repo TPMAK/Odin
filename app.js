@@ -2200,7 +2200,7 @@ function switchDiscoverView(view) {
         setMapScreenHeight();
 
         var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        if (!discoverMap) {
+        if (!discoverMapInitialized) {
             // Map doesn't exist yet — initialise it
             var delay = isIOS ? 400 : 100;
             setTimeout(function() {
@@ -2214,12 +2214,12 @@ function switchDiscoverView(view) {
                     setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
                 }
             }, delay);
-        } else {
+            discoverMapInitialized = true;
+        } else if (discoverMap) {
             // Map already exists — just fix its size
-            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 150);
+            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 150);
             setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
         }
-        discoverMapInitialized = true;
     }
 }
 
@@ -2440,7 +2440,17 @@ function setMode(mode) {
         document.body.classList.remove('map-view-open');
         discoverMapInitialized = false; // force re-init next time
         if (discoverMap) { discoverMap.remove(); discoverMap = null; }
+        userLocMarker = null; // stale reference — will be recreated on next init
+        // Clear JS-set heights that were applied for the map view
+        var _contentEl = document.querySelector('.content');
+        var _discoverEl = document.getElementById('discoverMode');
+        if (_contentEl) _contentEl.style.height = '';
+        if (_discoverEl) _discoverEl.style.height = '';
     }
+    // Always scroll to top when switching modes
+    window.scrollTo(0, 0);
+    var contentEl = document.querySelector('.content');
+    if (contentEl) contentEl.scrollTop = 0;
 
     if (mode === 'home') {
         showHome();
@@ -3358,12 +3368,22 @@ function initDiscoverMap() {
         }
     }
 
+    // Always set an initial view so Leaflet renders tiles immediately.
+    // Without a view, Leaflet shows a blank canvas until setView/fitBounds is called.
     if (userLocation.available) {
-        // Already have location — centre immediately
+        // Best case: we already have the user's position — use it right away
         centreOnUser(userLocation.latitude, userLocation.longitude);
+    } else if (bounds.length > 0) {
+        discoverMap.fitBounds(bounds, { padding: [40, 40] });
+    } else {
+        // Fallback: Auckland, NZ — overridden by GPS below if permission is granted
+        discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
+    }
+
+    if (userLocation.available) {
+        // Already handled above — nothing more to do
     } else if (navigator.geolocation) {
-        // Request GPS; centre when we get it, fall back to marker bounds if it fails/times out
-        if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] }); // interim view
+        // Request GPS; re-centre when we get it
         navigator.geolocation.getCurrentPosition(
             function(pos) {
                 userLocation.latitude  = pos.coords.latitude;
@@ -3374,17 +3394,15 @@ function initDiscoverMap() {
                 rebuildMapListsSorted(userLocation.latitude, userLocation.longitude);
             },
             function() {
-                // GPS denied/failed — keep the interim bounds view
+                // GPS denied/failed — keep whatever view is already set
             },
             { timeout: 6000, enableHighAccuracy: true }
         );
-    } else {
-        // No GPS support — fit all markers
-        if (bounds.length > 0) discoverMap.fitBounds(bounds, { padding: [40, 40] });
     }
 
     // Force Leaflet to redraw after layout settles
     setTimeout(function(){ discoverMap.invalidateSize(); }, 150);
+    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 500);
 }
 
 function showDrawer(index) {
