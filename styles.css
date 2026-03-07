@@ -7157,6 +7157,46 @@
     padding: 0;
 }
 
+/* ── Discover category chips ── */
+.dc-chips-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 16px;
+    margin-bottom: 4px;
+}
+.dc-chips-row::-webkit-scrollbar { display: none; }
+.dc-chip {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6A5A4A;
+    cursor: pointer;
+    transition: border-color 0.18s, color 0.18s, background 0.18s;
+    white-space: nowrap;
+}
+.dc-chip:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+    background: rgba(123, 45, 69, 0.04);
+}
+.dc-chip.active {
+    background: #7B2D45;
+    border-color: #7B2D45;
+    color: #FAF6EE;
+    font-weight: 600;
+}
+.dc-chip.active:hover {
+    background: #5A1F30;
+    border-color: #5A1F30;
+}
+
 /* ── Collection cards grid ── */
 .dc-collections-grid {
     display: flex;

@@ -1088,6 +1088,15 @@
                         <p class="dc-subheading">Curated finds from your circle</p>
                     </div>
 
+                    <!-- Category filter chips -->
+                    <div class="dc-chips-row" id="dcChipsRow">
+                        <button class="dc-chip active" data-cat="all"     onclick="setDiscoverChip(this,'all')">All</button>
+                        <button class="dc-chip"        data-cat="place"   onclick="setDiscoverChip(this,'place')">Places</button>
+                        <button class="dc-chip"        data-cat="product" onclick="setDiscoverChip(this,'product')">Products</button>
+                        <button class="dc-chip"        data-cat="service" onclick="setDiscoverChip(this,'service')">Services</button>
+                        <button class="dc-chip"        data-cat="advice"  onclick="setDiscoverChip(this,'advice')">Advice</button>
+                    </div>
+
                     <!-- Collection cards grouped by friend / category -->
                     <div class="dc-section-header" id="dcCircleHeader">
                         <h2 class="dc-section-title">From your circle</h2>
@@ -1102,7 +1111,7 @@
                     <div id="dcAllItemsSection" style="display:none;">
                         <div class="dc-section-header" style="margin-top:20px;">
                             <h2 class="dc-section-title" id="dcAllItemsTitle">All items</h2>
-                            <button class="dc-back-btn" onclick="showAllCollections()">← Back</button>
+                            <button class="dc-back-btn" onclick="showAllCollections(); resetDiscoverChips();">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -2272,6 +2281,30 @@
             var safe = c.replace(/'/g, "\\'");
             return '<button class="home-chip" onclick="chipSearch(\'' + safe + '\')">' + escapeHtml(c) + '</button>';
         }).join('');
+    }
+
+    // ── Discover category chips ──
+    function setDiscoverChip(el, cat) {
+        // Update active chip visuals
+        document.querySelectorAll('.dc-chip').forEach(function(c) { c.classList.remove('active'); });
+        el.classList.add('active');
+
+        if (cat === 'all') {
+            showAllCollections();
+        } else {
+            var labels = { place: 'Places', product: 'Products', service: 'Services', advice: 'Advice' };
+            var label  = labels[cat] || cat;
+            var items  = (typeof allDiscoveries !== 'undefined' && allDiscoveries)
+                ? allDiscoveries.filter(function(d) { return d.type === cat; })
+                : [];
+            openCollection(label, items);
+        }
+    }
+
+    function resetDiscoverChips() {
+        document.querySelectorAll('.dc-chip').forEach(function(c) {
+            c.classList.toggle('active', c.dataset.cat === 'all');
+        });
     }
 
     // ── 4b. Animated search bar placeholder ──
