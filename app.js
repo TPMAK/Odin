@@ -49,6 +49,10 @@ async function checkAuth() {
 function showLoginScreen() {
     document.getElementById('loginScreen').style.display = 'block';
     document.getElementById('mainApp').style.display = 'none';
+    // Explicitly hide bottom tab bar (position:fixed can persist in iOS Safari
+    // even when the parent has display:none)
+    var tabBar = document.querySelector('.bottom-tab-bar');
+    if (tabBar) tabBar.style.display = 'none';
     // Close auth modal if open (e.g. after sign-out)
     var modal = document.getElementById('authModal');
     if (modal) modal.classList.remove('open');
@@ -88,6 +92,9 @@ async function showMainApp() {
     if (authModal) authModal.classList.remove('open');
     document.body.style.overflow = '';
     document.getElementById('mainApp').style.display = 'block';
+    // Restore bottom tab bar in case it was hidden on logout
+    var tabBar = document.querySelector('.bottom-tab-bar');
+    if (tabBar) tabBar.style.display = '';
 
     // Load profile from profiles table
     await loadUserProfile();
@@ -2192,20 +2199,26 @@ function switchDiscoverView(view) {
         // Set explicit pixel height so Leaflet works on all browsers incl. iOS Safari
         setMapScreenHeight();
 
-        // Always re-init the map to ensure it renders correctly
-        // (previously used a flag that could get stale)
         var isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
-        var delay = isIOS ? 400 : 150;
-        setTimeout(function() {
-            setMapScreenHeight();
-            initDiscoverMap();
-            // Multiple invalidateSize calls at increasing intervals
-            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 300);
-            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 700);
-            if (isIOS) {
-                setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 1500);
-            }
-        }, delay);
+        if (!discoverMap) {
+            // Map doesn't exist yet — initialise it
+            var delay = isIOS ? 400 : 100;
+            setTimeout(function() {
+                setMapScreenHeight();
+                initDiscoverMap();
+                if (isIOS) {
+                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 400);
+                    setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 900);
+                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 1500);
+                } else {
+                    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 600);
+                }
+            }, delay);
+        } else {
+            // Map already exists — just fix its size
+            setTimeout(function(){ setMapScreenHeight(); discoverMap.invalidateSize(); }, 150);
+            setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
+        }
         discoverMapInitialized = true;
     }
 }

@@ -45,7 +45,7 @@
             display: block;
             position: fixed;
             inset: 0;
-            z-index: 500;
+            z-index: 1100;
             overflow: hidden;
         }
         #loginScreen * { box-sizing: border-box; }
@@ -341,7 +341,7 @@
                 bottom: 0; left: 0; right: 0;
                 padding: 32px 24px 44px;
                 background: linear-gradient(to top, #1A100A 60%, transparent);
-                z-index: 510;
+                z-index: 1110;
                 pointer-events: none;
             }
             .ls-mobile-cta > * { pointer-events: all; }
@@ -375,7 +375,7 @@
             display: none;
             position: fixed; inset: 0;
             background: rgba(0,0,0,0.5);
-            z-index: 590;
+            z-index: 1190;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
@@ -389,7 +389,7 @@
             padding: 0 28px 48px;
             transform: translateY(105%);
             transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
-            z-index: 600;
+            z-index: 1200;
             max-height: 88dvh;
             overflow-y: auto;
         }
@@ -1691,7 +1691,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=37"></script>
+    <script src="app.js?v=38"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
