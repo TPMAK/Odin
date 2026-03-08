@@ -279,6 +279,8 @@
             flex: 1;
             background: var(--bg);
             padding-bottom: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .hidden { display: none !important; }
@@ -7470,13 +7472,16 @@ body.map-view-open .content {
 }
 
 .discover-map-screen {
-    flex: 1;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    background: #FAF6EE;
     display: flex;
     flex-direction: column;
-    min-height: 0;
     overflow: hidden;
-    /* iOS Safari fallback: JS sets explicit pixel height too */
-    height: 100%;
 }
 .dmap-inner {
     flex: 1;
@@ -7584,9 +7589,8 @@ body.map-view-open .content {
     flex: 1 1 auto;
     position: relative;
     overflow: hidden;
-    min-height: 0;
-    /* Prevent iOS from collapsing this to zero before JS sets explicit height */
     min-height: 200px;
+    height: 100%;
 }
 /* Leaflet map fills the area absolutely — most reliable cross-browser */
 #discoverMap {

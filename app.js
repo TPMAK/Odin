@@ -2204,6 +2204,10 @@ function switchDiscoverView(view) {
             // Map doesn't exist yet — initialise it
             var delay = isIOS ? 400 : 100;
             setTimeout(function() {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+
                 setMapScreenHeight();
                 initDiscoverMap();
                 if (isIOS) {
@@ -2219,6 +2223,9 @@ function switchDiscoverView(view) {
             // Map already exists — just fix its size
             setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 150);
             setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
+        } else {
+            discoverMapInitialized = false;
+            switchDiscoverView('map');
         }
     }
 }
@@ -3215,7 +3222,12 @@ function rebuildMapListsSorted(userLat, userLng) {
 function initDiscoverMap() {
     var mapEl = document.getElementById('discoverMap');
     if (!mapEl) return;
-    if (discoverMap) { discoverMap.remove(); discoverMap = null; }
+    if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+    // Belt-and-suspenders: clear any stale Leaflet marker on the container.
+    if (mapEl._leaflet_id !== undefined) {
+        mapEl._leaflet_id = undefined;
+        mapEl.innerHTML = '';
+    }
 
     // Apply height before Leaflet reads container size
     setMapScreenHeight();
@@ -3225,7 +3237,8 @@ function initDiscoverMap() {
     var located = (source || []).reduce(function(acc, d) {
         var lat = parseFloat(d.latitude);
         var lng = parseFloat(d.longitude);
-        if (!isNaN(lat) && !isNaN(lng)) acc.push({ data: d, lat: lat, lng: lng });
+        // Skip null-island (0,0) — result of failed geocoding
+        if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) acc.push({ data: d, lat: lat, lng: lng });
         return acc;
     }, []);
 
@@ -3238,7 +3251,11 @@ function initDiscoverMap() {
         located.sort(function(a, b) { return a.dist - b.dist; });
     }
 
-    discoverMap = L.map('discoverMap', { zoomControl: false });
+    try {
+        discoverMap = L.map('discoverMap', { zoomControl: false });
+    } catch(e) {
+        return;
+    }
 
     // CartoDB Positron — clean minimal tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -3369,14 +3386,15 @@ function initDiscoverMap() {
     }
 
     // Always set an initial view so Leaflet renders tiles immediately.
-    // Without a view, Leaflet shows a blank canvas until setView/fitBounds is called.
     if (userLocation.available) {
-        // Best case: we already have the user's position — use it right away
         centreOnUser(userLocation.latitude, userLocation.longitude);
     } else if (bounds.length > 0) {
-        discoverMap.fitBounds(bounds, { padding: [40, 40] });
+        discoverMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        // Sanity check — if still too zoomed out (bad coords pulled bounds wide), reset to Auckland
+        if (discoverMap.getZoom() < 9) {
+            discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
+        }
     } else {
-        // Fallback: Auckland, NZ — overridden by GPS below if permission is granted
         discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
     }
 
@@ -3401,7 +3419,7 @@ function initDiscoverMap() {
     }
 
     // Force Leaflet to redraw after layout settles
-    setTimeout(function(){ discoverMap.invalidateSize(); }, 150);
+    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 150);
     setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 500);
 }
 
