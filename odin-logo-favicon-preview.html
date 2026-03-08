@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odin — Logo & Favicon Assets</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'DM Sans', sans-serif; background: #F0EAE0; padding: 48px 24px 80px; }
+
+.wrap { max-width: 900px; margin: 0 auto; }
+
+.page-title { font-size: 22px; font-weight: 700; color: #130E09; letter-spacing: -0.02em; margin-bottom: 6px; }
+.page-sub   { font-size: 13px; color: #A89080; margin-bottom: 40px; }
+
+.section-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: #A89080;
+  padding-bottom: 8px; border-bottom: 1px solid #D0BFA8;
+  margin-bottom: 14px; margin-top: 36px;
+}
+
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.tile { border-radius: 16px; overflow: hidden; border: 1px solid rgba(0,0,0,0.08); }
+.tile-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; padding: 14px 20px 10px;
+  border-bottom-width: 1px; border-bottom-style: solid;
+}
+.tile-body { padding: 36px 40px; display: flex; flex-direction: column; gap: 28px; }
+
+.tile-day  { background: #FAF6EE; }
+.tile-day  .tile-label { color: #A89080; background: #FAF6EE; border-color: #D0BFA8; }
+.tile-dark { background: #0B0F1A; }
+.tile-dark .tile-label { color: #4A5568; background: #0B0F1A; border-color: rgba(255,255,255,0.06); }
+
+/* Logo */
+.logo { font-family: 'DM Sans', sans-serif; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+.size-row { display: flex; flex-direction: column; gap: 6px; }
+.size-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+
+/* Favicon pill */
+.fav-sizes { display: flex; flex-direction: column; gap: 18px; }
+.fav-item { display: flex; align-items: center; gap: 16px; }
+.fav-pill {
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 18%;
+  font-family: 'DM Sans', sans-serif; font-weight: 900; letter-spacing: -0.04em;
+  flex-shrink: 0;
+}
+.fav-meta { display: flex; flex-direction: column; gap: 2px; }
+.fav-sz   { font-size: 11px; font-weight: 700; }
+.fav-note { font-size: 11px; }
+
+/* Files */
+.file-list { background: white; border-radius: 16px; border: 1px solid #D0BFA8; overflow: hidden; margin-top: 10px; }
+.file-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid #F0E8DC; }
+.file-row:last-child { border-bottom: none; }
+.file-name { font-size: 13px; font-weight: 600; color: #130E09; font-family: monospace; }
+.file-desc { font-size: 12px; color: #A89080; margin-top: 2px; }
+.file-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border-radius: 6px; }
+.badge-svg { background: #7B2D4515; color: #7B2D45; }
+.badge-fav { background: #D4622A15; color: #D4622A; }
+
+/* Usage */
+.usage { background: #FAF6EE; border-radius: 14px; padding: 22px 26px; border: 1px solid #D0BFA8; margin-top: 10px; }
+.usage-title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #7B2D45; margin-bottom: 12px; }
+.usage pre { font-size: 12px; line-height: 1.9; color: #130E09; font-family: monospace; white-space: pre-wrap; }
+.c { color: #A89080; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-title"><span style="color:#7B2D45;">O</span>din — Logo &amp; Favicon Assets</div>
+  <div class="page-sub">SVG format · scales to any size · transparent background (logo) · pill background (favicon)</div>
+
+  <!-- WORDMARK -->
+  <div class="section-title">Wordmark — Full Logo</div>
+  <div class="row">
+    <div class="tile tile-day">
+      <div class="tile-label">☀️ Day — Warm Stone</div>
+      <div class="tile-body">
+        <div class="size-row">
+          <div class="size-label" style="color:#A89080;">72px — Hero / Splash</div>
+          <div class="logo" style="font-size:72px;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#A89080;">48px — Navbar</div>
+          <div class="logo" style="font-size:48px;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#A89080;">32px — Compact</div>
+          <div class="logo" style="font-size:32px;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#A89080;">20px — Minimum</div>
+          <div class="logo" style="font-size:20px;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="tile tile-dark">
+      <div class="tile-label">🌙 Dark — Deep Navy</div>
+      <div class="tile-body">
+        <div class="size-row">
+          <div class="size-label" style="color:#4A5568;">72px — Hero / Splash</div>
+          <div class="logo" style="font-size:72px;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#4A5568;">48px — Navbar</div>
+          <div class="logo" style="font-size:48px;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#4A5568;">32px — Compact</div>
+          <div class="logo" style="font-size:32px;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></div>
+        </div>
+        <div class="size-row">
+          <div class="size-label" style="color:#4A5568;">20px — Minimum</div>
+          <div class="logo" style="font-size:20px;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAVICON -->
+  <div class="section-title">Favicon — Full Wordmark at all sizes</div>
+  <div class="row">
+
+    <!-- DAY FAVICON -->
+    <div class="tile tile-day">
+      <div class="tile-label">☀️ Day — Warm Stone</div>
+      <div class="tile-body">
+        <div class="fav-sizes">
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:180px;height:56px;background:#FAF6EE;border:1.5px solid #D0BFA8;border-radius:12px;">
+              <span style="font-size:38px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#A89080;">180×56 — App icon</div>
+              <div class="fav-note" style="color:#C0B0A0;">Splash, loading screen</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:120px;height:40px;background:#FAF6EE;border:1.5px solid #D0BFA8;border-radius:9px;">
+              <span style="font-size:26px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#A89080;">120×40 — Navbar</div>
+              <div class="fav-note" style="color:#C0B0A0;">Top bar, header</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:80px;height:28px;background:#FAF6EE;border:1.5px solid #D0BFA8;border-radius:6px;">
+              <span style="font-size:18px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#A89080;">80×28 — Compact</div>
+              <div class="fav-note" style="color:#C0B0A0;">Tab bar, small UI</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:52px;height:20px;background:#FAF6EE;border:1.5px solid #D0BFA8;border-radius:4px; padding: 0 4px;">
+              <span style="font-size:12px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.03em;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#A89080;">52×20 — Browser tab</div>
+              <div class="fav-note" style="color:#C0B0A0;">Favicon in browser</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- DARK FAVICON -->
+    <div class="tile tile-dark">
+      <div class="tile-label">🌙 Dark — Deep Navy</div>
+      <div class="tile-body">
+        <div class="fav-sizes">
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:180px;height:56px;background:#0B0F1A;border:1.5px solid #1C2436;border-radius:12px;">
+              <span style="font-size:38px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#4A5568;">180×56 — App icon</div>
+              <div class="fav-note" style="color:#2E3A4E;">Splash, loading screen</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:120px;height:40px;background:#0B0F1A;border:1.5px solid #1C2436;border-radius:9px;">
+              <span style="font-size:26px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#4A5568;">120×40 — Navbar</div>
+              <div class="fav-note" style="color:#2E3A4E;">Top bar, header</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:80px;height:28px;background:#0B0F1A;border:1.5px solid #1C2436;border-radius:6px;">
+              <span style="font-size:18px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.04em;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#4A5568;">80×28 — Compact</div>
+              <div class="fav-note" style="color:#2E3A4E;">Tab bar, small UI</div>
+            </div>
+          </div>
+
+          <div class="fav-item">
+            <div class="fav-pill" style="width:52px;height:20px;background:#0B0F1A;border:1.5px solid #1C2436;border-radius:4px; padding: 0 4px;">
+              <span style="font-size:12px;font-family:'DM Sans',sans-serif;font-weight:900;letter-spacing:-0.03em;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></span>
+            </div>
+            <div class="fav-meta">
+              <div class="fav-sz" style="color:#4A5568;">52×20 — Browser tab</div>
+              <div class="fav-note" style="color:#2E3A4E;">Favicon in browser</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FILES -->
+  <div class="section-title">Files</div>
+  <div class="file-list">
+    <div class="file-row">
+      <div><div class="file-name">odin-logo-day.svg</div><div class="file-desc">Full wordmark · transparent background · day colours</div></div>
+      <span class="file-badge badge-svg">SVG</span>
+    </div>
+    <div class="file-row">
+      <div><div class="file-name">odin-logo-dark.svg</div><div class="file-desc">Full wordmark · navy background · dark colours</div></div>
+      <span class="file-badge badge-svg">SVG</span>
+    </div>
+    <div class="file-row">
+      <div><div class="file-name">odin-favicon-day.svg</div><div class="file-desc">Full "Odin" wordmark · warm white pill · day colours</div></div>
+      <span class="file-badge badge-fav">FAVICON</span>
+    </div>
+    <div class="file-row">
+      <div><div class="file-name">odin-favicon-dark.svg</div><div class="file-desc">Full "Odin" wordmark · navy pill · dark colours</div></div>
+      <span class="file-badge badge-fav">FAVICON</span>
+    </div>
+  </div>
+
+  <!-- USAGE -->
+  <div class="section-title">How to use</div>
+  <div class="usage">
+    <div class="usage-title">Drop into your HTML</div>
+    <pre><span class="c">&lt;!-- Favicon (browser tab) --&gt;</span>
+&lt;link rel="icon" type="image/svg+xml" href="/odin-favicon-day.svg"&gt;
+
+<span class="c">&lt;!-- App icon / navbar --&gt;</span>
+&lt;img src="/odin-logo-day.svg" alt="Odin" height="40"&gt;
+
+<span class="c">&lt;!-- Or pure CSS — auto switches with OS dark mode --&gt;</span>
+&lt;span class="odin-logo"&gt;
+  &lt;span class="o"&gt;O&lt;/span&gt;&lt;span class="rest"&gt;din&lt;/span&gt;
+&lt;/span&gt;</pre>
+  </div>
+
+</div>
+</body>
+</html>
