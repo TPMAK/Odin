@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vouch</title>
+    <title>Odin</title>
 
     <!-- ── Favicon & PWA icons ── -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -13,9 +13,9 @@
     <meta name="theme-color" content="#FAF6EE">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Vouch">
+    <meta name="apple-mobile-web-app-title" content="Odin">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Vouch">
+    <meta name="application-name" content="Odin">
 
     <!-- Preconnect for faster Google Fonts load -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -664,7 +664,7 @@
             <div class="ls-right">
                 <div class="ls-auth-card">
 
-                    <h2 class="ls-auth-title">Join Vouch free.</h2>
+                    <h2 class="ls-auth-title">Join Odin free.</h2>
                     <p class="ls-auth-sub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                     <button class="ls-btn-google" onclick="handleGoogleLogin()">
@@ -710,7 +710,7 @@
         <div class="ls-sheet" id="lsSheet">
             <div class="ls-drag-handle"></div>
             <div class="ls-sheet-inner">
-                <h2 class="ls-auth-title" id="lsSheetTitle">Join Vouch free.</h2>
+                <h2 class="ls-auth-title" id="lsSheetTitle">Join Odin free.</h2>
                 <p class="ls-auth-sub" id="lsSheetSub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                 <button class="ls-btn-google" onclick="handleGoogleLogin()">
@@ -751,7 +751,7 @@
             <!-- Brand -->
             <div class="auth-modal-brand">
                 <div class="auth-modal-logo">
-                    <span class="vouch-wordmark vouch-wordmark-lg"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+                    <span class="odin-wordmark odin-wordmark-lg"><span class="odin-o">O</span><span class="odin-din">din</span></span>
                 </div>
                 <div class="auth-modal-brandline">From people you know,<br>not platforms.</div>
             </div>
@@ -829,8 +829,8 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <div class="header-logo" aria-label="Vouch">
-                <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+            <div class="header-logo" aria-label="Odin">
+                <span class="odin-wordmark"><span class="odin-o">O</span><span class="odin-din">din</span></span>
             </div>
             <div class="header-right">
                 <!-- App mode toggle (home screen only) -->
@@ -931,7 +931,7 @@
 
                         <button class="onb-close" onclick="dismissOnboarding()" aria-label="Close">✕</button>
 
-                        <div class="onb-modal-title">Welcome to <span class="onb-brand">Vouch</span></div>
+                        <div class="onb-modal-title">Welcome to <span class="onb-brand">Odin</span></div>
                         <p class="onb-modal-subtitle">Find what your people actually love — instantly.</p>
 
                         <p class="onb-modal-body">Your friends save the places, experiences, and hidden gems worth knowing. You search, and they surface — no algorithms, no strangers.</p>
@@ -1793,7 +1793,7 @@
             signinBtn.style.display   = 'none';
             if (hint) hint.style.display = 'none';
         } else {
-            title.textContent    = 'Join Vouch free.';
+            title.textContent    = 'Join Odin free.';
             sub.textContent      = 'The pilot circle\u2019s been busy. Join to see what they\u2019ve saved.';
             emailBtn.textContent = 'Create account with email';
             if (hint) hint.style.display = '';
@@ -1896,7 +1896,7 @@
     });
 
     // ===== HOME STYLE (Discover vs Simple/Launcher) =====
-    var _HOME_STYLE_KEY = 'vouch_home_style';
+    var _HOME_STYLE_KEY = 'odin_home_style';
 
     function getHomeStyle() {
         return localStorage.getItem(_HOME_STYLE_KEY) || 'launcher'; // default: Focus mode
@@ -2618,7 +2618,7 @@
     }
 
     // ── 7. Recently viewed — persisted in localStorage ──
-    var _RECENT_KEY = 'vouch_recently_viewed';
+    var _RECENT_KEY = 'odin_recently_viewed';
     var _RECENT_MAX = 12;
 
     function _getRecentlyViewed() {

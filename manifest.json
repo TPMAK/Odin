@@ -1,6 +1,6 @@
 {
-  "name": "Vouch",
-  "short_name": "Vouch",
+  "name": "Odin",
+  "short_name": "Odin",
   "description": "From people you know, not platforms.",
   "start_url": "./index.html",
   "display": "standalone",
