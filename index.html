@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vouch</title>
+    <title>Odin</title>
 
     <!-- ── Favicon & PWA icons ── -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -13,9 +13,9 @@
     <meta name="theme-color" content="#FAF6EE">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Vouch">
+    <meta name="apple-mobile-web-app-title" content="Odin">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Vouch">
+    <meta name="application-name" content="Odin">
 
     <!-- Preconnect for faster Google Fonts load -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -622,7 +622,7 @@
                         <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
                     </div>
 
-                    <div class="ls-logo"><span class="lsv">v</span><span class="lso">ouch</span></div>
+                    <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
 
                     <div class="ls-headline-area">
                         <div class="ls-headline visible" id="lsh0">Ask your friends —<br><em>without asking</em><br>your friends.</div>
@@ -664,7 +664,7 @@
             <div class="ls-right">
                 <div class="ls-auth-card">
 
-                    <h2 class="ls-auth-title">Join Vouch free.</h2>
+                    <h2 class="ls-auth-title">Join Odin free.</h2>
                     <p class="ls-auth-sub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                     <button class="ls-btn-google" onclick="handleGoogleLogin()">
@@ -710,7 +710,7 @@
         <div class="ls-sheet" id="lsSheet">
             <div class="ls-drag-handle"></div>
             <div class="ls-sheet-inner">
-                <h2 class="ls-auth-title" id="lsSheetTitle">Join Vouch free.</h2>
+                <h2 class="ls-auth-title" id="lsSheetTitle">Join Odin free.</h2>
                 <p class="ls-auth-sub" id="lsSheetSub">The pilot circle's been busy. Join to see what they've saved.</p>
 
                 <button class="ls-btn-google" onclick="handleGoogleLogin()">
@@ -751,7 +751,7 @@
             <!-- Brand -->
             <div class="auth-modal-brand">
                 <div class="auth-modal-logo">
-                    <span class="vouch-wordmark vouch-wordmark-lg"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+                    <span class="odin-wordmark odin-wordmark-lg"><span class="odin-o">O</span><span class="odin-din">din</span></span>
                 </div>
                 <div class="auth-modal-brandline">From people you know,<br>not platforms.</div>
             </div>
@@ -829,15 +829,10 @@
     <!-- Header -->
     <div class="header">
         <div class="header-content">
-            <div class="header-logo" aria-label="Vouch">
-                <span class="vouch-wordmark"><span class="vouch-v">v</span><span class="vouch-ouch">ouch</span></span>
+            <div class="header-logo" aria-label="Odin">
+                <span class="odin-wordmark"><span class="odin-o">O</span><span class="odin-din">din</span></span>
             </div>
             <div class="header-right">
-                <!-- App mode toggle (home screen only) -->
-                <div class="header-mode-pills" id="headerModePills">
-                    <button class="hdr-pill" id="headerPillFeed" onclick="setHomeStyle('feed')">Discover</button>
-                    <button class="hdr-pill" id="headerPillLauncher" onclick="setHomeStyle('launcher')">Focus</button>
-                </div>
                 <!-- Discover / Map toggle (discover screen only) -->
                 <div class="header-mode-pills" id="headerDiscoverPills" style="display:none;">
                     <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
@@ -860,7 +855,7 @@
         <div id="homePage" class="hidden">
 
             <!-- ── LAUNCHER HOME (Simple mode) ── -->
-            <div id="launcherHome" style="display:none;">
+            <div id="launcherHome" style="display:block;">
                 <div class="launcher-page">
                     <div class="launcher-greeting">
                         <h1 id="launcherGreetingLine">Good morning, <span id="launcherGreetingName" class="launcher-name"></span></h1>
@@ -900,10 +895,47 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- From your circle — always visible below launcher tiles -->
+                <div class="home-feed-section launcher-circle-feed" id="launcherCircleFeed">
+                    <div class="home-section-header">
+                        <h2 class="home-section-title">From your circle</h2>
+                        <a onclick="setMode('discover')">See all</a>
+                    </div>
+                    <div class="home-feed-wrap">
+                        <button class="feed-nav-btn feed-nav-prev hidden" id="launcherFeedNavPrev" aria-label="Scroll left" onclick="scrollFeed(-1)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div class="home-feed-scroll" id="launcherFeedScroll"></div>
+                        <button class="feed-nav-btn feed-nav-next" id="launcherFeedNavNext" aria-label="Scroll right" onclick="scrollFeed(1)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="feed-scroll-hint" id="launcherFeedScrollHint">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Continue exploring — recently viewed items -->
+                <div class="launcher-circle-feed" id="launcherRecentSection" style="display:none;">
+                    <div class="home-section-header">
+                        <h2 class="home-section-title">Continue exploring</h2>
+                        <a onclick="clearRecentlyViewed()">Clear</a>
+                    </div>
+                    <div class="home-recent-wrap">
+                        <button class="hr-scroll-arrow hr-scroll-left" id="launcherHrScrollLeft" onclick="scrollRecent(-1)" style="display:none;" aria-label="Scroll left">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div class="home-recent-scroll" id="launcherRecentScroll"></div>
+                        <button class="hr-scroll-arrow hr-scroll-right" id="launcherHrScrollRight" onclick="scrollRecent(1)" aria-label="Scroll right">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- ── FEED HOME (Discover mode) ── -->
-            <div id="feedHome">
+            <div id="feedHome" style="display:none;">
             <div class="home-page">
                 <!-- Greeting -->
                 <div class="home-greeting">
@@ -931,7 +963,7 @@
 
                         <button class="onb-close" onclick="dismissOnboarding()" aria-label="Close">✕</button>
 
-                        <div class="onb-modal-title">Welcome to <span class="onb-brand">Vouch</span></div>
+                        <div class="onb-modal-title">Welcome to <span class="onb-brand">Odin</span></div>
                         <p class="onb-modal-subtitle">Find what your people actually love — instantly.</p>
 
                         <p class="onb-modal-body">Your friends save the places, experiences, and hidden gems worth knowing. You search, and they surface — no algorithms, no strangers.</p>
@@ -1793,7 +1825,7 @@
             signinBtn.style.display   = 'none';
             if (hint) hint.style.display = 'none';
         } else {
-            title.textContent    = 'Join Vouch free.';
+            title.textContent    = 'Join Odin free.';
             sub.textContent      = 'The pilot circle\u2019s been busy. Join to see what they\u2019ve saved.';
             emailBtn.textContent = 'Create account with email';
             if (hint) hint.style.display = '';
@@ -1896,7 +1928,7 @@
     });
 
     // ===== HOME STYLE (Discover vs Simple/Launcher) =====
-    var _HOME_STYLE_KEY = 'vouch_home_style';
+    var _HOME_STYLE_KEY = 'odin_home_style';
 
     function getHomeStyle() {
         return localStorage.getItem(_HOME_STYLE_KEY) || 'launcher'; // default: Focus mode
@@ -1914,19 +1946,12 @@
     }
 
     function applyHomeStyle() {
-        var style = getHomeStyle();
+        // Combined mode: always show launcher with circle feed below, hide feedHome
         var launcher = document.getElementById('launcherHome');
         var feed = document.getElementById('feedHome');
-        if (!launcher || !feed) return;
-        if (style === 'launcher') {
-            launcher.style.display = 'block';
-            feed.style.display = 'none';
-            // Update launcher greeting
-            updateLauncherGreeting();
-        } else {
-            launcher.style.display = 'none';
-            feed.style.display = 'block';
-        }
+        if (launcher) launcher.style.display = 'block';
+        if (feed) feed.style.display = 'none';
+        updateLauncherGreeting();
     }
 
     function updateLauncherGreeting() {
@@ -2410,15 +2435,17 @@
 
     // ── 4c. Feed scroll nav (desktop buttons + mobile hint) ──
     function scrollFeed(dir) {
-        var scroll = document.getElementById('homeFeedScroll');
+        // Support both launcher and feedHome scroll containers
+        var scroll = document.getElementById('launcherFeedScroll') || document.getElementById('homeFeedScroll');
         if (!scroll) return;
         // Scroll by ~3 card widths (148px + 12px gap = 160px each)
         scroll.scrollBy({ left: dir * 160 * 3, behavior: 'smooth' });
     }
 
     function _updateFeedNavButtons(scroll) {
-        var prev = document.getElementById('feedNavPrev');
-        var next = document.getElementById('feedNavNext');
+        // Support both launcher and feedHome nav buttons
+        var prev = document.getElementById('launcherFeedNavPrev') || document.getElementById('feedNavPrev');
+        var next = document.getElementById('launcherFeedNavNext') || document.getElementById('feedNavNext');
         if (!prev || !next) return;
         var atStart = scroll.scrollLeft <= 4;
         var atEnd   = scroll.scrollLeft >= scroll.scrollWidth - scroll.clientWidth - 4;
@@ -2427,8 +2454,9 @@
     }
 
     function initFeedScrollHint() {
-        var scroll = document.getElementById('homeFeedScroll');
-        var hint   = document.getElementById('feedScrollHint');
+        // Use launcher scroll if available, else feedHome scroll
+        var scroll = document.getElementById('launcherFeedScroll') || document.getElementById('homeFeedScroll');
+        var hint   = document.getElementById('launcherFeedScrollHint') || document.getElementById('feedScrollHint');
         if (!scroll) return;
 
         var canScroll = scroll.scrollWidth > scroll.clientWidth + 4;
@@ -2458,19 +2486,23 @@
 
     // ── 5. Friend feed — what people in your circle saved recently ──
     async function loadFriendFeed() {
-        var feedSection  = document.getElementById('homeFeedSection');
-        var emptySection = document.getElementById('homeEmptyFriends');
-        var scroll       = document.getElementById('homeFeedScroll');
-        if (!feedSection || !emptySection || !scroll) return;
+        var feedSection      = document.getElementById('homeFeedSection');
+        var emptySection     = document.getElementById('homeEmptyFriends');
+        var scroll           = document.getElementById('homeFeedScroll');
+        var launcherFeed     = document.getElementById('launcherCircleFeed');
+        var launcherScroll   = document.getElementById('launcherFeedScroll');
         if (typeof currentUser === 'undefined' || !currentUser) return;
 
         // Wait for friendsCache to be populated (it loads async on app init)
         var friends = (typeof friendsCache !== 'undefined') ? friendsCache : [];
 
         if (friends.length === 0) {
-            feedSection.style.display  = 'none';
-            var dismissed = localStorage.getItem('empty_friends_dismissed');
-            emptySection.style.display = dismissed ? 'none' : 'block';
+            if (feedSection) feedSection.style.display  = 'none';
+            if (launcherFeed) launcherFeed.style.display = 'none';
+            if (emptySection) {
+                var dismissed = localStorage.getItem('empty_friends_dismissed');
+                emptySection.style.display = dismissed ? 'none' : 'block';
+            }
             return;
         }
 
@@ -2485,16 +2517,16 @@
                 .limit(12);
 
             if (error || !items || items.length === 0) {
-                feedSection.style.display  = 'none';
-                var dismissed2 = localStorage.getItem('empty_friends_dismissed');
-                emptySection.style.display = dismissed2 ? 'none' : 'block';
+                if (feedSection) feedSection.style.display  = 'none';
+                if (launcherFeed) launcherFeed.style.display = 'none';
+                if (emptySection) {
+                    var dismissed2 = localStorage.getItem('empty_friends_dismissed');
+                    emptySection.style.display = dismissed2 ? 'none' : 'block';
+                }
                 return;
             }
 
-            feedSection.style.display  = 'block';
-            emptySection.style.display = 'none';
-
-            scroll.innerHTML = items.map(function(item) {
+            var cardsHtml = items.map(function(item) {
                 var media = item.photo_url
                     ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
                     : '<div class="hf-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
@@ -2512,10 +2544,20 @@
                     + '</div>';
             }).join('');
 
+            // Populate original feedHome section (hidden but keep in sync)
+            if (feedSection) feedSection.style.display = 'block';
+            if (scroll) scroll.innerHTML = cardsHtml;
+            if (emptySection) emptySection.style.display = 'none';
+
+            // Populate launcher circle feed (always visible on home)
+            if (launcherFeed) launcherFeed.style.display = 'block';
+            if (launcherScroll) launcherScroll.innerHTML = cardsHtml;
+
         } catch (err) {
             console.error('Friend feed error:', err);
-            feedSection.style.display  = 'none';
-            emptySection.style.display = 'none';
+            if (feedSection) feedSection.style.display  = 'none';
+            if (launcherFeed) launcherFeed.style.display = 'none';
+            if (emptySection) emptySection.style.display = 'none';
         }
     }
 
@@ -2618,7 +2660,7 @@
     }
 
     // ── 7. Recently viewed — persisted in localStorage ──
-    var _RECENT_KEY = 'vouch_recently_viewed';
+    var _RECENT_KEY = 'odin_recently_viewed';
     var _RECENT_MAX = 12;
 
     function _getRecentlyViewed() {
@@ -2643,18 +2685,14 @@
     }
 
     function loadRecentlyViewed() {
-        var section = document.getElementById('homeRecentSection');
-        var scroll  = document.getElementById('homeRecentScroll');
-        if (!section || !scroll) return;
+        var section        = document.getElementById('homeRecentSection');
+        var scroll         = document.getElementById('homeRecentScroll');
+        var launcherSection = document.getElementById('launcherRecentSection');
+        var launcherScroll  = document.getElementById('launcherRecentScroll');
 
         var items = _getRecentlyViewed();
-        if (items.length === 0) {
-            section.style.display = 'none';
-            return;
-        }
 
-        section.style.display = 'block';
-        scroll.innerHTML = items.map(function(item) {
+        var cardsHtml = items.length === 0 ? null : items.map(function(item) {
             var media = item.photo_url
                 ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
                 : '<div class="hr-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
@@ -2666,28 +2704,54 @@
                 + '</div>'
                 + '</div>';
         }).join('');
-        // Update scroll arrow visibility after rendering
-        updateRecentScrollArrows();
-        // Listen for scroll to update arrows
-        scroll.removeEventListener('scroll', updateRecentScrollArrows);
-        scroll.addEventListener('scroll', updateRecentScrollArrows);
+
+        // feedHome section (hidden but keep in sync)
+        if (section && scroll) {
+            if (!cardsHtml) { section.style.display = 'none'; }
+            else {
+                section.style.display = 'block';
+                scroll.innerHTML = cardsHtml;
+                updateRecentScrollArrows();
+                scroll.removeEventListener('scroll', updateRecentScrollArrows);
+                scroll.addEventListener('scroll', updateRecentScrollArrows);
+            }
+        }
+
+        // Launcher "Continue exploring" section
+        if (launcherSection && launcherScroll) {
+            if (!cardsHtml) { launcherSection.style.display = 'none'; }
+            else {
+                launcherSection.style.display = 'block';
+                launcherScroll.innerHTML = cardsHtml;
+                updateRecentScrollArrows();
+                launcherScroll.removeEventListener('scroll', updateRecentScrollArrows);
+                launcherScroll.addEventListener('scroll', updateRecentScrollArrows);
+            }
+        }
     }
 
     function scrollRecent(dir) {
-        var scroll = document.getElementById('homeRecentScroll');
+        // Use launcher scroll if visible, else feedHome scroll
+        var scroll = document.getElementById('launcherRecentScroll') || document.getElementById('homeRecentScroll');
         if (!scroll) return;
         scroll.scrollBy({ left: dir * 200, behavior: 'smooth' });
     }
 
     function updateRecentScrollArrows() {
-        var scroll = document.getElementById('homeRecentScroll');
-        var leftBtn = document.getElementById('hrScrollLeft');
-        var rightBtn = document.getElementById('hrScrollRight');
-        if (!scroll || !leftBtn || !rightBtn) return;
-        var canScrollLeft = scroll.scrollLeft > 4;
-        var canScrollRight = scroll.scrollLeft < scroll.scrollWidth - scroll.clientWidth - 4;
-        leftBtn.style.display = canScrollLeft ? 'flex' : 'none';
-        rightBtn.style.display = canScrollRight ? 'flex' : 'none';
+        // Update both launcher and feedHome arrow sets
+        var scrollIds   = ['launcherRecentScroll', 'homeRecentScroll'];
+        var leftIds     = ['launcherHrScrollLeft',  'hrScrollLeft'];
+        var rightIds    = ['launcherHrScrollRight', 'hrScrollRight'];
+        for (var i = 0; i < scrollIds.length; i++) {
+            var scroll   = document.getElementById(scrollIds[i]);
+            var leftBtn  = document.getElementById(leftIds[i]);
+            var rightBtn = document.getElementById(rightIds[i]);
+            if (!scroll || !leftBtn || !rightBtn) continue;
+            var canScrollLeft  = scroll.scrollLeft > 4;
+            var canScrollRight = scroll.scrollLeft < scroll.scrollWidth - scroll.clientWidth - 4;
+            leftBtn.style.display  = canScrollLeft  ? 'flex' : 'none';
+            rightBtn.style.display = canScrollRight ? 'flex' : 'none';
+        }
     }
 
     // Patch updateAvatarInitials to also update header avatar
@@ -2767,6 +2831,57 @@
             updateStyleToggleUI();
         };
     }
+
+    // ── Override goToEndorsedItem so home-screen cards slide up a drawer
+    //    instead of navigating away to the Discover page ──
+    if (typeof goToEndorsedItem === 'function') {
+        var _origGoToEndorsedItem = goToEndorsedItem;
+        goToEndorsedItem = function(itemId) {
+            // If we're currently on the home page, open the drawer in-place
+            var homePage = document.getElementById('homePage');
+            var onHome = homePage && !homePage.classList.contains('hidden');
+            if (onHome && typeof openItemDrawer === 'function') {
+                // Try allDiscoveries first (already loaded), then fetch from Supabase
+                var item = (typeof allDiscoveries !== 'undefined')
+                    ? allDiscoveries.find(function(d) { return d.id === itemId; })
+                    : null;
+                if (item) {
+                    openItemDrawer(item);
+                } else {
+                    // Item not in local cache — fetch it then open
+                    supabaseClient
+                        .from('knowledge_items')
+                        .select('*')
+                        .eq('id', itemId)
+                        .single()
+                        .then(function(res) {
+                            if (res.data) openItemDrawer(res.data);
+                            else _origGoToEndorsedItem(itemId);
+                        });
+                }
+            } else {
+                // Not on home — use original behaviour (go to Discover)
+                _origGoToEndorsedItem(itemId);
+            }
+        };
+    }
+
+    // ── Wire launcher tiles via JS (belt-and-suspenders for onclick reliability) ──
+    (function wireTiles() {
+        function attach() {
+            var tileSearch = document.querySelector('.tile-search');
+            var tileAdd    = document.querySelector('.tile-add');
+            var tileBrowse = document.querySelector('.tile-browse');
+            if (tileSearch) tileSearch.addEventListener('click', function(e) { e.stopPropagation(); setMode('search'); });
+            if (tileAdd)    tileAdd.addEventListener('click',    function(e) { e.stopPropagation(); setMode('input'); });
+            if (tileBrowse) tileBrowse.addEventListener('click', function(e) { e.stopPropagation(); setMode('discover'); });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attach);
+        } else {
+            attach();
+        }
+    })();
     </script>
 </body>
 </html>

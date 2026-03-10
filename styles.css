@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=DM+Serif+Display:ital@0;1&display=swap');
 
-/* ── Vouch Brand Tokens ── */
+/* ── Odin Brand Tokens ── */
 :root {
     --wb:       #7B2D45;   /* Winterberry  — logo "v", buttons, chips  */
     --ink:      #2A1E14;   /* Cumberland   — all primary text          */
@@ -61,8 +61,8 @@
             line-height: 1;
         }
 
-        /* Vouch wordmark — reusable across header, landing nav, auth modal */
-        .vouch-wordmark {
+        /* Odin wordmark — reusable across header, landing nav, auth modal */
+        .odin-wordmark {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 900;
             font-size: 28px;
@@ -72,13 +72,13 @@
             align-items: baseline;
         }
 
-        .vouch-wordmark-lg {
+        .odin-wordmark-lg {
             font-size: 36px;
             letter-spacing: -0.06em;
         }
 
-        .vouch-v    { color: var(--wb); }
-        .vouch-ouch { color: var(--ink); }
+        .odin-o    { color: var(--wb); }
+        .odin-din { color: var(--ink); }
 
         /* Bell notification button */
         .header-bell-btn {
@@ -6634,10 +6634,10 @@
 .launcher-page {
     max-width: 480px;
     margin: 0 auto;
-    padding: 36px 20px 100px;
+    padding: 14px 20px 20px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 20px;
 }
 
 .launcher-greeting {
@@ -7582,7 +7582,7 @@ body.map-view-open .content {
 .dmap-pi-meta strong { color: #2A1E14; font-weight: 600; }
 .dmap-pi-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
 .dmap-pi-dist { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
-.dmap-pi-vouches { font-size: 11px; font-weight: 700; color: #7B2D45; }
+.dmap-pi-saves { font-size: 11px; font-weight: 700; color: #7B2D45; }
 
 /* Map area — position:relative so children can use position:absolute */
 .dmap-area {
@@ -7752,11 +7752,11 @@ body.map-view-open .content {
 .dmc-by-text { font-size: 11px; color: var(--text-secondary); }
 .dmc-by-text strong { color: #2A1E14; font-weight: 600; }
 
-.dmc-vouch-row {
+.dmc-odin-row {
     display: flex; align-items: center; gap: 4px;
     font-size: 11px; font-weight: 700; color: #7B2D45;
 }
-.dmc-vouch-row svg { width: 10px; height: 10px; stroke: #7B2D45; stroke-width: 2.5; fill: none; }
+.dmc-odin-row svg { width: 10px; height: 10px; stroke: #7B2D45; stroke-width: 2.5; fill: none; }
 
 /* Leaflet popup override */
 .leaflet-popup-content-wrapper {
@@ -7768,29 +7768,29 @@ body.map-view-open .content {
 .leaflet-popup-content { margin: 0 !important; width: auto !important; }
 .leaflet-popup-tip-container { display: none !important; }
 .leaflet-popup-close-button { display: none !important; }
-.vouch-pop {
+.odin-pop {
     padding: 10px 13px; min-width: 175px; max-width: 220px;
     font-family: 'Inter', sans-serif;
 }
-.vouch-pop-cat { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.vouch-pop-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.vouch-pop-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-.vouch-pop-name {
+.odin-pop-cat { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.odin-pop-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.odin-pop-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.odin-pop-name {
     font-family: 'DM Serif Display', Georgia, serif;
     font-size: 15px; color: #2A1E14; line-height: 1.2; margin-bottom: 5px;
 }
-.vouch-pop-by { display: flex; align-items: center; gap: 5px; }
-.vouch-pop-av {
+.odin-pop-by { display: flex; align-items: center; gap: 5px; }
+.odin-pop-av {
     width: 18px; height: 18px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 7px; font-weight: 700; color: white;
     border: 1.5px solid #C9A227; flex-shrink: 0;
 }
-.vouch-pop-by-text { font-size: 11px; color: var(--text-secondary); }
-.vouch-pop-by-text strong { color: #2A1E14; }
+.odin-pop-by-text { font-size: 11px; color: var(--text-secondary); }
+.odin-pop-by-text strong { color: #2A1E14; }
 
 /* ── Popup "View details" button ── */
-.vouch-pop-view {
+.odin-pop-view {
     display: block;
     width: 100%;
     margin-top: 8px;
@@ -7807,7 +7807,7 @@ body.map-view-open .content {
     letter-spacing: 0.02em;
     transition: color 0.15s;
 }
-.vouch-pop-view:hover { color: #5a1e32; }
+.odin-pop-view:hover { color: #5a1e32; }
 
 /* ── Mobile drawer: slide up from bottom ── */
 @media (max-width: 767px) {
@@ -7928,4 +7928,40 @@ body.map-view-open .content {
     .auth-field input { padding: 10px 12px; font-size: 14px; }
     .auth-btn-primary { padding: 12px 16px; font-size: 14px; margin-top: 2px; }
     .auth-btn-google { padding: 11px 16px; font-size: 14px; }
+}
+
+/* ── Launcher + Circle Feed + Continue Exploring combined home ── */
+#launcherHome {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 100px; /* space above tab bar */
+}
+
+.launcher-circle-feed {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 4px 20px 24px;
+}
+
+#launcherRecentSection {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 4px 20px 8px;
+}
+
+/* Fix: neutralise the negative bleed margins inside launcher sections
+   so cards don't clip at the left edge */
+.launcher-circle-feed .home-feed-scroll,
+#launcherRecentSection .home-recent-scroll {
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+.launcher-circle-feed .home-feed-scroll::before,
+.launcher-circle-feed .home-feed-scroll::after,
+#launcherRecentSection .home-recent-scroll::before,
+#launcherRecentSection .home-recent-scroll::after {
+    display: none;
 }
