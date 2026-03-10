@@ -1,11 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#FAF6EE"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">
+  <rect width="120" height="40" rx="8" fill="#FAF6EE"/>
   <text
-    font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    x="10"
+    y="30"
+    font-family="'DM Sans', 'Arial Black', sans-serif"
     font-weight="900"
-    font-size="20"
+    font-size="30"
     letter-spacing="-1.2"
-    y="39"
-    x="5"
-  ><tspan fill="#7B2D45">v</tspan><tspan fill="#2A1E14">ouch</tspan></text>
+    fill="#7B2D45"
+  >O</text>
+  <text
+    x="32"
+    y="30"
+    font-family="'DM Sans', 'Arial Black', sans-serif"
+    font-weight="900"
+    font-size="30"
+    letter-spacing="-1.2"
+    fill="#130E09"
+  >din</text>
 </svg>

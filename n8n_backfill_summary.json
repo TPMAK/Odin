@@ -1,0 +1,196 @@
+{
+  "name": "Vouch — Backfill feed_card_summary",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "trigger-manual",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "knowledge_items",
+        "returnAll": false,
+        "limit": 100,
+        "filterType": "string",
+        "filterString": "feed_card_summary=is.null",
+        "options": {
+          "select": "id,title,description"
+        }
+      },
+      "id": "fetch-items",
+      "name": "Fetch Items Without Summary",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "split-in-batches",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 40
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a summariser for a social recommendation app. Given a title and optional description, return ONLY a 5–10 word punchy summary that describes what this saved item is about. No punctuation at the end. No quotes. Examples:\n- \"Amazing rooftop bar with city views\"\n- \"Best ramen in Tokyo near Shinjuku\"\n- \"Hidden beach perfect for sunset picnics\"\n- \"Fast reliable accountant for small business\""
+            },
+            {
+              "role": "user",
+              "content": "Title: {{ $json.title }}\nDescription: {{ $json.description || 'No description' }}\n\nReturn only the 5-10 word summary."
+            }
+          ]
+        }
+      },
+      "id": "openai-summarise",
+      "name": "Generate Summary (OpenAI)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [900, 300],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Clean up the summary — strip surrounding quotes, trim whitespace\nconst raw = $input.first().json.message?.content || $input.first().json.choices?.[0]?.message?.content || '';\nconst summary = raw.replace(/^[\"']/g, '').replace(/[\"']$/g, '').trim();\n\n// Pass through the item id from the batch\nreturn [{\n  json: {\n    id: $('Split In Batches').first().json.id,\n    feed_card_summary: summary\n  }\n}];"
+      },
+      "id": "clean-summary",
+      "name": "Clean Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "knowledge_items",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "feed_card_summary",
+              "fieldValue": "={{ $json.feed_card_summary }}"
+            }
+          ]
+        }
+      },
+      "id": "write-summary",
+      "name": "Write Summary to Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1340, 300],
+      "credentials": {
+        "supabaseApi": {
+          "name": "Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-more",
+              "leftValue": "={{ $node[\"Split In Batches\"].context[\"noItemsLeft\"] }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-done",
+      "name": "More Items?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [{"node": "Fetch Items Without Summary", "type": "main", "index": 0}]
+      ]
+    },
+    "Fetch Items Without Summary": {
+      "main": [
+        [{"node": "Split In Batches", "type": "main", "index": 0}]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [{"node": "Generate Summary (OpenAI)", "type": "main", "index": 0}]
+      ]
+    },
+    "Generate Summary (OpenAI)": {
+      "main": [
+        [{"node": "Clean Summary", "type": "main", "index": 0}]
+      ]
+    },
+    "Clean Summary": {
+      "main": [
+        [{"node": "Write Summary to Supabase", "type": "main", "index": 0}]
+      ]
+    },
+    "Write Summary to Supabase": {
+      "main": [
+        [{"node": "More Items?", "type": "main", "index": 0}]
+      ]
+    },
+    "More Items?": {
+      "main": [
+        [{"node": "Split In Batches", "type": "main", "index": 0}],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odin — Brand Kit v3 Final</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+
+/* ═══════════════════════════════════════════════
+   LIGHT MODE — Warm Stone (default)
+═══════════════════════════════════════════════ */
+:root {
+  --accent:    #7B2D45;   /* Deep Red     — logo "O", CTA, chips (day)      */
+  --ink:       #130E09;   /* Near Black    — primary text, maximum contrast  */
+  --bg:        #FAF6EE;   /* Warm White    — page background                 */
+  --surface:   #FFFFFF;   /* White         — cards, inputs                   */
+  --muted:     #A89080;   /* Warm Tan     — meta, placeholders (lighter)    */
+  --border:    #D0BFA8;   /* Light border  — dividers                        */
+  --panel:     #F3EDE3;   /* Soft panel    — inner sections                  */
+  --search-bg: #FFFFFF;   /* Search bar  — white on warm bg                    */
+  --chip-bg:   #7B2D4516;
+  --chip-bdr:  #7B2D4540;
+  --page-bg:   #EDE5D8;
+  --code-bg:   #EDE5D8;
+}
+
+/* ═══════════════════════════════════════════════
+   DARK MODE — Deep Navy (auto via OS)
+═══════════════════════════════════════════════ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent:    #D4622A;   /* Burnt Orange  — logo "O", CTA, chips (dark)    */
+    --ink:       #F0EBE3;   /* Bright Cream  — crisp, high contrast on navy   */
+    --bg:        #0B0F1A;   /* Deep Navy     — page background                */
+    --surface:   #1E2A3E;   /* Slate Navy    — cards, inputs                  */
+    --muted:     #8899AA;   /* Light Slate  — meta, placeholders (lighter)   */
+    --border:    #1C2436;   /* Dark border   — dividers                       */
+    --panel:     #172030;   /* Deep panel    — inner sections                 */
+    --chip-bg:   #7B2D4520;
+    --chip-bdr:  #7B2D4550;
+    --page-bg:   #080C14;
+    --code-bg:   #060912;
+  }
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--page-bg);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  padding: 48px 24px 80px;
+}
+
+/* ── LOGO ── */
+.logo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.logo .o    { color: var(--accent); }
+.logo .rest { color: var(--ink); }
+
+/* ── DOT PATTERN ── */
+.dot-bg {
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--ink) 8%, transparent) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+/* ── PAGE HEADER ── */
+.page-header {
+  max-width: 960px; margin: 0 auto 48px;
+  display: flex; align-items: flex-end;
+  justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+.page-header h1 {
+  font-size: 28px; font-weight: 700;
+  color: var(--ink); letter-spacing: -0.03em;
+}
+.page-header p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.version-badge {
+  background: var(--accent); color: white;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 100px;
+}
+
+/* ── SECTION ── */
+.section { max-width: 960px; margin: 0 auto 32px; }
+.section-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border-radius: 18px; overflow: hidden;
+  border: 1px solid var(--border);
+}
+.card-pad { padding: 28px 32px; }
+
+/* ── LOGO GRID ── */
+.logo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+.logo-cell {
+  padding: 40px 36px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.logo-cell.bg-page    { background: var(--page-bg); }
+.logo-cell.bg-surface { background: var(--surface); }
+.logo-cell.bg-panel   { background: var(--panel); }
+.cell-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ── DUAL THEME PREVIEW ── */
+.theme-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+}
+.theme-panel {
+  padding: 40px 44px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.tp-day  { background: #FAF6EE; }
+.tp-dark { background: #0B0F1A; }
+.mode-tag {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  display: flex; align-items: center; gap: 6px;
+}
+.mode-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* ── SWATCHES ── */
+.swatch-section { }
+.swatch-group-label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 14px 16px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.swatch-row {
+  display: grid; grid-template-columns: repeat(6,1fr);
+  gap: 2px;
+}
+.swatch {
+  padding: 20px 16px 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.swatch-dot { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.08); }
+.swatch-name { font-size: 11px; font-weight: 700; letter-spacing: 0.03em; }
+.swatch-hex  { font-size: 10px; font-family: 'Courier New', monospace; opacity: 0.65; }
+.swatch-role { font-size: 10px; opacity: 0.55; line-height: 1.4; }
+
+/* ── TYPE ── */
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.type-cell { background: var(--panel); padding: 30px 32px; display: flex; flex-direction: column; gap: 6px; }
+.type-label { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.type-meta  { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+/* ── SCALE TABLE ── */
+.scale-table { width: 100%; border-collapse: collapse; }
+.scale-table tr { border-bottom: 1px solid var(--border); }
+.scale-table tr:last-child { border-bottom: none; }
+.scale-table td { padding: 11px 16px; }
+.col-step { font-size: 11px; font-weight: 700; color: var(--accent); width: 80px; }
+.col-size { font-size: 11px; font-family: monospace; color: var(--muted); width: 70px; }
+.col-use  { font-size: 11px; color: var(--muted); width: 160px; }
+
+/* ── COMPONENTS ── */
+.comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; }
+.comp-cell { background: var(--panel); padding: 30px 32px; display: flex; flex-direction: column; gap: 14px; }
+
+.btn-primary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  padding: 10px 22px; border-radius: 10px;
+  border: none; cursor: pointer; width: fit-content;
+}
+.btn-secondary {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: transparent; color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  padding: 9px 20px; border-radius: 10px;
+  border: 1.5px solid var(--border);
+  cursor: pointer; width: fit-content;
+}
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: transparent; color: var(--accent);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  padding: 8px 0; border: none; cursor: pointer; width: fit-content;
+}
+.chip {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--accent);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-bdr);
+  padding: 4px 10px; border-radius: 100px;
+}
+.chip-n {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 500;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 100px;
+}
+.input-demo {
+  background: var(--search-bg, var(--surface));
+  border: 2px solid color-mix(in srgb, var(--border) 100%, var(--muted) 30%);
+  border-radius: 10px; padding: 11px 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; color: var(--muted);
+  width: 100%; display: flex; align-items: center; gap: 8px;
+}
+.input-demo svg { width:15px;height:15px;stroke:var(--muted);stroke-width:2;fill:none;flex-shrink:0; }
+
+/* ── REC CARDS ── */
+.rec-card {
+  background: var(--surface);
+  border-radius: 14px; padding: 16px 18px;
+  border: 1px solid var(--border);
+}
+.rec-card + .rec-card { margin-top: 10px; }
+.rc-name { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 4px; letter-spacing: -0.01em; }
+.rc-note { font-size: 13px; font-style: italic; color: var(--muted); margin-bottom: 10px; line-height: 1.45; }
+.rc-meta { display: flex; align-items: center; gap: 7px; }
+.rc-av {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800; flex-shrink: 0;
+}
+
+/* ── BRAND LINE ── */
+.bl-wrap { display: flex; gap: 2px; }
+.bl-lockup {
+  flex: 1; padding: 44px 48px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.bl-lockup.l { background: var(--page-bg); }
+.bl-lockup.d { background: var(--panel); }
+.bl-logo {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900; font-size: 52px;
+  letter-spacing: -0.04em; line-height: 1;
+}
+.bl-logo .o    { color: var(--accent); }
+.bl-logo .rest { color: var(--ink); }
+.bl-tagline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted); line-height: 1.7;
+}
+.bl-meta {
+  flex: 1; background: var(--surface);
+  padding: 40px 36px;
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 18px;
+  border-left: 1px solid var(--border);
+}
+.bl-rule { display: flex; flex-direction: column; gap: 3px; }
+.bl-rule-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.bl-rule-val   { font-size: 13px; color: var(--ink); line-height: 1.5; font-weight: 500; }
+code {
+  font-size: 11px; font-family: 'Courier New', monospace;
+  background: var(--panel); padding: 2px 6px; border-radius: 4px; color: var(--muted);
+}
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: var(--code-bg);
+  border-radius: 14px; padding: 26px 30px;
+  overflow-x: auto; border: 1px solid var(--border);
+}
+.code-block pre {
+  font-family: 'Courier New', monospace;
+  font-size: 12px; line-height: 1.9; color: var(--ink);
+}
+.tok-comment { color: var(--muted); opacity: 0.7; }
+.tok-prop    { color: var(--accent); }
+.tok-val     { color: var(--ink); opacity: 0.8; }
+
+/* ── INFO TABLE ── */
+.info-table { width: 100%; border-collapse: collapse; }
+.info-table tr { border-bottom: 1px solid var(--border); }
+.info-table tr:last-child { border-bottom: none; }
+.info-table td { padding: 8px 0; }
+.it-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; width: 150px; padding-right: 16px; }
+.it-val   { font-size: 13px; color: var(--ink); font-weight: 500; }
+
+/* ── FOOTER ── */
+.footer-badge {
+  max-width: 960px; margin: 32px auto 0;
+  background: var(--surface);
+  border-radius: 18px; padding: 28px 36px;
+  display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 16px;
+  border: 1px solid var(--border);
+}
+.fb-right { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.fb-row   { display: flex; gap: 10px; align-items: center; }
+.fb-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.fb-val   { font-size: 12px; font-weight: 600; color: var(--ink); }
+
+</style>
+</head>
+<body>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div>
+    <h1><span style="color:var(--accent);">O</span>din Brand Kit</h1>
+    <p>v3.0 — Final · DM Sans · Warm Stone day · Navy night · Orange accent</p>
+  </div>
+  <div class="version-badge">v3.0 Final ✓</div>
+</div>
+
+<!-- 1. LOGO -->
+<div class="section">
+  <div class="section-title">01 — Logo</div>
+  <div class="card">
+    <div class="logo-grid">
+      <div class="logo-cell bg-page dot-bg">
+        <div class="logo" style="font-size:48px;"><span class="o">O</span><span class="rest">din</span></div>
+        <div class="cell-label">On page background</div>
+      </div>
+      <div class="logo-cell bg-surface">
+        <div class="logo" style="font-size:48px;"><span class="o">O</span><span class="rest">din</span></div>
+        <div class="cell-label">On card / surface</div>
+      </div>
+      <div class="logo-cell bg-panel">
+        <div class="logo" style="font-size:48px;"><span class="o">O</span><span class="rest">din</span></div>
+        <div class="cell-label">On panel</div>
+      </div>
+    </div>
+    <div class="card-pad" style="background:var(--surface);border-top:1px solid var(--border);">
+      <table class="info-table">
+        <tr><td class="it-label">Typeface</td><td class="it-val">DM Sans 900 (Black)</td></tr>
+        <tr><td class="it-label">"O" colour</td><td class="it-val">Day: Deep Red <code>#7B2D45</code> · Dark: Burnt Orange <code>#D4622A</code></td></tr>
+        <tr><td class="it-label">"din" — Day</td><td class="it-val">Deep Brown <code>#130E09</code> — darker for clarity</td></tr>
+        <tr><td class="it-label">"din" — Night</td><td class="it-val">Warm Cream <code>#F0EBE3</code> — warmer than white</td></tr>
+        <tr><td class="it-label">Tracking</td><td class="it-val"><code>letter-spacing: -0.04em</code></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 2. BRAND LINES -->
+<div class="section">
+  <div class="section-title">02 — Brand Lines</div>
+  <div class="card">
+    <div class="bl-wrap">
+      <div class="bl-lockup l">
+        <div class="bl-logo"><span class="o">O</span><span class="rest">din</span></div>
+        <div class="bl-tagline">Ask your friends —<br>without asking your friends.</div>
+      </div>
+      <div class="bl-lockup d">
+        <div class="bl-logo"><span class="o">O</span><span class="rest">din</span></div>
+        <div class="bl-tagline">From people you know,<br>not platforms.</div>
+      </div>
+      <div class="bl-meta">
+        <div class="bl-rule">
+          <div class="bl-rule-label">Primary</div>
+          <div class="bl-rule-val">"Ask your friends — without asking your friends."</div>
+        </div>
+        <div class="bl-rule">
+          <div class="bl-rule-label">Secondary</div>
+          <div class="bl-rule-val">"From people you know, not platforms."</div>
+        </div>
+        <div class="bl-rule">
+          <div class="bl-rule-label">Style</div>
+          <div class="bl-rule-val">DM Sans 700 · uppercase · <code>letter-spacing: 0.22em</code></div>
+        </div>
+        <div class="bl-rule">
+          <div class="bl-rule-label">Use</div>
+          <div class="bl-rule-val">Splash screens, marketing lockups. Never in UI chrome.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3. DUAL THEME PREVIEW -->
+<div class="section">
+  <div class="section-title">03 — Day &amp; Dark Side by Side</div>
+  <div class="card">
+    <div class="theme-pair">
+
+      <!-- DAY -->
+      <div class="theme-panel tp-day">
+        <div class="mode-tag" style="color:#A89080;">
+          <div class="mode-dot" style="background:#7B2D45;"></div> Day — Warm Stone
+        </div>
+        <div class="logo" style="font-size:40px;"><span style="color:#7B2D45;">O</span><span style="color:#130E09;">din</span></div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#A89080;line-height:1.7;">
+          Ask your friends —<br>without asking your friends.
+        </div>
+        <div style="background:#FFFFFF;border-radius:12px;padding:14px 16px;border:1px solid #D0BFA8;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;">
+            <div style="font-size:14px;font-weight:700;color:#130E09;">Ramen Keisuke</div>
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#7B2D45;background:#7B2D4516;border:1px solid #7B2D4540;padding:2px 8px;border-radius:100px;">Food</span>
+          </div>
+          <div style="font-size:12px;font-style:italic;color:#A89080;margin-bottom:8px;line-height:1.45;">"The tonkotsu here is unreal — go on a weekday."</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#7B2D45;color:white;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;">J</div>
+            <span style="font-size:10px;color:#A89080;">Jamie · 2 days ago</span>
+            <span style="font-size:10px;color:#A89080;border:1px solid #D0BFA8;padding:2px 8px;border-radius:100px;">Auckland</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button style="background:#7B2D45;color:white;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;">Save to Odin</button>
+          <button style="background:transparent;color:#130E09;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px;border:1.5px solid #D0BFA8;cursor:pointer;">Browse</button>
+        </div>
+        <div style="background:#FFFFFF;border:2px solid #B8A090;border-radius:9px;padding:9px 12px;font-size:11px;color:#A89080;display:flex;align-items:center;gap:7px;">
+          <i data-lucide="search" style="width:13px;height:13px;stroke:#A89080;stroke-width:2;fill:none;flex-shrink:0;"></i>
+          Ask Odin… "best ramen near me"
+        </div>
+      </div>
+
+      <!-- DARK -->
+      <div class="theme-panel tp-dark">
+        <div class="mode-tag" style="color:#8899AA;">
+          <div class="mode-dot" style="background:#D4622A;"></div> Dark — Deep Navy
+        </div>
+        <div class="logo" style="font-size:40px;"><span style="color:#D4622A;">O</span><span style="color:#F0EBE3;">din</span></div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#8899AA;line-height:1.7;">
+          Ask your friends —<br>without asking your friends.
+        </div>
+        <div style="background:#1E2A3E;border-radius:12px;padding:14px 16px;border:1px solid #1C2436;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:3px;">
+            <div style="font-size:14px;font-weight:700;color:#F0EBE3;">Ramen Keisuke</div>
+            <span style="font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;color:#D4622A;background:#D4622A20;border:1px solid #D4622A50;padding:2px 8px;border-radius:100px;">Food</span>
+          </div>
+          <div style="font-size:12px;font-style:italic;color:#8899AA;margin-bottom:8px;line-height:1.45;">"The tonkotsu here is unreal — go on a weekday."</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:18px;height:18px;border-radius:50%;background:#D4622A;color:white;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;">J</div>
+            <span style="font-size:10px;color:#8899AA;">Jamie · 2 days ago</span>
+            <span style="font-size:10px;color:#8899AA;border:1px solid #1C2436;padding:2px 8px;border-radius:100px;">Auckland</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button style="background:#D4622A;color:white;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;">Save to Odin</button>
+          <button style="background:transparent;color:#F0EBE3;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;padding:7px 14px;border-radius:8px;border:1.5px solid #1C2436;cursor:pointer;">Browse</button>
+        </div>
+        <div style="background:#2C3F5C;border:2px solid #3A5278;border-radius:9px;padding:9px 12px;font-size:11px;color:#8899AA;display:flex;align-items:center;gap:7px;">
+          <i data-lucide="search" style="width:13px;height:13px;stroke:#8899AA;stroke-width:2;fill:none;flex-shrink:0;"></i>
+          Ask Odin… "best ramen near me"
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- 4. COLOURS -->
+<div class="section">
+  <div class="section-title">04 — Colour Palette</div>
+  <div class="card">
+    <div class="swatch-group-label">☀️ Day — Warm Stone</div>
+    <div class="swatch-row">
+      <div class="swatch" style="background:#7B2D45;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.25);border:none;"></div>
+        <div class="swatch-name" style="color:white;">Burnt Orange</div>
+        <div class="swatch-hex" style="color:white;">#7B2D45</div>
+        <div class="swatch-role" style="color:white;">Accent · "O" · CTA</div>
+      </div>
+      <div class="swatch" style="background:#130E09;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.1);border:none;"></div>
+        <div class="swatch-name" style="color:#FAF6EE;">Deep Brown</div>
+        <div class="swatch-hex" style="color:#FAF6EE;">#130E09</div>
+        <div class="swatch-role" style="color:#FAF6EE;">Primary text</div>
+      </div>
+      <div class="swatch" style="background:#FAF6EE;border:1px solid #D0BFA8;">
+        <div class="swatch-dot" style="background:#130E09;opacity:0.1;border:none;"></div>
+        <div class="swatch-name" style="color:#130E09;">Warm White</div>
+        <div class="swatch-hex" style="color:#130E09;">#FAF6EE</div>
+        <div class="swatch-role" style="color:#130E09;">Page background</div>
+      </div>
+      <div class="swatch" style="background:#FFFFFF;border:1px solid #D0BFA8;">
+        <div class="swatch-dot" style="background:#130E09;opacity:0.07;border:none;"></div>
+        <div class="swatch-name" style="color:#130E09;">White</div>
+        <div class="swatch-hex" style="color:#130E09;">#FFFFFF</div>
+        <div class="swatch-role" style="color:#130E09;">Cards, inputs</div>
+      </div>
+      <div class="swatch" style="background:#A89080;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.2);border:none;"></div>
+        <div class="swatch-name" style="color:white;">Warm Grey</div>
+        <div class="swatch-hex" style="color:white;">#A89080</div>
+        <div class="swatch-role" style="color:white;">Meta, muted</div>
+      </div>
+      <div class="swatch" style="background:#D0BFA8;">
+        <div class="swatch-dot" style="background:#130E09;opacity:0.1;border:none;"></div>
+        <div class="swatch-name" style="color:#130E09;">Border</div>
+        <div class="swatch-hex" style="color:#130E09;">#D0BFA8</div>
+        <div class="swatch-role" style="color:#130E09;">Dividers</div>
+      </div>
+    </div>
+    <div class="swatch-group-label" style="margin-top:2px;">🌙 Dark — Deep Navy</div>
+    <div class="swatch-row">
+      <div class="swatch" style="background:#D4622A;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.25);border:none;"></div>
+        <div class="swatch-name" style="color:white;">Burnt Orange</div>
+        <div class="swatch-hex" style="color:white;">#D4622A</div>
+        <div class="swatch-role" style="color:white;">Accent · "O" · CTA</div>
+      </div>
+      <div class="swatch" style="background:#0B0F1A;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.07);border:none;"></div>
+        <div class="swatch-name" style="color:#F0EBE3;">Deep Navy</div>
+        <div class="swatch-hex" style="color:#F0EBE3;">#0B0F1A</div>
+        <div class="swatch-role" style="color:#F0EBE3;">Page background</div>
+      </div>
+      <div class="swatch" style="background:#1E2A3E;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.07);border:none;"></div>
+        <div class="swatch-name" style="color:#F0EBE3;">Slate Navy</div>
+        <div class="swatch-hex" style="color:#F0EBE3;">#1E2A3E</div>
+        <div class="swatch-role" style="color:#F0EBE3;">Cards, inputs</div>
+      </div>
+      <div class="swatch" style="background:#F0EBE3;border:1px solid #7B2D4533;">
+        <div class="swatch-dot" style="background:#0B0F1A;opacity:0.1;border:none;"></div>
+        <div class="swatch-name" style="color:#0B0F1A;">Warm Cream</div>
+        <div class="swatch-hex" style="color:#0B0F1A;">#F0EBE3</div>
+        <div class="swatch-role" style="color:#0B0F1A;">Primary text</div>
+      </div>
+      <div class="swatch" style="background:#8899AA;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.15);border:none;"></div>
+        <div class="swatch-name" style="color:white;">Blue Grey</div>
+        <div class="swatch-hex" style="color:white;">#8899AA</div>
+        <div class="swatch-role" style="color:white;">Meta, muted</div>
+      </div>
+      <div class="swatch" style="background:#1C2436;">
+        <div class="swatch-dot" style="background:rgba(255,255,255,0.08);border:none;"></div>
+        <div class="swatch-name" style="color:#F0EBE3;">Dark Border</div>
+        <div class="swatch-hex" style="color:#F0EBE3;">#1C2436</div>
+        <div class="swatch-role" style="color:#F0EBE3;">Dividers</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. TYPOGRAPHY -->
+<div class="section">
+  <div class="section-title">05 — Typography</div>
+  <div class="card">
+    <div class="type-grid">
+      <div class="type-cell dot-bg">
+        <div class="type-label">Display — DM Sans 700</div>
+        <div style="font-size:38px;font-weight:700;line-height:1.05;color:var(--ink);letter-spacing:-0.03em;">
+          Good evening,<br><span style="color:var(--accent);">Stanley.</span>
+        </div>
+        <div class="type-meta">DM Sans · Bold · Google Fonts</div>
+      </div>
+      <div class="type-cell" style="background:var(--surface);">
+        <div class="type-label">Logo — DM Sans 900</div>
+        <div class="logo" style="font-size:48px;"><span class="o">O</span><span class="rest">din</span></div>
+        <div style="margin-top:10px;">
+          <div class="type-label">Body — DM Sans 500</div>
+          <div style="font-size:14px;font-weight:500;line-height:1.65;color:var(--ink);margin-top:4px;">
+            Odin remembers every recommendation your trusted circle has ever made — and finds them when you need them.
+          </div>
+          <div class="type-meta">DM Sans 400 · 500 · 600 · 700 — body, labels, UI</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--surface);border-top:1px solid var(--border);">
+      <table class="scale-table">
+        <tr><td class="col-step">Display</td><td class="col-size">56px / 700</td><td class="col-use">Hero, splash</td><td><span style="font-size:28px;font-weight:700;color:var(--ink);letter-spacing:-0.03em;">Good evening</span></td></tr>
+        <tr><td class="col-step">H1</td><td class="col-size">36px / 700</td><td class="col-use">Page title</td><td><span style="font-size:22px;font-weight:700;color:var(--ink);">Your circle knows</span></td></tr>
+        <tr><td class="col-step">H2</td><td class="col-size">24px / 600</td><td class="col-use">Section heading</td><td><span style="font-size:18px;font-weight:600;color:var(--ink);">Top picks for you</span></td></tr>
+        <tr><td class="col-step">H3</td><td class="col-size">18px / 700</td><td class="col-use">Card / place name</td><td><span style="font-size:15px;font-weight:700;color:var(--ink);">Ramen Keisuke</span></td></tr>
+        <tr><td class="col-step">Body</td><td class="col-size">14px / 500</td><td class="col-use">Body text</td><td><span style="font-size:13px;font-weight:500;color:var(--ink);">Best bowl in the city, no contest.</span></td></tr>
+        <tr><td class="col-step">Small</td><td class="col-size">12px / 400</td><td class="col-use">Meta, timestamps</td><td><span style="font-size:12px;color:var(--muted);">Shared by Jamie · 2 days ago</span></td></tr>
+        <tr><td class="col-step">Label</td><td class="col-size">10px / 700</td><td class="col-use">Chips, tags</td><td><span style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Food &amp; Drink</span></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 6. COMPONENTS -->
+<div class="section">
+  <div class="section-title">06 — Components</div>
+  <div class="card">
+    <div class="comp-grid">
+      <div class="comp-cell">
+        <div class="type-label">Buttons</div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-primary"><i data-lucide="bookmark-plus" style="width:14px;height:14px;stroke:white;stroke-width:2;fill:none;margin-right:4px;"></i>Save to Odin</button>
+          <button class="btn-secondary">Browse</button>
+          <button class="btn-ghost">See all <i data-lucide="arrow-right" style="width:13px;height:13px;stroke:var(--accent);stroke-width:2.5;fill:none;margin-left:4px;"></i></button>
+        </div>
+        <div class="type-label" style="margin-top:4px;">Tags &amp; Chips</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <span class="chip">Food</span>
+          <span class="chip">Book</span>
+          <span class="chip">Fashion</span>
+          <span class="chip-n">Auckland</span>
+          <span class="chip-n">+3</span>
+        </div>
+        <div class="type-label" style="margin-top:4px;">Search Input</div>
+        <div class="input-demo"><i data-lucide="search"></i>Ask Odin… "best ramen near me"</div>
+      </div>
+      <div class="comp-cell" style="background:var(--surface);">
+        <div class="type-label">Recommendation Cards</div>
+        <div class="rec-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px;">
+            <div class="rc-name">Ramen Keisuke</div>
+            <span class="chip">Food</span>
+          </div>
+          <div class="rc-note">"The tonkotsu here is unreal — go on a weekday."</div>
+          <div class="rc-meta">
+            <div class="rc-av">J</div>
+            <span style="font-size:11px;color:var(--muted);">Jamie · 2 days ago</span>
+            <span class="chip-n">Auckland</span>
+          </div>
+        </div>
+        <div class="rec-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2px;">
+            <div class="rc-name">Atomic Habits</div>
+            <span class="chip">Book</span>
+          </div>
+          <div class="rc-note">"Changed how I think about systems vs goals."</div>
+          <div class="rc-meta">
+            <div class="rc-av" style="background:#4A6741;">M</div>
+            <span style="font-size:11px;color:var(--muted);">Marcus · 1 week ago</span>
+            <span class="chip-n">Reading</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 7. CSS TOKENS -->
+<div class="section">
+  <div class="section-title">07 — CSS Tokens — copy into your project</div>
+  <div class="code-block">
+    <pre><span class="tok-comment">/* ── FONT ───────────────────────────────────────────────── */</span>
+&lt;link&gt; https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,900;1,9..40,400&display=swap
+
+<span class="tok-comment">/* ── DAY MODE — Warm Stone (default) ───────────────────── */</span>
+<span class="tok-prop">:root</span> {
+  <span class="tok-prop">--accent</span>:  <span class="tok-val">#7B2D45</span>;  <span class="tok-comment">/* Burnt Orange — O, CTA, chips (both modes) */</span>
+  <span class="tok-prop">--ink</span>:     <span class="tok-val">#130E09</span>;  <span class="tok-comment">/* Deep Brown   — primary text               */</span>
+  <span class="tok-prop">--bg</span>:      <span class="tok-val">#FAF6EE</span>;  <span class="tok-comment">/* Warm White   — page background            */</span>
+  <span class="tok-prop">--surface</span>: <span class="tok-val">#FFFFFF</span>;  <span class="tok-comment">/* White        — cards, inputs              */</span>
+  <span class="tok-prop">--muted</span>:   <span class="tok-val">#A89080</span>;  <span class="tok-comment">/* Warm Grey    — meta, placeholders         */</span>
+  <span class="tok-prop">--border</span>:  <span class="tok-val">#D0BFA8</span>;  <span class="tok-comment">/* Light border — dividers                   */</span>
+  <span class="tok-prop">--panel</span>:   <span class="tok-val">#F3EDE3</span>;  <span class="tok-comment">/* Soft panel   — inner sections             */</span>
+}
+
+<span class="tok-comment">/* ── DARK MODE — Deep Navy (auto · follows OS) ──────────── */</span>
+<span class="tok-prop">@media (prefers-color-scheme: dark)</span> {
+  <span class="tok-prop">:root</span> {
+    <span class="tok-prop">--accent</span>:  <span class="tok-val">#D4622A</span>;  <span class="tok-comment">/* Burnt Orange — dark mode, pops on navy     */</span>
+    <span class="tok-prop">--ink</span>:     <span class="tok-val">#F0EBE3</span>;  <span class="tok-comment">/* Warm Cream  — readable, not harsh white   */</span>
+    <span class="tok-prop">--bg</span>:      <span class="tok-val">#0B0F1A</span>;  <span class="tok-comment">/* Deep Navy   — page background             */</span>
+    <span class="tok-prop">--surface</span>: <span class="tok-val">#1E2A3E</span>;  <span class="tok-comment">/* Slate Navy  — cards, inputs               */</span>
+    <span class="tok-prop">--muted</span>:   <span class="tok-val">#8899AA</span>;  <span class="tok-comment">/* Light Slate — meta, placeholders (light)  */</span>
+    <span class="tok-prop">--border</span>:  <span class="tok-val">#1C2436</span>;  <span class="tok-comment">/* Dark border — dividers                    */</span>
+    <span class="tok-prop">--panel</span>:   <span class="tok-val">#172030</span>;  <span class="tok-comment">/* Deep panel  — inner sections              */</span>
+  }
+}
+
+<span class="tok-comment">/* ── LOGO HTML ──────────────────────────────────────────── */</span>
+&lt;span class="odin-logo"&gt;
+  &lt;span class="o"&gt;O&lt;/span&gt;&lt;span class="rest"&gt;din&lt;/span&gt;
+&lt;/span&gt;
+
+<span class="tok-comment">/* ── LOGO CSS ───────────────────────────────────────────── */</span>
+<span class="tok-prop">.odin-logo</span> { font-family: 'DM Sans', sans-serif; font-weight: 900; letter-spacing: -0.04em; }
+<span class="tok-prop">.odin-logo .o</span>    { color: var(--accent); }   <span class="tok-comment">/* Burnt Orange — always */</span>
+<span class="tok-prop">.odin-logo .rest</span> { color: var(--ink);    }   <span class="tok-comment">/* Deep Brown / Warm Cream — auto */</span></pre>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-badge">
+  <div>
+    <div class="logo" style="font-size:38px;"><span class="o">O</span><span class="rest">din</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px;">Brand Kit v3.0 — Final</div>
+  </div>
+  <div class="fb-right">
+    <div class="fb-row"><span class="fb-label">Primary Line</span><span class="fb-val">Ask your friends — without asking your friends.</span></div>
+    <div class="fb-row"><span class="fb-label">Secondary Line</span><span class="fb-val">From people you know, not platforms.</span></div>
+    <div class="fb-row"><span class="fb-label">Font</span><span class="fb-val">DM Sans 400 · 500 · 600 · 700 · 900</span></div>
+    <div class="fb-row"><span class="fb-label">Accent</span><span class="fb-val">Burnt Orange #7B2D45 — both modes</span></div>
+    <div class="fb-row"><span class="fb-label">Day</span><span class="fb-val">Warm Stone · Deep Brown ink · Warm White bg</span></div>
+    <div class="fb-row"><span class="fb-label">Dark</span><span class="fb-val">Deep Navy · Warm Cream ink · Slate Navy surface</span></div>
+    <div class="fb-row"><span class="fb-label">Theme</span><span class="fb-val">Auto · follows OS dark / light setting</span></div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=DM+Serif+Display:ital@0;1&display=swap');
 
-/* ── Vouch Brand Tokens ── */
+/* ── Odin Brand Tokens ── */
 :root {
     --wb:       #7B2D45;   /* Winterberry  — logo "v", buttons, chips  */
     --ink:      #2A1E14;   /* Cumberland   — all primary text          */
@@ -61,8 +61,8 @@
             line-height: 1;
         }
 
-        /* Vouch wordmark — reusable across header, landing nav, auth modal */
-        .vouch-wordmark {
+        /* Odin wordmark — reusable across header, landing nav, auth modal */
+        .odin-wordmark {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 900;
             font-size: 28px;
@@ -72,13 +72,13 @@
             align-items: baseline;
         }
 
-        .vouch-wordmark-lg {
+        .odin-wordmark-lg {
             font-size: 36px;
             letter-spacing: -0.06em;
         }
 
-        .vouch-v    { color: var(--wb); }
-        .vouch-ouch { color: var(--ink); }
+        .odin-o    { color: var(--wb); }
+        .odin-din { color: var(--ink); }
 
         /* Bell notification button */
         .header-bell-btn {
@@ -121,6 +121,100 @@
             border-radius: 50%;
             border: 2px solid var(--bg);
             display: none;
+        }
+
+        /* ── Language picker button + dropdown ── */
+        .header-lang-wrap {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .header-lang-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            height: 32px;
+            padding: 0 10px 0 8px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.18s, border-color 0.18s;
+            letter-spacing: 0.02em;
+        }
+
+        .header-lang-btn:hover {
+            background: rgba(123,45,69,0.07);
+            border-color: var(--wb);
+        }
+
+        .lang-picker-dropdown {
+            display: none;
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 200px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(42,30,20,0.15);
+            z-index: 3000;
+            overflow: hidden;
+            animation: langDropIn 0.18s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        .lang-picker-dropdown.open {
+            display: block;
+        }
+
+        @keyframes langDropIn {
+            from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .lang-picker-header {
+            padding: 12px 16px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .lang-picker-list {
+            padding: 6px 0;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .lang-picker-item {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 9px 16px;
+            background: none;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ink);
+            cursor: pointer;
+            transition: background 0.14s;
+            border-radius: 0;
+        }
+
+        .lang-picker-item:hover {
+            background: rgba(123,45,69,0.07);
+        }
+
+        .lang-picker-item.active {
+            background: rgba(123,45,69,0.1);
+            color: var(--wb);
+            font-weight: 700;
         }
 
         /* Header App-mode pills */
@@ -794,11 +888,12 @@
             color: transparent;
         }
 
+        /* ── Home Feed Card — redesigned ── */
         .hf-card {
             flex-shrink: 0;
-            width: 148px;
+            width: 168px;
             background: var(--surface);
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
             border: 1px solid var(--border);
             scroll-snap-align: start;
@@ -806,16 +901,25 @@
             transition: transform 0.2s, box-shadow 0.2s;
             display: flex;
             flex-direction: column;
+            box-shadow: 0 2px 8px rgba(42,30,20,0.06);
         }
 
         .hf-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(42,30,20,0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(42,30,20,0.13);
+        }
+
+        /* Media wrapper — for photo + chips overlay */
+        .hf-card-media-wrap {
+            position: relative;
+            width: 100%;
+            height: 116px;
+            flex-shrink: 0;
         }
 
         .hf-card-img {
             width: 100%;
-            height: 96px;
+            height: 100%;
             object-fit: cover;
             display: block;
             background: var(--bg);
@@ -823,38 +927,73 @@
 
         .hf-card-emoji {
             width: 100%;
-            height: 96px;
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            background: var(--bg);
+            font-size: 36px;
+            background: linear-gradient(135deg, var(--bg) 0%, var(--mason) 100%);
         }
 
+        /* Chips overlay (distance etc.) */
+        .hf-card-chips {
+            position: absolute;
+            bottom: 7px;
+            left: 8px;
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .hf-card-dist {
+            background: rgba(0,0,0,0.52);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 20px;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.02em;
+        }
+
+        /* Card body */
         .hf-card-body {
             padding: 10px 12px 12px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            gap: 5px;
         }
 
         .hf-card-title {
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--ink);
             line-height: 1.3;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            margin-bottom: 0;
+        }
+
+        /* Summary blurb — the punchy 5-10 word hook */
+        .hf-card-summary {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-style: italic;
         }
 
         .hf-card-by {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
+            margin-top: auto;
+            padding-top: 4px;
         }
 
         .hf-card-avatar {
@@ -2256,6 +2395,38 @@
         .drawer-lang-toggle {
             margin: 8px 0;
             display: block;
+        }
+
+        /* Translation block — shown below original, never replacing it */
+        .drawer-translation-block {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: rgba(123, 45, 69, 0.06);
+            border-left: 3px solid #7B2D45;
+            border-radius: 0 10px 10px 0;
+            animation: fadeInUp 0.2s ease;
+        }
+
+        .drawer-translation-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7B2D45;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .drawer-translation-text {
+            font-size: 14px;
+            color: var(--ink);
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
         /* MORE OPTIONS - 2 Column Grid */
@@ -6634,10 +6805,10 @@
 .launcher-page {
     max-width: 480px;
     margin: 0 auto;
-    padding: 36px 20px 100px;
+    padding: 14px 20px 20px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 20px;
 }
 
 .launcher-greeting {
@@ -7582,7 +7753,7 @@ body.map-view-open .content {
 .dmap-pi-meta strong { color: #2A1E14; font-weight: 600; }
 .dmap-pi-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
 .dmap-pi-dist { font-size: 11px; color: var(--text-secondary); font-weight: 500; }
-.dmap-pi-vouches { font-size: 11px; font-weight: 700; color: #7B2D45; }
+.dmap-pi-saves { font-size: 11px; font-weight: 700; color: #7B2D45; }
 
 /* Map area — position:relative so children can use position:absolute */
 .dmap-area {
@@ -7752,11 +7923,11 @@ body.map-view-open .content {
 .dmc-by-text { font-size: 11px; color: var(--text-secondary); }
 .dmc-by-text strong { color: #2A1E14; font-weight: 600; }
 
-.dmc-vouch-row {
+.dmc-odin-row {
     display: flex; align-items: center; gap: 4px;
     font-size: 11px; font-weight: 700; color: #7B2D45;
 }
-.dmc-vouch-row svg { width: 10px; height: 10px; stroke: #7B2D45; stroke-width: 2.5; fill: none; }
+.dmc-odin-row svg { width: 10px; height: 10px; stroke: #7B2D45; stroke-width: 2.5; fill: none; }
 
 /* Leaflet popup override */
 .leaflet-popup-content-wrapper {
@@ -7768,29 +7939,29 @@ body.map-view-open .content {
 .leaflet-popup-content { margin: 0 !important; width: auto !important; }
 .leaflet-popup-tip-container { display: none !important; }
 .leaflet-popup-close-button { display: none !important; }
-.vouch-pop {
+.odin-pop {
     padding: 10px 13px; min-width: 175px; max-width: 220px;
     font-family: 'Inter', sans-serif;
 }
-.vouch-pop-cat { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-.vouch-pop-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.vouch-pop-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-.vouch-pop-name {
+.odin-pop-cat { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.odin-pop-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.odin-pop-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.odin-pop-name {
     font-family: 'DM Serif Display', Georgia, serif;
     font-size: 15px; color: #2A1E14; line-height: 1.2; margin-bottom: 5px;
 }
-.vouch-pop-by { display: flex; align-items: center; gap: 5px; }
-.vouch-pop-av {
+.odin-pop-by { display: flex; align-items: center; gap: 5px; }
+.odin-pop-av {
     width: 18px; height: 18px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 7px; font-weight: 700; color: white;
     border: 1.5px solid #C9A227; flex-shrink: 0;
 }
-.vouch-pop-by-text { font-size: 11px; color: var(--text-secondary); }
-.vouch-pop-by-text strong { color: #2A1E14; }
+.odin-pop-by-text { font-size: 11px; color: var(--text-secondary); }
+.odin-pop-by-text strong { color: #2A1E14; }
 
 /* ── Popup "View details" button ── */
-.vouch-pop-view {
+.odin-pop-view {
     display: block;
     width: 100%;
     margin-top: 8px;
@@ -7807,7 +7978,7 @@ body.map-view-open .content {
     letter-spacing: 0.02em;
     transition: color 0.15s;
 }
-.vouch-pop-view:hover { color: #5a1e32; }
+.odin-pop-view:hover { color: #5a1e32; }
 
 /* ── Mobile drawer: slide up from bottom ── */
 @media (max-width: 767px) {
@@ -7928,4 +8099,40 @@ body.map-view-open .content {
     .auth-field input { padding: 10px 12px; font-size: 14px; }
     .auth-btn-primary { padding: 12px 16px; font-size: 14px; margin-top: 2px; }
     .auth-btn-google { padding: 11px 16px; font-size: 14px; }
+}
+
+/* ── Launcher + Circle Feed + Continue Exploring combined home ── */
+#launcherHome {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 100px; /* space above tab bar */
+}
+
+.launcher-circle-feed {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 4px 20px 24px;
+}
+
+#launcherRecentSection {
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 4px 20px 8px;
+}
+
+/* Fix: neutralise the negative bleed margins inside launcher sections
+   so cards don't clip at the left edge */
+.launcher-circle-feed .home-feed-scroll,
+#launcherRecentSection .home-recent-scroll {
+    margin: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+.launcher-circle-feed .home-feed-scroll::before,
+.launcher-circle-feed .home-feed-scroll::after,
+#launcherRecentSection .home-recent-scroll::before,
+#launcherRecentSection .home-recent-scroll::after {
+    display: none;
 }
