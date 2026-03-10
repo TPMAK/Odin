@@ -838,6 +838,33 @@
                     <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
                     <button class="hdr-pill" id="hdrPillMap" onclick="switchDiscoverView('map')">Map</button>
                 </div>
+                <!-- Language picker button -->
+                <div class="header-lang-wrap" id="headerLangWrap">
+                    <button class="header-lang-btn" id="headerLangBtn" onclick="toggleLangPicker(event)" aria-label="Language">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
+                            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                        <span id="headerLangLabel">EN</span>
+                    </button>
+                    <div class="lang-picker-dropdown" id="langPickerDropdown">
+                        <div class="lang-picker-header">Display language</div>
+                        <div class="lang-picker-list">
+                            <button class="lang-picker-item" data-lang="en"  onclick="setPreferredLanguage('en')">🇬🇧 English</button>
+                            <button class="lang-picker-item" data-lang="zh"  onclick="setPreferredLanguage('zh')">🇨🇳 中文</button>
+                            <button class="lang-picker-item" data-lang="ja"  onclick="setPreferredLanguage('ja')">🇯🇵 日本語</button>
+                            <button class="lang-picker-item" data-lang="ko"  onclick="setPreferredLanguage('ko')">🇰🇷 한국어</button>
+                            <button class="lang-picker-item" data-lang="es"  onclick="setPreferredLanguage('es')">🇪🇸 Español</button>
+                            <button class="lang-picker-item" data-lang="fr"  onclick="setPreferredLanguage('fr')">🇫🇷 Français</button>
+                            <button class="lang-picker-item" data-lang="ar"  onclick="setPreferredLanguage('ar')">🇸🇦 العربية</button>
+                            <button class="lang-picker-item" data-lang="hi"  onclick="setPreferredLanguage('hi')">🇮🇳 हिन्दी</button>
+                            <button class="lang-picker-item" data-lang="pt"  onclick="setPreferredLanguage('pt')">🇧🇷 Português</button>
+                            <button class="lang-picker-item" data-lang="de"  onclick="setPreferredLanguage('de')">🇩🇪 Deutsch</button>
+                            <button class="lang-picker-item" data-lang="id"  onclick="setPreferredLanguage('id')">🇮🇩 Bahasa</button>
+                            <button class="lang-picker-item" data-lang="th"  onclick="setPreferredLanguage('th')">🇹🇭 ภาษาไทย</button>
+                        </div>
+                    </div>
+                </div>
                 <!-- Bell icon replaces avatar — profile still in tab bar -->
                 <button class="header-bell-btn" onclick="setMode('profile')" aria-label="Notifications">
                     <svg class="header-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -2510,7 +2537,7 @@
             var friendIds = friends.map(function(f) { return f.out_user_id; });
             var { data: items, error } = await supabaseClient
                 .from('knowledge_items')
-                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility')
+                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary, location, distance_km')
                 .in('added_by', friendIds)
                 .neq('visibility', 'private')   // never show friends' private items
                 .order('created_at', { ascending: false })
@@ -2527,15 +2554,37 @@
             }
 
             var cardsHtml = items.map(function(item) {
+                // ── Media ──
                 var media = item.photo_url
                     ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
                     : '<div class="hf-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
+
+                // ── Distance chip ──
+                var distChip = '';
+                if (item.distance_km != null) {
+                    var d = item.distance_km < 1
+                        ? Math.round(item.distance_km * 1000) + 'm'
+                        : item.distance_km.toFixed(1) + 'km';
+                    distChip = '<span class="hf-card-dist">' + d + '</span>';
+                }
+
+                // ── Saved-by row ──
                 var friendName = escapeHtml(item.added_by_name || 'Friend');
                 var initial    = friendName.charAt(0).toUpperCase();
+
+                // ── Summary ──
+                var summaryHtml = item.feed_card_summary
+                    ? '<div class="hf-card-summary">' + escapeHtml(item.feed_card_summary) + '</div>'
+                    : '';
+
                 return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
+                    + '<div class="hf-card-media-wrap">'
                     + media
+                    + (distChip ? '<div class="hf-card-chips">' + distChip + '</div>' : '')
+                    + '</div>'
                     + '<div class="hf-card-body">'
                     + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
+                    + summaryHtml
                     + '<div class="hf-card-by">'
                     + '<div class="hf-card-avatar">' + initial + '</div>'
                     + '<span class="hf-card-name">' + friendName + '</span>'

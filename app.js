@@ -19,7 +19,7 @@ if (typeof window.supabase === 'undefined' || typeof window.supabase.createClien
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===== FOUNDING MEMBERS ACCOUNT =====
-const VOUCH_HQ_USER_ID = 'fec29546-cabd-44c7-96c9-4dfa6e952e93';
+const ODIN_HQ_USER_ID = 'fec29546-cabd-44c7-96c9-4dfa6e952e93';
 
 // ===== AUTHENTICATION =====
 let currentUser = null;
@@ -77,14 +77,14 @@ async function showMainApp() {
     }
     // Clear recently viewed and onboarding state whenever the user changes
     // (includes new registrations where prevUserId is null)
-    const prevUserId = localStorage.getItem('vouch_last_user_id');
+    const prevUserId = localStorage.getItem('odin_last_user_id');
     const thisUserId = currentUser ? currentUser.id : null;
     if (thisUserId && prevUserId !== thisUserId) {
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
         localStorage.removeItem('empty_friends_dismissed');
     }
-    if (thisUserId) localStorage.setItem('vouch_last_user_id', thisUserId);
+    if (thisUserId) localStorage.setItem('odin_last_user_id', thisUserId);
 
     // Hide landing page and close auth modal
     document.getElementById('loginScreen').style.display = 'none';
@@ -98,6 +98,9 @@ async function showMainApp() {
 
     // Load profile from profiles table
     await loadUserProfile();
+
+    // Initialise language (autodetect or load from profile)
+    await initUserLanguage();
 
     const userName = currentProfile?.display_name ||
                      currentUser?.user_metadata?.full_name ||
@@ -125,8 +128,8 @@ async function showMainApp() {
     loadDiscoveries();
     loadBlockedUsers();
 
-    // Auto-connect with Vouch HQ for new users
-    autoFriendVouchHQ();
+    // Auto-connect with Odin HQ for new users
+    autoFriendOdinHQ();
 
     // Show onboarding banner for new users
     checkOnboardingBanner();
@@ -1203,7 +1206,7 @@ async function handleSendFriendRequest(receiverId, btn) {
         }
         if (data && data.length > 0 && data[0].out_success) {
             // Check if this was auto-accepted (Founding Members)
-            if (receiverId === VOUCH_HQ_USER_ID) {
+            if (receiverId === ODIN_HQ_USER_ID) {
                 if (btn) { btn.textContent = 'Added!'; btn.classList.add('sent'); }
                 showToast('Founding Members added! Their discoveries are now visible.');
                 await loadFriends();
@@ -1684,7 +1687,7 @@ function getTimeAgo(dateStr) {
 
 // ===== NOTIFICATIONS =====
 let notifPollInterval = null;
-const _NOTIFS_CLEARED_KEY = 'vouch_notifs_cleared_at';
+const _NOTIFS_CLEARED_KEY = 'odin_notifs_cleared_at';
 // We store a timestamp in localStorage when user clears all notifications.
 // Any notification created BEFORE this timestamp is permanently hidden,
 // even if the Supabase delete didn't fully propagate.
@@ -1993,6 +1996,85 @@ const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card'
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
 
+// ── LANGUAGE SYSTEM ──────────────────────────────────────────────
+// ISO 639-1 code of the user's preferred display/translation language.
+// Loaded from Supabase profiles.preferred_language on login,
+// with browser locale as the autodetect fallback.
+let userPreferredLanguage = 'en';
+
+const LANG_LABELS = {
+    en: 'EN', zh: '中文', ja: '日本語', ko: '한국어',
+    es: 'ES', fr: 'FR', ar: 'AR', hi: 'HI',
+    pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
+};
+
+/** Call once after profile is loaded. Autodetects from browser if not set. */
+async function initUserLanguage() {
+    // 1. Try profile setting from Supabase
+    const saved = currentProfile?.preferred_language;
+    if (saved && LANG_LABELS[saved]) {
+        userPreferredLanguage = saved;
+        _applyLangLabel(saved);
+        return;
+    }
+    // 2. Autodetect from browser
+    const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    const detected = LANG_LABELS[browserLang] ? browserLang : 'en';
+    userPreferredLanguage = detected;
+    _applyLangLabel(detected);
+    // 3. Save autodetected value back to profile (fire-and-forget)
+    if (currentUser) {
+        supabaseClient.from('profiles')
+            .update({ preferred_language: detected })
+            .eq('id', currentUser.id)
+            .then(() => {});
+    }
+}
+
+/** Saves the chosen language to Supabase and updates the UI label. */
+async function setPreferredLanguage(lang) {
+    userPreferredLanguage = lang;
+    _applyLangLabel(lang);
+    _closeLangPicker();
+    // Persist to profile
+    if (currentUser) {
+        await supabaseClient.from('profiles')
+            .update({ preferred_language: lang })
+            .eq('id', currentUser.id);
+        if (currentProfile) currentProfile.preferred_language = lang;
+    }
+}
+
+function _applyLangLabel(lang) {
+    const el = document.getElementById('headerLangLabel');
+    if (el) el.textContent = (LANG_LABELS[lang] || lang.toUpperCase()).substring(0, 5);
+    // Highlight active in dropdown
+    document.querySelectorAll('.lang-picker-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+}
+
+function toggleLangPicker(e) {
+    if (e) e.stopPropagation();
+    const dd = document.getElementById('langPickerDropdown');
+    if (!dd) return;
+    const isOpen = dd.classList.contains('open');
+    _closeLangPicker();
+    if (!isOpen) dd.classList.add('open');
+}
+
+function _closeLangPicker() {
+    const dd = document.getElementById('langPickerDropdown');
+    if (dd) dd.classList.remove('open');
+}
+
+// Close picker when clicking outside
+document.addEventListener('click', function(e) {
+    const wrap = document.getElementById('headerLangWrap');
+    if (wrap && !wrap.contains(e.target)) _closeLangPicker();
+});
+// ─────────────────────────────────────────────────────────────────
+
 // Minimum relevance score for a result to be shown as a real match.
 // Below this = honest "nothing found" state + suggestions instead.
 const RELEVANCE_THRESHOLD = 0.28;
@@ -2104,11 +2186,14 @@ async function toggleDrawerLang(btn) {
     const idx = currentResults.indexOf(item);
     const state = btn.dataset.state;
 
+    // Use user's preferred language as translation target (fallback to query language)
+    const targetLang = userPreferredLanguage || item._queryLanguage || 'en';
+
     if (state === 'original') {
         btn.textContent = 'Translating...';
         btn.disabled = true;
         try {
-            const translated = await translateResultFields(idx, item._queryLanguage);
+            const translated = await translateResultFields(idx, targetLang);
             // Title always stays original — only translate description + personal note
             const descEl = document.querySelector('.drawer-description');
             const storyEl = document.querySelector('.drawer-story-text');
@@ -3086,9 +3171,9 @@ function buildMapCardStrip() {
                 '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
                 '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
             '</div>' +
-            '<div class="dmc-vouch-row">' +
+            '<div class="dmc-odin-row">' +
                 '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) > 1 ? 'es' : '') +
+                (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) > 1 ? 's' : '') +
             '</div>';
         card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
         strip.appendChild(card);
@@ -3208,9 +3293,9 @@ function rebuildMapListsSorted(userLat, userLng) {
                     '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<div class="dmc-vouch-row">' +
+                '<div class="dmc-odin-row">' +
                     '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) !== 1 ? 'es' : '') +
+                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
                 '</div>';
             (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
             strip.appendChild(card);
@@ -3299,17 +3384,17 @@ function initDiscoverMap() {
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
         var popHtml =
-            '<div class="vouch-pop">' +
-                '<div class="vouch-pop-cat">' +
-                    '<div class="vouch-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="vouch-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
+            '<div class="odin-pop">' +
+                '<div class="odin-pop-cat">' +
+                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
+                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
                 '</div>' +
-                '<div class="vouch-pop-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="vouch-pop-by">' +
-                    '<div class="vouch-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="vouch-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="odin-pop-by">' +
+                    '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<button class="vouch-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
+                '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
             '</div>';
 
         var marker = L.marker([lat, lng], { icon: icon })
@@ -3358,9 +3443,9 @@ function initDiscoverMap() {
                     '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<div class="dmc-vouch-row">' +
+                '<div class="dmc-odin-row">' +
                     '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' vouch' + ((d.endorsement_count || 1) !== 1 ? 'es' : '') +
+                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
                 '</div>';
             (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
             strip.appendChild(card);
@@ -3492,10 +3577,14 @@ function openItemDrawer(item) {
     }
 
     // === DESCRIPTION (secondary) ===
-    if (item.description) html += `<p class="drawer-desc">${escapeHtml(item.description)}</p>`;
+    if (item.description) html += `<p class="drawer-desc drawer-description">${escapeHtml(item.description)}</p>`;
 
-    // Language toggle
-    if (item._queryLanguage && item._queryLanguage !== 'en') {
+    // === TRANSLATE BUTTON — always show when preferred language is not English ===
+    // Uses userPreferredLanguage (from profile setting or browser autodetect)
+    if (userPreferredLanguage && userPreferredLanguage !== 'en') {
+        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)} 🌐</button>`;
+    } else if (item._queryLanguage && item._queryLanguage !== 'en') {
+        // Fallback: still show if the search was in a non-English language
         html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
     }
 
@@ -5012,27 +5101,27 @@ function showToast(message, duration = 3000) {
 // ===== ONBOARDING =====
 
 // Disabled: Let users manually add Founding Members to learn the Add Friend flow
-async function autoFriendVouchHQ() {
+async function autoFriendOdinHQ() {
     return; // Skip auto-connect — users add Founding Members manually
-    if (currentUser.id === VOUCH_HQ_USER_ID) return; // Don't friend yourself
+    if (currentUser.id === ODIN_HQ_USER_ID) return; // Don't friend yourself
 
-    // Check if already friends with Vouch HQ
-    const alreadyFriend = friendsCache.some(f => f.out_user_id === VOUCH_HQ_USER_ID);
+    // Check if already friends with Odin HQ
+    const alreadyFriend = friendsCache.some(f => f.out_user_id === ODIN_HQ_USER_ID);
     if (alreadyFriend) return;
 
     // Check if there's already a pending request
     const alreadyPending = pendingFriendRequests.some(r =>
-        r.out_requester_id === VOUCH_HQ_USER_ID
+        r.out_requester_id === ODIN_HQ_USER_ID
     );
     if (alreadyPending) return;
 
     // Check localStorage to avoid repeated attempts
-    if (localStorage.getItem('vouch_hq_connected')) return;
+    if (localStorage.getItem('odin_hq_connected')) return;
 
     try {
         // Insert friendship directly (both directions accepted)
         const { error } = await supabaseClient.rpc('send_friend_request', {
-            p_requester_id: VOUCH_HQ_USER_ID,
+            p_requester_id: ODIN_HQ_USER_ID,
             p_receiver_id: currentUser.id
         });
 
@@ -5042,20 +5131,20 @@ async function autoFriendVouchHQ() {
             const { data: pending } = await supabaseClient.rpc('get_pending_friend_requests', {
                 p_user_id: currentUser.id
             });
-            const hqRequest = (pending || []).find(r => r.out_requester_id === VOUCH_HQ_USER_ID);
+            const hqRequest = (pending || []).find(r => r.out_requester_id === ODIN_HQ_USER_ID);
             if (hqRequest) {
                 await supabaseClient.rpc('accept_friend_request', {
                     p_friendship_id: hqRequest.out_id,
                     p_user_id: currentUser.id
                 });
             }
-            localStorage.setItem('vouch_hq_connected', 'true');
+            localStorage.setItem('odin_hq_connected', 'true');
             // Reload friends list
             await loadFriends();
-            console.log('Auto-connected with Vouch HQ');
+            console.log('Auto-connected with Odin HQ');
         }
     } catch (err) {
-        console.warn('Auto-friend Vouch HQ failed (non-critical):', err);
+        console.warn('Auto-friend Odin HQ failed (non-critical):', err);
     }
 }
 
@@ -5069,8 +5158,8 @@ function checkOnboardingBanner() {
         return;
     }
 
-    // Show if user has no friends (excluding Vouch HQ) and no endorsements
-    const realFriends = friendsCache.filter(f => f.out_user_id !== VOUCH_HQ_USER_ID);
+    // Show if user has no friends (excluding Odin HQ) and no endorsements
+    const realFriends = friendsCache.filter(f => f.out_user_id !== ODIN_HQ_USER_ID);
     const hasNoRealFriends = realFriends.length === 0;
     const hasNoEndorsements = Object.values(endorsementsCache || {}).every(e => !e.userEndorsed);
 
