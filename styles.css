@@ -891,7 +891,7 @@
         /* ── Home Feed Card — redesigned ── */
         .hf-card {
             flex-shrink: 0;
-            width: 168px;
+            width: 188px;
             background: var(--surface);
             border-radius: 18px;
             overflow: hidden;
@@ -988,17 +988,26 @@
             font-style: italic;
         }
 
+        /* Saved-by row */
         .hf-card-by {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
             margin-top: auto;
-            padding-top: 4px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* Stacked avatar group */
+        .hf-card-avatars {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
         }
 
         .hf-card-avatar {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
             background: linear-gradient(135deg, #7B2D45, #5A1F30);
             color: white;
@@ -1008,6 +1017,8 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            border: 2px solid var(--surface);
+            position: relative;
         }
 
         .hf-card-name {
@@ -1017,6 +1028,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            flex: 1;
+            min-width: 0;
         }
 
         /* ── Empty state — no friends ── */
