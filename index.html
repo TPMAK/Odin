@@ -2465,8 +2465,8 @@
         // Support both launcher and feedHome scroll containers
         var scroll = document.getElementById('launcherFeedScroll') || document.getElementById('homeFeedScroll');
         if (!scroll) return;
-        // Scroll by ~3 card widths (148px + 12px gap = 160px each)
-        scroll.scrollBy({ left: dir * 160 * 3, behavior: 'smooth' });
+        // Scroll by ~3 card widths (192px + 12px gap = 204px each)
+        scroll.scrollBy({ left: dir * 204 * 3, behavior: 'smooth' });
     }
 
     function _updateFeedNavButtons(scroll) {
@@ -2565,14 +2565,19 @@
             var userLat = (typeof userLocation !== 'undefined' && userLocation) ? userLocation.latitude : null;
             var userLng = (typeof userLocation !== 'undefined' && userLocation) ? userLocation.longitude : null;
 
+            // SVG icons used in chips (inline, no emoji)
+            var SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+            var SVG_TAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
+            var SVG_PLACE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+
             var cardsHtml = items.map(function(item) {
 
                 // ── Media ──
                 var media = item.photo_url
                     ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                    : '<div class="hf-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
+                    : '<div class="hf-card-placeholder">' + SVG_PLACE + '</div>';
 
-                // ── Distance chip — calculate from lat/lng if available ──
+                // ── Distance chip — Haversine from lat/lng ──
                 var distChip = '';
                 if (userLat && userLng && item.latitude && item.longitude) {
                     var R = 6371;
@@ -2583,21 +2588,21 @@
                         * Math.sin(dLon/2) * Math.sin(dLon/2);
                     var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
                     var dLabel = km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
-                    distChip = '<span class="hf-card-dist">📍 ' + dLabel + '</span>';
+                    distChip = '<span class="hf-card-dist">' + SVG_PIN + dLabel + '</span>';
                 }
 
                 // ── Category chip ──
-                var categoryLabel = escapeHtml((item.type || 'place').charAt(0).toUpperCase() + (item.type || 'place').slice(1));
-                var catChip = '<span class="hf-card-cat">' + getCategoryEmoji(item.type) + ' ' + categoryLabel + '</span>';
+                var categoryLabel = escapeHtml((item.type || 'Place').charAt(0).toUpperCase() + (item.type || 'Place').slice(1));
+                var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
 
                 // ── Saved-by: count-based label ──
                 var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
-                var totalSavers = 1 + (enc ? enc.count : 0); // adder + endorsers
+                var totalSavers = 1 + (enc ? enc.count : 0);
                 var savedLabel = totalSavers === 1
                     ? '1 friend saved'
                     : totalSavers + ' friends saved';
 
-                // Stacked avatars — adder first, then up to 2 endorsers
+                // Stacked initials avatars
                 var allNames = [item.added_by_name || 'F'];
                 if (enc && enc.names) enc.names.forEach(function(n) { if (n) allNames.push(n); });
                 var avatarsHtml = allNames.slice(0, 3).map(function(n, i) {
@@ -2610,12 +2615,12 @@
                     + '<span class="hf-card-name">' + savedLabel + '</span>'
                     + '</div>';
 
-                // ── Summary — wrapped in quotes ──
+                // ── Summary ──
                 var summaryHtml = item.feed_card_summary
                     ? '<div class="hf-card-summary">\u201c' + escapeHtml(item.feed_card_summary) + '\u201d</div>'
                     : '';
 
-                // ── Bottom chip row: category + distance ──
+                // ── Chips row ──
                 var chipsRowHtml = '<div class="hf-card-chips-row">'
                     + catChip
                     + (distChip || '')
