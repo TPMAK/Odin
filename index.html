@@ -2537,7 +2537,7 @@
             var friendIds = friends.map(function(f) { return f.out_user_id; });
             var { data: items, error } = await supabaseClient
                 .from('knowledge_items')
-                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary')
+                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary, latitude, longitude')
                 .in('added_by', friendIds)
                 .neq('visibility', 'private')   // never show friends' private items
                 .order('created_at', { ascending: false })
@@ -2561,72 +2561,72 @@
                 await loadEndorsementsForItems(items);
             }
 
+            // Pre-compute user location for distance calc
+            var userLat = (typeof userLocation !== 'undefined' && userLocation) ? userLocation.latitude : null;
+            var userLng = (typeof userLocation !== 'undefined' && userLocation) ? userLocation.longitude : null;
+
             var cardsHtml = items.map(function(item) {
+
                 // ── Media ──
                 var media = item.photo_url
                     ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
                     : '<div class="hf-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
 
-                // ── Distance chip (overlaid on photo) ──
+                // ── Distance chip — calculate from lat/lng if available ──
                 var distChip = '';
-                if (item.distance_km != null) {
-                    var d = item.distance_km < 1
-                        ? Math.round(item.distance_km * 1000) + 'm'
-                        : item.distance_km.toFixed(1) + 'km';
-                    distChip = '<span class="hf-card-dist">📍 ' + d + '</span>';
+                if (userLat && userLng && item.latitude && item.longitude) {
+                    var R = 6371;
+                    var dLat = (item.latitude - userLat) * Math.PI / 180;
+                    var dLon = (item.longitude - userLng) * Math.PI / 180;
+                    var a = Math.sin(dLat/2) * Math.sin(dLat/2)
+                        + Math.cos(userLat * Math.PI/180) * Math.cos(item.latitude * Math.PI/180)
+                        * Math.sin(dLon/2) * Math.sin(dLon/2);
+                    var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    var dLabel = km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
+                    distChip = '<span class="hf-card-dist">📍 ' + dLabel + '</span>';
                 }
 
-                // ── "Saved by Stanley + 3 friends" ──
-                var savedByHtml = '';
+                // ── Category chip ──
+                var categoryLabel = escapeHtml((item.type || 'place').charAt(0).toUpperCase() + (item.type || 'place').slice(1));
+                var catChip = '<span class="hf-card-cat">' + getCategoryEmoji(item.type) + ' ' + categoryLabel + '</span>';
+
+                // ── Saved-by: count-based label ──
                 var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
-                var saverNames = [];
+                var totalSavers = 1 + (enc ? enc.count : 0); // adder + endorsers
+                var savedLabel = totalSavers === 1
+                    ? '1 friend saved'
+                    : totalSavers + ' friends saved';
 
-                // Primary saver (who added it)
-                var adderName = item.added_by_name || 'Friend';
-                saverNames.push(escapeHtml(adderName));
-
-                // Other friends who endorsed/saved it (exclude the adder)
-                if (enc && enc.names && enc.names.length > 0) {
-                    enc.names.forEach(function(n) {
-                        if (n && n !== adderName && saverNames.length < 3) {
-                            saverNames.push(escapeHtml(n));
-                        }
-                    });
-                }
-
-                // Build the avatars + label
-                var avatarsHtml = saverNames.slice(0, 3).map(function(n, i) {
-                    return '<div class="hf-card-avatar" style="z-index:' + (3 - i) + ';margin-left:' + (i === 0 ? '0' : '-6px') + '">'
-                        + n.charAt(0).toUpperCase() + '</div>';
+                // Stacked avatars — adder first, then up to 2 endorsers
+                var allNames = [item.added_by_name || 'F'];
+                if (enc && enc.names) enc.names.forEach(function(n) { if (n) allNames.push(n); });
+                var avatarsHtml = allNames.slice(0, 3).map(function(n, i) {
+                    return '<div class="hf-card-avatar" style="z-index:' + (3-i) + ';margin-left:' + (i===0?'0':'-7px') + '">'
+                        + escapeHtml(n).charAt(0).toUpperCase() + '</div>';
                 }).join('');
 
-                var extraCount = enc ? Math.max(0, enc.count - saverNames.length) : 0;
-                var labelText = saverNames[0];
-                if (saverNames.length === 2) {
-                    labelText += ' & ' + saverNames[1];
-                } else if (saverNames.length > 2 || extraCount > 0) {
-                    var total = (enc ? enc.count : 1);
-                    labelText += ' + ' + (total - 1) + ' friend' + (total - 1 > 1 ? 's' : '');
-                }
-
-                savedByHtml = '<div class="hf-card-by">'
+                var savedByHtml = '<div class="hf-card-by">'
                     + '<div class="hf-card-avatars">' + avatarsHtml + '</div>'
-                    + '<span class="hf-card-name">' + labelText + '</span>'
+                    + '<span class="hf-card-name">' + savedLabel + '</span>'
                     + '</div>';
 
-                // ── Summary ──
+                // ── Summary — wrapped in quotes ──
                 var summaryHtml = item.feed_card_summary
-                    ? '<div class="hf-card-summary">' + escapeHtml(item.feed_card_summary) + '</div>'
+                    ? '<div class="hf-card-summary">\u201c' + escapeHtml(item.feed_card_summary) + '\u201d</div>'
                     : '';
 
+                // ── Bottom chip row: category + distance ──
+                var chipsRowHtml = '<div class="hf-card-chips-row">'
+                    + catChip
+                    + (distChip || '')
+                    + '</div>';
+
                 return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
-                    + '<div class="hf-card-media-wrap">'
-                    + media
-                    + (distChip ? '<div class="hf-card-chips">' + distChip + '</div>' : '')
-                    + '</div>'
+                    + '<div class="hf-card-media-wrap">' + media + '</div>'
                     + '<div class="hf-card-body">'
                     + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
                     + summaryHtml
+                    + chipsRowHtml
                     + savedByHtml
                     + '</div>'
                     + '</div>';
