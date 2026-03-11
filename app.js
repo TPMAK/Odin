@@ -4226,11 +4226,26 @@ function sendMessage(text) {
         timestamp: Date.now()
     });
 
+    // Build the set of user IDs whose items are allowed in search results:
+    //   - the current user (own items, all visibility)
+    //   - direct friends (friends-visibility items)
+    // Extended circle items are anonymised after results return — we include
+    // their IDs in a separate list so n8n can optionally surface them too,
+    // but NEVER include private items from non-friends.
+    const directFriendIds = friendsCache.map(f => f.out_user_id).filter(Boolean);
+    const allowedUserIds   = currentUser
+        ? [currentUser.id, ...directFriendIds]
+        : [];
+
     const body = {
         query,
         session_id: currentSessionId,
         conversation_history: sessionMessages,
-        user_id: currentUser ? currentUser.id : null
+        user_id: currentUser ? currentUser.id : null,
+        // Visibility filter context sent to n8n so the semantic search
+        // only runs against the corpus this user is allowed to see.
+        allowed_user_ids: allowedUserIds,   // search ONLY these users' items
+        friend_ids: directFriendIds,        // subset: direct friends (for note visibility)
     };
     if (userLocation.available) {
         body.user_latitude = userLocation.latitude;
@@ -4256,40 +4271,57 @@ function sendMessage(text) {
             // Tag each result with the query language for translation toggle
             currentResults.forEach(r => { r._queryLanguage = queryLanguage; });
 
-            // Match and enrich search results from allDiscoveries (friends + self only)
+            // ── Odin Trust Layer: search result filtering ─────────
+            // Build lookup sets for fast membership checks
+            const selfId       = currentUser ? currentUser.id : null;
+            const friendIdSet  = new Set(friendsCache.map(f => f.out_user_id).filter(Boolean));
+            const allowedIdSet = new Set(selfId ? [selfId, ...friendIdSet] : [...friendIdSet]);
+
+            // Match and enrich search results from allDiscoveries
             currentResults.forEach(r => {
-                // Find match by id first, then fall back to title
                 const match = (r.id && allDiscoveries.find(d => d.id === r.id))
                     || allDiscoveries.find(d => d.title === r.title);
                 if (match) {
                     // Preserve search-specific fields before merging
                     const relevance_reason = r.relevance_reason;
-                    const distance_km = r.distance_km || match.distance_km;
-                    const _queryLanguage = r._queryLanguage;
-                    const combined_score = r.combined_score;
-                    const relevance_score = r.relevance_score;
-                    // Merge full Supabase data (adds added_by, personal_note, photo_url etc.)
+                    const distance_km      = r.distance_km || match.distance_km;
+                    const _queryLanguage   = r._queryLanguage;
+                    const combined_score   = r.combined_score;
+                    const relevance_score  = r.relevance_score;
                     Object.assign(r, match);
                     r.relevance_reason = relevance_reason;
                     if (distance_km) r.distance_km = distance_km;
-                    r._queryLanguage = _queryLanguage;
-                    r.combined_score = combined_score;
-                    r.relevance_score = relevance_score;
+                    r._queryLanguage   = _queryLanguage;
+                    r.combined_score   = combined_score;
+                    r.relevance_score  = relevance_score;
                 }
             });
 
-            // Layer 1: friends + self results (full access including personal notes)
-            const friendResults = currentResults.filter(r =>
-                r.id && allDiscoveries.find(d => d.id === r.id)
-            );
+            // ── Hard privacy filter ───────────────────────────────
+            // 1. Drop any item whose added_by is not in allowedIdSet
+            //    (catches private items from strangers leaking through n8n)
+            // 2. Drop own private items from search results shown to others
+            //    (own private items ARE allowed — they stay in for the owner)
+            currentResults = currentResults.filter(r => {
+                // No added_by → item came back from n8n without enrichment, skip it safely
+                if (!r.id) return false;
+                const owner = r.added_by;
+                // If owner is unknown, only keep if it matched allDiscoveries (already filtered)
+                if (!owner) return allDiscoveries.some(d => d.id === r.id);
+                // Private items: only visible to the owner
+                if (r.visibility === TRUST.PRIVATE && owner !== selfId) return false;
+                // Must be from an allowed user (self or direct friend)
+                return allowedIdSet.has(owner);
+            });
 
-            // Layer 2: everyone else in DB (teaser only — no personal notes shown)
-            const otherResults = currentResults.filter(r =>
-                r.id && !allDiscoveries.find(d => d.id === r.id)
-            ).map(r => ({ ...r, _isOutsideNetwork: true }));
-
-            // Main results = friends only
-            currentResults = friendResults;
+            // ── Tag extended circle items that snuck into results ─
+            // (Shouldn't happen since n8n only gets allowedUserIds, but defence-in-depth)
+            currentResults = currentResults.map(r => {
+                if (r._trust_level === TRUST.EXTENDED) {
+                    return anonymiseForExtendedCircle(r);
+                }
+                return r;
+            });
 
             // Relevance check — trust results if score meets threshold
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
@@ -4313,13 +4345,21 @@ function sendMessage(text) {
             };
 
             const buildTopPick = (r, idx) => {
-                const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
-                const rawNote = getPersonalNote(r);
+                const isExt    = r._trust_level === TRUST.EXTENDED;
+                const photo    = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
+                const rawNote  = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
-                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-                const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
-                const needsToggle = r._queryLanguage && r._queryLanguage !== 'en';
+                // Extended circle: description only (no personal notes, no friend attribution)
+                const snippet      = isExt
+                    ? (r.description || r.relevance_reason || '')
+                    : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
+                const snippetLabel = isExt
+                    ? '💡 Why this matches'
+                    : (canSeeNote ? '💭 Friend says' : '💡 Why this matches');
+                const byLine = isExt
+                    ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
+                    : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
@@ -4329,7 +4369,7 @@ function sendMessage(text) {
                             <div class="top-pick-title">${escapeHtml(r.title)}</div>
                             <div class="top-pick-meta">
                                 ${distText ? `<span class="meta-tag meta-distance">📍 ${distText}</span>` : ''}
-                                ${r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : ''}
+                                ${byLine}
                             </div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
@@ -4343,14 +4383,20 @@ function sendMessage(text) {
             };
 
             const buildCompactCard = (r, idx) => {
-                const photo = r.photo_url
+                const isExt  = r._trust_level === TRUST.EXTENDED;
+                const photo  = r.photo_url
                     ? `<img src="${escapeHtml(r.photo_url)}">`
                     : '<span class="compact-photo-placeholder">📍</span>';
-                const rawNote = getPersonalNote(r);
+                const rawNote    = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by);
-                const distText = formatDistance(r.distance_km);
-                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-                const snippetIcon = canSeeNote ? '💭' : '';
+                const distText   = formatDistance(r.distance_km);
+                const snippet    = isExt
+                    ? (r.description || r.relevance_reason || '')
+                    : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
+                const snippetIcon = (!isExt && canSeeNote) ? '💭' : '';
+                const byLine = isExt
+                    ? '<span class="extended-circle-badge" style="font-size:11px;">🔵 Extended circle</span>'
+                    : (r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : '');
 
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
@@ -4358,7 +4404,7 @@ function sendMessage(text) {
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         <div class="compact-meta">
                             ${distText ? `<span>📍 ${distText}</span>` : ''}
-                            ${r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : ''}
+                            ${byLine}
                         </div>
                         ${snippet ? `<div class="compact-snippet">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                     </div>
