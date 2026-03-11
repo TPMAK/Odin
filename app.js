@@ -1543,7 +1543,17 @@ async function loadNotesForItem(itemId) {
     }
 }
 
-function renderNotesSection(itemId, notes) {
+function renderNotesSection(itemId, notes, trustLevel) {
+    // Extended circle: comments are hidden — identity must not travel more than one hop
+    if (trustLevel === TRUST.EXTENDED) {
+        return `<div class="community-notes community-notes--hidden" id="communityNotes">
+            <div class="extended-circle-notice">
+                💬 Comments are only visible between direct friends.
+                <br><span class="extended-circle-notice-sub">Add this place to connect with the people who saved it.</span>
+            </div>
+        </div>`;
+    }
+
     const notesList = notes.map(n => {
         const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
         const timeAgo = getTimeAgo(n.out_created_at);
@@ -2424,10 +2434,15 @@ function buildCollectionCards() {
     }
     var groups = {};
     allDiscoveries.forEach(function(item) {
-        var raw = collectionGrouping === 'friend'
-            ? (item.added_by_name || 'Unknown')
-            : (item.category || item.type || 'Other');
-        var key = collectionGrouping === 'friend' ? raw : normaliseKey(raw);
+        var key;
+        if (item._trust_level === TRUST.EXTENDED) {
+            // Extended circle items always go into their own group regardless of grouping mode
+            key = 'Extended Circle';
+        } else if (collectionGrouping === 'friend') {
+            key = item.added_by_name || 'Unknown';
+        } else {
+            key = normaliseKey(item.category || item.type || 'Other');
+        }
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);
     });
@@ -2445,19 +2460,24 @@ function buildCollectionCards() {
             ? '<img class="dc-coll-img" src="' + escapeHtml(coverItem.photo_url) + '" alt="' + escapeHtml(groupName) + '" loading="lazy">'
             : '<div class="dc-coll-placeholder">' + (CATEGORY_EMOJI[groupName.toLowerCase()] || '📍') + '</div>';
 
-        // Avatars (for friend grouping show category colours; for category grouping show contributor initials)
-        var avatarSet = {};
-        items.forEach(function(it) {
-            var avKey = collectionGrouping === 'friend'
-                ? (it.category || it.type || 'other')
-                : (it.added_by_name || '?');
-            avatarSet[avKey] = true;
-        });
-        var avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
-            var init = k.charAt(0).toUpperCase();
-            var col  = strColour(k);
-            return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
-        }).join('');
+        // Avatars — extended circle group gets a fixed blue anonymous avatar
+        var avHtml;
+        if (groupName === 'Extended Circle') {
+            avHtml = '<div class="dc-coll-av dc-coll-av--extended">🔵</div>';
+        } else {
+            var avatarSet = {};
+            items.forEach(function(it) {
+                var avKey = collectionGrouping === 'friend'
+                    ? (it.category || it.type || 'other')
+                    : (it.added_by_name || '?');
+                avatarSet[avKey] = true;
+            });
+            avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
+                var init = k.charAt(0).toUpperCase();
+                var col  = strColour(k);
+                return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
+            }).join('');
+        }
 
         var label = items.length + ' ' + (items.length === 1 ? 'item' : 'items');
 
@@ -2784,6 +2804,9 @@ function searchFromDiscover() {
 
 // ── Discover page: friends filter bubbles ──
 
+// Sentinel value used to filter extended circle items via the friends row
+var EXTENDED_CIRCLE_FILTER_KEY = '__extended_circle__';
+
 function buildFriendsRow() {
     var row = document.getElementById('dcFriendsRow');
     if (!row) return;
@@ -2791,6 +2814,17 @@ function buildFriendsRow() {
     row.style.display = '';
 
     var html = '';
+
+    // Check if any extended circle items exist in the feed
+    var hasExtended = allDiscoveries.some(function(d) { return d._trust_level === TRUST.EXTENDED; });
+    if (hasExtended) {
+        var extActive = filters.users.includes(EXTENDED_CIRCLE_FILTER_KEY);
+        html += '<button class="dc-friend-bubble dc-friend-bubble--extended' + (extActive ? ' active' : '') + '" onclick="toggleFriendFilter(\'' + EXTENDED_CIRCLE_FILTER_KEY + '\')">'
+            + '<div class="dc-friend-initial dc-friend-initial--extended">🔵</div>'
+            + '<span class="dc-friend-name">Circle</span>'
+            + '</button>';
+    }
+
     friendsCache.forEach(function(f) {
         var name = f.out_display_name || 'Unknown';
         var firstName = name.split(' ')[0];
@@ -2912,7 +2946,16 @@ function updateDiscoverCounts() {
 function filterAndRender() {
     filteredDiscoveries = allDiscoveries.filter(item => {
         if (filters.categories.length > 0 && !filters.categories.includes(item.type)) return false;
-        if (filters.users.length > 0 && !filters.users.includes(item.added_by_name)) return false;
+        if (filters.users.length > 0) {
+            const wantsExtended = filters.users.includes(EXTENDED_CIRCLE_FILTER_KEY);
+            const isExtended = item._trust_level === TRUST.EXTENDED;
+            // Extended circle filter: if sentinel selected, match FOF items
+            // Named friend filters: match by added_by_name (excludes FOF items since they have no name)
+            const namedFilters = filters.users.filter(u => u !== EXTENDED_CIRCLE_FILTER_KEY);
+            const matchesNamed = namedFilters.length > 0 && namedFilters.includes(item.added_by_name);
+            const matchesExtended = wantsExtended && isExtended;
+            if (!matchesNamed && !matchesExtended) return false;
+        }
         if (filters.distances.length > 0 && userLocation.available) {
             if (!item.distance_km) return false;
             const maxDist = Math.max(...filters.distances);
@@ -2942,7 +2985,10 @@ function updateActiveFiltersBar() {
     const bar = document.getElementById('activeFiltersBar');
     let html = '';
     filters.categories.forEach(cat => html += `<span class="active-filter-chip">${cat} <span class="active-filter-remove" onclick="removeActiveFilter('category', '${cat}')">×</span></span>`);
-    filters.users.forEach(user => html += `<span class="active-filter-chip">${escapeHtml(user)} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`);
+    filters.users.forEach(user => {
+        const label = user === EXTENDED_CIRCLE_FILTER_KEY ? '🔵 Extended Circle' : escapeHtml(user);
+        html += `<span class="active-filter-chip">${label} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`;
+    });
     if (filters.endorsed) html += `<span class="active-filter-chip">My Saves <span class="active-filter-remove" onclick="removeActiveFilter('endorsed', '')">×</span></span>`;
     filters.distances.forEach(dist => html += `<span class="active-filter-chip">&lt; ${dist}km <span class="active-filter-remove" onclick="removeActiveFilter('distance', '${dist}')">×</span></span>`);
     bar.innerHTML = html;
@@ -2988,14 +3034,35 @@ function removeActiveFilter(type, value) {
     }
 }
 
+// ── Odin Trust Layers ────────────────────────────────────────
+// Trust level constants used throughout the app
+const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
+
+// Anonymise an extended-circle item so identity never travels more than one hop.
+// Keeps: title, photo_url, address, latitude, longitude, description,
+//        type, category, feed_card_summary, save_count, created_at, id
+// Strips: added_by, added_by_name, personal_note / metadata notes, comments
+function anonymiseForExtendedCircle(item) {
+    return Object.assign({}, item, {
+        _trust_level: TRUST.EXTENDED,
+        added_by:      null,
+        added_by_name: 'Someone in your circle',
+        // Wipe any personal note stored in metadata or top-level field
+        personal_note: null,
+        metadata: item.metadata
+            ? (() => { try { const m = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; delete m.personal_note; return m; } catch(e) { return {}; } })()
+            : null,
+        // Comments are hidden — flagged so the drawer can suppress them
+        _hide_comments: true,
+    });
+}
+
 async function loadDiscoveries() {
     try {
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 180);
 
-        // Exclude other users' private items at the server level (privacy fix)
-        // We still load our OWN private items by fetching all and filtering client-side below.
-        // The .neq filter is a best-effort server hint; client-side filter is the reliable gate.
+        // ── Tier 1 & 2: Own items + direct-friend items ──────────
         const response = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_items?select=*&order=created_at.desc`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
@@ -3003,27 +3070,87 @@ async function loadDiscoveries() {
         let data = await response.json();
         data = data.filter(item => new Date(item.created_at) >= twoWeeksAgo);
 
-        // Only show items from the user's friends (and their own items)
         const friendIds = new Set(friendsCache.map(f => f.out_user_id));
         if (currentUser) friendIds.add(currentUser.id);
+
+        // Keep own items + direct-friend items only (Private + Friends tiers)
         data = data.filter(item => item.added_by && friendIds.has(item.added_by));
 
-        // Hide private discoveries — only the owner can see their own private items
+        // Hide private items — only the owner sees their own private items
         data = data.filter(item => {
-            if (item.visibility === 'private') {
+            if (item.visibility === TRUST.PRIVATE) {
                 return currentUser && item.added_by === currentUser.id;
             }
             return true; // 'friends' visibility passes through
         });
 
-        // Hide discoveries from blocked users
+        // Tag direct-friend items with trust level
+        data = data.map(item => {
+            if (!item._trust_level) {
+                item._trust_level = (item.added_by === currentUser?.id)
+                    ? TRUST.PRIVATE  // own items (private or friends)
+                    : TRUST.FRIENDS;
+            }
+            return item;
+        });
+
+        // ── Tier 3: Extended Circle (real friend-of-friend via trust_connections) ──
+        // Uses the get_extended_circle_item_ids RPC which does a proper 2-hop join
+        // on trust_connections: my friends → their friends → their 'friends'-visibility items.
+        // Identity is stripped before any item reaches the client.
+        let extendedItems = [];
+        if (friendsCache.length > 0) {
+            try {
+                const { data: fofRows, error: fofError } = await supabaseClient.rpc(
+                    'get_extended_circle_item_ids',
+                    { p_user_id: currentUser.id }
+                );
+
+                if (fofError) {
+                    console.warn('Extended circle RPC error (non-critical):', fofError.message);
+                } else if (fofRows && fofRows.length > 0) {
+                    // Build a set of FOF item IDs returned by the server
+                    const fofItemIds = fofRows.map(r => r.item_id);
+                    const seenIds = new Set(data.map(i => i.id));
+
+                    // Fetch only the specific items the server confirmed are FOF-eligible
+                    // We filter out any IDs already shown in the direct-friends feed
+                    const eligibleIds = fofItemIds.filter(id => !seenIds.has(id));
+
+                    if (eligibleIds.length > 0) {
+                        // Fetch full item details for eligible IDs in one batched query
+                        const { data: extData, error: extFetchError } = await supabaseClient
+                            .from('knowledge_items')
+                            .select('id, title, photo_url, address, latitude, longitude, description, type, category, feed_card_summary, created_at, added_by, visibility')
+                            .in('id', eligibleIds)
+                            .gte('created_at', twoWeeksAgo.toISOString())
+                            .order('created_at', { ascending: false });
+
+                        if (extFetchError) {
+                            console.warn('Extended circle item fetch error (non-critical):', extFetchError.message);
+                        } else if (extData && extData.length > 0) {
+                            // Anonymise every item — identity never travels more than one hop
+                            extendedItems = extData.map(anonymiseForExtendedCircle);
+                        }
+                    }
+                }
+            } catch (extErr) {
+                console.warn('Extended circle fetch failed (non-critical):', extErr);
+            }
+        }
+
+        // Merge: friends feed first, then extended circle items
+        let combined = [...data, ...extendedItems];
+
+        // Hide discoveries from blocked users (apply to all tiers)
         if (blockedUsersCache.length > 0) {
             const blockedIds = new Set(blockedUsersCache.map(b => b.out_blocked_user_id));
-            data = data.filter(item => !item.added_by || !blockedIds.has(item.added_by));
+            // For extended circle items, added_by is already null — they pass through safely
+            combined = combined.filter(item => !item.added_by || !blockedIds.has(item.added_by));
         }
 
         if (userLocation.available) {
-            data = data.map(item => {
+            combined = combined.map(item => {
                 if (item.latitude && item.longitude) {
                     item.distance_km = calculateDistance(userLocation.latitude, userLocation.longitude, item.latitude, item.longitude);
                 }
@@ -3031,8 +3158,8 @@ async function loadDiscoveries() {
             });
         }
 
-        allDiscoveries = data;
-        await loadEndorsementsForItems(data);
+        allDiscoveries = combined;
+        await loadEndorsementsForItems(combined);
         populateFilters();
         filterAndRender();
         renderRecentlyViewed();
@@ -3043,7 +3170,7 @@ async function loadDiscoveries() {
         // Refresh map panel list if map is already open
         if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error loading discoveries:', error);
     }
 }
 
@@ -3093,10 +3220,19 @@ function createCard(item, index) {
     const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
     const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d' : `${daysAgo}d`;
 
-    // Privacy: only show personal note snippet to friends
+    // ── Odin Trust Layer: determine what this viewer can see ──
+    const isExtendedCircle = item._trust_level === TRUST.EXTENDED;
+
+    // Privacy: only show personal note snippet to direct friends; hide for extended circle
     let snippet = '';
     let snippetHtml = '';
-    if (note && isFriend(item.added_by)) {
+    if (isExtendedCircle) {
+        // Extended circle: description only, no personal stories
+        if (item.description) {
+            snippet = item.description;
+            snippetHtml = `<div class="discovery-card-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
+        }
+    } else if (note && isFriend(item.added_by)) {
         snippet = note;
         snippetHtml = `<div class="discovery-card-snippet">💭 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
     } else if (note && !isFriend(item.added_by)) {
@@ -3107,9 +3243,16 @@ function createCard(item, index) {
     }
 
     let tagsHtml = '<div class="discovery-card-tags">';
-    if (item.visibility === 'private') tagsHtml += `<span class="private-badge">Private</span>`;
+    if (item.visibility === TRUST.PRIVATE) tagsHtml += `<span class="private-badge">Private</span>`;
     if (distText) tagsHtml += `<span class="discovery-tag discovery-tag-distance">📍 ${distText}</span>`;
-    if (item.added_by_name) tagsHtml += `<span class="discovery-tag discovery-tag-person">${escapeHtml(item.added_by_name)}</span>`;
+    if (isExtendedCircle) {
+        // Extended circle: blue badge + total save count (no identity)
+        const totalSaves = (endorsementsCache[item.id] || {}).count || 0;
+        const saveLabel = totalSaves > 0 ? ` · ${totalSaves} save${totalSaves !== 1 ? 's' : ''}` : '';
+        tagsHtml += `<span class="discovery-tag discovery-tag-person extended-circle-badge">🔵 Extended circle${saveLabel}</span>`;
+    } else if (item.added_by_name) {
+        tagsHtml += `<span class="discovery-tag discovery-tag-person">${escapeHtml(item.added_by_name)}</span>`;
+    }
     tagsHtml += `<span class="discovery-tag discovery-tag-time">${dateText}</span>`;
     tagsHtml += '</div>';
 
@@ -3160,11 +3303,14 @@ function buildMapPanelList() {
         var item = document.createElement('div');
         item.className = 'dmap-panel-item';
         item.id = 'dpi-' + i;
+        var piByText = d._trust_level === TRUST.EXTENDED
+            ? '🔵 Extended circle'
+            : ('by ' + escapeHtml(d.added_by_name || '?'));
         item.innerHTML =
             '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
             '<div class="dmap-pi-info">' +
                 '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong> &middot; ' + escapeHtml(d.category || '') + '</div>' +
+                '<div class="dmap-pi-meta">' + piByText + ' &middot; ' + escapeHtml(d.category || '') + '</div>' +
             '</div>' +
             '<div class="dmap-pi-right">' +
                 '<div class="dmap-pi-dist">' + distText + '</div>' +
@@ -3181,8 +3327,14 @@ function buildMapCardStrip() {
     strip.innerHTML = '';
     located.forEach(function(d, i) {
         var col = catColour(d.category || d.type);
-        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-        var avCol  = strColour(d.added_by_name || '?');
+        var isExtCard = d._trust_level === TRUST.EXTENDED;
+        var avInit = isExtCard ? '🔵' : (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol  = isExtCard ? '#3b82f6' : strColour(d.added_by_name || '?');
+        var avStyle = isExtCard ? 'background:' + avCol + ';font-size:12px;' : 'background:' + avCol + ';';
+        var byText = isExtCard
+            ? '<strong>Extended circle</strong>'
+            : 'by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>';
+        var totalSaves = isExtCard ? ((endorsementsCache[d.id] || {}).count || 0) : (d.endorsement_count || 1);
         var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
         var card = document.createElement('div');
         card.className = 'dmap-card';
@@ -3194,12 +3346,12 @@ function buildMapCardStrip() {
                 '<div class="dmc-dist">' + distText + '</div>' +
             '</div>' +
             '<div class="dmc-by">' +
-                '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '<div class="dmc-avatar" style="' + avStyle + '">' + avInit + '</div>' +
+                '<div class="dmc-by-text">' + byText + '</div>' +
             '</div>' +
             '<div class="dmc-odin-row">' +
                 '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) > 1 ? 's' : '') +
+                totalSaves + ' save' + (totalSaves !== 1 ? 's' : '') +
             '</div>';
         card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
         strip.appendChild(card);
@@ -3545,6 +3697,9 @@ function openItemDrawer(item) {
     // Track recently viewed
     trackRecentlyViewed(item);
 
+    // ── Odin Trust Layer ──────────────────────────────────────
+    const trustLevel = item._trust_level || TRUST.FRIENDS;
+    const isExtendedCircle = trustLevel === TRUST.EXTENDED;
     const isOwner = currentUser && (item.added_by === currentUser.id);
     let html = '';
 
@@ -3570,7 +3725,12 @@ function openItemDrawer(item) {
         const dist = item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km';
         metaParts.push(`<span class="drawer-meta-dist">${dist} away</span>`);
     }
-    metaParts.push(`<span class="drawer-meta-by">${escapeHtml(item.added_by_name || 'Community Member')}</span>`);
+    if (isExtendedCircle) {
+        // Extended Circle: hide real identity — show anonymous signal only
+        metaParts.push(`<span class="drawer-meta-by extended-circle-anon">🔵 Someone in your circle</span>`);
+    } else {
+        metaParts.push(`<span class="drawer-meta-by">${escapeHtml(item.added_by_name || 'Community Member')}</span>`);
+    }
     const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
     const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
     metaParts.push(`<span class="drawer-meta-time">${dateText}</span>`);
@@ -3578,43 +3738,50 @@ function openItemDrawer(item) {
 
     // Extract personal note from multiple possible fields
     let note = null;
-    if (item.PersonalNote) note = item.PersonalNote;
-    else if (item.personal_note) note = item.personal_note;
-    else if (item.metadata) {
-        try {
-            const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
-            note = meta.personal_note;
-        } catch (e) {}
+    if (!isExtendedCircle) {
+        // Only attempt to read personal note for Private/Friends tiers
+        if (item.PersonalNote) note = item.PersonalNote;
+        else if (item.personal_note) note = item.personal_note;
+        else if (item.metadata) {
+            try {
+                const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
+                note = meta.personal_note;
+            } catch (e) {}
+        }
     }
 
     // === PERSONAL STORY (pull-quote style) ===
-    if (note) {
+    if (isExtendedCircle) {
+        // Extended Circle: personal story is hidden — show a soft signal instead
+        html += `<div class="drawer-quote drawer-quote-extended">
+            <div class="drawer-quote-label">Personal Story</div>
+            <div class="drawer-quote-text drawer-story-text">🔒 Connect to see their story</div>
+        </div>`;
+    } else if (note) {
         if (isFriend(item.added_by)) {
             html += `<div class="drawer-quote">
                 <div class="drawer-quote-label">Personal Story</div>
-                <div class="drawer-quote-text">${escapeHtml(note)}</div>
+                <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
             </div>`;
         } else {
             html += `<div class="drawer-quote drawer-quote-locked">
                 <div class="drawer-quote-label">Personal Story</div>
-                <div class="drawer-quote-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their story</div>
+                <div class="drawer-quote-text drawer-story-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their story</div>
             </div>`;
         }
     }
 
-    // === DESCRIPTION (secondary) ===
+    // === DESCRIPTION (visible to all tiers) ===
     if (item.description) html += `<p class="drawer-desc drawer-description">${escapeHtml(item.description)}</p>`;
 
     // === TRANSLATE BUTTON — always show when preferred language is not English ===
-    // Uses userPreferredLanguage (from profile setting or browser autodetect)
     if (userPreferredLanguage && userPreferredLanguage !== 'en') {
         html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)} 🌐</button>`;
     } else if (item._queryLanguage && item._queryLanguage !== 'en') {
-        // Fallback: still show if the search was in a non-English language
         html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
     }
 
-    // === QUICK ACTIONS (compact pills) ===
+    // === QUICK ACTIONS (compact pills — visible to all tiers) ===
     let url = null;
     if (item.URL) {
         if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
@@ -3652,14 +3819,19 @@ function openItemDrawer(item) {
     document.getElementById('drawerBackdrop').classList.add('active');
     document.getElementById('detailDrawer').classList.add('open');
 
-    // Load community notes asynchronously
+    // Load community notes asynchronously (extended circle sees locked message)
     if (item.id) {
-        loadNotesForItem(item.id).then(notes => {
+        if (isExtendedCircle) {
             const container = document.getElementById('communityNotesContainer');
-            if (container) {
-                container.innerHTML = renderNotesSection(item.id, notes);
-            }
-        });
+            if (container) container.innerHTML = renderNotesSection(item.id, [], TRUST.EXTENDED);
+        } else {
+            loadNotesForItem(item.id).then(notes => {
+                const container = document.getElementById('communityNotesContainer');
+                if (container) {
+                    container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
+                }
+            });
+        }
     }
 }
 
@@ -3931,9 +4103,10 @@ function startEditNote(noteId, itemId, currentText) {
 
 function cancelEditNote(noteId, itemId) {
     // Reload notes to restore original
+    const trustLevel = currentDrawerItem?._trust_level || TRUST.FRIENDS;
     loadNotesForItem(itemId).then(notes => {
         const container = document.getElementById('communityNotesContainer');
-        if (container) container.innerHTML = renderNotesSection(itemId, notes);
+        if (container) container.innerHTML = renderNotesSection(itemId, notes, trustLevel);
     });
 }
 
@@ -3953,8 +4126,9 @@ async function saveEditNote(noteId, itemId) {
         if (error) throw error;
 
         const notes = await loadNotesForItem(itemId);
+        const trustLevel = currentDrawerItem?._trust_level || TRUST.FRIENDS;
         const container = document.getElementById('communityNotesContainer');
-        if (container) container.innerHTML = renderNotesSection(itemId, notes);
+        if (container) container.innerHTML = renderNotesSection(itemId, notes, trustLevel);
         showToast('Comment updated!');
     } catch (err) {
         console.error('Error editing note:', err);

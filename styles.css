@@ -8179,3 +8179,74 @@ body.map-view-open .content {
 #launcherRecentSection .home-recent-scroll::after {
     display: none;
 }
+
+/* ── Odin Trust Layers: Extended Circle styles ── */
+
+/* Card badge for extended circle items */
+.extended-circle-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Drawer: anonymous byline */
+.drawer-meta-by.extended-circle-anon {
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Drawer: extended circle story block (soft locked state) */
+.drawer-quote-extended {
+    border-left: 2px solid rgba(59, 130, 246, 0.25);
+    background: rgba(59, 130, 246, 0.04);
+}
+
+.drawer-quote-extended .drawer-quote-text {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Extended circle comments locked notice */
+.community-notes--hidden {
+    margin: 12px 0 0;
+}
+
+.extended-circle-notice {
+    font-size: 13px;
+    color: #9ca3af;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px dashed rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.extended-circle-notice-sub {
+    font-size: 12px;
+    color: #c4b5b5;
+    display: block;
+    margin-top: 4px;
+}
+
+/* ── Extended Circle: Friends row filter bubble ── */
+.dc-friend-bubble--extended .dc-friend-initial--extended {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    font-size: 14px;
+    border: 1.5px solid rgba(59, 130, 246, 0.3);
+}
+.dc-friend-bubble--extended.active .dc-friend-initial--extended {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* ── Extended Circle: Collection card avatar ── */
+.dc-coll-av--extended {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1.5px solid rgba(59, 130, 246, 0.3);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
