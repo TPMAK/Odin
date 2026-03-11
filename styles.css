@@ -6848,10 +6848,10 @@
 .launcher-page {
     max-width: 480px;
     margin: 0 auto;
-    padding: 14px 20px 20px;
+    padding: 10px 20px 12px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 12px;
 }
 
 .launcher-greeting {
@@ -6874,9 +6874,9 @@
 
 .launcher-sub-greeting {
     font-family: 'Inter', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--muted);
-    margin: 6px 0 0;
+    margin: 3px 0 0;
     letter-spacing: 0;
 }
 
@@ -8203,14 +8203,14 @@ body.map-view-open .content {
     max-width: 480px;
     width: 100%;
     margin: 0 auto;
-    padding: 4px 20px 24px;
+    padding: 4px 20px 12px;
 }
 
 #launcherRecentSection {
     max-width: 480px;
     width: 100%;
     margin: 0 auto;
-    padding: 4px 20px 8px;
+    padding: 4px 20px 4px;
 }
 
 /* Fix: neutralise the negative bleed margins inside launcher sections
@@ -8226,6 +8226,34 @@ body.map-view-open .content {
 #launcherRecentSection .home-recent-scroll::before,
 #launcherRecentSection .home-recent-scroll::after {
     display: none;
+}
+
+/* ── Circle feed "Show more" button ── */
+.circle-feed-show-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 11px 20px;
+    background: transparent;
+    border: 1.5px solid var(--border, #EAE0D2);
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted, #9A8A7A);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.circle-feed-show-more:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+    background: rgba(123,45,69,0.04);
+}
+.circle-feed-show-more svg {
+    flex-shrink: 0;
 }
 
 /* ── Odin Trust Layers: Extended Circle styles ── */

@@ -2013,7 +2013,7 @@ const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-acc
 let userPreferredLanguage = 'en';
 
 const LANG_LABELS = {
-    en: 'EN', zh: '中文', ja: '日本語', ko: '한국어',
+    en: 'EN', 'zh-TW': '繁中', 'zh-CN': '简中', ja: '日本語', ko: '한국어',
     es: 'ES', fr: 'FR', ar: 'AR', hi: 'HI',
     pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
 };
@@ -2028,7 +2028,14 @@ async function initUserLanguage() {
         return;
     }
     // 2. Autodetect from browser
-    const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    const rawBrowserLang = (navigator.language || 'en').toLowerCase();
+    // Map browser zh variants to our split keys
+    let browserLang;
+    if (rawBrowserLang.startsWith('zh')) {
+        browserLang = (rawBrowserLang.includes('tw') || rawBrowserLang.includes('hk') || rawBrowserLang.includes('mo')) ? 'zh-TW' : 'zh-CN';
+    } else {
+        browserLang = rawBrowserLang.split('-')[0];
+    }
     const detected = LANG_LABELS[browserLang] ? browserLang : 'en';
     userPreferredLanguage = detected;
     _applyLangLabel(detected);
@@ -2573,6 +2580,9 @@ function setMode(mode) {
 
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
+    // Show language button only on profile page
+    var langWrap = document.getElementById('headerLangWrap');
+    if (langWrap) langWrap.style.display = (mode === 'profile') ? '' : 'none';
     // Clean up map state when leaving Discover
     if (mode !== 'discover') {
         document.body.classList.remove('map-view-open');
