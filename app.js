@@ -4298,26 +4298,34 @@ function sendMessage(text) {
             });
 
             // ── Hard privacy filter ───────────────────────────────
-            // 1. Drop any item whose added_by is not in allowedIdSet
-            //    (catches private items from strangers leaking through n8n)
-            // 2. Drop own private items from search results shown to others
-            //    (own private items ARE allowed — they stay in for the owner)
+            // Allowed: own items, direct friends' non-private, FOF 'friends'-visibility items
+            // FOF items come back from RPC with trust_level='extended_circle' + added_by=null
+            const fofIdSet = new Set(
+                allDiscoveries
+                    .filter(d => d._trust_level === TRUST.EXTENDED)
+                    .map(d => d.id)
+            );
             currentResults = currentResults.filter(r => {
-                // No added_by → item came back from n8n without enrichment, skip it safely
                 if (!r.id) return false;
+                // RPC-anonymised FOF: added_by is null, trust_level is extended_circle
+                if (!r.added_by && r.trust_level === 'extended_circle') return true;
                 const owner = r.added_by;
-                // If owner is unknown, only keep if it matched allDiscoveries (already filtered)
                 if (!owner) return allDiscoveries.some(d => d.id === r.id);
                 // Private items: only visible to the owner
                 if (r.visibility === TRUST.PRIVATE && owner !== selfId) return false;
-                // Must be from an allowed user (self or direct friend)
-                return allowedIdSet.has(owner);
+                // Direct friends: allowed if not private
+                if (allowedIdSet.has(owner)) return true;
+                // FOF: allowed if RPC tagged it as extended_circle
+                if (r.trust_level === 'extended_circle') return true;
+                // FOF from feed cache
+                if (fofIdSet.has(r.id)) return true;
+                return false;
             });
 
-            // ── Tag extended circle items that snuck into results ─
-            // (Shouldn't happen since n8n only gets allowedUserIds, but defence-in-depth)
+            // ── Anonymise extended circle items ──────────────────
+            // Sets _trust_level, clears identity fields, hides comments
             currentResults = currentResults.map(r => {
-                if (r._trust_level === TRUST.EXTENDED) {
+                if (r.trust_level === 'extended_circle' || r._trust_level === TRUST.EXTENDED) {
                     return anonymiseForExtendedCircle(r);
                 }
                 return r;
