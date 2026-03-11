@@ -1585,10 +1585,19 @@
                         </div>
                     </div>
 
-                    <!-- Privacy Toggle -->
-                    <div class="form-group" style="margin-top: 8px;">
+                    <!-- Visibility Toggle -->
+                    <div class="form-group visibility-group" style="margin-top: 8px;">
+                        <div class="visibility-label-row">
+                            <span class="visibility-section-label">VISIBILITY</span>
+                        </div>
                         <div class="privacy-toggle-row" onclick="togglePrivacy('privateToggle')">
-                            <span class="privacy-toggle-text" id="privateToggleText">Private — only visible to me</span>
+                            <div class="visibility-status">
+                                <span class="visibility-icon" id="privateToggleIcon">👥</span>
+                                <div class="visibility-info">
+                                    <span class="visibility-title" id="privateToggleTitle">Friends</span>
+                                    <span class="visibility-desc" id="privateToggleDesc">Your connections can see this</span>
+                                </div>
+                            </div>
                             <div class="privacy-toggle-track" id="privateToggleTrack">
                                 <div class="privacy-toggle-knob"></div>
                             </div>

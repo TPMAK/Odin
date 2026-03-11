@@ -8068,11 +8068,59 @@ body.map-view-open .content {
 }
 
 /* ── Privacy Toggle ── */
+/* ── Visibility block (Add + Edit forms) ── */
+.visibility-group {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+}
+.visibility-label-row {
+    margin-bottom: 10px;
+}
+.visibility-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+.visibility-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+.visibility-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+.privacy-toggle-row:active .visibility-icon {
+    transform: scale(0.9);
+}
+.visibility-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.visibility-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    transition: color 0.2s;
+}
+.visibility-desc {
+    font-size: 12px;
+    color: var(--muted);
+    transition: color 0.2s;
+}
+
 .privacy-toggle-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 10px 0;
+    cursor: pointer;
 }
 .privacy-toggle-text {
     font-size: 14px;

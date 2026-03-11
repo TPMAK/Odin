@@ -3902,10 +3902,21 @@ function enterEditMode() {
         <label class="edit-label">URL</label>
         <input class="edit-input" id="editUrl" value="${escapeHtml(url)}">
 
-        <div class="privacy-toggle-row" style="margin-top: 8px;" onclick="togglePrivacy('editPrivateToggle')">
-            <span class="privacy-toggle-text ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleText">Private — only visible to me</span>
-            <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
-                <div class="privacy-toggle-knob"></div>
+        <div class="visibility-group" style="margin-top: 8px;">
+            <div class="visibility-label-row">
+                <span class="visibility-section-label">VISIBILITY</span>
+            </div>
+            <div class="privacy-toggle-row" onclick="togglePrivacy('editPrivateToggle')">
+                <div class="visibility-status">
+                    <span class="visibility-icon" id="editPrivateToggleIcon">${item.visibility === 'private' ? '🔒' : '👥'}</span>
+                    <div class="visibility-info">
+                        <span class="visibility-title" id="editPrivateToggleTitle">${item.visibility === 'private' ? 'Only you' : 'Friends'}</span>
+                        <span class="visibility-desc" id="editPrivateToggleDesc">${item.visibility === 'private' ? 'Hidden from everyone else' : 'Your connections can see this'}</span>
+                    </div>
+                </div>
+                <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
+                    <div class="privacy-toggle-knob"></div>
+                </div>
             </div>
         </div>
         <input type="hidden" id="editPrivateToggle" value="${item.visibility === 'private' ? 'true' : 'false'}">
@@ -4663,13 +4674,22 @@ function toggleSearchSheet() {
 }
 
 function togglePrivacy(inputId) {
-    const input = document.getElementById(inputId);
-    const track = document.getElementById(inputId + 'Track');
-    const text = document.getElementById(inputId + 'Text');
-    const isActive = input.value === 'true';
-    input.value = isActive ? 'false' : 'true';
-    track.classList.toggle('active', !isActive);
-    text.classList.toggle('active', !isActive);
+    const input  = document.getElementById(inputId);
+    const track  = document.getElementById(inputId + 'Track');
+    const icon   = document.getElementById(inputId + 'Icon');
+    const title  = document.getElementById(inputId + 'Title');
+    const desc   = document.getElementById(inputId + 'Desc');
+
+    const isActive = input.value === 'true';        // currently private?
+    const goPrivate = !isActive;                    // new state
+
+    input.value = goPrivate ? 'true' : 'false';
+    track.classList.toggle('active', goPrivate);
+
+    // Update visibility status labels
+    if (icon)  icon.textContent  = goPrivate ? '🔒' : '👥';
+    if (title) title.textContent = goPrivate ? 'Only you' : 'Friends';
+    if (desc)  desc.textContent  = goPrivate ? 'Hidden from everyone else' : 'Your connections can see this';
 }
 
 // ===== CAPTURE: CLEAR FORM =====
