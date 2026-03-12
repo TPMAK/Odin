@@ -85,14 +85,14 @@
         }
         #loginScreen .ls-logo {
             font-family: 'Inter', sans-serif;
-            font-weight: 900; font-size: 28px;
-            letter-spacing: -0.06em; line-height: 1;
-            margin-bottom: 48px;
+            font-weight: 900; font-size: 42px;
+            letter-spacing: -0.07em; line-height: 1;
+            margin-bottom: 40px;
         }
         #loginScreen .ls-logo .lsv { color: var(--wb); }
         #loginScreen .ls-logo .lso { color: var(--mason); }
         #loginScreen .ls-headline-area {
-            min-height: 210px;
+            min-height: 230px;
             margin-bottom: 24px;
             position: relative;
         }
@@ -319,7 +319,7 @@
 
             /* tighter spacing throughout */
             #loginScreen .ls-pilot-badge { margin-bottom: 20px; }
-            #loginScreen .ls-logo { font-size: 24px; margin-bottom: 24px; }
+            #loginScreen .ls-logo { font-size: 32px; margin-bottom: 24px; }
             #loginScreen .ls-headline-area { min-height: 155px; margin-bottom: 16px; }
             #loginScreen .ls-headline { font-size: clamp(32px, 8vw, 40px); }
             #loginScreen .ls-dots { margin-bottom: 20px; }
@@ -629,6 +629,7 @@
                         <div class="ls-headline" id="lsh1">Your circle knows<br>more than <em>Google.</em></div>
                         <div class="ls-headline" id="lsh2">The finds they'd<br>text you about —<br><em>all in one place.</em></div>
                         <div class="ls-headline" id="lsh3">Be the <em>algorithm</em><br>for the people<br>you love.</div>
+                        <div class="ls-headline" id="lsh4">Never lose a great find again —<br>your circle's <em>shared memory</em><br>for great discoveries.</div>
                     </div>
 
                     <div class="ls-dots">
@@ -636,6 +637,7 @@
                         <button class="ls-dot" onclick="lsSetH(1)"></button>
                         <button class="ls-dot" onclick="lsSetH(2)"></button>
                         <button class="ls-dot" onclick="lsSetH(3)"></button>
+                        <button class="ls-dot" onclick="lsSetH(4)"></button>
                     </div>
 
                     <p class="ls-sub">The places they go, the things they use, the finds they'd text you about — all in one place, waiting when you need it.</p>
@@ -1913,7 +1915,7 @@
 
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
-        var lsIds  = ['lsh0','lsh1','lsh2','lsh3'];
+        var lsIds  = ['lsh0','lsh1','lsh2','lsh3','lsh4'];
         var lsCur  = 0;
         var lsTimer;
         window.lsSetH = function(n, restart) {
