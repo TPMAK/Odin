@@ -95,39 +95,76 @@
             position: relative; z-index: 2;
             max-width: 560px;
         }
-        /* ── Scroll hint ── */
+        /* ── Scroll hint — redesigned as vertical pulse ── */
         #loginScreen .ls-scroll-hint {
             position: absolute;
-            bottom: 36px; left: 80px;
-            display: flex; align-items: center; gap: 10px;
-            opacity: 0.35;
-            transition: opacity 0.3s;
+            bottom: 44px;
+            left: 0; right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
             cursor: pointer;
             z-index: 3;
+            opacity: 1;
+            transition: opacity 0.5s ease;
         }
-        #loginScreen .ls-scroll-hint:hover { opacity: 0.65; }
         #loginScreen .ls-scroll-hint span {
-            font-size: 12px; color: var(--mason);
-            font-weight: 500; letter-spacing: 0.06em;
+            font-size: 11px;
+            color: rgba(221,208,184,0.4);
+            font-weight: 500;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
         }
-        #loginScreen .ls-scroll-arrow {
-            width: 20px; height: 20px;
-            border-right: 1.5px solid var(--mason);
-            border-bottom: 1.5px solid var(--mason);
-            transform: rotate(45deg) translateY(-3px);
-            animation: ls-bounce 2s ease-in-out infinite;
+        #loginScreen .ls-scroll-hint:hover span {
+            color: rgba(221,208,184,0.7);
         }
-        @keyframes ls-bounce {
-            0%, 100% { transform: rotate(45deg) translateY(-3px); }
-            50%       { transform: rotate(45deg) translateY(2px); }
+        /* Vertical line that pulses downward */
+        #loginScreen .ls-scroll-line {
+            width: 1px;
+            height: 32px;
+            background: linear-gradient(to bottom, rgba(221,208,184,0.4), transparent);
+            position: relative;
+            overflow: hidden;
+        }
+        #loginScreen .ls-scroll-line::after {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: 0; right: 0;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(123,45,69,0.9), transparent);
+            animation: ls-drip 2.2s ease-in-out infinite;
+        }
+        @keyframes ls-drip {
+            0%   { top: -100%; opacity: 0; }
+            20%  { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
         }
         /* ── Section 2: detail — below fold ── */
         #loginScreen .ls-section2 {
-            padding: 80px 80px 100px;
+            padding: 72px 80px 100px;
             position: relative; z-index: 2;
             max-width: 560px;
-            border-top: 1px solid rgba(221,208,184,0.07);
+        }
+        /* Section 2 label */
+        #loginScreen .ls-s2-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(123,45,69,0.8);
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #loginScreen .ls-s2-label::after {
+            content: '';
+            flex: 1;
+            max-width: 40px;
+            height: 1px;
+            background: rgba(123,45,69,0.4);
         }
         #loginScreen .ls-logo {
             font-family: 'Inter', sans-serif;
@@ -187,19 +224,12 @@
             margin-top: 0;
             margin-bottom: 0;
         }
-        /* Section 2 sub — repeated or context heading */
-        #loginScreen .ls-section2 .ls-sub {
-            font-size: 20px;
-            color: rgba(221,208,184,0.95);
-            margin-bottom: 14px;
-        }
         #loginScreen .ls-explain {
-            font-size: 15px;
-            color: rgba(221,208,184,0.55);
-            line-height: 1.65; font-weight: 300;
-            max-width: 480px;
-            margin: 0 0 36px 0;
-            font-style: italic;
+            font-size: 18px;
+            color: rgba(221,208,184,0.88);
+            line-height: 1.6; font-weight: 400;
+            max-width: 460px;
+            margin: 0 0 40px 0;
         }
         /* trust badge gone */
         #loginScreen .ls-trust { display: none; }
@@ -324,30 +354,35 @@
         }
         /* ── Feature bullets ── */
         #loginScreen .ls-features {
-            margin-top: 28px;
-            display: flex; flex-direction: column; gap: 14px;
+            margin-top: 0;
+            display: flex; flex-direction: column; gap: 0;
         }
         #loginScreen .ls-feature-row {
-            display: flex; align-items: flex-start; gap: 12px;
+            display: flex; align-items: flex-start; gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(221,208,184,0.06);
         }
-        #loginScreen .ls-feature-row::before {
-            content: '•';
-            font-size: 16px;
+        #loginScreen .ls-feature-row:first-child { border-top: 1px solid rgba(221,208,184,0.06); }
+        #loginScreen .ls-feature-num {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 13px;
             color: var(--wb);
-            flex-shrink: 0;
-            line-height: 1.5;
             opacity: 0.7;
-            margin-top: 1px;
+            flex-shrink: 0;
+            width: 18px;
+            padding-top: 2px;
+            font-style: italic;
         }
         #loginScreen .ls-feature-text {
-            font-size: 15px; color: rgba(221,208,184,0.80);
-            line-height: 1.55; font-weight: 300;
+            font-size: 14px; color: rgba(221,208,184,0.65);
+            line-height: 1.6; font-weight: 300;
         }
         #loginScreen .ls-feature-text b {
             display: block;
-            font-size: 16px;
-            color: rgba(221,208,184,0.95); font-weight: 600;
-            margin-bottom: 3px;
+            font-size: 15px;
+            color: rgba(221,208,184,0.92); font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
         }
         /* ── Onboarding hint on auth card ── */
         #loginScreen .ls-onboard-hint {
@@ -726,28 +761,31 @@
                     </div>
 
                     <!-- Scroll hint — desktop only -->
-                    <div class="ls-scroll-hint" id="lsScrollHint" onclick="document.querySelector('.ls-section2').scrollIntoView({behavior:'smooth'})">
-                        <span>How it works</span>
-                        <div class="ls-scroll-arrow"></div>
+                    <div class="ls-scroll-hint" id="lsScrollHint" onclick="document.querySelector('#loginScreen .ls-left').scrollTo({top: document.querySelector('.ls-section2').offsetTop, behavior:'smooth'})">
+                        <span>Learn more</span>
+                        <div class="ls-scroll-line"></div>
                     </div>
                 </div>
 
                 <!-- ── Section 2: detail — below fold, desktop only ── -->
                 <div class="ls-section2">
 
-                    <p class="ls-sub">All the places, products, and little finds from your circle — saved and searchable when you need them.</p>
+                    <div class="ls-s2-label">How it works</div>
 
-                    <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime.</p>
+                    <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
 
                     <div class="ls-features">
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords.</span>
+                            <span class="ls-feature-num">01</span>
+                            <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering.</span>
+                            <span class="ls-feature-num">02</span>
+                            <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves.</span>
+                            <span class="ls-feature-num">03</span>
+                            <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
                         </div>
                     </div>
 
