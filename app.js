@@ -2280,6 +2280,9 @@ function showHome() {
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
+    // Language button only shows on profile page — always hide it on home
+    var langWrap = document.getElementById('headerLangWrap');
+    if (langWrap) langWrap.style.display = 'none';
     updateTabBar('home');
 }
 

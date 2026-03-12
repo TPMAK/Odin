@@ -8228,47 +8228,6 @@ body.map-view-open .content {
     display: none;
 }
 
-/* ── Pulse card — per-login spotlight cards ── */
-.hf-card--pulse {
-    box-shadow: 0 2px 16px rgba(123,45,69,0.10), 0 0 0 1.5px rgba(123,45,69,0.12);
-}
-.hf-card--pulse:hover {
-    box-shadow: 0 8px 30px rgba(123,45,69,0.14), 0 0 0 1.5px rgba(123,45,69,0.20);
-}
-
-/* Badge sits in the top-left of the media area */
-.hf-pulse-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 9px 4px 7px;
-    border-radius: 20px;
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    white-space: nowrap;
-    pointer-events: none;
-}
-
-.hf-pulse-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    animation: hf-pulse-blink 2s ease-in-out infinite;
-}
-
-@keyframes hf-pulse-blink {
-    0%, 100% { opacity: 1; }
-    50%       { opacity: 0.35; }
-}
-
 /* ── Circle feed "Show more" button ── */
 .circle-feed-show-more {
     display: flex;

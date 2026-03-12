@@ -838,8 +838,8 @@
                     <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
                     <button class="hdr-pill" id="hdrPillMap" onclick="switchDiscoverView('map')">Map</button>
                 </div>
-                <!-- Language picker button -->
-                <div class="header-lang-wrap" id="headerLangWrap">
+                <!-- Language picker button — shown only on profile page -->
+                <div class="header-lang-wrap" id="headerLangWrap" style="display:none;">
                     <button class="header-lang-btn" id="headerLangBtn" onclick="toggleLangPicker(event)" aria-label="Language">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
                             <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
@@ -2532,23 +2532,22 @@
     function _getFeedSeed() {
         var existing = localStorage.getItem(_FEED_SESSION_KEY);
         if (existing) return parseInt(existing, 10);
-        // New login — generate a fresh seed
-        var seed = Date.now() + Math.floor(Math.random() * 99999);
+        // New login — keep seed small (< 1M) so integer ops stay safe
+        var seed = (Date.now() % 999983) + Math.floor(Math.random() * 16000);
         localStorage.setItem(_FEED_SESSION_KEY, String(seed));
         return seed;
     }
 
-    // Simple seeded pseudo-random (mulberry32)
+    // LCG pseudo-random — works purely with safe integers, no imul needed
     function _seededRand(seed) {
+        var s = seed % 999983 || 1;
         return function() {
-            seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-            var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-            t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            s = (s * 16807 + 0) % 2147483647;
+            return (s - 1) / 2147483646;
         };
     }
 
-    // Shuffle array in-place using seeded rand
+    // Fisher-Yates shuffle using seeded rand
     function _seededShuffle(arr, rand) {
         for (var i = arr.length - 1; i > 0; i--) {
             var j = Math.floor(rand() * (i + 1));
@@ -2557,30 +2556,13 @@
         return arr;
     }
 
-    // Pulse card types — rotate which ones appear based on session seed
-    var _PULSE_TYPES = ['new', 'popular', 'unseen', 'gem'];
-
-    function _buildPulseCard(item, pulseType, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng) {
-        var PULSE_META = {
-            new:     { label: 'Just added',           color: '#7B2D45', bg: 'rgba(123,45,69,0.12)' },
-            popular: { label: 'Popular in your circle', color: '#1D6A3A', bg: 'rgba(29,106,58,0.10)' },
-            unseen:  { label: 'You might like this',   color: '#2A5899', bg: 'rgba(42,88,153,0.10)' },
-            gem:     { label: 'Hidden gem',            color: '#7A4A00', bg: 'rgba(122,74,0,0.10)'  }
-        };
-        var meta = PULSE_META[pulseType] || PULSE_META['new'];
-
-        // Media
+    // _buildPulseCard: same card as regular but pinned at the front of the feed.
+    // No visible badge — the freshness is felt through order, not labelling.
+    function _buildPulseCard(item, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng) {
         var media = item.photo_url
             ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
             : '<div class="hf-card-placeholder">' + SVG_PLACE + '</div>';
 
-        // Pulse badge overlay
-        var badge = '<div class="hf-pulse-badge" style="background:' + meta.bg + ';color:' + meta.color + ';">'
-            + '<span class="hf-pulse-dot" style="background:' + meta.color + ';"></span>'
-            + escapeHtml(meta.label)
-            + '</div>';
-
-        // Distance chip
         var distChip = '';
         if (userLat && userLng && item.latitude && item.longitude) {
             var R = 6371, dLat = (item.latitude - userLat) * Math.PI / 180;
@@ -2608,14 +2590,14 @@
         var summaryHtml = item.feed_card_summary
             ? '<div class="hf-card-summary">\u201c'+escapeHtml(item.feed_card_summary)+'\u201d</div>' : '';
 
-        return '<div class="hf-card hf-card--pulse" onclick="goToEndorsedItem(\'' + item.id + '\')">'
-            + '<div class="hf-card-media-wrap">' + media + badge + '</div>'
+        return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
+            + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
             + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
             + summaryHtml
             + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
-            + '<div class="hf-card-by"><div class="hf-card-avatars">' + avatarsHtml + '</div>'
-            + '<span class="hf-card-name">' + savedLabel + '</span></div>'
+            + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
+            + '<span class="hf-card-name">'+savedLabel+'</span></div>'
             + '</div></div>';
     }
 
@@ -2680,111 +2662,36 @@
 
             // ── Per-login freshness: shuffle pool using session seed ──────────
             var seed = _getFeedSeed();
-            var rand = _seededRand(seed);
+            // ── Per-login shuffle: different order every time the user signs in ──
+            // Pin the single most-recent item at position 0 (always fresh),
+            // then shuffle everything else with the session seed so the rest
+            // of the feed feels different each login.
+            var pinnedItem  = items[0];                    // newest — always first
+            var shufflePool = items.slice(1);              // the rest get shuffled
+            _seededShuffle(shufflePool, _seededRand(seed));
+            var orderedItems = [pinnedItem].concat(shufflePool);
 
-            // Separate the very newest (< 7 days) from the rest
-            var nowMs = Date.now();
-            var sevenDays = 7 * 24 * 60 * 60 * 1000;
-            var freshItems  = items.filter(function(it) { return (nowMs - new Date(it.created_at).getTime()) < sevenDays; });
-            var olderItems  = items.filter(function(it) { return (nowMs - new Date(it.created_at).getTime()) >= sevenDays; });
-
-            // Shuffle the older pool so each login presents a different order
-            _seededShuffle(olderItems, rand);
-
-            // ── Pick 1–2 pulse cards per login session ────────────────────────
-            // Which pulse types show this session — rotate by seed
-            var pulseTypePool = _PULSE_TYPES.slice(); // copy
-            _seededShuffle(pulseTypePool, _seededRand(seed + 1));
-            var sessionPulseTypes = pulseTypePool.slice(0, 2);
-
-            var recentlyViewedIds = {};
-            try {
-                var rv = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
-                rv.forEach(function(r) { recentlyViewedIds[r.id] = true; });
-            } catch(e) {}
-
-            var pulseCardHtmls = [];
-            var usedPulseIds   = {};
-
-            sessionPulseTypes.forEach(function(pType) {
-                var candidate = null;
-                if (pType === 'new' && freshItems.length > 0) {
-                    // Most recently added item
-                    candidate = freshItems[0];
-                } else if (pType === 'popular') {
-                    // Most saved/endorsed among all fetched items
-                    var best = null, bestCount = -1;
-                    items.forEach(function(it) {
-                        var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[it.id] : null;
-                        var cnt = enc ? enc.count : 0;
-                        if (cnt > bestCount) { bestCount = cnt; best = it; }
-                    });
-                    if (best && bestCount > 0) candidate = best;
-                } else if (pType === 'unseen') {
-                    // First item user hasn't visited (not in recently-viewed)
-                    candidate = items.find(function(it) { return !recentlyViewedIds[it.id]; }) || null;
-                } else if (pType === 'gem') {
-                    // An older item without a photo (hidden gem)
-                    candidate = olderItems.find(function(it) { return !it.photo_url; }) || null;
-                }
-                if (candidate && !usedPulseIds[candidate.id]) {
-                    usedPulseIds[candidate.id] = true;
-                    pulseCardHtmls.push(_buildPulseCard(candidate, pType, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng));
-                }
+            // ── Pick 1 spotlight from positions 1–3 (most-endorsed in top pool) ──
+            // This surfaces "popular" differently each session without adding noise.
+            var spotlightIds = {};
+            var bestEnc = null, bestCount = -1;
+            orderedItems.slice(0, 6).forEach(function(it) {
+                var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[it.id] : null;
+                var cnt = enc ? enc.count : 0;
+                if (cnt > bestCount && it.id !== pinnedItem.id) { bestCount = cnt; bestEnc = it; }
             });
+            // Move spotlight to slot 1 (right after the pinned newest item)
+            if (bestEnc && bestCount > 0) {
+                spotlightIds[bestEnc.id] = true;
+                orderedItems = orderedItems.filter(function(it) { return it.id !== bestEnc.id; });
+                orderedItems.splice(1, 0, bestEnc);
+            }
 
-            // ── Assemble final display list — pulse cards first, then shuffled pool ──
-            // Filter out items already used as pulse cards to avoid duplicates
-            var regularItems = (freshItems.concat(olderItems))
-                .filter(function(it) { return !usedPulseIds[it.id]; })
-                .slice(0, 8 - pulseCardHtmls.length);
-
-            // Build regular cards HTML
-            var regularCardsHtml = regularItems.map(function(item) {
-                var media = item.photo_url
-                    ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                    : '<div class="hf-card-placeholder">' + SVG_PLACE + '</div>';
-
-                var distChip = '';
-                if (userLat && userLng && item.latitude && item.longitude) {
-                    var R = 6371;
-                    var dLat = (item.latitude - userLat) * Math.PI / 180;
-                    var dLon = (item.longitude - userLng) * Math.PI / 180;
-                    var a = Math.sin(dLat/2) * Math.sin(dLat/2)
-                        + Math.cos(userLat * Math.PI/180) * Math.cos(item.latitude * Math.PI/180)
-                        * Math.sin(dLon/2) * Math.sin(dLon/2);
-                    var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    distChip = '<span class="hf-card-dist">' + SVG_PIN + (km < 1 ? Math.round(km*1000)+'m' : km.toFixed(1)+'km') + '</span>';
-                }
-
-                var categoryLabel = escapeHtml((item.type||'Place').charAt(0).toUpperCase()+(item.type||'Place').slice(1));
-                var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
-
-                var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
-                var totalSavers = 1 + (enc ? enc.count : 0);
-                var savedLabel = totalSavers === 1 ? '1 friend saved' : totalSavers + ' friends saved';
-                var allNames = [item.added_by_name || 'F'];
-                if (enc && enc.names) enc.names.forEach(function(n){ if(n) allNames.push(n); });
-                var avatarsHtml = allNames.slice(0,3).map(function(n,i){
-                    return '<div class="hf-card-avatar" style="z-index:'+(3-i)+';margin-left:'+(i===0?'0':'-7px')+'">'
-                        + escapeHtml(n).charAt(0).toUpperCase()+'</div>';
-                }).join('');
-
-                var summaryHtml = item.feed_card_summary
-                    ? '<div class="hf-card-summary">\u201c'+escapeHtml(item.feed_card_summary)+'\u201d</div>' : '';
-
-                return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
-                    + '<div class="hf-card-media-wrap">' + media + '</div>'
-                    + '<div class="hf-card-body">'
-                    + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
-                    + summaryHtml
-                    + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
-                    + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
-                    + '<span class="hf-card-name">'+savedLabel+'</span></div>'
-                    + '</div></div>';
+            // Cap to 8 and build all cards with _buildPulseCard (same look, no badge)
+            var displayItems = orderedItems.slice(0, 8);
+            var cardsHtml = displayItems.map(function(item) {
+                return _buildPulseCard(item, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng);
             }).join('');
-
-            var cardsHtml = pulseCardHtmls.join('') + regularCardsHtml;
 
             // "Show more" button — visible only when there are more than 8 items
             var showMoreBtn = items.length > 8
