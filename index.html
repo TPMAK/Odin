@@ -520,6 +520,135 @@
         }
         .ls-sheet-inner { max-width: 340px; margin: 0 auto; }
 
+        /* ── Learn More button (mobile only) ── */
+        .ls-learn-more-btn {
+            display: none;
+        }
+        @media (max-width: 780px) {
+            .ls-learn-more-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                margin-top: 20px;
+                background: none;
+                border: none;
+                padding: 0;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                font-size: 13px;
+                font-weight: 500;
+                color: rgba(221,208,184,0.45);
+                letter-spacing: 0.03em;
+            }
+            .ls-learn-more-btn:active { opacity: 0.6; }
+            .ls-learn-more-btn svg {
+                transition: transform 0.2s;
+            }
+            .ls-learn-more-btn:active svg {
+                transform: translateY(2px);
+            }
+        }
+
+        /* ── Learn More dark bottom sheet ── */
+        #lsLearnSheet {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #221510;
+            border-radius: 24px 24px 0 0;
+            border-top: 1px solid rgba(221,208,184,0.1);
+            padding: 0 28px 52px;
+            transform: translateY(105%);
+            transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 1205;
+            max-height: 82dvh;
+            overflow-y: auto;
+        }
+        @media (max-width: 780px) {
+            #lsLearnSheet { display: block; }
+        }
+        #lsLearnSheet.open { transform: translateY(0); }
+        #lsLearnSheet .ls-drag-handle {
+            background: rgba(221,208,184,0.15);
+        }
+        /* Section label inside sheet */
+        #lsLearnSheet .ls-s2-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(123,45,69,0.9);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #lsLearnSheet .ls-s2-label::after {
+            content: '';
+            flex: 1;
+            max-width: 40px;
+            height: 1px;
+            background: rgba(123,45,69,0.4);
+        }
+        #lsLearnSheet .ls-explain {
+            font-size: 17px;
+            color: rgba(221,208,184,0.88);
+            line-height: 1.6;
+            font-weight: 400;
+            margin: 0 0 28px 0;
+        }
+        #lsLearnSheet .ls-feature-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(221,208,184,0.06);
+        }
+        #lsLearnSheet .ls-feature-row:first-of-type {
+            border-top: 1px solid rgba(221,208,184,0.06);
+        }
+        #lsLearnSheet .ls-feature-num {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 13px;
+            color: var(--wb);
+            opacity: 0.7;
+            flex-shrink: 0;
+            width: 18px;
+            padding-top: 2px;
+            font-style: italic;
+        }
+        #lsLearnSheet .ls-feature-text {
+            font-size: 14px;
+            color: rgba(221,208,184,0.60);
+            line-height: 1.6;
+            font-weight: 300;
+        }
+        #lsLearnSheet .ls-feature-text b {
+            display: block;
+            font-size: 15px;
+            color: rgba(221,208,184,0.92);
+            font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        /* CTA at bottom of learn sheet */
+        #lsLearnSheet .ls-learn-cta {
+            margin-top: 32px;
+            width: 100%;
+            background: var(--wb);
+            color: var(--bg);
+            border: none;
+            border-radius: 14px;
+            padding: 17px;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(123,45,69,0.45);
+            transition: opacity 0.15s;
+        }
+        #lsLearnSheet .ls-learn-cta:active { opacity: 0.85; }
+
 /* ── AUTH MODAL ── */
         #authModal {
             display: none;
@@ -758,6 +887,14 @@
 
                         <p class="ls-sub">Places, products, and little finds from your circle — saved and searchable.</p>
 
+                        <!-- Learn more — mobile only -->
+                        <button class="ls-learn-more-btn" onclick="lsOpenLearnMore()">
+                            Learn more
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <path d="M6 1v10M1 6l5 5 5-5" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+
                     </div>
 
                     <!-- Scroll hint — desktop only -->
@@ -837,7 +974,31 @@
         </div>
 
         <!-- ── Sheet backdrop ── -->
-        <div class="ls-sheet-backdrop" id="lsBackdrop" onclick="lsCloseSheet()"></div>
+        <div class="ls-sheet-backdrop" id="lsBackdrop" onclick="lsCloseSheet(); lsCloseLearnMore();"></div>
+
+        <!-- ── Bottom sheet — Learn More (dark, mobile only) ── -->
+        <div id="lsLearnSheet">
+            <div class="ls-drag-handle"></div>
+
+            <div class="ls-s2-label">How it works</div>
+
+            <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
+
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">01</span>
+                <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">02</span>
+                <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">03</span>
+                <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
+            </div>
+
+            <button class="ls-learn-cta" onclick="lsCloseLearnMore(); lsOpenSheet('signup');">Get Started — it's free</button>
+        </div>
 
         <!-- ── Bottom sheet — auth ── -->
         <div class="ls-sheet" id="lsSheet">
@@ -2012,6 +2173,52 @@
         if (sheet)    sheet.classList.remove('open');
         if (backdrop) backdrop.classList.remove('open');
     }
+
+    // ===== Learn More dark sheet =====
+    function lsOpenLearnMore() {
+        var sheet    = document.getElementById('lsLearnSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        if (!sheet) return;
+        lsCloseSheet(); // ensure auth sheet is closed first
+        sheet.classList.add('open');
+        backdrop.classList.add('open');
+    }
+    function lsCloseLearnMore() {
+        var sheet    = document.getElementById('lsLearnSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        if (sheet)    sheet.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+    // Swipe-down to dismiss Learn More sheet
+    (function() {
+        var sheet = document.getElementById('lsLearnSheet');
+        if (!sheet) return;
+        var startY = 0, currentY = 0, dragging = false;
+        sheet.addEventListener('touchstart', function(e) {
+            if (sheet.scrollTop > 0) return;
+            startY = e.touches[0].clientY;
+            dragging = true;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+        sheet.addEventListener('touchmove', function(e) {
+            if (!dragging) return;
+            currentY = e.touches[0].clientY;
+            var delta = currentY - startY;
+            if (delta > 0) sheet.style.transform = 'translateY(' + delta + 'px)';
+        }, { passive: true });
+        sheet.addEventListener('touchend', function() {
+            if (!dragging) return;
+            dragging = false;
+            sheet.style.transition = '';
+            var delta = currentY - startY;
+            if (delta > 100) {
+                sheet.style.transform = '';
+                lsCloseLearnMore();
+            } else {
+                sheet.style.transform = '';
+            }
+        });
+    })();
 
     // Swipe-down to dismiss the sheet
     (function() {
