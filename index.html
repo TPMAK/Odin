@@ -93,18 +93,18 @@
         #loginScreen .ls-logo .lso { color: var(--mason); }
         #loginScreen .ls-headline-area {
             /* Fixed height so dots don't jump as headlines change length */
-            height: 200px;
+            height: 260px;
             margin-bottom: 24px;
             position: relative;
             overflow: hidden;
         }
         #loginScreen .ls-headline {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: clamp(36px, 3.6vw, 54px);
+            font-size: 72px;
             font-weight: 400;
             color: #fff;
-            line-height: 1.16;
-            letter-spacing: -0.02em;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
             position: absolute;
             top: 0; left: 0; right: 0;
             opacity: 0;
@@ -131,18 +131,18 @@
             width: 20px; border-radius: 3px;
         }
         #loginScreen .ls-sub {
-            font-size: 16px;
+            font-size: 22px;
             color: rgba(221,208,184,0.88);
-            line-height: 1.75; font-weight: 400;
-            max-width: 420px;
-            margin-bottom: 12px;
+            line-height: 1.55; font-weight: 400;
+            max-width: 480px;
+            margin-bottom: 14px;
         }
         #loginScreen .ls-explain {
-            font-size: 13px;
+            font-size: 16px;
             color: rgba(221,208,184,0.55);
             line-height: 1.6; font-weight: 300;
-            max-width: 420px;
-            margin: 0 0 22px 0;
+            max-width: 480px;
+            margin: 0 0 26px 0;
             font-style: italic;
         }
         #loginScreen .ls-trust {
@@ -282,8 +282,8 @@
         }
         /* ── Feature bullets ── */
         #loginScreen .ls-features {
-            margin-top: 28px;
-            display: flex; flex-direction: column; gap: 13px;
+            margin-top: 0;
+            display: flex; flex-direction: column; gap: 16px;
         }
         #loginScreen .ls-feature-row {
             display: flex; align-items: baseline; gap: 10px;
@@ -299,11 +299,14 @@
             opacity: 0.85;
         }
         #loginScreen .ls-feature-text {
-            font-size: 14px; color: rgba(221,208,184,0.65);
+            font-size: 14px; color: rgba(221,208,184,0.60);
             line-height: 1.55; font-weight: 300;
         }
         #loginScreen .ls-feature-text b {
+            display: block;
+            font-size: 16px;
             color: rgba(221,208,184,0.90); font-weight: 600;
+            margin-bottom: 2px;
         }
         /* ── Onboarding hint on auth card ── */
         #loginScreen .ls-onboard-hint {
@@ -330,15 +333,17 @@
             /* tighter spacing throughout */
             #loginScreen .ls-pilot-badge { margin-bottom: 14px; }
             #loginScreen .ls-logo { font-size: 34px; margin-bottom: 16px; }
-            #loginScreen .ls-headline-area { height: 160px; margin-bottom: 16px; }
-            #loginScreen .ls-headline { font-size: clamp(32px, 8.5vw, 42px); line-height: 1.13; }
-            #loginScreen .ls-dots { margin-bottom: 20px; }
-            #loginScreen .ls-sub { font-size: 15px; line-height: 1.6; margin-bottom: 10px; color: rgba(221,208,184,0.82); }
+            #loginScreen .ls-headline-area { height: 130px; margin-bottom: 18px; }
+            #loginScreen .ls-headline { font-size: 36px; line-height: 1.25; letter-spacing: -0.025em; }
+            #loginScreen .ls-dots { margin-bottom: 18px; }
+            #loginScreen .ls-sub { font-size: 16px; line-height: 1.5; margin-bottom: 12px; color: rgba(221,208,184,0.82); }
+            #loginScreen .ls-explain { display: block; font-size: 14px; line-height: 1.55; margin-bottom: 26px; }
             #loginScreen .ls-trust { margin-bottom: 0; }
 
-            /* hide explain + feature bullets — too much for one screen */
-            #loginScreen .ls-explain { display: none; }
-            #loginScreen .ls-features { display: none; }
+            /* show bullets on mobile — stacked layout */
+            #loginScreen .ls-features { display: flex; margin-top: 26px; gap: 12px; }
+            #loginScreen .ls-feature-text b { font-size: 14px; }
+            #loginScreen .ls-feature-text { font-size: 13px; }
 
             #loginScreen .ls-right { display: none; }
         }
@@ -644,11 +649,11 @@
                     </div>
 
                     <div class="ls-dots">
-                        <button class="ls-dot active" onclick="lsSetH(0)"></button>
-                        <button class="ls-dot" onclick="lsSetH(1)"></button>
-                        <button class="ls-dot" onclick="lsSetH(2)"></button>
-                        <button class="ls-dot" onclick="lsSetH(3)"></button>
-                        <button class="ls-dot" onclick="lsSetH(4)"></button>
+                        <button class="ls-dot active"></button>
+                        <button class="ls-dot"></button>
+                        <button class="ls-dot"></button>
+                        <button class="ls-dot"></button>
+                        <button class="ls-dot"></button>
                     </div>
 
                     <p class="ls-sub">All the places, products, and little finds from your circle — saved and searchable when you need them.</p>
@@ -1928,17 +1933,35 @@
 
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
-        var lsIds  = ['lsh0','lsh1','lsh2','lsh3','lsh4'];
-        // Per-slide display durations in milliseconds
-        var lsDurations = [5000, 4000, 4000, 4000, 4000];
-        var lsCur  = 0;
-        var lsTimer;
+        var lsIds      = ['lsh0','lsh1','lsh2','lsh3','lsh4'];
+        var lsDurations = [5000, 4000, 4000, 4000, 4000]; // per-slide ms
+        var lsCur      = 0;
+        var lsTimer;          // auto-advance timeout
+        var lsResumeTimer;    // resume-after-touch timeout
+        var lsPaused   = false;
 
         function lsScheduleNext() {
             clearTimeout(lsTimer);
+            if (lsPaused) return;
             lsTimer = setTimeout(function() {
                 lsSetH((lsCur + 1) % lsIds.length, false);
             }, lsDurations[lsCur]);
+        }
+
+        function lsPause() {
+            lsPaused = true;
+            clearTimeout(lsTimer);
+            clearTimeout(lsResumeTimer);
+        }
+
+        function lsResume() {
+            lsPaused = false;
+            lsScheduleNext();
+        }
+
+        function lsResumeAfterDelay() {
+            clearTimeout(lsResumeTimer);
+            lsResumeTimer = setTimeout(lsResume, 10000);
         }
 
         window.lsSetH = function(n, restart) {
@@ -1951,6 +1974,46 @@
             if (dots[lsCur]) dots[lsCur].classList.add('active');
             lsScheduleNext();
         };
+
+        // ── Touch: pause on press, swipe to navigate, resume 10s after last touch ──
+        var lsTouchStartX = 0;
+        var lsTouchStartY = 0;
+        var lsHeadlineArea = document.querySelector('#loginScreen .ls-headline-area') ||
+                             document.getElementById('loginScreen');
+
+        if (lsHeadlineArea) {
+            lsHeadlineArea.addEventListener('touchstart', function(e) {
+                lsTouchStartX = e.touches[0].clientX;
+                lsTouchStartY = e.touches[0].clientY;
+                lsPause();
+            }, { passive: true });
+
+            lsHeadlineArea.addEventListener('touchend', function(e) {
+                var dx = e.changedTouches[0].clientX - lsTouchStartX;
+                var dy = e.changedTouches[0].clientY - lsTouchStartY;
+                // Only count as a horizontal swipe if it's clearly horizontal
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    if (dx < 0) {
+                        // swipe left → next slide
+                        lsSetH((lsCur + 1) % lsIds.length, false);
+                    } else {
+                        // swipe right → previous slide
+                        lsSetH((lsCur - 1 + lsIds.length) % lsIds.length, false);
+                    }
+                    lsPause(); // keep paused after swipe; resume timer below
+                }
+                lsResumeAfterDelay();
+            }, { passive: true });
+        }
+
+        // Dot clicks also reset the resume timer
+        document.querySelectorAll('.ls-dot').forEach(function(dot, i) {
+            dot.addEventListener('click', function() {
+                lsPause();
+                lsSetH(i, false);
+                lsResumeAfterDelay();
+            });
+        });
 
         // Kick off from slide 0
         lsScheduleNext();
