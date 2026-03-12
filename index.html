@@ -135,7 +135,15 @@
             color: rgba(221,208,184,0.88);
             line-height: 1.75; font-weight: 400;
             max-width: 420px;
-            margin-bottom: 28px;
+            margin-bottom: 12px;
+        }
+        #loginScreen .ls-explain {
+            font-size: 13px;
+            color: rgba(221,208,184,0.55);
+            line-height: 1.6; font-weight: 300;
+            max-width: 420px;
+            margin: 0 0 22px 0;
+            font-style: italic;
         }
         #loginScreen .ls-trust {
             display: inline-flex; align-items: center; gap: 9px;
@@ -325,10 +333,11 @@
             #loginScreen .ls-headline-area { height: 160px; margin-bottom: 16px; }
             #loginScreen .ls-headline { font-size: clamp(32px, 8.5vw, 42px); line-height: 1.13; }
             #loginScreen .ls-dots { margin-bottom: 20px; }
-            #loginScreen .ls-sub { font-size: 15px; line-height: 1.6; margin-bottom: 16px; color: rgba(221,208,184,0.82); }
+            #loginScreen .ls-sub { font-size: 15px; line-height: 1.6; margin-bottom: 10px; color: rgba(221,208,184,0.82); }
             #loginScreen .ls-trust { margin-bottom: 0; }
 
-            /* hide feature bullets — too much for one screen */
+            /* hide explain + feature bullets — too much for one screen */
+            #loginScreen .ls-explain { display: none; }
             #loginScreen .ls-features { display: none; }
 
             #loginScreen .ls-right { display: none; }
@@ -627,11 +636,11 @@
                     <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
 
                     <div class="ls-headline-area">
-                        <div class="ls-headline visible" id="lsh0">Ask your friends —<br><em>without asking</em><br>your friends.</div>
-                        <div class="ls-headline" id="lsh1">Some answers live<br>in your circle,<br><em>not the internet.</em></div>
+                        <div class="ls-headline visible" id="lsh0">Trust <em>people,</em><br>not algorithms.</div>
+                        <div class="ls-headline" id="lsh1">Ask your friends —<br><em>without asking</em><br>your friends.</div>
                         <div class="ls-headline" id="lsh2">The finds they'd text you about —<br><em>all in one place.</em></div>
-                        <div class="ls-headline" id="lsh3">Never lose a great find —<br><em>your circle</em> remembers.</div>
-                        <div class="ls-headline" id="lsh4">Trust <em>people,</em><br>not algorithms.</div>
+                        <div class="ls-headline" id="lsh3">Some answers live in your circle,<br><em>not the internet.</em></div>
+                        <div class="ls-headline" id="lsh4">Never lose a great find —<br><em>your circle</em> remembers.</div>
                     </div>
 
                     <div class="ls-dots">
@@ -642,7 +651,9 @@
                         <button class="ls-dot" onclick="lsSetH(4)"></button>
                     </div>
 
-                    <p class="ls-sub">The places they go, the things they use, the finds they'd text you about — all in one place, waiting when you need it.</p>
+                    <p class="ls-sub">All the places, products, and little finds from your circle — saved and searchable when you need them.</p>
+
+                    <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime.</p>
 
                     <div class="ls-trust">
                         <div class="ls-trust-dot"></div>
@@ -651,13 +662,13 @@
 
                     <div class="ls-features">
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Search naturally.</b> "Good coffee near work" — not just keywords.</span>
+                            <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Save anything.</b> Places, products, books — your circle's real recommendations.</span>
+                            <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>No strangers.</b> Your saves are invisible outside friends you approve.</span>
+                            <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves.</span>
                         </div>
                     </div>
 
@@ -1918,8 +1929,18 @@
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
         var lsIds  = ['lsh0','lsh1','lsh2','lsh3','lsh4'];
+        // Per-slide display durations in milliseconds
+        var lsDurations = [5000, 4000, 4000, 4000, 4000];
         var lsCur  = 0;
         var lsTimer;
+
+        function lsScheduleNext() {
+            clearTimeout(lsTimer);
+            lsTimer = setTimeout(function() {
+                lsSetH((lsCur + 1) % lsIds.length, false);
+            }, lsDurations[lsCur]);
+        }
+
         window.lsSetH = function(n, restart) {
             if (restart === undefined) restart = true;
             document.getElementById(lsIds[lsCur]).classList.remove('visible');
@@ -1928,12 +1949,11 @@
             lsCur = n;
             document.getElementById(lsIds[lsCur]).classList.add('visible');
             if (dots[lsCur]) dots[lsCur].classList.add('active');
-            if (restart) {
-                clearInterval(lsTimer);
-                lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
-            }
+            lsScheduleNext();
         };
-        lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
+
+        // Kick off from slide 0
+        lsScheduleNext();
     })();
 
     // ===== AUTH MODAL (landing page) =====
