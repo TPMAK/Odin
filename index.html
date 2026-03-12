@@ -60,11 +60,14 @@
             background: var(--dark);
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
-            padding: 90px 80px 60px;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
+        /* Scrollbar hidden but functional */
+        #loginScreen .ls-left::-webkit-scrollbar { display: none; }
+        #loginScreen .ls-left { -ms-overflow-style: none; scrollbar-width: none; }
         #loginScreen .ls-left::before {
             content: '';
             position: absolute; inset: 0;
@@ -79,9 +82,52 @@
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
             pointer-events: none; opacity: 0.45;
         }
+        /* ── Section 1: hook — full viewport height ── */
+        #loginScreen .ls-section1 {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 80px;
+            position: relative;
+        }
         #loginScreen .ls-left-inner {
             position: relative; z-index: 2;
             max-width: 560px;
+        }
+        /* ── Scroll hint ── */
+        #loginScreen .ls-scroll-hint {
+            position: absolute;
+            bottom: 36px; left: 80px;
+            display: flex; align-items: center; gap: 10px;
+            opacity: 0.35;
+            transition: opacity 0.3s;
+            cursor: pointer;
+            z-index: 3;
+        }
+        #loginScreen .ls-scroll-hint:hover { opacity: 0.65; }
+        #loginScreen .ls-scroll-hint span {
+            font-size: 12px; color: var(--mason);
+            font-weight: 500; letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        #loginScreen .ls-scroll-arrow {
+            width: 20px; height: 20px;
+            border-right: 1.5px solid var(--mason);
+            border-bottom: 1.5px solid var(--mason);
+            transform: rotate(45deg) translateY(-3px);
+            animation: ls-bounce 2s ease-in-out infinite;
+        }
+        @keyframes ls-bounce {
+            0%, 100% { transform: rotate(45deg) translateY(-3px); }
+            50%       { transform: rotate(45deg) translateY(2px); }
+        }
+        /* ── Section 2: detail — below fold ── */
+        #loginScreen .ls-section2 {
+            padding: 80px 80px 100px;
+            position: relative; z-index: 2;
+            max-width: 560px;
+            border-top: 1px solid rgba(221,208,184,0.07);
         }
         #loginScreen .ls-logo {
             font-family: 'Inter', sans-serif;
@@ -92,20 +138,19 @@
         #loginScreen .ls-logo .lsv { color: var(--wb); }
         #loginScreen .ls-logo .lso { color: var(--mason); }
         #loginScreen .ls-headline-area {
-            /* Fixed height so dots don't jump as headlines change length */
-            height: 260px;
-            margin-bottom: 24px;
+            height: 210px;
+            margin-bottom: 20px;
             position: relative;
             overflow: hidden;
         }
         #loginScreen .ls-headline {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 72px;
-            font-weight: 700;
+            font-size: 52px;
+            font-weight: 400;
             color: #fff;
-            line-height: 1.08;
-            letter-spacing: -0.03em;
-            max-width: 640px;
+            line-height: 1.12;
+            letter-spacing: -0.025em;
+            max-width: 560px;
             position: absolute;
             top: 0; left: 0; right: 0;
             opacity: 0;
@@ -133,23 +178,30 @@
             width: 14px; border-radius: 3px;
             opacity: 1;
         }
+        /* Section 1 sub — short hook line only */
         #loginScreen .ls-sub {
+            font-size: 18px;
+            color: rgba(221,208,184,0.72);
+            line-height: 1.55; font-weight: 400;
+            max-width: 440px;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+        /* Section 2 sub — repeated or context heading */
+        #loginScreen .ls-section2 .ls-sub {
             font-size: 20px;
             color: rgba(221,208,184,0.95);
-            line-height: 1.6; font-weight: 400;
-            max-width: 520px;
-            margin-top: 24px;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
         }
         #loginScreen .ls-explain {
-            font-size: 16px;
-            color: rgba(221,208,184,0.75);
-            line-height: 1.6; font-weight: 300;
-            max-width: 520px;
-            margin: 0 0 32px 0;
+            font-size: 15px;
+            color: rgba(221,208,184,0.55);
+            line-height: 1.65; font-weight: 300;
+            max-width: 480px;
+            margin: 0 0 36px 0;
             font-style: italic;
         }
-        /* trust badge removed — privacy covered in bullets */
+        /* trust badge gone */
         #loginScreen .ls-trust { display: none; }
         #loginScreen .ls-right {
             width: 420px;
@@ -307,60 +359,53 @@
             font-size: 12px; color: var(--muted);
             line-height: 1.6;
         }
-        /* ── MOBILE: full dark screen + bottom sheet ── */
+        /* ── MOBILE: full dark screen, one section, fixed CTA bar ── */
         @media (max-width: 780px) {
             #loginScreen { overflow: hidden; }
             #loginScreen .ls-layout { height: 100dvh; }
 
-            /* vertically centre the inner content */
+            /* Left panel fills screen, no scroll on mobile */
             #loginScreen .ls-left {
+                overflow: hidden;
+            }
+
+            /* Section 1 centred, padded above CTA bar */
+            #loginScreen .ls-section1 {
                 justify-content: center;
-                padding: 0 20px 150px;
+                padding: 0 24px 160px;
+                min-height: 100dvh;
             }
             #loginScreen .ls-left-inner { max-width: 100%; }
 
-            /* tighter spacing throughout */
-            #loginScreen .ls-pilot-badge { margin-bottom: 14px; }
-            #loginScreen .ls-logo { font-size: 34px; margin-bottom: 16px; }
-            /* headline area: tall enough for 3-4 lines at 36px */
-            #loginScreen .ls-headline-area { height: 145px; margin-bottom: 18px; }
+            /* Hide section 2 entirely on mobile */
+            #loginScreen .ls-section2 { display: none; }
+
+            /* Hide scroll hint on mobile */
+            #loginScreen .ls-scroll-hint { display: none; }
+
+            /* Sizing */
+            #loginScreen .ls-pilot-badge { margin-bottom: 16px; }
+            #loginScreen .ls-logo { font-size: 32px; margin-bottom: 20px; }
+            #loginScreen .ls-headline-area { height: 130px; margin-bottom: 16px; }
             #loginScreen .ls-headline {
-                font-size: 36px;
+                font-size: 34px;
                 line-height: 1.25;
-                letter-spacing: -0.025em;
-                font-weight: 600;
-                max-width: 90%;
+                letter-spacing: -0.02em;
+                font-weight: 400;
+                max-width: 100%;
             }
-            #loginScreen .ls-dots { margin-bottom: 18px; }
-            /* sub: 16px, max 2-3 lines, 18px gap below */
+            #loginScreen .ls-dots { margin-bottom: 20px; }
+
+            /* Single sub-line — short, no explain, no bullets */
             #loginScreen .ls-sub {
                 font-size: 16px;
-                line-height: 1.5;
-                margin-bottom: 12px;
-                max-width: 92%;
-                color: rgba(221,208,184,0.82);
+                line-height: 1.55;
+                color: rgba(221,208,184,0.70);
+                max-width: 95%;
+                margin-bottom: 0;
             }
-            /* explanation: lighter, secondary feel */
-            #loginScreen .ls-explain {
-                display: block;
-                font-size: 14px;
-                line-height: 1.6;
-                opacity: 0.8;
-                margin-bottom: 26px;
-                max-width: 92%;
-            }
-            /* bullets: shown on mobile, clean stacked layout */
-            #loginScreen .ls-features { display: flex; margin-top: 26px; gap: 12px; }
-            #loginScreen .ls-feature-text b {
-                font-size: 15px;
-                font-weight: 600;
-                line-height: 1.4;
-            }
-            #loginScreen .ls-feature-text {
-                font-size: 14px;
-                line-height: 1.5;
-                opacity: 0.85;
-            }
+            #loginScreen .ls-explain { display: none; }
+            #loginScreen .ls-features { display: none; }
 
             #loginScreen .ls-right { display: none; }
         }
@@ -648,39 +693,51 @@
 
             <!-- LEFT - brand story -->
             <div class="ls-left">
-                <div class="ls-left-inner">
 
-                    <div class="ls-pilot-badge">
-                        <div class="ls-pilot-dot"></div>
-                        <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
+                <!-- ── Section 1: hook — one viewport, minimal ── -->
+                <div class="ls-section1">
+                    <div class="ls-left-inner">
+
+                        <div class="ls-pilot-badge">
+                            <div class="ls-pilot-dot"></div>
+                            <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
+                        </div>
+
+                        <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
+
+                        <div class="ls-headline-area">
+                            <div class="ls-headline visible" id="lsh0">Trust <em>people,</em><br>not algorithms.</div>
+                            <div class="ls-headline" id="lsh1">Ask your friends —<br><em>without asking</em><br>your friends.</div>
+                            <div class="ls-headline" id="lsh2">The finds they'd text you about —<br><em>all in one place.</em></div>
+                            <div class="ls-headline" id="lsh3">Some answers live in your circle,<br><em>not the internet.</em></div>
+                            <div class="ls-headline" id="lsh4">Never lose a great find —<br><em>your circle</em> remembers.</div>
+                        </div>
+
+                        <div class="ls-dots">
+                            <button class="ls-dot active"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                        </div>
+
+                        <p class="ls-sub">Places, products, and little finds from your circle — saved and searchable.</p>
+
                     </div>
 
-                    <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
-
-                    <div class="ls-headline-area">
-                        <div class="ls-headline visible" id="lsh0">Trust <em>people,</em><br>not algorithms.</div>
-                        <div class="ls-headline" id="lsh1">Ask your friends —<br><em>without asking</em><br>your friends.</div>
-                        <div class="ls-headline" id="lsh2">The finds they'd text you about —<br><em>all in one place.</em></div>
-                        <div class="ls-headline" id="lsh3">Some answers live in your circle,<br><em>not the internet.</em></div>
-                        <div class="ls-headline" id="lsh4">Never lose a great find —<br><em>your circle</em> remembers.</div>
+                    <!-- Scroll hint — desktop only -->
+                    <div class="ls-scroll-hint" id="lsScrollHint" onclick="document.querySelector('.ls-section2').scrollIntoView({behavior:'smooth'})">
+                        <span>How it works</span>
+                        <div class="ls-scroll-arrow"></div>
                     </div>
+                </div>
 
-                    <div class="ls-dots">
-                        <button class="ls-dot active"></button>
-                        <button class="ls-dot"></button>
-                        <button class="ls-dot"></button>
-                        <button class="ls-dot"></button>
-                        <button class="ls-dot"></button>
-                    </div>
+                <!-- ── Section 2: detail — below fold, desktop only ── -->
+                <div class="ls-section2">
 
                     <p class="ls-sub">All the places, products, and little finds from your circle — saved and searchable when you need them.</p>
 
                     <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime.</p>
-
-                    <div class="ls-trust">
-                        <div class="ls-trust-dot"></div>
-                        <span class="ls-trust-text">Private by default — only friends you approve can see your saves.</span>
-                    </div>
 
                     <div class="ls-features">
                         <div class="ls-feature-row">
@@ -695,6 +752,7 @@
                     </div>
 
                 </div>
+
             </div>
 
             <!-- RIGHT - auth panel -->
@@ -2038,6 +2096,18 @@
 
         // Kick off from slide 0
         lsScheduleNext();
+    })();
+
+    // ===== SCROLL HINT — fade out after user scrolls =====
+    (function() {
+        var lsLeft = document.querySelector('#loginScreen .ls-left');
+        var hint   = document.getElementById('lsScrollHint');
+        if (!lsLeft || !hint) return;
+        lsLeft.addEventListener('scroll', function() {
+            var scrolled = lsLeft.scrollTop > 40;
+            hint.style.opacity = scrolled ? '0' : '';
+            hint.style.pointerEvents = scrolled ? 'none' : '';
+        }, { passive: true });
     })();
 
     // ===== AUTH MODAL (landing page) =====
