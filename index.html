@@ -92,16 +92,18 @@
         #loginScreen .ls-logo .lsv { color: var(--wb); }
         #loginScreen .ls-logo .lso { color: var(--mason); }
         #loginScreen .ls-headline-area {
-            min-height: 220px;
-            margin-bottom: 20px;
+            /* Fixed height so dots don't jump as headlines change length */
+            height: 200px;
+            margin-bottom: 24px;
             position: relative;
+            overflow: hidden;
         }
         #loginScreen .ls-headline {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: clamp(38px, 3.8vw, 58px);
+            font-size: clamp(36px, 3.6vw, 54px);
             font-weight: 400;
             color: #fff;
-            line-height: 1.15;
+            line-height: 1.16;
             letter-spacing: -0.02em;
             position: absolute;
             top: 0; left: 0; right: 0;
@@ -318,12 +320,12 @@
             #loginScreen .ls-left-inner { max-width: 100%; }
 
             /* tighter spacing throughout */
-            #loginScreen .ls-pilot-badge { margin-bottom: 18px; }
-            #loginScreen .ls-logo { font-size: 36px; margin-bottom: 20px; }
-            #loginScreen .ls-headline-area { min-height: 185px; margin-bottom: 14px; }
-            #loginScreen .ls-headline { font-size: clamp(34px, 9vw, 44px); line-height: 1.12; }
-            #loginScreen .ls-dots { margin-bottom: 18px; }
-            #loginScreen .ls-sub { font-size: 15px; line-height: 1.65; margin-bottom: 18px; }
+            #loginScreen .ls-pilot-badge { margin-bottom: 14px; }
+            #loginScreen .ls-logo { font-size: 34px; margin-bottom: 16px; }
+            #loginScreen .ls-headline-area { height: 160px; margin-bottom: 16px; }
+            #loginScreen .ls-headline { font-size: clamp(32px, 8.5vw, 42px); line-height: 1.13; }
+            #loginScreen .ls-dots { margin-bottom: 20px; }
+            #loginScreen .ls-sub { font-size: 15px; line-height: 1.6; margin-bottom: 16px; color: rgba(221,208,184,0.82); }
             #loginScreen .ls-trust { margin-bottom: 0; }
 
             /* hide feature bullets — too much for one screen */
@@ -626,10 +628,10 @@
 
                     <div class="ls-headline-area">
                         <div class="ls-headline visible" id="lsh0">Ask your friends —<br><em>without asking</em><br>your friends.</div>
-                        <div class="ls-headline" id="lsh1">Your circle knows<br>more than <em>Google.</em></div>
-                        <div class="ls-headline" id="lsh2">The finds they'd<br>text you about —<br><em>all in one place.</em></div>
-                        <div class="ls-headline" id="lsh3">Be the <em>algorithm</em><br>for the people<br>you love.</div>
-                        <div class="ls-headline" id="lsh4">Never lose a great find —<br>your circle's <em>shared memory,</em><br>always there.</div>
+                        <div class="ls-headline" id="lsh1">Some answers live<br>in your circle,<br><em>not the internet.</em></div>
+                        <div class="ls-headline" id="lsh2">The finds they'd text you about —<br><em>all in one place.</em></div>
+                        <div class="ls-headline" id="lsh3">Never lose a great find —<br><em>your circle</em> remembers.</div>
+                        <div class="ls-headline" id="lsh4">Trust <em>people,</em><br>not algorithms.</div>
                     </div>
 
                     <div class="ls-dots">
