@@ -526,27 +526,74 @@
         }
         @media (max-width: 780px) {
             .ls-learn-more-btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 7px;
-                margin-top: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                margin-top: 22px;
                 background: none;
                 border: none;
                 padding: 0;
                 cursor: pointer;
                 font-family: 'Inter', sans-serif;
+            }
+            .ls-learn-more-btn:active { opacity: 0.6; }
+            /* Label row */
+            .ls-learn-more-btn .lm-label {
+                display: flex;
+                align-items: center;
+                gap: 7px;
                 font-size: 13px;
                 font-weight: 500;
                 color: rgba(221,208,184,0.45);
-                letter-spacing: 0.03em;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
             }
-            .ls-learn-more-btn:active { opacity: 0.6; }
-            .ls-learn-more-btn svg {
-                transition: transform 0.2s;
+            /* Drip line — same as desktop scroll hint */
+            .ls-learn-more-btn .lm-line {
+                width: 1px;
+                height: 28px;
+                background: linear-gradient(to bottom, rgba(221,208,184,0.35), transparent);
+                position: relative;
+                overflow: hidden;
+                margin-left: 1px;
             }
-            .ls-learn-more-btn:active svg {
-                transform: translateY(2px);
+            .ls-learn-more-btn .lm-line::after {
+                content: '';
+                position: absolute;
+                top: -100%;
+                left: 0; right: 0;
+                height: 100%;
+                background: linear-gradient(to bottom, transparent, rgba(123,45,69,0.9), transparent);
+                animation: ls-drip 2.2s ease-in-out infinite;
             }
+        }
+
+        /* ── Back to top button (desktop Section 2) ── */
+        .ls-back-top {
+            display: none;
+        }
+        @media (min-width: 781px) {
+            .ls-back-top {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                margin-top: 40px;
+                background: none;
+                border: none;
+                padding: 0;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                color: rgba(221,208,184,0.35);
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                transition: color 0.2s;
+            }
+            .ls-back-top:hover { color: rgba(221,208,184,0.65); }
+            .ls-back-top svg { transition: transform 0.2s; }
+            .ls-back-top:hover svg { transform: translateY(-2px); }
         }
 
         /* ── Learn More dark bottom sheet ── */
@@ -889,10 +936,13 @@
 
                         <!-- Learn more — mobile only -->
                         <button class="ls-learn-more-btn" onclick="lsOpenLearnMore()">
-                            Learn more
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M6 1v10M1 6l5 5 5-5" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            <span class="lm-label">
+                                Learn more
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                    <path d="M5 1v8M1 5l4 4 4-4" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <div class="lm-line"></div>
                         </button>
 
                     </div>
@@ -922,9 +972,21 @@
                         </div>
                         <div class="ls-feature-row">
                             <span class="ls-feature-num">03</span>
+                            <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+                        </div>
+                        <div class="ls-feature-row">
+                            <span class="ls-feature-num">04</span>
                             <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
                         </div>
                     </div>
+
+                    <!-- Back to top — desktop -->
+                    <button class="ls-back-top" onclick="document.querySelector('#loginScreen .ls-left').scrollTo({top:0, behavior:'smooth'})">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M6 11V1M1 6l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Back to top
+                    </button>
 
                 </div>
 
@@ -994,6 +1056,10 @@
             </div>
             <div class="ls-feature-row">
                 <span class="ls-feature-num">03</span>
+                <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">04</span>
                 <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
             </div>
 
