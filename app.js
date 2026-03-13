@@ -4854,6 +4854,9 @@ function clearCaptureForm() {
     const defaultPill = document.querySelector('.category-pill[data-value="place"]');
     if (defaultPill) defaultPill.classList.add('active');
     document.getElementById('category').value = 'place';
+    // Reset address label hint
+    const addressLabel = document.getElementById('addressLabel');
+    if (addressLabel) addressLabel.textContent = '— recommended for places';
     // Reset photo
     document.getElementById('photoPreview').style.display = 'none';
     const uploadZone = document.getElementById('photoUploadZone');
@@ -5037,7 +5040,8 @@ async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
 
     const titleField = document.getElementById('title');
-    const descField = document.getElementById('description');
+    // personalNote is now the single user-facing field (merged with description)
+    const descField = document.getElementById('personalNote');
     const ogLoading = document.getElementById('ogLoading');
     const ogCard = document.getElementById('ogPreviewCard');
     const heroHint = document.getElementById('urlHeroHint');
@@ -5257,10 +5261,13 @@ async function submitDiscovery(e) {
 
     const isPrivate = document.getElementById('privateToggle').value === 'true';
 
+    // personalNote is now the single user-facing field (merged with description)
+    const yourTake = document.getElementById('personalNote').value.trim();
+
     const payload = {
         title: document.getElementById('title').value.trim(),
-        description: document.getElementById('description').value.trim(),
-        personalNote: document.getElementById('personalNote').value.trim() || null,
+        description: yourTake,        // feeds AI Enhance enrichment
+        personalNote: yourTake || null, // feeds embedding + social display
         type: document.getElementById('category').value,
         addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
         address: document.getElementById('address').value.trim() || null,
@@ -5316,7 +5323,20 @@ async function submitDiscovery(e) {
 function selectCategory(el) {
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('category').value = el.dataset.value;
+    const val = el.dataset.value;
+    document.getElementById('category').value = val;
+
+    // Update address label hint based on category
+    const addressLabel = document.getElementById('addressLabel');
+    if (addressLabel) {
+        const hints = {
+            place:   '— recommended for places',
+            product: '— optional',
+            service: '— optional',
+            advice:  '— optional'
+        };
+        addressLabel.textContent = hints[val] || '— optional';
+    }
 }
 
 document.getElementById('photo').addEventListener('change', function(e) {
