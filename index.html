@@ -1458,16 +1458,18 @@
                         <h1 id="searchGreeting"></h1>
                         <p id="searchGreetingSub"></p>
                     </div>
-                    <!-- Suggestion chips: shown on first entry, hidden after first message -->
-                    <p class="suggestions-label">Try asking</p>
-                    <div class="suggestions" id="searchSuggestions">
-                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">☕ Coffee to work from</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">🍝 Italian restaurant</span>
-                        <span class="suggestion-chip" onclick="sendMessage('drawing method I saved')">📌 Drawing method I saved</span>
-                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">👧 Places for kids</span>
-                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">🍜 Sunny's noodle spot</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">🎂 Birthday cake – Queenstown</span>
+                    <!-- Recent searches: shown when user has history -->
+                    <div id="recentSearchesSection" style="display:none; margin-bottom:20px;">
+                        <div class="recent-searches-header">
+                            <span class="suggestions-label" style="margin-bottom:0;">最近搜尋 Recent</span>
+                            <button class="recent-clear-all-btn" onclick="clearAllRecentSearches()">Clear all</button>
+                        </div>
+                        <div class="recent-searches-row" id="recentSearchesRow"></div>
                     </div>
+
+                    <!-- Suggestion chips: time-based, bilingual, rendered by JS -->
+                    <p class="suggestions-label" id="suggestionsLabel">試試問 Try asking</p>
+                    <div class="suggestions" id="searchSuggestions"></div>
                 </div>
             </div>
         </div>
@@ -1992,7 +1994,8 @@
             </button>
             <div class="search-input-inner">
                 <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <div class="search-animated-placeholder" id="searchAnimPlaceholder"></div>
+                <input type="text" id="messageInput" placeholder="" onkeypress="if(event.key==='Enter') sendMessage()" onfocus="stopSearchPlaceholder()" onblur="startSearchPlaceholder()">
                 <button id="sendButton" onclick="sendMessage()" aria-label="Send">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
@@ -2173,7 +2176,221 @@
         var chipsEl = document.getElementById('searchSuggestions');
         if (chipsEl) {
             chipsEl.style.display = '';
+            renderSearchChips(); // populate with time-based bilingual chips
         }
+        renderRecentSearches(); // show recent history if any
+    }
+
+    // ══════════════════════════════════════════════
+    // ── TIME-BASED BILINGUAL SUGGESTION CHIPS ──
+    // ══════════════════════════════════════════════
+    var _SEARCH_CHIP_POOLS = {
+        // 05:00–10:59 Morning
+        morning: [
+            { q: 'Where to get good coffee nearby?',       label: '☕ 附近咖啡推薦' },
+            { q: 'Best breakfast spot your friends like',   label: '🍳 朋友推介早餐' },
+            { q: 'Quiet café with good wifi',               label: '💻 靜靜做嘢咖啡廳' },
+            { q: 'Good bakery nearby',                      label: '🥐 附近麵包店' },
+            { q: 'Healthy breakfast your friends saved',    label: '🥗 健康早餐推薦' },
+            { q: 'Where to get a flat white?',              label: '☕ 邊度有好flat white?' },
+        ],
+        // 11:00–13:59 Lunch
+        lunch: [
+            { q: 'Good ramen your friends recommend',       label: '🍜 朋友推介拉麵' },
+            { q: 'Quick lunch nearby',                      label: '🥡 附近快lunch' },
+            { q: 'Best poke bowl in the area',              label: '🍱 附近poke bowl' },
+            { q: 'Healthy lunch spots',                     label: '🥗 健康午餐選擇' },
+            { q: 'Best sushi for lunch',                    label: '🍣 午市壽司推薦' },
+            { q: 'Where did your friends go for dim sum?',  label: '🥟 朋友去邊飲茶?' },
+        ],
+        // 14:00–17:59 Afternoon
+        afternoon: [
+            { q: 'Café with good matcha or coffee',         label: '🍵 下午茶咖啡廳' },
+            { q: 'Cosy place to read or work',              label: '📖 舒適café坐低' },
+            { q: 'Best afternoon tea your friends saved',   label: '🫖 下午茶推薦' },
+            { q: 'Good snack spots nearby',                 label: '🧁 附近小食推薦' },
+            { q: 'Somewhere nice to sit outside',           label: '🌤 戶外坐位推薦' },
+            { q: 'What dessert places did your friends save?', label: '🍰 朋友收藏甜品店' },
+        ],
+        // 18:00–22:59 Evening
+        evening: [
+            { q: 'Good dinner spot for tonight',            label: '🍽 今晚食乜好?' },
+            { q: 'Bar your friends recommend',              label: '🍸 朋友推介酒吧' },
+            { q: 'Best Italian restaurant nearby',          label: '🍝 附近意大利餐廳' },
+            { q: 'Rooftop bar or outdoor seating',          label: '🌃 天台/戶外酒吧' },
+            { q: 'Date night restaurant your friends love', label: '🕯 朋友推介約會餐廳' },
+            { q: 'Where to get good cocktails?',            label: '🍹 邊度有好cocktail?' },
+        ],
+        // 23:00–04:59 Late night
+        latenight: [
+            { q: 'Late night food open now',                label: '🌙 夜晚食宵夜邊度好?' },
+            { q: 'Best 24hr eats your friends know',        label: '🌙 24小時食店推介' },
+            { q: 'Night cap bar nearby',                    label: '🥃 附近夜酒吧' },
+            { q: 'Any supper spots your friends saved?',    label: '🍜 朋友有冇收藏宵夜?' },
+        ],
+    };
+
+    function _getChipPool() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 11) return _SEARCH_CHIP_POOLS.morning;
+        if (h >= 11 && h < 14) return _SEARCH_CHIP_POOLS.lunch;
+        if (h >= 14 && h < 18) return _SEARCH_CHIP_POOLS.afternoon;
+        if (h >= 18 && h < 23) return _SEARCH_CHIP_POOLS.evening;
+        return _SEARCH_CHIP_POOLS.latenight;
+    }
+
+    function _shufflePick(arr, n) {
+        var copy = arr.slice();
+        for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+        }
+        return copy.slice(0, n);
+    }
+
+    function renderSearchChips() {
+        var container = document.getElementById('searchSuggestions');
+        if (!container) return;
+        container.innerHTML = '';
+        var picks = _shufflePick(_getChipPool(), 6);
+        picks.forEach(function(item) {
+            var span = document.createElement('span');
+            span.className = 'suggestion-chip';
+            span.textContent = item.label;
+            span.onclick = function() { sendMessage(item.q); };
+            container.appendChild(span);
+        });
+    }
+
+    // ══════════════════════════════════════════════
+    // ── ANIMATED SEARCH INPUT PLACEHOLDER ──
+    // ══════════════════════════════════════════════
+    var _searchPlaceholderTimer = null;
+    var _searchPlaceholderIdx   = 0;
+
+    var _SEARCH_PLACEHOLDER_POOL = [
+        // English — natural language prompts
+        'Try "good ramen my friends like"',
+        'Ask "where did Sunny eat last week?"',
+        'Try "quiet café with wifi nearby"',
+        'Ask "best birthday cake spot in the area"',
+        'Try "cocktail bar for tonight"',
+        'Ask "Italian place my circle recommends"',
+        'Try "where to bring kids for lunch"',
+        'Ask "drawing method I saved last month"',
+        // Traditional Chinese
+        '問「附近邊度食好？」',
+        '試試「朋友推介嘅咖啡廳」',
+        '問「上次Sunny講嘅餐廳係邊度？」',
+        '試試「晚上飲嘢去邊好？」',
+        '問「我收藏咗咩好嘢食？」',
+        '試試「附近有冇靚甜品店？」',
+    ];
+
+    function _showSearchPlaceholder(text) {
+        var el = document.getElementById('searchAnimPlaceholder');
+        if (!el) return;
+        el.classList.remove('anim-fade-in', 'anim-fade-out');
+        void el.offsetWidth;
+        el.textContent = text;
+        el.classList.add('anim-fade-in');
+    }
+
+    function startSearchPlaceholder() {
+        var input = document.getElementById('messageInput');
+        var el    = document.getElementById('searchAnimPlaceholder');
+        if (!el) return;
+        // Don't start if user already typed something
+        if (input && input.value.trim()) { el.style.display = 'none'; return; }
+        el.style.display = '';
+
+        if (_searchPlaceholderTimer) { clearInterval(_searchPlaceholderTimer); _searchPlaceholderTimer = null; }
+        _showSearchPlaceholder(_SEARCH_PLACEHOLDER_POOL[_searchPlaceholderIdx % _SEARCH_PLACEHOLDER_POOL.length]);
+
+        _searchPlaceholderTimer = setInterval(function() {
+            var inp = document.getElementById('messageInput');
+            if (inp && inp.value.trim()) return;
+            var el2 = document.getElementById('searchAnimPlaceholder');
+            if (!el2) return;
+            el2.classList.remove('anim-fade-in');
+            el2.classList.add('anim-fade-out');
+            setTimeout(function() {
+                _searchPlaceholderIdx = (_searchPlaceholderIdx + 1) % _SEARCH_PLACEHOLDER_POOL.length;
+                _showSearchPlaceholder(_SEARCH_PLACEHOLDER_POOL[_searchPlaceholderIdx]);
+            }, 420);
+        }, 4500);
+    }
+
+    function stopSearchPlaceholder() {
+        if (_searchPlaceholderTimer) { clearInterval(_searchPlaceholderTimer); _searchPlaceholderTimer = null; }
+        var el = document.getElementById('searchAnimPlaceholder');
+        if (el) el.style.display = 'none';
+    }
+
+    // ══════════════════════════════════════════════
+    // ── RECENT SEARCHES (localStorage, max 5) ──
+    // ══════════════════════════════════════════════
+    var _RECENT_KEY = 'odin_recent_searches';
+    var _RECENT_MAX = 5;
+
+    function getRecentSearches() {
+        try { return JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]'); } catch(e) { return []; }
+    }
+
+    function saveRecentSearch(query) {
+        if (!query || query.trim().length < 2) return;
+        var list = getRecentSearches().filter(function(q) { return q !== query; });
+        list.unshift(query);
+        if (list.length > _RECENT_MAX) list = list.slice(0, _RECENT_MAX);
+        try { localStorage.setItem(_RECENT_KEY, JSON.stringify(list)); } catch(e) {}
+    }
+
+    function deleteRecentSearch(query) {
+        var list = getRecentSearches().filter(function(q) { return q !== query; });
+        try { localStorage.setItem(_RECENT_KEY, JSON.stringify(list)); } catch(e) {}
+        renderRecentSearches();
+    }
+
+    function clearAllRecentSearches() {
+        try { localStorage.removeItem(_RECENT_KEY); } catch(e) {}
+        renderRecentSearches();
+    }
+
+    function renderRecentSearches() {
+        var section = document.getElementById('recentSearchesSection');
+        var row     = document.getElementById('recentSearchesRow');
+        if (!section || !row) return;
+        var list = getRecentSearches();
+        if (!list.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+        row.innerHTML = '';
+        list.forEach(function(q) {
+            var item = document.createElement('div');
+            item.className = 'recent-search-item';
+
+            var icon = document.createElement('span');
+            icon.className = 'recent-search-icon';
+            icon.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>';
+
+            var text = document.createElement('span');
+            text.className = 'recent-search-text';
+            text.textContent = q;
+
+            var del = document.createElement('button');
+            del.className = 'recent-search-delete';
+            del.innerHTML = '&times;';
+            del.title = 'Remove';
+            del.setAttribute('aria-label', 'Remove');
+            (function(query) {
+                del.onclick = function(e) { e.stopPropagation(); deleteRecentSearch(query); };
+                item.onclick = function() { sendMessage(query); };
+            })(q);
+
+            item.appendChild(icon);
+            item.appendChild(text);
+            item.appendChild(del);
+            row.appendChild(item);
+        });
     }
 
     // ── Keyboard visibility: hide bottom tab bar when iPhone keyboard opens ──
@@ -2233,7 +2450,12 @@
             }
             _navIgnoreNext = false;
             _origSetMode(mode);
-            if (mode === 'search') updateSearchGreeting();
+            if (mode === 'search') {
+                updateSearchGreeting();
+                // Small delay so the input is visible before starting animation
+                setTimeout(startSearchPlaceholder, 80);
+            }
+            if (mode !== 'search') stopSearchPlaceholder();
             if (mode !== 'home') stopPlaceholderCycle();
         };
     })();

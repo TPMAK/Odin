@@ -4241,10 +4241,15 @@ function sendMessage(text) {
     // Reset translation cache for new search
     translationCache = {};
 
+    // Save to recent searches history
+    if (typeof saveRecentSearch === 'function') saveRecentSearch(query);
+
     if (isFirstMessage) {
         const welcomeEl = document.querySelector('#chatContainer .welcome');
         if (welcomeEl) welcomeEl.style.display = 'none';
         isFirstMessage = false;
+        // Stop animated placeholder when user sends first message
+        if (typeof stopSearchPlaceholder === 'function') stopSearchPlaceholder();
     }
 
     const container = document.getElementById('chatContainer');
@@ -4724,6 +4729,10 @@ function startNewSession() {
     // Always restore suggestion chips when starting a new session
     var chipsEl = document.getElementById('searchSuggestions');
     if (chipsEl) chipsEl.style.display = '';
+    // Restart animated placeholder
+    if (typeof startSearchPlaceholder === 'function') setTimeout(startSearchPlaceholder, 80);
+    // Refresh recent searches display
+    if (typeof renderRecentSearches === 'function') renderRecentSearches();
     console.log('New session started:', currentSessionId);
 }
 
