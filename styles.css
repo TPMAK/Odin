@@ -2358,7 +2358,11 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            padding-bottom: 2px;
+            padding-bottom: 4px;
+            padding-left: 2px;
+            padding-right: 20px;
+            margin-left: -2px;
+            margin-right: -20px; /* bleed to edge so pills scroll fully into view */
         }
         .recent-searches-row::-webkit-scrollbar { display: none; }
 
@@ -3391,7 +3395,7 @@
         }
 
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 12px;
         }
 
         .form-group label {
@@ -3445,12 +3449,12 @@
 
         .submit-btn {
             width: 100%;
-            padding: 16px;
+            padding: 13px;
             background: linear-gradient(135deg, #7B2D45 0%, #9B3A5A 100%);
             color: #ffffff;
             border: none;
-            border-radius: 14px;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.25s;
@@ -3481,9 +3485,9 @@
         .url-hero-bar {
             background: var(--surface);
             border: 2px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
             position: relative;
             transition: border-color 0.25s, box-shadow 0.25s;
         }
@@ -3670,7 +3674,7 @@
         .url-hero-divider {
             display: flex;
             align-items: center;
-            margin: 16px 0;
+            margin: 8px 0;
             gap: 12px;
         }
 
@@ -3724,11 +3728,11 @@
         /* ── New compact Add form styles ── */
         .title-input-large {
             width: 100%;
-            padding: 14px 16px;
+            padding: 10px 14px;
             border: 1.5px solid var(--border);
             background: var(--surface);
-            border-radius: 12px;
-            font-size: 18px;
+            border-radius: 10px;
+            font-size: 16px;
             font-family: 'DM Serif Display', serif;
             color: var(--ink);
             transition: border-color 0.2s, box-shadow 0.2s;
@@ -3741,16 +3745,16 @@
         }
         .title-input-large::placeholder { color: #C4B9AD; }
 
-        .form-group-category { margin-bottom: 14px; }
+        .form-group-category { margin-bottom: 10px; }
 
         .field-label-inline {
             display: block;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
         .field-label-required { color: #7B2D45; }
         .field-label-optional {
@@ -3763,15 +3767,15 @@
 
         .your-take-textarea {
             width: 100%;
-            padding: 12px 16px;
+            padding: 10px 14px;
             border: 1.5px solid var(--border);
             background: var(--surface);
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 10px;
+            font-size: 14px;
             font-family: inherit;
             color: var(--ink);
             resize: vertical;
-            min-height: 100px;
+            min-height: 80px;
             transition: border-color 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
         }
@@ -3782,13 +3786,13 @@
         }
         .your-take-textarea::placeholder { color: #C4B9AD; }
 
-        .address-group { margin-bottom: 14px; }
+        .address-group { margin-bottom: 10px; }
 
         /* Compact photo upload */
         .photo-upload-compact {
             flex-direction: row !important;
-            padding: 11px 16px !important;
-            gap: 10px !important;
+            padding: 9px 14px !important;
+            gap: 8px !important;
             justify-content: flex-start !important;
         }
         .photo-upload-compact span { font-size: 13px; }
@@ -4022,7 +4026,7 @@
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
-            margin-bottom: 4px;
+            margin-bottom: 10px;
         }
 
         .capture-form-header h2 {
@@ -8329,10 +8333,10 @@ body.map-view-open .content {
 /* ── Visibility block (Add + Edit forms) ── */
 .visibility-group {
     border-top: 1px solid var(--border);
-    padding-top: 14px;
+    padding-top: 10px;
 }
 .visibility-label-row {
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 .visibility-section-label {
     font-size: 11px;

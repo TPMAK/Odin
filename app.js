@@ -739,9 +739,10 @@ async function loadMyEndorsements() {
         const sorted = endorsedIds.map(id => itemMap[id]).filter(Boolean);
 
         container.innerHTML = sorted.map(item => {
+            const _emoji = getCategoryEmoji(item.type);
             const photo = item.photo_url
-                ? `<img src="${escapeHtml(item.photo_url)}">`
-                : `<span class="my-endorse-placeholder">${getCategoryEmoji(item.type)}</span>`;
+                ? `<img src="${escapeHtml(item.photo_url)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'my-endorse-placeholder\\'>${_emoji}</span>')">`
+                : `<span class="my-endorse-placeholder">${_emoji}</span>`;
             return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
@@ -1976,9 +1977,10 @@ function renderRecentlyViewed() {
         }
         section.style.display = 'block';
         row.innerHTML = viewed.map(v => {
+            const emoji = getCategoryEmoji(v.type);
             const photo = v.photo_url
-                ? `<img src="${escapeHtml(v.photo_url)}" alt="">`
-                : `<span class="rv-placeholder">${getCategoryEmoji(v.type)}</span>`;
+                ? `<img src="${escapeHtml(v.photo_url)}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'rv-placeholder\\'>${emoji}</span>'">`
+                : `<span class="rv-placeholder">${emoji}</span>`;
             return `<div class="rv-item" title="${escapeHtml(v.title)}">
                 <div class="rv-thumb-wrap">
                     <div class="rv-thumb" onclick="openRecentlyViewed('${v.id}')">${photo}</div>
@@ -4440,7 +4442,7 @@ function sendMessage(text) {
 
             const buildTopPick = (r, idx) => {
                 const isExt    = r._trust_level === TRUST.EXTENDED;
-                const photo    = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
+                const photo    = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}" onerror="this.outerHTML='<span style=\\'font-size:32px;color:#d1d5db\\'>📍</span>'">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
                 const rawNote  = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
@@ -4480,7 +4482,7 @@ function sendMessage(text) {
             const buildCompactCard = (r, idx) => {
                 const isExt  = r._trust_level === TRUST.EXTENDED;
                 const photo  = r.photo_url
-                    ? `<img src="${escapeHtml(r.photo_url)}">`
+                    ? `<img src="${escapeHtml(r.photo_url)}" onerror="this.outerHTML='<span class=\\'compact-photo-placeholder\\'>📍</span>'">`
                     : '<span class="compact-photo-placeholder">📍</span>';
                 const rawNote    = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by);
