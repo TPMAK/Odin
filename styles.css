@@ -744,7 +744,7 @@
             scrollbar-width: none;
             -ms-overflow-style: none;
             padding-bottom: 8px;
-            touch-action: pan-x;
+            /* touch-action removed: pan-x was preventing vertical page scroll when finger starts on a card */
             /* bleed to page edge on mobile — padding is ignored by iOS Safari
                on overflow flex containers, so we use ::before / ::after instead */
             margin: 0 -16px;   /* Fix 7: was -24px, now matches new 16px home-page padding */

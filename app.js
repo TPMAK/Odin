@@ -1791,8 +1791,18 @@ async function loadNotifications() {
         if (filtered.length === 0) {
             section.style.display = 'none';
             container.innerHTML = '';
+            // User has seen the notifications panel — mark as viewed so badge clears
+            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+            const badge = document.getElementById('notifBadge');
+            if (badge) badge.style.display = 'none';
             return;
         }
+
+        // User is now viewing notifications — update clearedAt so badge resets after this view
+        // The badge will only reappear for notifications created AFTER this timestamp
+        localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
 
         section.style.display = 'block';
         container.innerHTML = filtered.map(n => {
@@ -4129,9 +4139,20 @@ async function saveItemEdit(itemId) {
 async function confirmDeleteItem(itemId) {
     const confirmEl = document.getElementById(`deleteItemConfirm_${itemId}`);
     const warningEl = document.getElementById(`deleteItemWarning_${itemId}`);
-    if (!confirmEl || !warningEl) return;
 
+    // If the confirm panel elements aren't in the DOM (e.g. not in edit mode),
+    // fall back to a simple native confirm dialog
+    if (!confirmEl || !warningEl) {
+        const proceed = window.confirm('Are you sure you want to permanently delete this item? This cannot be undone.');
+        if (proceed) executeDeleteItem(itemId);
+        return;
+    }
+
+    // Show the inline confirmation panel
     confirmEl.classList.remove('hidden');
+
+    // Scroll the confirm section into view so users can see it on small screens
+    confirmEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     // Count how many OTHER users have saved (endorsed) this item
     try {
@@ -4143,12 +4164,12 @@ async function confirmDeleteItem(itemId) {
 
         const count = (!error && data) ? data.length : 0;
         if (count > 0) {
-            warningEl.textContent = `${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} saved this. Deleting will remove it for everyone.`;
+            warningEl.textContent = `⚠️ ${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} also saved this. Deleting will remove it for everyone.`;
         } else {
-            warningEl.textContent = 'No one else has saved this. It will be permanently deleted.';
+            warningEl.textContent = '🗑️ No one else has saved this. It will be permanently deleted.';
         }
     } catch (e) {
-        warningEl.textContent = 'This will permanently delete the item for everyone.';
+        warningEl.textContent = '⚠️ This will permanently delete the item for everyone.';
     }
 }
 

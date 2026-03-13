@@ -3328,11 +3328,8 @@
     var _FEED_SESSION_KEY = 'odin_feed_session_seed';
 
     function _getFeedSeed() {
-        var existing = localStorage.getItem(_FEED_SESSION_KEY);
-        if (existing) return parseInt(existing, 10);
-        // New login — keep seed small (< 1M) so integer ops stay safe
+        // Generate a fresh seed on every call so the feed order changes on every home visit
         var seed = (Date.now() % 999983) + Math.floor(Math.random() * 16000);
-        localStorage.setItem(_FEED_SESSION_KEY, String(seed));
         return seed;
     }
 
@@ -3665,10 +3662,19 @@
 
         var items = _getRecentlyViewed();
 
+        // Safe emoji getter in case app.js hasn't loaded yet
+        var _getEmoji = function(type) {
+            if (typeof getCategoryEmoji === 'function') return getCategoryEmoji(type);
+            var map = { place: '📍', product: '🛍️', service: '🔧', advice: '💡' };
+            return map[type] || '📍';
+        };
+
         var cardsHtml = items.length === 0 ? null : items.map(function(item) {
+            var emoji = _getEmoji(item.type);
+            // Show emoji placeholder immediately; replace with image if available and loads
             var media = item.photo_url
-                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                : '<div class="hr-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
+                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=\\\"hr-card-emoji\\\">' + emoji + '</div>\')">'
+                : '<div class="hr-card-emoji">' + emoji + '</div>';
             return '<div class="hr-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
                 + media
                 + '<div class="hr-card-body">'
@@ -3816,15 +3822,18 @@
         };
     }
 
-    // ── Override goToEndorsedItem so home-screen cards slide up a drawer
+    // ── Override goToEndorsedItem so home and profile cards slide up a drawer
     //    instead of navigating away to the Discover page ──
     if (typeof goToEndorsedItem === 'function') {
         var _origGoToEndorsedItem = goToEndorsedItem;
         goToEndorsedItem = function(itemId) {
-            // If we're currently on the home page, open the drawer in-place
-            var homePage = document.getElementById('homePage');
-            var onHome = homePage && !homePage.classList.contains('hidden');
-            if (onHome && typeof openItemDrawer === 'function') {
+            // Open the drawer in-place when on home OR profile page
+            var homePage    = document.getElementById('homePage');
+            var profileMode = document.getElementById('profileMode');
+            var onHome    = homePage    && !homePage.classList.contains('hidden');
+            var onProfile = profileMode && !profileMode.classList.contains('hidden');
+
+            if ((onHome || onProfile) && typeof openItemDrawer === 'function') {
                 // Try allDiscoveries first (already loaded), then fetch from Supabase
                 var item = (typeof allDiscoveries !== 'undefined')
                     ? allDiscoveries.find(function(d) { return d.id === itemId; })
@@ -3832,7 +3841,7 @@
                 if (item) {
                     openItemDrawer(item);
                 } else {
-                    // Item not in local cache — fetch it then open
+                    // Item not in local cache — fetch it then open drawer
                     supabaseClient
                         .from('knowledge_items')
                         .select('*')
@@ -3844,7 +3853,7 @@
                         });
                 }
             } else {
-                // Not on home — use original behaviour (go to Discover)
+                // Not on home or profile — use original behaviour (go to Discover)
                 _origGoToEndorsedItem(itemId);
             }
         };
