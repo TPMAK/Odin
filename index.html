@@ -1631,29 +1631,34 @@
             <div class="profile-container">
                 <!-- View Mode (default) -->
                 <div id="profileViewMode">
-                    <div class="profile-header-section">
-                        <div class="profile-avatar-large" id="profileAvatarLarge">
-                            <span id="profileAvatarLargeInitial">?</span>
+                    <!-- Airbnb-style card: avatar+name left, stats right -->
+                    <div class="profile-card">
+                        <div class="profile-card-left">
+                            <div class="profile-avatar-large" id="profileAvatarLarge">
+                                <span id="profileAvatarLargeInitial">?</span>
+                            </div>
+                            <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
+                            <p class="profile-bio" id="profileBioDisplay"></p>
                         </div>
-                        <h2 class="profile-name" id="profileDisplayName" style="color:#7B2D45;">Loading...</h2>
-                        <p class="profile-email" id="profileEmail"></p>
-                        <p class="profile-bio" id="profileBioDisplay"></p>
+                        <div class="profile-card-right">
+                            <div class="profile-stat-row">
+                                <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                                <div class="profile-stat-label">Items</div>
+                            </div>
+                            <div class="profile-stat-divider"></div>
+                            <div class="profile-stat-row">
+                                <div class="profile-stat-number" id="profilePeopleCount">0</div>
+                                <div class="profile-stat-label">People</div>
+                            </div>
+                            <div class="profile-stat-divider"></div>
+                            <div class="profile-stat-row">
+                                <div class="profile-stat-number" id="profileEndorsementCount">0</div>
+                                <div class="profile-stat-label">Saves</div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="profile-stats">
-                        <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
-                            <div class="profile-stat-label">Items</div>
-                        </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-number" id="profilePeopleCount">0</div>
-                            <div class="profile-stat-label">People</div>
-                        </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                            <div class="profile-stat-label">Saves</div>
-                        </div>
-                    </div>
+                    <p class="profile-email" id="profileEmail" style="text-align:center; margin-top:4px;"></p>
 
                     <button class="profile-edit-link" onclick="toggleProfileEdit(true)">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
