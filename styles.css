@@ -2350,6 +2350,25 @@
 
         .recent-clear-all-btn:hover { opacity: 1; }
 
+        /* Horizontally scrollable pill row — wrapper clips the row cleanly */
+        .recent-searches-row-wrap {
+            position: relative;
+            overflow: hidden;           /* clips the bleeding row at the container edge */
+        }
+
+        /* Right-edge fade hint — signals more pills are scrollable */
+        .recent-searches-row-wrap::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 32px;
+            height: 100%;
+            background: linear-gradient(to right, transparent, var(--bg, #FAF6EE));
+            pointer-events: none;
+            z-index: 1;
+        }
+
         /* Horizontally scrollable pill row */
         .recent-searches-row {
             display: flex;
@@ -2360,9 +2379,7 @@
             scrollbar-width: none;
             padding-bottom: 4px;
             padding-left: 2px;
-            padding-right: 20px;
-            margin-left: -2px;
-            margin-right: -20px; /* bleed to edge so pills scroll fully into view */
+            padding-right: 32px;        /* space so last pill clears the fade */
         }
         .recent-searches-row::-webkit-scrollbar { display: none; }
 
@@ -2390,7 +2407,7 @@
         }
 
         .recent-search-pill-text {
-            max-width: 140px;
+            max-width: 110px;           /* tighter cap so pills don't crowd the row */
             overflow: hidden;
             text-overflow: ellipsis;
         }
