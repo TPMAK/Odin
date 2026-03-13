@@ -2254,6 +2254,32 @@
             display: none !important;
         }
 
+        /* ── Translate button on inline result cards ── */
+        .card-translate-btn {
+            display: inline-block;
+            margin-top: 8px;
+            background: none;
+            border: 1px solid rgba(123,45,69,0.25);
+            color: #7B2D45;
+            font-size: 11px;
+            font-family: 'Inter', sans-serif;
+            padding: 3px 9px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        .card-translate-btn:hover {
+            background: rgba(123,45,69,0.07);
+            border-color: #7B2D45;
+        }
+
+        .compact-translate-btn {
+            margin-top: 6px;
+            font-size: 10px;
+            padding: 2px 8px;
+        }
+
         /* ── Animated search placeholder overlay ── */
         .search-input-inner {
             position: relative;
@@ -2298,12 +2324,12 @@
             display: none;
         }
 
-        /* ── Recent Searches ── */
+        /* ── Recent Searches — horizontal pill row ── */
         .recent-searches-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .recent-clear-all-btn {
@@ -2313,62 +2339,68 @@
             color: #7B2D45;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
-            padding: 2px 0;
-            opacity: 0.75;
+            padding: 0;
+            opacity: 0.65;
             transition: opacity 0.15s;
         }
 
         .recent-clear-all-btn:hover { opacity: 1; }
 
+        /* Horizontally scrollable pill row */
         .recent-searches-row {
             display: flex;
-            flex-direction: column;
-            gap: 2px;
+            flex-direction: row;
+            gap: 6px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 2px;
         }
+        .recent-searches-row::-webkit-scrollbar { display: none; }
 
-        .recent-search-item {
-            display: flex;
+        /* Each recent item is a pill with text + inline × */
+        .recent-search-pill {
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 7px 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.12s;
-        }
-
-        .recent-search-item:hover {
-            background: rgba(123,45,69,0.06);
-        }
-
-        .recent-search-icon {
-            color: var(--muted);
-            flex-shrink: 0;
-            opacity: 0.5;
-        }
-
-        .recent-search-text {
-            flex: 1;
-            font-size: 13px;
+            gap: 5px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 4px 8px 4px 10px;
+            font-size: 12px;
             color: var(--ink);
             font-family: 'Inter', sans-serif;
             white-space: nowrap;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border-color 0.15s, background 0.15s;
+        }
+
+        .recent-search-pill:hover {
+            border-color: #7B2D45;
+            background: #F5EDE8;
+        }
+
+        .recent-search-pill-text {
+            max-width: 140px;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .recent-search-delete {
+        .recent-pill-delete {
             background: none;
             border: none;
             color: var(--muted);
             cursor: pointer;
-            padding: 2px 4px;
-            font-size: 14px;
-            opacity: 0.4;
+            font-size: 13px;
+            line-height: 1;
+            padding: 0 1px;
+            opacity: 0.45;
             transition: opacity 0.15s;
             flex-shrink: 0;
         }
 
-        .recent-search-delete:hover { opacity: 0.9; }
+        .recent-pill-delete:hover { opacity: 1; color: #7B2D45; }
 
         .message {
             margin-bottom: 24px;
@@ -8320,11 +8352,13 @@ body.map-view-open .content {
 
 /* ── Search progress messages ── */
 .search-status-text {
-    display: block;
-    font-size: 14px;
+    display: inline;
+    font-size: 13px;
     color: var(--muted);
-    margin-bottom: 6px;
+    font-style: italic;
+    font-family: 'Inter', sans-serif;
     transition: opacity 0.2s ease;
+    margin-left: 4px;
 }
 
 

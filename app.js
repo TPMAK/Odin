@@ -2284,6 +2284,53 @@ async function toggleDrawerLang(btn) {
     }
 }
 
+// ── Translate button on inline result cards (top picks + compact cards) ──
+async function toggleCardTranslate(btn, idx) {
+    const r = currentResults[idx];
+    if (!r) return;
+    const state = btn.dataset.state;
+    const card  = btn.closest('.top-pick-card, .compact-card');
+
+    if (state === 'original') {
+        btn.textContent = 'Translating...';
+        btn.disabled = true;
+        try {
+            const targetLang = userPreferredLanguage || r._queryLanguage || 'zh-TW';
+            const translated = await translateItem(r, targetLang);
+
+            // Top-pick: update the reason text span
+            const reasonSpan = card && card.querySelector('.top-pick-reason-text');
+            if (reasonSpan && (translated.personal_note || translated.description)) {
+                if (!reasonSpan.dataset.original) reasonSpan.dataset.original = reasonSpan.textContent;
+                reasonSpan.textContent = (translated.personal_note || translated.description).substring(0, 100) + ((translated.personal_note || translated.description).length > 100 ? '...' : '');
+            }
+
+            // Compact: update snippet div
+            const snippetEl = card && card.querySelector('.compact-snippet');
+            if (snippetEl && (translated.personal_note || translated.description)) {
+                if (!snippetEl.dataset.original) snippetEl.dataset.original = snippetEl.textContent;
+                snippetEl.textContent = (translated.personal_note || translated.description).substring(0, 60) + ((translated.personal_note || translated.description).length > 60 ? '...' : '');
+            }
+
+            btn.dataset.state = 'translated';
+            btn.textContent = 'Show original';
+            btn.disabled = false;
+        } catch(e) {
+            btn.textContent = 'Translate 🌐';
+            btn.dataset.state = 'original';
+            btn.disabled = false;
+        }
+    } else {
+        // Restore originals
+        const reasonSpan = card && card.querySelector('.top-pick-reason-text');
+        if (reasonSpan && reasonSpan.dataset.original) reasonSpan.textContent = reasonSpan.dataset.original;
+        const snippetEl = card && card.querySelector('.compact-snippet');
+        if (snippetEl && snippetEl.dataset.original) snippetEl.textContent = snippetEl.dataset.original;
+        btn.dataset.state = 'original';
+        btn.textContent = 'Translate 🌐';
+    }
+}
+
 // Initialize app
 initApp();
 initLocation();
@@ -4254,7 +4301,7 @@ function sendMessage(text) {
 
     const container = document.getElementById('chatContainer');
     container.innerHTML += `<div class="message message-user"><div class="message-bubble">${escapeHtml(query)}</div></div>`;
-    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><span class="search-status-text">Searching...</span><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div><span class="search-status-text">Searching...</span></div></div>`;
     container.scrollTop = container.scrollHeight;
     startSearchMessages();
     input.value = '';
@@ -4421,9 +4468,10 @@ function sendMessage(text) {
                             ${snippet ? `
                                 <div class="top-pick-reason">
                                     <div class="top-pick-reason-label">${snippetLabel}</div>
-                                    ${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}
+                                    <span class="top-pick-reason-text" data-original="${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}">${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}</span>
                                 </div>
                             ` : ''}
+                            <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                         </div>
                     </div>
                 `;
@@ -4453,7 +4501,8 @@ function sendMessage(text) {
                             ${distText ? `<span>📍 ${distText}</span>` : ''}
                             ${byLine}
                         </div>
-                        ${snippet ? `<div class="compact-snippet">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                     </div>
                 `;
             };

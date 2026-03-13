@@ -1458,17 +1458,17 @@
                         <h1 id="searchGreeting"></h1>
                         <p id="searchGreetingSub"></p>
                     </div>
-                    <!-- Recent searches: shown when user has history -->
+                    <!-- Recent searches: compact horizontal pill row -->
                     <div id="recentSearchesSection" style="display:none; margin-bottom:20px;">
                         <div class="recent-searches-header">
-                            <span class="suggestions-label" style="margin-bottom:0;">最近搜尋 Recent</span>
+                            <span class="suggestions-label" style="margin-bottom:0;">Recent</span>
                             <button class="recent-clear-all-btn" onclick="clearAllRecentSearches()">Clear all</button>
                         </div>
                         <div class="recent-searches-row" id="recentSearchesRow"></div>
                     </div>
 
                     <!-- Suggestion chips: time-based, bilingual, rendered by JS -->
-                    <p class="suggestions-label" id="suggestionsLabel">試試問 Try asking</p>
+                    <p class="suggestions-label" id="suggestionsLabel">Try asking</p>
                     <div class="suggestions" id="searchSuggestions"></div>
                 </div>
             </div>
@@ -2000,7 +2000,7 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
             </div>
-            <button class="search-loc-btn active" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location on" aria-label="Toggle location">
+            <button class="search-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location off" aria-label="Toggle location">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             </button>
         </div>
@@ -2184,50 +2184,94 @@
     // ══════════════════════════════════════════════
     // ── TIME-BASED BILINGUAL SUGGESTION CHIPS ──
     // ══════════════════════════════════════════════
+    // Each pool has en[] and zh[] — 3 picked from each, queries match chip language
     var _SEARCH_CHIP_POOLS = {
-        // 05:00–10:59 Morning
-        morning: [
-            { q: 'Where to get good coffee nearby?',       label: '☕ 附近咖啡推薦' },
-            { q: 'Best breakfast spot your friends like',   label: '🍳 朋友推介早餐' },
-            { q: 'Quiet café with good wifi',               label: '💻 靜靜做嘢咖啡廳' },
-            { q: 'Good bakery nearby',                      label: '🥐 附近麵包店' },
-            { q: 'Healthy breakfast your friends saved',    label: '🥗 健康早餐推薦' },
-            { q: 'Where to get a flat white?',              label: '☕ 邊度有好flat white?' },
-        ],
-        // 11:00–13:59 Lunch
-        lunch: [
-            { q: 'Good ramen your friends recommend',       label: '🍜 朋友推介拉麵' },
-            { q: 'Quick lunch nearby',                      label: '🥡 附近快lunch' },
-            { q: 'Best poke bowl in the area',              label: '🍱 附近poke bowl' },
-            { q: 'Healthy lunch spots',                     label: '🥗 健康午餐選擇' },
-            { q: 'Best sushi for lunch',                    label: '🍣 午市壽司推薦' },
-            { q: 'Where did your friends go for dim sum?',  label: '🥟 朋友去邊飲茶?' },
-        ],
-        // 14:00–17:59 Afternoon
-        afternoon: [
-            { q: 'Café with good matcha or coffee',         label: '🍵 下午茶咖啡廳' },
-            { q: 'Cosy place to read or work',              label: '📖 舒適café坐低' },
-            { q: 'Best afternoon tea your friends saved',   label: '🫖 下午茶推薦' },
-            { q: 'Good snack spots nearby',                 label: '🧁 附近小食推薦' },
-            { q: 'Somewhere nice to sit outside',           label: '🌤 戶外坐位推薦' },
-            { q: 'What dessert places did your friends save?', label: '🍰 朋友收藏甜品店' },
-        ],
-        // 18:00–22:59 Evening
-        evening: [
-            { q: 'Good dinner spot for tonight',            label: '🍽 今晚食乜好?' },
-            { q: 'Bar your friends recommend',              label: '🍸 朋友推介酒吧' },
-            { q: 'Best Italian restaurant nearby',          label: '🍝 附近意大利餐廳' },
-            { q: 'Rooftop bar or outdoor seating',          label: '🌃 天台/戶外酒吧' },
-            { q: 'Date night restaurant your friends love', label: '🕯 朋友推介約會餐廳' },
-            { q: 'Where to get good cocktails?',            label: '🍹 邊度有好cocktail?' },
-        ],
-        // 23:00–04:59 Late night
-        latenight: [
-            { q: 'Late night food open now',                label: '🌙 夜晚食宵夜邊度好?' },
-            { q: 'Best 24hr eats your friends know',        label: '🌙 24小時食店推介' },
-            { q: 'Night cap bar nearby',                    label: '🥃 附近夜酒吧' },
-            { q: 'Any supper spots your friends saved?',    label: '🍜 朋友有冇收藏宵夜?' },
-        ],
+        morning: {
+            en: [
+                { q: 'Good coffee nearby',                       label: '☕ Good coffee nearby' },
+                { q: 'Best breakfast my friends like',           label: '🍳 Best breakfast spot' },
+                { q: 'Quiet café with wifi',                     label: '💻 Quiet café with wifi' },
+                { q: 'Good bakery nearby',                       label: '🥐 Good bakery nearby' },
+                { q: 'Where to get a flat white?',               label: '☕ Where to get a flat white?' },
+                { q: 'Healthy breakfast spots',                  label: '🥗 Healthy breakfast spots' },
+            ],
+            zh: [
+                { q: '附近邊度有好咖啡？',                        label: '☕ 附近咖啡推薦' },
+                { q: '朋友推介嘅早餐店係邊度？',                  label: '🍳 朋友推介早餐' },
+                { q: '有冇靜靜嘅café可以做嘢？',                  label: '💻 靜靜做嘢咖啡廳' },
+                { q: '附近有咩麵包店推薦？',                      label: '🥐 附近麵包店' },
+                { q: '邊度有好flat white？',                     label: '☕ 好flat white推薦' },
+                { q: '健康早餐去邊好？',                          label: '🥗 健康早餐推薦' },
+            ],
+        },
+        lunch: {
+            en: [
+                { q: 'Good ramen my friends recommend',          label: '🍜 Good ramen nearby' },
+                { q: 'Quick lunch nearby',                       label: '🥡 Quick lunch nearby' },
+                { q: 'Best poke bowl in the area',               label: '🍱 Best poke bowl' },
+                { q: 'Healthy lunch spots',                      label: '🥗 Healthy lunch spots' },
+                { q: 'Best sushi for lunch',                     label: '🍣 Best sushi for lunch' },
+                { q: 'Where did my friends go for dim sum?',     label: '🥟 Dim sum nearby' },
+            ],
+            zh: [
+                { q: '朋友推介嘅拉麵係邊間？',                    label: '🍜 朋友推介拉麵' },
+                { q: '附近有咩快lunch？',                         label: '🥡 附近快lunch' },
+                { q: '附近有好poke bowl嗎？',                     label: '🍱 附近poke bowl' },
+                { q: '有咩健康午餐選擇？',                        label: '🥗 健康午餐選擇' },
+                { q: '午市壽司邊度好？',                          label: '🍣 午市壽司推薦' },
+                { q: '朋友去邊度飲茶？',                          label: '🥟 朋友飲茶推薦' },
+            ],
+        },
+        afternoon: {
+            en: [
+                { q: 'Café with good matcha or coffee',          label: '🍵 Good matcha or coffee' },
+                { q: 'Cosy place to read or work',               label: '📖 Cosy place to work' },
+                { q: 'Best afternoon tea my friends saved',      label: '🫖 Best afternoon tea' },
+                { q: 'Good snack spots nearby',                  label: '🧁 Good snack spots' },
+                { q: 'Somewhere nice to sit outside',            label: '🌤 Nice outdoor seating' },
+                { q: 'What dessert places did my friends save?', label: '🍰 Dessert places nearby' },
+            ],
+            zh: [
+                { q: '邊度有好抹茶或咖啡？',                      label: '🍵 下午茶咖啡廳' },
+                { q: '有冇舒服嘅地方坐低做嘢或睇書？',             label: '📖 舒適café坐低' },
+                { q: '朋友收藏咗咩下午茶？',                      label: '🫖 下午茶推薦' },
+                { q: '附近有咩小食推薦？',                        label: '🧁 附近小食推薦' },
+                { q: '有冇靚嘅戶外坐位？',                        label: '🌤 戶外坐位推薦' },
+                { q: '朋友收藏咗咩甜品店？',                      label: '🍰 朋友收藏甜品店' },
+            ],
+        },
+        evening: {
+            en: [
+                { q: 'Good dinner spot for tonight',             label: '🍽 Good dinner tonight' },
+                { q: 'Bar my friends recommend',                 label: '🍸 Bar my friends like' },
+                { q: 'Best Italian restaurant nearby',           label: '🍝 Italian restaurant nearby' },
+                { q: 'Rooftop bar or outdoor seating',           label: '🌃 Rooftop bar nearby' },
+                { q: 'Date night restaurant my friends love',    label: '🕯 Date night restaurant' },
+                { q: 'Where to get good cocktails?',             label: '🍹 Good cocktails nearby' },
+            ],
+            zh: [
+                { q: '今晚食乜好？',                              label: '🍽 今晚食乜好?' },
+                { q: '朋友推介嘅酒吧係邊間？',                    label: '🍸 朋友推介酒吧' },
+                { q: '附近有冇好嘅意大利餐廳？',                  label: '🍝 附近意大利餐廳' },
+                { q: '附近有冇天台或戶外酒吧？',                  label: '🌃 天台/戶外酒吧' },
+                { q: '朋友推介嘅約會餐廳係邊間？',                label: '🕯 約會餐廳推薦' },
+                { q: '邊度有好cocktail？',                        label: '🍹 邊度有好cocktail?' },
+            ],
+        },
+        latenight: {
+            en: [
+                { q: 'Late night food open now',                 label: '🌙 Late night food' },
+                { q: 'Best 24hr eats my friends know',           label: '🕛 24hr food nearby' },
+                { q: 'Night cap bar nearby',                     label: '🥃 Night cap bar' },
+                { q: 'Any supper spots my friends saved?',       label: '🍜 Supper spots nearby' },
+            ],
+            zh: [
+                { q: '夜晚食宵夜邊度好？',                        label: '🌙 宵夜推薦' },
+                { q: '朋友知唔知24小時食店？',                    label: '🕛 24小時食店推介' },
+                { q: '附近有冇夜酒吧？',                          label: '🥃 附近夜酒吧' },
+                { q: '朋友有冇收藏宵夜地方？',                    label: '🍜 朋友宵夜推薦' },
+            ],
+        },
     };
 
     function _getChipPool() {
@@ -2245,19 +2289,28 @@
             var j = Math.floor(Math.random() * (i + 1));
             var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
         }
-        return copy.slice(0, n);
+        return copy.slice(0, Math.min(n, copy.length));
     }
 
     function renderSearchChips() {
         var container = document.getElementById('searchSuggestions');
         if (!container) return;
         container.innerHTML = '';
-        var picks = _shufflePick(_getChipPool(), 6);
-        picks.forEach(function(item) {
+        var pool = _getChipPool();
+        // 3 English + 3 Chinese, randomly picked, interleaved for visual variety
+        var enPicks = _shufflePick(pool.en, 3);
+        var zhPicks = _shufflePick(pool.zh, 3);
+        // Interleave: en, zh, en, zh, en, zh
+        var chips = [];
+        for (var i = 0; i < 3; i++) {
+            if (enPicks[i]) chips.push(enPicks[i]);
+            if (zhPicks[i]) chips.push(zhPicks[i]);
+        }
+        chips.forEach(function(item) {
             var span = document.createElement('span');
             span.className = 'suggestion-chip';
             span.textContent = item.label;
-            span.onclick = function() { sendMessage(item.q); };
+            span.onclick = (function(q) { return function() { sendMessage(q); }; })(item.q);
             container.appendChild(span);
         });
     }
@@ -2334,8 +2387,21 @@
     var _RECENT_MAX = 5;
 
     function getRecentSearches() {
-        try { return JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]'); } catch(e) { return []; }
+        try {
+            var raw = JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]');
+            // Sanitise: keep only plain non-empty strings
+            return raw.filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
+        } catch(e) { return []; }
     }
+
+    // One-time cleanup: remove any stale [object Object] entries saved by old code
+    (function() {
+        try {
+            var raw = JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]');
+            var clean = raw.filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
+            if (clean.length !== raw.length) localStorage.setItem(_RECENT_KEY, JSON.stringify(clean));
+        } catch(e) {}
+    })();
 
     function saveRecentSearch(query) {
         if (!query || query.trim().length < 2) return;
@@ -2360,36 +2426,33 @@
         var section = document.getElementById('recentSearchesSection');
         var row     = document.getElementById('recentSearchesRow');
         if (!section || !row) return;
-        var list = getRecentSearches();
+        // Filter out any stale [object Object] entries
+        var list = getRecentSearches().filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
         if (!list.length) { section.style.display = 'none'; return; }
         section.style.display = '';
         row.innerHTML = '';
         list.forEach(function(q) {
-            var item = document.createElement('div');
-            item.className = 'recent-search-item';
+            var pill = document.createElement('div');
+            pill.className = 'recent-search-pill';
 
-            var icon = document.createElement('span');
-            icon.className = 'recent-search-icon';
-            icon.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>';
-
-            var text = document.createElement('span');
-            text.className = 'recent-search-text';
-            text.textContent = q;
+            var textSpan = document.createElement('span');
+            textSpan.className = 'recent-search-pill-text';
+            textSpan.textContent = q;
 
             var del = document.createElement('button');
-            del.className = 'recent-search-delete';
+            del.className = 'recent-pill-delete';
             del.innerHTML = '&times;';
             del.title = 'Remove';
             del.setAttribute('aria-label', 'Remove');
+
             (function(query) {
                 del.onclick = function(e) { e.stopPropagation(); deleteRecentSearch(query); };
-                item.onclick = function() { sendMessage(query); };
+                pill.onclick = function() { sendMessage(query); };
             })(q);
 
-            item.appendChild(icon);
-            item.appendChild(text);
-            item.appendChild(del);
-            row.appendChild(item);
+            pill.appendChild(textSpan);
+            pill.appendChild(del);
+            row.appendChild(pill);
         });
     }
 
@@ -2923,7 +2986,8 @@
     }
 
     // ── 2. Location-aware subtitle line — ON by default ──
-    var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') !== 'false';
+    // Default OFF — only turns on if user explicitly enables it (saved as 'true')
+    var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') === 'true';
     var _homeSuburb = null; // cached suburb name
 
     // Location icon — filled pin (on) / outline pin (off)
