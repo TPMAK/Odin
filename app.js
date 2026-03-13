@@ -684,6 +684,13 @@ async function loadProfilePage() {
             .select('*', { count: 'exact', head: true })
             .eq('user_id', currentUser.id);
         document.getElementById('profileEndorsementCount').textContent = endorsementCount || 0;
+
+        const { count: friendsCount } = await supabaseClient
+            .from('friendships')
+            .select('*', { count: 'exact', head: true })
+            .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
+            .eq('status', 'accepted');
+        document.getElementById('profilePeopleCount').textContent = friendsCount || 0;
     } catch (err) {
         console.error('Error loading profile stats:', err);
     }
@@ -1768,7 +1775,12 @@ async function loadNotifications() {
         }
 
         // Filter out notifications created before the last "Clear all"
-        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        // Use localStorage first (fast), fall back to DB-persisted timestamp (cross-device)
+        const localClearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        const dbClearedAt = currentProfile?.notifs_cleared_at
+            ? new Date(currentProfile.notifs_cleared_at).getTime().toString()
+            : null;
+        const clearedAt = localClearedAt || dbClearedAt;
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
@@ -1858,6 +1870,15 @@ async function clearAllNotifications() {
     try {
         await supabaseClient.from('notifications').delete().eq('user_id', currentUser.id);
     } catch (e) { console.error('Error clearing notifications:', e); }
+
+    // Persist cleared timestamp to profile so it survives across devices/sessions
+    try {
+        await supabaseClient.from('profiles')
+            .update({ notifs_cleared_at: new Date().toISOString() })
+            .eq('id', currentUser.id);
+        // Keep currentProfile in sync so loadNotifications() can use it without refetch
+        if (currentProfile) currentProfile.notifs_cleared_at = new Date().toISOString();
+    } catch (e) { console.error('Error persisting notifs_cleared_at:', e); }
 
     setTimeout(() => {
         if (container) container.innerHTML = '';

@@ -1642,16 +1642,16 @@
 
                     <div class="profile-stats">
                         <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
-                            <div class="profile-stat-label">Saved</div>
+                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                            <div class="profile-stat-label">Items</div>
                         </div>
                         <div class="profile-stat">
                             <div class="profile-stat-number" id="profilePeopleCount">0</div>
                             <div class="profile-stat-label">People</div>
                         </div>
                         <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
-                            <div class="profile-stat-label">Items</div>
+                            <div class="profile-stat-number" id="profileEndorsementCount">0</div>
+                            <div class="profile-stat-label">Saves</div>
                         </div>
                     </div>
 
@@ -1753,11 +1753,10 @@
 
                 <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
 
-                <!-- Danger zone -->
-                <div class="danger-zone" id="dangerZone">
-                    <div class="danger-zone-label">Danger Zone</div>
-                    <p class="danger-zone-desc">Permanently delete your account, all your saves, and remove yourself from all circles. This cannot be undone.</p>
-                    <button class="delete-account-btn" onclick="confirmDeleteAccount()">Delete my account</button>
+                <!-- Close account (subtle) -->
+                <div class="close-account-subtle" id="dangerZone">
+                    <p class="close-account-desc">You can close your account at any time.</p>
+                    <button class="close-account-link" onclick="confirmDeleteAccount()">Delete account</button>
                 </div>
 
                 <!-- Delete confirmation dialog -->
