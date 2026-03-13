@@ -4721,11 +4721,9 @@ function startNewSession() {
     document.getElementById('messageInput').value = '';
     // Refresh search greeting after session reset
     if (typeof updateSearchGreeting === 'function') updateSearchGreeting();
-    // Hide suggestion chips in Focus mode
-    if (typeof getHomeStyle === 'function' && getHomeStyle() === 'launcher') {
-        var chipsEl = container.querySelector('.suggestions');
-        if (chipsEl) chipsEl.style.display = 'none';
-    }
+    // Always restore suggestion chips when starting a new session
+    var chipsEl = document.getElementById('searchSuggestions');
+    if (chipsEl) chipsEl.style.display = '';
     console.log('New session started:', currentSessionId);
 }
 

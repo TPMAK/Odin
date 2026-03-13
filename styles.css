@@ -2212,29 +2212,46 @@
             margin-bottom: 16px;
         }
 
+        .suggestions-label {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px;
+            margin-top: 4px;
+        }
+
         .suggestions {
             display: flex;
             flex-wrap: wrap;
             justify-content: flex-start;
-            gap: 10px;
+            gap: 8px;
         }
 
         .suggestion-chip {
             background: var(--surface);
-            border: 1.5px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 12px;
             color: var(--ink);
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             transition: border-color 0.15s, color 0.15s, background 0.15s;
+            white-space: nowrap;
+            line-height: 1.4;
         }
 
         .suggestion-chip:hover {
             border-color: #7B2D45;
             color: #7B2D45;
             background: #F5EDE8;
+        }
+
+        /* Hide bottom tab bar when iPhone keyboard is open */
+        body.keyboard-open .bottom-tab-bar {
+            display: none !important;
         }
 
         .message {

@@ -1451,28 +1451,22 @@
 
         <!-- SEARCH MODE -->
         <div id="searchMode" class="hidden">
-            <div class="search-header">
-                <button class="search-back-btn" onclick="goBack()" aria-label="Go back">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-                <span class="search-header-title"></span>
-                <div style="width:32px;"></div>
-            </div>
 
             <div class="chat-container" id="chatContainer">
-                <div class="welcome">
+                <div class="welcome" id="searchWelcome">
                     <div class="search-greeting">
                         <h1 id="searchGreeting"></h1>
                         <p id="searchGreetingSub"></p>
                     </div>
-                    <div class="suggestions">
-                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
-                        <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
-                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
-                    </div>
+                    <!-- Suggestion chips: shown on first entry, hidden after first message -->
+                    <p class="suggestions-label">Try asking</p>
+                    <div class="suggestions" id="searchSuggestions">
+                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">☕ Coffee to work from</span>
+                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">🍝 Italian restaurant</span>
+                        <span class="suggestion-chip" onclick="sendMessage('drawing method I saved')">📌 Drawing method I saved</span>
+                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">👧 Places for kids</span>
+                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">🍜 Sunny's noodle spot</span>
+                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">🎂 Birthday cake – Queenstown</span>
                     </div>
                 </div>
             </div>
@@ -2175,12 +2169,56 @@
         var pool = hour < 12 ? prompts.morning : hour < 14 ? prompts.lunch : hour < 18 ? prompts.afternoon : prompts.evening;
         sub.textContent = pool[Math.floor(Math.random() * pool.length)];
 
-        // Hide suggestion chips in Focus mode
-        var chipsEl = document.querySelector('#chatContainer .suggestions');
+        // Always show suggestion chips on search page welcome state
+        var chipsEl = document.getElementById('searchSuggestions');
         if (chipsEl) {
-            chipsEl.style.display = (getHomeStyle() === 'launcher') ? 'none' : '';
+            chipsEl.style.display = '';
         }
     }
+
+    // ── Keyboard visibility: hide bottom tab bar when iPhone keyboard opens ──
+    (function() {
+        var tabBar = null;
+        function getTabBar() { return tabBar || (tabBar = document.querySelector('.bottom-tab-bar')); }
+
+        // Use visualViewport API (most reliable on iOS Safari)
+        if (window.visualViewport) {
+            var _lastVH = window.visualViewport.height;
+            window.visualViewport.addEventListener('resize', function() {
+                var vvh = window.visualViewport.height;
+                var windowH = window.innerHeight;
+                // If viewport shrinks by more than 120px, keyboard is likely open
+                var keyboardOpen = (windowH - vvh) > 120;
+                document.body.classList.toggle('keyboard-open', keyboardOpen);
+                _lastVH = vvh;
+            });
+        } else {
+            // Fallback: watch window resize
+            var _initH = window.innerHeight;
+            window.addEventListener('resize', function() {
+                var diff = _initH - window.innerHeight;
+                document.body.classList.toggle('keyboard-open', diff > 120);
+            });
+        }
+
+        // Also handle input focus/blur on messageInput for safety
+        document.addEventListener('focusin', function(e) {
+            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+                document.body.classList.add('keyboard-open');
+            }
+        });
+        document.addEventListener('focusout', function(e) {
+            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+                // Small delay to let the keyboard fully dismiss
+                setTimeout(function() {
+                    if (document.activeElement !== document.getElementById('messageInput') &&
+                        document.activeElement !== document.getElementById('homeSearchInput')) {
+                        document.body.classList.remove('keyboard-open');
+                    }
+                }, 150);
+            }
+        });
+    })();
 
     // Patch setMode to track history + trigger search greeting
     (function() {
