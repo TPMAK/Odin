@@ -4992,22 +4992,39 @@ function prefillCaptureLocation() {
             dd.classList.remove('hidden');
         }
 
-        // Bias results toward user's current location if we have it
+        // Auckland bounding box (fallback when no GPS)
+        // SW: -37.05, 174.55 — NE: -36.65, 175.00
+        const AKL_VIEWBOX = '174.55,-36.65,175.00,-37.05';
+
+        // Prefer user's GPS if available, else default to Auckland
         const lat = document.getElementById('userLat')?.value;
         const lng = document.getElementById('userLng')?.value;
         let viewboxParam = '';
         if (lat && lng) {
-            const delta = 0.05; // ~5km radius bias
+            const delta = 0.15; // ~15km radius bias around user
             viewboxParam = `&viewbox=${+lng - delta},${+lat + delta},${+lng + delta},${+lat - delta}&bounded=0`;
+        } else {
+            // Default bias: Auckland viewbox, not bounded so suburb names still work
+            viewboxParam = `&viewbox=${AKL_VIEWBOX}&bounded=0`;
         }
 
         try {
             const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5${viewboxParam}`,
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=8&countrycodes=nz${viewboxParam}`,
                 { headers: { 'Accept-Language': 'en' } }
             );
             const results = await res.json();
-            showDropdown(results);
+
+            // Sort: Auckland/NZ results first, then everything else
+            results.sort((a, b) => {
+                const aIsAkl = (a.display_name || '').toLowerCase().includes('auckland');
+                const bIsAkl = (b.display_name || '').toLowerCase().includes('auckland');
+                if (aIsAkl && !bIsAkl) return -1;
+                if (!aIsAkl && bIsAkl) return 1;
+                return 0;
+            });
+
+            showDropdown(results.slice(0, 5));
         } catch (e) {
             hideDropdown();
         }

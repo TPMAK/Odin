@@ -1,0 +1,67 @@
+================================================================================
+STAGE 2 ROADMAP NOTE - 13 March 2026
+Project Odin / The Community
+================================================================================
+
+SIRI CAPTURE FLOW (Voice-First Add)
+-------------------------------------
+Goal: Let users add discoveries hands-free via Siri — no app, no typing.
+
+User says: "Hey Siri, add to Odin"
+Siri asks:  "What's the name?"     → speech-to-text → title
+Siri asks:  "What's your take?"    → speech-to-text → personal_note
+Siri grabs: GPS coordinates silently → lat, lng
+Siri posts: JSON to existing n8n capture webhook → Supabase
+
+WHY THIS MATTERS
+-----------------
+- Lowest friction capture possible (eyes-free, hands-free)
+- Captures in the moment — at the restaurant, in the store, right now
+- No app store approval needed — just an iOS Shortcut shared as a link
+- Founding members install in one tap
+
+WHAT'S NEEDED
+--------------
+1. iOS Shortcut file (.shortcut)
+   - Ask Siri for spoken input → title
+   - Ask Siri for spoken input → personal_note
+   - Grab GPS coordinates silently
+   - POST JSON to existing n8n capture webhook
+
+2. n8n webhook update
+   - Accept lat/lng fields from Siri payload
+   - Map to existing Supabase schema
+
+3. Supabase fields (already exist — no schema change)
+   - title
+   - personal_note
+   - category (default: "place")
+   - lat, lng
+   - user_id (hardcoded per shortcut install for MVP)
+   - visibility (default: "friends")
+
+4. Rollout
+   - Build shortcut, test solo first
+   - Share install link to 2-3 founding members
+   - No App Store, no TestFlight — just a .shortcut link
+
+WHAT'S ALREADY DONE (no rebuild needed)
+-----------------------------------------
+✓ n8n capture webhook: live
+✓ Supabase schema: has lat, lng, personal_note fields
+✓ user_id: can be hardcoded per shortcut install for MVP
+✓ Category defaults and visibility defaults already set in web form
+
+DEFAULTS FOR SIRI CAPTURES
+----------------------------
+- Category: "place" (most common voice capture scenario)
+- Visibility: "friends"
+- Photo: none (voice flow only)
+- Address: reverse-geocoded from GPS coords via n8n
+
+STATUS
+-------
+PARKED — build after Stage 1 UX is validated with founding members
+Priority: HIGH for Stage 2
+This is the "wow" moment for mobile-first users.
+================================================================================
