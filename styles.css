@@ -385,7 +385,7 @@
         .home-page {
             max-width: 600px;
             margin: 0 auto;
-            padding: 16px 16px 40px;   /* Fix 7: was 24px, reduced to prevent left cut-off on small screens */
+            padding: 16px 16px 40px;
             box-sizing: border-box;
         }
 
@@ -394,7 +394,7 @@
         }
 
         @media (min-width: 768px) {
-            .home-page { max-width: 720px; padding: 20px 28px 40px; }
+            .home-page { max-width: 900px; padding: 20px 32px 40px; }
         }
 
         /* Greeting */
@@ -1475,9 +1475,13 @@
 
         /* DISCOVER MODE */
         .discover-container {
-            max-width: 1400px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 16px 20px;
+        }
+
+        @media (min-width: 768px) {
+            .discover-container { padding: 20px 32px; }
         }
 
         .discover-header {
@@ -3366,7 +3370,7 @@
 
         /* INPUT MODE */
         .input-form-container {
-            max-width: 600px;
+            max-width: 500px;
             margin: 16px auto;
             padding: 0 20px 120px;
         }
@@ -4612,6 +4616,10 @@
     max-width: 600px;
     margin: 0 auto;
     padding: 16px 20px 120px;
+}
+
+@media (min-width: 768px) {
+    .profile-container { max-width: 900px; padding: 20px 32px 120px; }
 }
 
 /* ── Airbnb-style profile card ── */
