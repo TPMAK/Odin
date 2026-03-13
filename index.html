@@ -1878,8 +1878,8 @@
 
                     <!-- 3. YOUR TAKE (merged description + personal note) -->
                     <div class="form-group">
-                        <label class="field-label-inline">Your take <span class="field-label-required">*</span></label>
-                        <textarea id="personalNote" class="your-take-textarea" placeholder="What would you tell a friend? Best dish, a tip, why it's worth it..." required></textarea>
+                        <label class="field-label-inline">Your take</label>
+                        <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
                         <!-- Hidden description mirrors personalNote value on submit -->
                         <input type="hidden" id="description">
                     </div>
@@ -1943,10 +1943,11 @@
                                     <span class="visibility-desc" id="privateToggleDesc">Your connections can see this</span>
                                 </div>
                             </div>
-                            <div class="privacy-toggle-track" id="privateToggleTrack">
+                            <div class="privacy-toggle-track active" id="privateToggleTrack">
                                 <div class="privacy-toggle-knob"></div>
                             </div>
                         </div>
+                        <!-- value="false" = not private = shared with Friends (default ON) -->
                         <input type="hidden" id="privateToggle" value="false">
                     </div>
 

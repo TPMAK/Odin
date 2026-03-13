@@ -4826,11 +4826,12 @@ function togglePrivacy(inputId) {
     const title  = document.getElementById(inputId + 'Title');
     const desc   = document.getElementById(inputId + 'Desc');
 
-    const isActive = input.value === 'true';        // currently private?
-    const goPrivate = !isActive;                    // new state
+    // Toggle: track.active = Friends ON, track no-active = private
+    const isShared = input.value === 'false';   // currently shared with friends?
+    const goPrivate = isShared;                 // flip to private
 
     input.value = goPrivate ? 'true' : 'false';
-    track.classList.toggle('active', goPrivate);
+    track.classList.toggle('active', !goPrivate); // active = Friends ON
 
     // Update visibility status labels
     if (icon)  icon.textContent  = goPrivate ? '🔒' : '👥';
@@ -4866,6 +4867,23 @@ function clearCaptureForm() {
     // Show URL hint
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
+    // Reset visibility to Friends ON (default)
+    const privInput = document.getElementById('privateToggle');
+    const privTrack = document.getElementById('privateToggleTrack');
+    const privIcon  = document.getElementById('privateToggleIcon');
+    const privTitle = document.getElementById('privateToggleTitle');
+    const privDesc  = document.getElementById('privateToggleDesc');
+    if (privInput) privInput.value = 'false';
+    if (privTrack) privTrack.classList.add('active');
+    if (privIcon)  privIcon.textContent  = '👥';
+    if (privTitle) privTitle.textContent = 'Friends';
+    if (privDesc)  privDesc.textContent  = 'Your connections can see this';
+    // Reset address field visibility
+    const addressGroup = document.querySelector('.address-group');
+    if (addressGroup) addressGroup.style.display = '';
+    // Reset Your Take placeholder to Place default
+    const takeTa = document.getElementById('personalNote');
+    if (takeTa) takeTa.placeholder = 'Best tonkotsu in town — ask for the spicy option, go after 7pm';
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -5247,6 +5265,28 @@ async function submitDiscovery(e) {
         return;
     }
 
+    // Validate "Your take" — required but no asterisk shown
+    const takeVal = document.getElementById('personalNote').value.trim();
+    if (!takeVal) {
+        const textarea = document.getElementById('personalNote');
+        textarea.focus();
+        textarea.style.borderColor = '#7B2D45';
+        textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) {
+            formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Tell your circle why it\'s worth it — even one line helps.</p>';
+        }
+        setTimeout(() => {
+            textarea.style.borderColor = '';
+            textarea.style.boxShadow = '';
+        }, 2500);
+        document.getElementById('submitBtn').disabled = false;
+        return;
+    }
+    // Clear any validation state
+    const formMsg = document.getElementById('formMessage');
+    if (formMsg) formMsg.innerHTML = '';
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
 
@@ -5283,6 +5323,15 @@ async function submitDiscovery(e) {
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
         visibility: isPrivate ? 'private' : 'friends'
     };
+
+    // Post-save nudge: if note is thin, show a gentle prompt in the overlay
+    const isThinNote = takeVal.length < 30;
+    const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
+    if (overlayBody) {
+        overlayBody.innerHTML = isThinNote
+            ? 'Saved! <span style="display:block;font-size:12px;color:#9CA3AF;margin-top:4px;">Next time, add one more detail — your circle will love you for it.</span>'
+            : 'Your discovery has been added';
+    }
 
     // Show instant "Saved!" overlay immediately
     const overlay = document.getElementById('saveSuccessOverlay');
@@ -5328,16 +5377,33 @@ function selectCategory(el) {
     const val = el.dataset.value;
     document.getElementById('category').value = val;
 
+    // Category-aware placeholder for "Your Take"
+    const takePlaceholders = {
+        place:   'Best tonkotsu in town — ask for the spicy option, go after 7pm',
+        product: 'Been using this for 6 months, worth every cent — way better than the Amazon version',
+        service: 'Fixed my back in 3 sessions — ask for the deep tissue, not the relaxation',
+        advice:  'Changed how I think about mornings — chapter 3 is the one, read it twice'
+    };
+    const textarea = document.getElementById('personalNote');
+    if (textarea) textarea.placeholder = takePlaceholders[val] || 'What would you tell a friend?';
+
+    // Show/hide address field based on category
+    const addressGroup = document.querySelector('.address-group');
+    if (addressGroup) {
+        if (val === 'place') {
+            addressGroup.style.display = '';
+        } else {
+            addressGroup.style.display = 'none';
+            // Clear address when hidden
+            const addrInput = document.getElementById('address');
+            if (addrInput) addrInput.value = '';
+        }
+    }
+
     // Update address label hint based on category
     const addressLabel = document.getElementById('addressLabel');
     if (addressLabel) {
-        const hints = {
-            place:   '— recommended for places',
-            product: '— optional',
-            service: '— optional',
-            advice:  '— optional'
-        };
-        addressLabel.textContent = hints[val] || '— optional';
+        addressLabel.textContent = '— recommended for places';
     }
 }
 
