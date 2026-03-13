@@ -1930,25 +1930,26 @@
                     <!-- Hidden Added By (auto-filled, not shown) -->
                     <input type="hidden" id="addedBy" value="">
 
-                    <!-- Visibility Toggle -->
-                    <div class="form-group visibility-group" style="margin-top: 8px;">
-                        <div class="visibility-label-row">
-                            <span class="visibility-section-label">VISIBILITY</span>
+                    <!-- Visibility 3-way Selector -->
+                    <div class="form-group visibility-group" style="margin-top: 4px;">
+                        <label class="field-label-inline">Who can see this</label>
+                        <div class="vis-selector" id="visSelector">
+                            <button type="button" class="vis-option active" data-value="private" onclick="selectVisibility(this)">
+                                <span class="vis-icon">🔒</span>
+                                <span class="vis-label">Only me</span>
+                            </button>
+                            <button type="button" class="vis-option" data-value="friends" onclick="selectVisibility(this)">
+                                <span class="vis-icon">👥</span>
+                                <span class="vis-label">Friends</span>
+                            </button>
+                            <button type="button" class="vis-option" data-value="public" onclick="selectVisibility(this)">
+                                <span class="vis-icon">🌐</span>
+                                <span class="vis-label">Public</span>
+                            </button>
                         </div>
-                        <div class="privacy-toggle-row" onclick="togglePrivacy('privateToggle')">
-                            <div class="visibility-status">
-                                <span class="visibility-icon" id="privateToggleIcon">👥</span>
-                                <div class="visibility-info">
-                                    <span class="visibility-title" id="privateToggleTitle">Friends</span>
-                                    <span class="visibility-desc" id="privateToggleDesc">Your connections can see this</span>
-                                </div>
-                            </div>
-                            <div class="privacy-toggle-track active" id="privateToggleTrack">
-                                <div class="privacy-toggle-knob"></div>
-                            </div>
-                        </div>
-                        <!-- value="false" = not private = shared with Friends (default ON) -->
-                        <input type="hidden" id="privateToggle" value="false">
+                        <!-- private=true by default -->
+                        <input type="hidden" id="privateToggle" value="true">
+                        <input type="hidden" id="visibilityValue" value="private">
                     </div>
 
                     <button type="submit" class="submit-btn" id="submitBtn">

@@ -4839,6 +4839,61 @@ function togglePrivacy(inputId) {
     if (desc)  desc.textContent  = goPrivate ? 'Hidden from everyone else' : 'Your connections can see this';
 }
 
+// ===== CAPTURE: VISIBILITY SELECTOR =====
+function selectVisibility(el) {
+    document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    const val = el.dataset.value; // 'private' | 'friends' | 'public'
+    const hidden = document.getElementById('privateToggle');
+    const visField = document.getElementById('visibilityValue');
+    if (hidden)   hidden.value   = val === 'private' ? 'true' : 'false';
+    if (visField) visField.value = val;
+}
+
+// ===== CAPTURE: ROTATING PLACEHOLDER =====
+const TAKE_PLACEHOLDERS = {
+    place: [
+        'Best tonkotsu in town — ask for the spicy option, go after 7pm',
+        'Hidden gem — order the daily special, park on the side street',
+        'Worth the drive — take a friend, skip the mains, just do dessert',
+        'Go on a weekday morning, half the crowd and twice the vibe',
+    ],
+    product: [
+        'Been using this for 6 months — worth every cent, way better than the Amazon version',
+        'Game changer — replaced three other things I used to buy separately',
+        'Bought it twice already. The second one was for my mum.',
+        'Sounds gimmicky but actually works — give it two weeks',
+    ],
+    service: [
+        'Fixed my back in 3 sessions — ask for the deep tissue, not the relaxation',
+        'Best in town, book 2 weeks out or you won\'t get in',
+        'Ask for Michelle specifically — she actually listens',
+        'Don\'t go on price alone, this one is actually worth paying for',
+    ],
+    advice: [
+        'Changed how I think about mornings — chapter 3 is the one, read it twice',
+        'Sent this to five people already. Everyone came back saying thank you.',
+        'Skip the intro, start at chapter 2 — trust me',
+        'One idea from this paid for itself ten times over',
+    ],
+};
+let _takePlaceholderTimer = null;
+let _takePlaceholderIdx = {};
+
+function startTakePlaceholder(category) {
+    if (_takePlaceholderTimer) clearInterval(_takePlaceholderTimer);
+    const textarea = document.getElementById('personalNote');
+    if (!textarea) return;
+    const pool = TAKE_PLACEHOLDERS[category] || TAKE_PLACEHOLDERS.place;
+    if (!_takePlaceholderIdx[category]) _takePlaceholderIdx[category] = 0;
+    textarea.placeholder = pool[_takePlaceholderIdx[category] % pool.length];
+    _takePlaceholderTimer = setInterval(() => {
+        if (document.activeElement === textarea) return; // don't rotate while typing
+        _takePlaceholderIdx[category] = ((_takePlaceholderIdx[category] || 0) + 1) % pool.length;
+        textarea.placeholder = pool[_takePlaceholderIdx[category]];
+    }, 5000);
+}
+
 // ===== CAPTURE: CLEAR FORM =====
 function clearCaptureForm() {
     document.getElementById('addForm').reset();
@@ -4867,23 +4922,19 @@ function clearCaptureForm() {
     // Show URL hint
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
-    // Reset visibility to Friends ON (default)
+    // Reset visibility selector to private (default)
+    document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
+    const defaultVis = document.querySelector('.vis-option[data-value="private"]');
+    if (defaultVis) defaultVis.classList.add('active');
     const privInput = document.getElementById('privateToggle');
-    const privTrack = document.getElementById('privateToggleTrack');
-    const privIcon  = document.getElementById('privateToggleIcon');
-    const privTitle = document.getElementById('privateToggleTitle');
-    const privDesc  = document.getElementById('privateToggleDesc');
-    if (privInput) privInput.value = 'false';
-    if (privTrack) privTrack.classList.add('active');
-    if (privIcon)  privIcon.textContent  = '👥';
-    if (privTitle) privTitle.textContent = 'Friends';
-    if (privDesc)  privDesc.textContent  = 'Your connections can see this';
+    const visField  = document.getElementById('visibilityValue');
+    if (privInput) privInput.value = 'true';
+    if (visField)  visField.value  = 'private';
     // Reset address field visibility
     const addressGroup = document.querySelector('.address-group');
     if (addressGroup) addressGroup.style.display = '';
-    // Reset Your Take placeholder to Place default
-    const takeTa = document.getElementById('personalNote');
-    if (takeTa) takeTa.placeholder = 'Best tonkotsu in town — ask for the spicy option, go after 7pm';
+    // Reset Your Take rotating placeholder to Place default
+    startTakePlaceholder('place');
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -5031,6 +5082,9 @@ function prefillCaptureLocation() {
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Start rotating placeholder for default category (place)
+        startTakePlaceholder('place');
+
         const addressInput = document.getElementById('address');
         if (!addressInput) return;
 
@@ -5318,7 +5372,8 @@ async function submitDiscovery(e) {
         });
     }
 
-    const isPrivate = document.getElementById('privateToggle').value === 'true';
+    const visibilityVal = document.getElementById('visibilityValue')?.value || 'private';
+    const isPrivate = visibilityVal === 'private';
 
     // personalNote is now the single user-facing field (merged with description)
     const yourTake = document.getElementById('personalNote').value.trim();
@@ -5338,7 +5393,7 @@ async function submitDiscovery(e) {
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: isPrivate ? 'private' : 'friends'
+        visibility: visibilityVal
     };
 
     // Post-save nudge: if note is thin, show a gentle prompt in the overlay
@@ -5394,15 +5449,8 @@ function selectCategory(el) {
     const val = el.dataset.value;
     document.getElementById('category').value = val;
 
-    // Category-aware placeholder for "Your Take"
-    const takePlaceholders = {
-        place:   'Best tonkotsu in town — ask for the spicy option, go after 7pm',
-        product: 'Been using this for 6 months, worth every cent — way better than the Amazon version',
-        service: 'Fixed my back in 3 sessions — ask for the deep tissue, not the relaxation',
-        advice:  'Changed how I think about mornings — chapter 3 is the one, read it twice'
-    };
-    const textarea = document.getElementById('personalNote');
-    if (textarea) textarea.placeholder = takePlaceholders[val] || 'What would you tell a friend?';
+    // Category-aware rotating placeholders
+    startTakePlaceholder(val);
 
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');
