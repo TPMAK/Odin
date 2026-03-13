@@ -3373,10 +3373,19 @@
         }
 
         /* INPUT MODE */
+        #inputMode {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .input-form-container {
-            max-width: 500px;
-            margin: 16px auto;
+            width: 100%;
+            max-width: 480px;
+            margin: 0 auto;
             padding: 0 20px 120px;
+            box-sizing: border-box;
         }
 
         .input-form-container h2 {
