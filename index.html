@@ -1930,23 +1930,18 @@
                     <!-- Hidden Added By (auto-filled, not shown) -->
                     <input type="hidden" id="addedBy" value="">
 
-                    <!-- Visibility 3-way Selector -->
+                    <!-- Visibility 2-way Selector -->
                     <div class="form-group visibility-group" style="margin-top: 4px;">
                         <label class="field-label-inline">Who can see this</label>
                         <div class="vis-selector" id="visSelector">
                             <button type="button" class="vis-option active" data-value="private" onclick="selectVisibility(this)">
-                                <span class="vis-icon">🔒</span>
                                 <span class="vis-label">Only me</span>
                             </button>
                             <button type="button" class="vis-option" data-value="friends" onclick="selectVisibility(this)">
-                                <span class="vis-icon">👥</span>
                                 <span class="vis-label">Friends</span>
                             </button>
-                            <button type="button" class="vis-option" data-value="public" onclick="selectVisibility(this)">
-                                <span class="vis-icon">🌐</span>
-                                <span class="vis-label">Public</span>
-                            </button>
                         </div>
+                        <p class="vis-hint" id="visHint">Saved privately — only you can see this. Change to Friends when you're ready to share.</p>
                         <!-- private=true by default -->
                         <input type="hidden" id="privateToggle" value="true">
                         <input type="hidden" id="visibilityValue" value="private">

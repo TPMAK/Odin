@@ -4843,11 +4843,17 @@ function togglePrivacy(inputId) {
 function selectVisibility(el) {
     document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
     el.classList.add('active');
-    const val = el.dataset.value; // 'private' | 'friends' | 'public'
-    const hidden = document.getElementById('privateToggle');
+    const val = el.dataset.value; // 'private' | 'friends'
+    const hidden   = document.getElementById('privateToggle');
     const visField = document.getElementById('visibilityValue');
+    const hint     = document.getElementById('visHint');
     if (hidden)   hidden.value   = val === 'private' ? 'true' : 'false';
     if (visField) visField.value = val;
+    if (hint) {
+        hint.textContent = val === 'private'
+            ? 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.'
+            : 'Your friends can see this. They can save and comment on it.';
+    }
 }
 
 // ===== CAPTURE: ROTATING PLACEHOLDER =====
