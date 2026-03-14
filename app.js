@@ -1290,6 +1290,18 @@ async function handleSendFriendRequest(receiverId, btn) {
         // Track outgoing so "Pending" shows if they search again this session
         outgoingFriendRequests.add(receiverId);
 
+        // Insert a notification so the receiver sees it in their notifications panel
+        // (previously the RPC did this internally — now we do it explicitly)
+        const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+        await supabaseClient
+            .from('notifications')
+            .insert({
+                user_id:  receiverId,
+                actor_id: currentUser.id,
+                type:     'friend_request',
+                message:  `${senderName} sent you a friend request`
+            });
+
         if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
         showToast('Friend request sent!');
 
@@ -1309,23 +1321,47 @@ async function handleSendFriendRequest(receiverId, btn) {
 
 async function handleAcceptFriendRequest(friendshipId) {
     try {
-        const { data, error } = await supabaseClient.rpc('accept_friend_request', {
-            p_friendship_id: friendshipId
-        });
+        // Direct update — set status to accepted
+        const { error } = await supabaseClient
+            .from('friendships')
+            .update({ status: 'accepted', updated_at: new Date().toISOString() })
+            .eq('id', friendshipId)
+            .eq('receiver_id', currentUser.id); // safety: only receiver can accept
+
         if (error) {
             console.error('Error accepting friend request:', error);
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            await loadFriends();
-            await loadPendingFriendRequests();
-            updateFriendsDisplay();
-            checkUnreadNotifications();
-            // Milestone: first friend accepted
-            if (!localStorage.getItem('milestone_first_friend')) {
-                localStorage.setItem('milestone_first_friend', 'true');
-                setTimeout(() => showToast('You can now see each other\'s personal stories!'), 300);
-            }
+
+        // Notify the requester that their request was accepted
+        const accepterName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+
+        // Look up requester_id from the friendship row we just updated
+        const { data: friendship } = await supabaseClient
+            .from('friendships')
+            .select('requester_id')
+            .eq('id', friendshipId)
+            .single();
+
+        if (friendship?.requester_id) {
+            await supabaseClient
+                .from('notifications')
+                .insert({
+                    user_id:  friendship.requester_id,
+                    actor_id: currentUser.id,
+                    type:     'friend_accepted',
+                    message:  `${accepterName} accepted your friend request`
+                });
+        }
+
+        await loadFriends();
+        await loadPendingFriendRequests();
+        updateFriendsDisplay();
+        checkUnreadNotifications();
+        // Milestone: first friend accepted
+        if (!localStorage.getItem('milestone_first_friend')) {
+            localStorage.setItem('milestone_first_friend', 'true');
+            setTimeout(() => showToast('You can now see each other\'s personal stories!'), 300);
         }
     } catch (err) {
         console.error('Error in handleAcceptFriendRequest:', err);
@@ -1334,17 +1370,20 @@ async function handleAcceptFriendRequest(friendshipId) {
 
 async function handleRejectFriendRequest(friendshipId) {
     try {
-        const { data, error } = await supabaseClient.rpc('reject_friend_request', {
-            p_friendship_id: friendshipId
-        });
+        // Direct delete — remove the pending row entirely
+        const { error } = await supabaseClient
+            .from('friendships')
+            .delete()
+            .eq('id', friendshipId)
+            .eq('receiver_id', currentUser.id); // safety: only receiver can reject
+
         if (error) {
             console.error('Error rejecting friend request:', error);
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            await loadPendingFriendRequests();
-            updateFriendsDisplay();
-        }
+
+        await loadPendingFriendRequests();
+        updateFriendsDisplay();
     } catch (err) {
         console.error('Error in handleRejectFriendRequest:', err);
     }
