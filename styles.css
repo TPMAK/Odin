@@ -7337,12 +7337,18 @@
    LAUNCHER HOME (Simple mode)
    ======================================== */
 .launcher-page {
-    max-width: 480px;
+    max-width: 600px;
     margin: 0 auto;
     padding: 10px 20px 12px;
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .launcher-page { max-width: 900px; padding: 16px 32px 16px; }
+    .launcher-circle-feed { max-width: 900px; padding: 4px 32px 12px; }
+    #launcherRecentSection { max-width: 900px; padding: 4px 32px 4px; }
 }
 
 .launcher-greeting {
@@ -8736,14 +8742,14 @@ body.map-view-open .content {
 }
 
 .launcher-circle-feed {
-    max-width: 480px;
+    max-width: 600px;
     width: 100%;
     margin: 0 auto;
     padding: 4px 20px 12px;
 }
 
 #launcherRecentSection {
-    max-width: 480px;
+    max-width: 600px;
     width: 100%;
     margin: 0 auto;
     padding: 4px 20px 4px;

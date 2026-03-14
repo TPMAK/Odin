@@ -3480,32 +3480,10 @@
             var SVG_TAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
             var SVG_PLACE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
 
-            // ── Per-login freshness: shuffle pool using session seed ──────────
+            // ── Per-login shuffle: fully random order every visit ──────────
             var seed = _getFeedSeed();
-            // ── Per-login shuffle: different order every time the user signs in ──
-            // Pin the single most-recent item at position 0 (always fresh),
-            // then shuffle everything else with the session seed so the rest
-            // of the feed feels different each login.
-            var pinnedItem  = items[0];                    // newest — always first
-            var shufflePool = items.slice(1);              // the rest get shuffled
-            _seededShuffle(shufflePool, _seededRand(seed));
-            var orderedItems = [pinnedItem].concat(shufflePool);
-
-            // ── Pick 1 spotlight from positions 1–3 (most-endorsed in top pool) ──
-            // This surfaces "popular" differently each session without adding noise.
-            var spotlightIds = {};
-            var bestEnc = null, bestCount = -1;
-            orderedItems.slice(0, 6).forEach(function(it) {
-                var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[it.id] : null;
-                var cnt = enc ? enc.count : 0;
-                if (cnt > bestCount && it.id !== pinnedItem.id) { bestCount = cnt; bestEnc = it; }
-            });
-            // Move spotlight to slot 1 (right after the pinned newest item)
-            if (bestEnc && bestCount > 0) {
-                spotlightIds[bestEnc.id] = true;
-                orderedItems = orderedItems.filter(function(it) { return it.id !== bestEnc.id; });
-                orderedItems.splice(1, 0, bestEnc);
-            }
+            var orderedItems = items.slice();
+            _seededShuffle(orderedItems, _seededRand(seed));
 
             // Cap to 8 and build all cards with _buildPulseCard (same look, no badge)
             var displayItems = orderedItems.slice(0, 8);
