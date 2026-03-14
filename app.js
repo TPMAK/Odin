@@ -708,38 +708,56 @@ async function loadMyEndorsements() {
     if (!container || !currentUser) return;
 
     try {
-        // Get saved/bookmarked items from Supabase (unified endorsements)
-        const { data, error } = await supabaseClient
-            .from('endorsements')
-            .select('item_id, created_at')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+        // Run both queries in parallel: items I endorsed + items I added
+        const [endorseRes, addedRes] = await Promise.all([
+            supabaseClient
+                .from('endorsements')
+                .select('item_id, created_at')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false }),
+            supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, added_by_name, type, created_at')
+                .eq('added_by', currentUser.id)
+                .order('created_at', { ascending: false })
+        ]);
 
-        const endorsedIds = (data || []).map(e => e.item_id);
+        const endorsedIds = ((endorseRes.data || []).map(e => e.item_id));
+        const addedItems  = addedRes.data || [];
 
-        if (endorsedIds.length === 0) {
+        // Merge: endorsed IDs union added IDs (deduped), items I added go first if not already endorsed
+        const addedIds = addedItems.map(i => i.id);
+        const allIds = [...new Set([...endorsedIds, ...addedIds])];
+
+        if (allIds.length === 0) {
             container.innerHTML = '<p class="my-endorsements-empty">No saves yet. Bookmark discoveries you like!</p>';
             return;
         }
 
-        // Fetch the actual items
-        const { data: items } = await supabaseClient
-            .from('knowledge_items')
-            .select('id, title, photo_url, added_by_name, type')
-            .in('id', endorsedIds);
+        // Fetch full items for endorsed ones we don't already have from addedRes
+        const missingIds = endorsedIds.filter(id => !addedIds.includes(id));
+        let fetchedItems = [...addedItems];
+        if (missingIds.length > 0) {
+            const { data: more } = await supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, added_by_name, type, created_at')
+                .in('id', missingIds);
+            if (more) fetchedItems = [...fetchedItems, ...more];
+        }
 
-        if (!items || items.length === 0) {
+        if (fetchedItems.length === 0) {
             container.innerHTML = '<p class="my-endorsements-empty">No saves yet.</p>';
             return;
         }
 
-        // Maintain order from endorsements (most recent first)
+        // Build map and sort by allIds order (endorsements most recent first, then adds)
         const itemMap = {};
-        items.forEach(i => { itemMap[i.id] = i; });
-        const sorted = endorsedIds.map(id => itemMap[id]).filter(Boolean);
+        fetchedItems.forEach(i => { itemMap[i.id] = i; });
+        const sorted = allIds.map(id => itemMap[id]).filter(Boolean);
 
         container.innerHTML = sorted.map(item => {
             const _emoji = getCategoryEmoji(item.type);
+            const isMyAdd = item.added_by_name && addedIds.includes(item.id);
             const photo = item.photo_url
                 ? `<img src="${escapeHtml(item.photo_url)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'my-endorse-placeholder\\'>${_emoji}</span>')">`
                 : `<span class="my-endorse-placeholder">${_emoji}</span>`;
@@ -748,6 +766,7 @@ async function loadMyEndorsements() {
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
             </div>`;
         }).join('');
+
         // Update scroll arrows after render
         updateProfileSavesArrows();
         container.removeEventListener('scroll', updateProfileSavesArrows);
