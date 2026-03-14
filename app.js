@@ -1007,26 +1007,39 @@ function buildEndorseSection(itemId) {
         }
     });
 
-    let namesText = '';
     const friendCount = friendNames.length;
+
+    // Build stacked avatar initials (up to 3)
+    let avatarsHtml = '';
     if (friendCount > 0) {
-        const displayNames = friendNames.slice(0, 3);
-        if (friendCount <= 3) {
-            namesText = displayNames.join(', ') + ' saved this';
+        const avatarNames = friendNames.slice(0, 3);
+        avatarsHtml = `<div class="endorse-avatars">${avatarNames.map(n => `<div class="endorse-avatar-chip">${n.charAt(0).toUpperCase()}</div>`).join('')}</div>`;
+    }
+
+    // Build "Saved by X and N others" sentence
+    let savedByText = '';
+    if (friendCount > 0) {
+        const first = friendNames[0];
+        if (friendCount === 1) {
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong>`;
+        } else if (friendCount === 2) {
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and <strong>${escapeHtml(friendNames[1])}</strong>`;
         } else {
-            namesText = displayNames.join(', ') + ` and ${friendCount - 3} others saved this`;
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and ${friendCount - 1} others`;
         }
     }
 
     return `<div class="drawer-reactions">
-        <div class="drawer-bookmark-row">
-            <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
-                <svg class="bookmark-icon-lg" width="22" height="22" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
-                ${friendCount > 0 ? `<span class="drawer-bookmark-count">${friendCount}</span>` : ''}
-            </button>
+        <div class="drawer-save-row">
+            ${avatarsHtml}
+            <div class="drawer-save-right">
+                ${savedByText ? `<div class="endorse-names">${savedByText}</div>` : ''}
+                <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+                    <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
+                </button>
+            </div>
         </div>
-        ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
     </div>`;
 }
 
@@ -1581,14 +1594,31 @@ function renderNotesSection(itemId, notes, trustLevel) {
         </div>`;
     }).join('');
 
+    const commentCount = notes.length;
+    const commentLabel = commentCount > 0 ? `Comments · ${commentCount}` : 'Comments';
+
     return `<div class="community-notes" id="communityNotes">
-        <div class="community-notes-label">Comments</div>
-        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet. Be the first!</div>'}</div>
-        <div class="note-input-wrap">
-            <textarea class="note-input" id="noteInput" placeholder="Leave a comment..." maxlength="500" rows="2"></textarea>
-            <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
+        <button class="community-notes-toggle" onclick="toggleCommentsSection(this)" aria-expanded="false">
+            <span class="community-notes-label">${commentLabel}</span>
+            <svg class="comments-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="community-notes-body" id="communityNotesBody" style="display:none;">
+            <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet — be the first.</div>'}</div>
+            <div class="note-input-wrap">
+                <textarea class="note-input" id="noteInput" placeholder="Add a comment..." maxlength="500" rows="2"></textarea>
+                <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
+            </div>
         </div>
     </div>`;
+}
+
+function toggleCommentsSection(btn) {
+    const body = document.getElementById('communityNotesBody');
+    if (!body) return;
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', !isOpen);
+    body.style.display = isOpen ? 'none' : 'block';
+    btn.classList.toggle('expanded', !isOpen);
 }
 
 async function submitNote(itemId) {
@@ -3824,9 +3854,6 @@ function openItemDrawer(item) {
     } else {
         metaParts.push(`<span class="drawer-meta-by">${escapeHtml(item.added_by_name || 'Community Member')}</span>`);
     }
-    const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
-    const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
-    metaParts.push(`<span class="drawer-meta-time">${dateText}</span>`);
     html += `<div class="drawer-meta-line">${metaParts.join('<span class="drawer-meta-dot">·</span>')}</div>`;
 
     // Extract personal note from multiple possible fields
@@ -3843,35 +3870,41 @@ function openItemDrawer(item) {
         }
     }
 
-    // === PERSONAL STORY (pull-quote style) ===
+    // === THE WORD (pull-quote style) ===
     if (isExtendedCircle) {
-        // Extended Circle: personal story is hidden — show a soft signal instead
         html += `<div class="drawer-quote drawer-quote-extended">
-            <div class="drawer-quote-label">Personal Story</div>
-            <div class="drawer-quote-text drawer-story-text">🔒 Connect to see their story</div>
+            <div class="drawer-quote-label">The Word</div>
+            <div class="drawer-quote-text drawer-story-text">🔒 Connect to see their take</div>
         </div>`;
     } else if (note) {
         if (isFriend(item.added_by)) {
             html += `<div class="drawer-quote">
-                <div class="drawer-quote-label">Personal Story</div>
+                <div class="drawer-quote-label">The Word</div>
                 <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
             </div>`;
+            // Translate button — inside the quote block, subtle
+            if (userPreferredLanguage && userPreferredLanguage !== 'en') {
+                html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">🌐 Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
+            } else if (item._queryLanguage && item._queryLanguage !== 'en') {
+                html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">🌐 Translate</button>`;
+            }
         } else {
             html += `<div class="drawer-quote drawer-quote-locked">
-                <div class="drawer-quote-label">Personal Story</div>
-                <div class="drawer-quote-text drawer-story-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their story</div>
+                <div class="drawer-quote-label">The Word</div>
+                <div class="drawer-quote-text drawer-story-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their take</div>
             </div>`;
         }
-    }
-
-    // === DESCRIPTION (visible to all tiers) ===
-    if (item.description) html += `<p class="drawer-desc drawer-description">${escapeHtml(item.description)}</p>`;
-
-    // === TRANSLATE BUTTON — always show when preferred language is not English ===
-    if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)} 🌐</button>`;
-    } else if (item._queryLanguage && item._queryLanguage !== 'en') {
-        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
+    } else if (item.description) {
+        // Fallback: show description as "The Word" if no personal note
+        html += `<div class="drawer-quote">
+            <div class="drawer-quote-label">The Word</div>
+            <div class="drawer-quote-text drawer-story-text">${escapeHtml(item.description)}</div>
+        </div>`;
+        if (userPreferredLanguage && userPreferredLanguage !== 'en') {
+            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">🌐 Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
+        } else if (item._queryLanguage && item._queryLanguage !== 'en') {
+            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">🌐 Translate</button>`;
+        }
     }
 
     // === QUICK ACTIONS (compact pills — visible to all tiers) ===
@@ -3884,15 +3917,28 @@ function openItemDrawer(item) {
     if (!url && item.website) url = item.website;
 
     if (url || item.address) {
+        const itemType = (item.type || item.category || '').toLowerCase();
+        const isPlace = itemType === 'place' || (!itemType && item.address);
+        // Primary = Directions for places, Website for products/services
         html += '<div class="drawer-quick-actions">';
         if (item.address) {
-            html += `<div class="drawer-address-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHtml(item.address)}</div>`;
+            html += `<div class="drawer-address-line"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHtml(item.address)}</div>`;
         }
-        html += '<div class="drawer-action-pills">';
-        if (url) html += `<button class="drawer-pill" onclick="window.open('${escapeHtml(url)}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Website</button>`;
-        if (item.address) {
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
-            html += `<button class="drawer-pill" onclick="window.open('${mapsUrl}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
+        html += '<div class="drawer-action-btns">';
+        if (isPlace) {
+            // Place: Directions = primary, Website = secondary
+            if (item.address) {
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
+                html += `<button class="drawer-btn-primary" onclick="window.open('${mapsUrl}', '_blank')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
+            }
+            if (url) html += `<button class="drawer-btn-secondary" onclick="window.open('${escapeHtml(url)}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Website</button>`;
+        } else {
+            // Product/Service: Website = primary, Directions = secondary
+            if (url) html += `<button class="drawer-btn-primary" onclick="window.open('${escapeHtml(url)}', '_blank')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Website</button>`;
+            if (item.address) {
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
+                html += `<button class="drawer-btn-secondary" onclick="window.open('${mapsUrl}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
+            }
         }
         html += '</div></div>';
     }

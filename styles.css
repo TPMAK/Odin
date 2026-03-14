@@ -3124,21 +3124,21 @@
             font-weight: 600;
         }
 
-        /* ── Personal story (pull-quote) ── */
+        /* ── The Word (pull-quote) ── */
         .drawer-quote {
             border-left: 3px solid var(--wb);
             padding: 12px 16px;
-            margin-bottom: 20px;
+            margin-bottom: 8px;
             background: rgba(123, 45, 69, 0.04);
             border-radius: 0 10px 10px 0;
         }
         .drawer-quote-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             color: var(--wb);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            letter-spacing: 0.6px;
+            margin-bottom: 5px;
         }
         .drawer-quote-text {
             color: var(--ink);
@@ -3150,6 +3150,23 @@
             color: var(--muted);
             font-style: normal;
         }
+        /* Translate button — small, sits below the quote */
+        .drawer-translate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: var(--muted);
+            background: none;
+            border: none;
+            padding: 2px 0 0 0;
+            margin-bottom: 16px;
+            cursor: pointer;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            transition: color 0.2s;
+        }
+        .drawer-translate-btn:hover { color: var(--wb); }
 
         /* ── Description (secondary) ── */
         .drawer-desc {
@@ -3166,37 +3183,57 @@
         .drawer-address-line {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             font-size: 13px;
             color: var(--muted);
             margin-bottom: 10px;
         }
-        .drawer-action-pills {
+        .drawer-action-btns {
             display: flex;
             gap: 8px;
         }
-        .drawer-pill {
+        /* Primary CTA — filled */
+        .drawer-btn-primary {
+            flex: 1;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 8px 14px;
-            border: 1.5px solid var(--border);
-            border-radius: 20px;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 16px;
+            background: var(--wb);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .drawer-btn-primary:hover { opacity: 0.88; }
+        .drawer-btn-primary svg { flex-shrink: 0; }
+        /* Secondary CTA — outline */
+        .drawer-btn-secondary {
+            flex: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 11px 16px;
             background: var(--surface);
             color: var(--ink);
-            font-size: 13px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
             transition: all 0.2s;
         }
-        .drawer-pill:hover {
+        .drawer-btn-secondary:hover {
             border-color: var(--wb);
             color: var(--wb);
             background: rgba(123, 45, 69, 0.04);
         }
-        .drawer-pill svg {
-            flex-shrink: 0;
-        }
+        .drawer-btn-secondary svg { flex-shrink: 0; }
 
         /* ── Social section ── */
         .drawer-social {
@@ -5050,20 +5087,67 @@
     margin-bottom: 14px;
 }
 
-.drawer-bookmark-row {
+/* Save row: avatars on left, save button on right */
+.drawer-save-row {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 4px 0;
+}
+
+.drawer-save-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+/* Stacked avatar initials */
+.endorse-avatars {
+    display: flex;
+    flex-direction: row-reverse; /* stack right-to-left for overlap effect */
+}
+
+.endorse-avatar-chip {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--wb);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
     justify-content: center;
-    padding: 8px 0;
+    border: 2px solid var(--bg);
+    margin-right: -8px;
+    flex-shrink: 0;
+}
+
+.endorse-avatars .endorse-avatar-chip:last-child {
+    margin-right: 0;
+}
+
+.endorse-names {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+}
+
+.endorse-names strong {
+    color: var(--ink);
+    font-weight: 600;
 }
 
 .drawer-bookmark-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
+    gap: 6px;
+    padding: 8px 16px;
     border: 1.5px solid var(--border);
     background: #ffffff;
-    border-radius: 24px;
+    border-radius: 20px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -5083,7 +5167,7 @@
 }
 
 .drawer-bookmark-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #374151;
     line-height: 1;
@@ -5091,23 +5175,6 @@
 
 .drawer-bookmark-btn.active .drawer-bookmark-label {
     color: #7B2D45;
-}
-
-.drawer-bookmark-count {
-    font-size: 12px;
-    font-weight: 700;
-    color: #7B2D45;
-    background: #F5EDE8;
-    padding: 2px 8px;
-    border-radius: 10px;
-    line-height: 1;
-}
-
-.endorse-names {
-    text-align: center;
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 8px;
 }
 
 /* ========================================
@@ -5728,16 +5795,38 @@
     border: none;
 }
 
+/* Collapsible toggle button */
+.community-notes-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    cursor: pointer;
+}
+
 .community-notes-label {
     font-size: 12px;
     font-weight: 600;
     color: #9ca3af;
-    margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+}
+
+.comments-chevron {
+    color: #9ca3af;
+    transition: transform 0.2s;
+    flex-shrink: 0;
+}
+
+.community-notes-toggle.expanded .comments-chevron {
+    transform: rotate(180deg);
+}
+
+.community-notes-body {
+    padding-top: 10px;
 }
 
 .notes-list {
@@ -5750,8 +5839,8 @@
 .notes-empty {
     font-size: 13px;
     color: #9ca3af;
-    text-align: center;
-    padding: 12px 0;
+    text-align: left;
+    padding: 4px 0 12px;
 }
 
 .note-item {
