@@ -123,7 +123,7 @@ async function showMainApp() {
 
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
-    await loadPendingFriendRequests();
+    await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
 
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
@@ -558,6 +558,7 @@ let currentProfile = null;
 let friendsCache = [];              // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
 let pendingFriendRequests = [];     // Array: { out_id, out_requester_id, out_requester_name, ... } — INCOMING only
 let outgoingFriendRequests = new Set(); // Set of receiver UUIDs you've sent requests to this session
+let outgoingPendingRequests = [];       // Array: { out_id, out_receiver_id, out_receiver_name, out_avatar_url, out_created_at }
 let blockedUsersCache = [];         // Array: { out_blocked_user_id, out_display_name }
 
 async function loadUserProfile() {
@@ -702,8 +703,8 @@ async function loadProfilePage() {
     // Load endorsed items
     await loadMyEndorsements();
 
-    // Load friends network display
-    await loadPendingFriendRequests();
+    // Load friends network display (incoming + outgoing pending, then render)
+    await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
     updateFriendsDisplay();
 }
 
@@ -1149,6 +1150,54 @@ async function loadPendingFriendRequests() {
     }
 }
 
+async function loadOutgoingFriendRequests() {
+    if (!currentUser) return;
+    try {
+        const { data: rows, error } = await supabaseClient
+            .from('friendships')
+            .select('id, receiver_id, created_at')
+            .eq('requester_id', currentUser.id)
+            .eq('status', 'pending');
+
+        if (error) {
+            console.error('Error loading outgoing friend requests:', error);
+            outgoingFriendRequests = new Set();
+            outgoingPendingRequests = [];
+            return;
+        }
+
+        if (!rows || rows.length === 0) {
+            outgoingFriendRequests = new Set();
+            outgoingPendingRequests = [];
+            return;
+        }
+
+        const receiverIds = rows.map(r => r.receiver_id);
+        const { data: profiles } = await supabaseClient
+            .from('profiles')
+            .select('id, display_name, avatar_url')
+            .in('id', receiverIds);
+
+        const profileMap = {};
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
+        outgoingFriendRequests = new Set(receiverIds);
+        outgoingPendingRequests = rows.map(row => {
+            const p = profileMap[row.receiver_id] || {};
+            return {
+                out_id:            row.id,
+                out_receiver_id:   row.receiver_id,
+                out_receiver_name: p.display_name || 'Someone',
+                out_avatar_url:    p.avatar_url || null,
+                out_created_at:    row.created_at
+            };
+        });
+    } catch (err) {
+        console.error('Error in loadOutgoingFriendRequests:', err);
+        outgoingPendingRequests = [];
+    }
+}
+
 async function loadBlockedUsers() {
     if (!currentUser) return;
     try {
@@ -1253,7 +1302,7 @@ async function handleFriendSearchInput(event) {
                 } else if (isPending) {
                     statusHtml = '<span class="search-result-status pending">Pending</span>';
                 } else {
-                    statusHtml = `<div class="search-result-action"><button class="add-friend-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', this)">Add Friend</button></div>`;
+                    statusHtml = `<div class="search-result-action"><button class="add-friend-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', '${escapeHtml(profile.out_display_name || '')}', this)">Add Friend</button></div>`;
                 }
 
                 html += `<div class="search-result-item">
@@ -1271,7 +1320,7 @@ async function handleFriendSearchInput(event) {
     }, 300);
 }
 
-async function handleSendFriendRequest(receiverId, btn) {
+async function handleSendFriendRequest(receiverId, receiverName, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
     try {
         // Check if they already sent us a request — if so, auto-accept it instead of creating a duplicate
@@ -1283,13 +1332,15 @@ async function handleSendFriendRequest(receiverId, btn) {
         }
 
         // Direct insert
-        const { error } = await supabaseClient
+        const { data: insertData, error } = await supabaseClient
             .from('friendships')
             .insert({
                 requester_id: currentUser.id,
                 receiver_id: receiverId,
                 status: 'pending'
-            });
+            })
+            .select('id')
+            .single();
 
         if (error) {
             console.error('Error sending friend request:', error);
@@ -1304,6 +1355,7 @@ async function handleSendFriendRequest(receiverId, btn) {
                 } else {
                     if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
                     outgoingFriendRequests.add(receiverId);
+                    updateFriendsDisplay();
                 }
             } else {
                 if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
@@ -1311,20 +1363,28 @@ async function handleSendFriendRequest(receiverId, btn) {
             return;
         }
 
-        // Track outgoing so "Pending" shows if they search again this session
+        // Track outgoing locally so "Pending" shows immediately in search and friends list
         outgoingFriendRequests.add(receiverId);
+        outgoingPendingRequests.push({
+            out_id:            insertData?.id || null,
+            out_receiver_id:   receiverId,
+            out_receiver_name: receiverName || 'Someone',
+            out_avatar_url:    null,
+            out_created_at:    new Date().toISOString()
+        });
+        updateFriendsDisplay();
 
-        // Insert a notification so the receiver sees it in their notifications panel
-        // (previously the RPC did this internally — now we do it explicitly)
+        // Notify receiver via SECURITY DEFINER RPC (bypasses RLS on notifications table)
         const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
-        await supabaseClient
-            .from('notifications')
-            .insert({
-                user_id:  receiverId,
-                actor_id: currentUser.id,
-                type:     'friend_request',
-                message:  `${senderName} sent you a friend request`
+        try {
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: receiverId,
+                p_actor_id:    currentUser.id,
+                p_message:     `${senderName} sent you a friend request`
             });
+        } catch (notifErr) {
+            console.warn('Could not send friend request notification:', notifErr);
+        }
 
         if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
         showToast('Friend request sent!');
@@ -1415,16 +1475,19 @@ async function handleRejectFriendRequest(friendshipId) {
 
 function updateFriendsDisplay() {
     const requestsContainer = document.getElementById('pendingRequestsContainer');
+    const sentContainer = document.getElementById('sentRequestsContainer');
     const friendsContainer = document.getElementById('friendsListContainer');
     const emptyState = document.getElementById('friendsEmptyState');
     if (!requestsContainer || !friendsContainer) return;
 
     const hasPending = pendingFriendRequests.length > 0;
+    const hasSent = outgoingPendingRequests.length > 0;
     const hasFriends = friendsCache.length > 0;
 
     requestsContainer.style.display = hasPending ? 'block' : 'none';
+    if (sentContainer) sentContainer.style.display = hasSent ? 'block' : 'none';
     friendsContainer.style.display = hasFriends ? 'block' : 'none';
-    if (emptyState) emptyState.style.display = (!hasPending && !hasFriends) ? 'block' : 'none';
+    if (emptyState) emptyState.style.display = (!hasPending && !hasSent && !hasFriends) ? 'block' : 'none';
 
     // Render pending requests
     if (hasPending) {
@@ -1442,6 +1505,26 @@ function updateFriendsDisplay() {
                     <div class="friend-request-actions">
                         <button class="accept-btn" onclick="handleAcceptFriendRequest('${req.out_id}')">Accept</button>
                         <button class="reject-btn" onclick="handleRejectFriendRequest('${req.out_id}')">Reject</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Render sent (outgoing pending) requests
+    if (hasSent) {
+        const sentList = document.getElementById('sentRequestsList');
+        if (sentList) {
+            sentList.innerHTML = outgoingPendingRequests.map(req => {
+                const initial = (req.out_receiver_name || '?').charAt(0).toUpperCase();
+                return `<div class="friend-request-card">
+                    <div class="friend-request-avatar">${initial}</div>
+                    <div class="friend-request-info">
+                        <div class="friend-request-name">${escapeHtml(req.out_receiver_name || 'Unknown')}</div>
+                        <div class="friend-request-time">Request sent · awaiting response</div>
+                    </div>
+                    <div class="friend-request-actions">
+                        <span class="search-result-status pending">Pending</span>
                     </div>
                 </div>`;
             }).join('');
@@ -1892,12 +1975,12 @@ async function checkUnreadNotifications() {
 function startNotifPolling() {
     // Check immediately
     checkUnreadNotifications();
-    loadPendingFriendRequests().then(updateFriendsDisplay);
-    // Then poll every 30 seconds — refresh both notification badge AND pending friend requests
+    Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
+    // Then poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
     if (notifPollInterval) clearInterval(notifPollInterval);
     notifPollInterval = setInterval(() => {
         checkUnreadNotifications();
-        loadPendingFriendRequests().then(updateFriendsDisplay);
+        Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
     }, 30000);
 }
 
