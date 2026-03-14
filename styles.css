@@ -4856,6 +4856,109 @@
     line-height: 1.4;
 }
 
+/* Airbnb-style 2 profile boxes */
+.profile-boxes-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0 4px;
+}
+
+.profile-box {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.profile-box:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.pbox-visuals {
+    width: 100%;
+    height: 96px;
+    background: #F5F0E8;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.pbox-icon-placeholder {
+    color: #9c8474;
+    opacity: 0.7;
+}
+
+.pbox-thumbs-stack,
+.pbox-avatars-stack {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.pbox-thumb {
+    position: absolute;
+    width: 52px;
+    height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    background: #e8e0d4;
+}
+
+.pbox-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pbox-thumb-emoji {
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbox-thumb:nth-child(1) { transform: rotate(-8deg) translate(-18px, 4px); z-index: 1; }
+.pbox-thumb:nth-child(2) { transform: rotate(4deg) translate(8px, -4px); z-index: 2; }
+.pbox-thumb:nth-child(3) { transform: rotate(-2deg) translate(-4px, 8px); z-index: 3; }
+
+.pbox-avatar {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.pbox-avatar:nth-child(1) { transform: translate(-22px, 0); z-index: 1; }
+.pbox-avatar:nth-child(2) { transform: translate(4px, -8px); z-index: 2; }
+.pbox-avatar:nth-child(3) { transform: translate(24px, 6px); z-index: 3; }
+
+.pbox-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    padding: 10px 14px 12px;
+    background: #fff;
+}
+
 /* Invite Button */
 .invite-btn {
     display: flex;

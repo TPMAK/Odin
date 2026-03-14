@@ -706,6 +706,49 @@ async function loadProfilePage() {
     // Load friends network display (incoming + outgoing pending, then render)
     await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
     updateFriendsDisplay();
+
+    // Populate Airbnb-style profile boxes
+    populateProfileBoxes();
+}
+
+function populateProfileBoxes() {
+    if (!currentUser) return;
+
+    // Box 1: My Saves — pull thumbnails from the already-rendered cards
+    const savesBox = document.getElementById('profileBoxSavesThumbs');
+    if (savesBox) {
+        const cards = document.querySelectorAll('#myEndorsementsList .my-endorse-card');
+        if (cards.length > 0) {
+            const thumbs = Array.from(cards).slice(0, 3).map((card, i) => {
+                const img = card.querySelector('img');
+                const emoji = card.querySelector('.my-endorse-placeholder');
+                if (img) {
+                    return `<div class="pbox-thumb" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}"><img src="${img.src}" alt=""></div>`;
+                } else if (emoji) {
+                    return `<div class="pbox-thumb pbox-thumb-emoji" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}">${emoji.textContent}</div>`;
+                }
+                return '';
+            }).filter(Boolean).join('');
+            if (thumbs) savesBox.innerHTML = thumbs;
+        }
+    }
+
+    // Box 2: Your Circle — avatars from friendsCache
+    const circleBox = document.getElementById('profileBoxCircleAvatars');
+    if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
+        const shown = friendsCache.slice(0, 3);
+        const transforms = [
+            'translate(-22px, 0)',
+            'translate(4px, -8px)',
+            'translate(24px, 6px)'
+        ];
+        circleBox.innerHTML = shown.map((f, i) => {
+            const name = f.out_display_name || f.out_email || '?';
+            const initial = name.charAt(0).toUpperCase();
+            const col = strColour(name);
+            return `<div class="pbox-avatar" style="background:${col};transform:${transforms[i]};z-index:${i+1}">${initial}</div>`;
+        }).join('');
+    }
 }
 
 async function loadMyEndorsements() {
@@ -4423,6 +4466,24 @@ async function executeDeleteItem(itemId) {
         // Close the drawer
         closeDrawer();
         showToast('Item deleted.');
+
+        // Clean up from "Continue Exploring" (recently viewed)
+        removeRecentlyViewed(itemId);
+
+        // Clean up from home saves list (DOM)
+        const homeSaveRow = document.querySelector('#homeSavesList .hsl-row[onclick*="' + itemId + '"]');
+        if (homeSaveRow) {
+            homeSaveRow.remove();
+            const list = document.getElementById('homeSavesList');
+            if (list && !list.querySelector('.hsl-row')) {
+                const section = document.getElementById('homeSavesSection');
+                if (section) section.style.display = 'none';
+            }
+        }
+
+        // Clean up from profile My Saves (DOM)
+        const profileSaveCard = document.querySelector('#myEndorsementsList .my-endorse-card[onclick*="' + itemId + '"]');
+        if (profileSaveCard) profileSaveCard.remove();
 
         // Refresh discover view if open
         filterAndRender();
