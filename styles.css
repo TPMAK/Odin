@@ -6274,6 +6274,11 @@
     color: #9ca3af;
 }
 
+.friend-request-email {
+    font-size: 12px;
+    color: #9ca3af;
+}
+
 .friend-request-actions {
     display: flex;
     gap: 6px;

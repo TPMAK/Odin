@@ -1103,47 +1103,17 @@ async function loadFriends() {
 async function loadPendingFriendRequests() {
     if (!currentUser) return;
     try {
-        // Step 1: get pending rows where I am the receiver
-        const { data: rows, error } = await supabaseClient
-            .from('friendships')
-            .select('id, requester_id, created_at')
-            .eq('receiver_id', currentUser.id)
-            .eq('status', 'pending');
-
+        // Uses SECURITY DEFINER RPC so profiles join works even with restrictive RLS
+        const { data, error } = await supabaseClient.rpc(
+            'get_pending_friend_requests_with_profiles',
+            { p_user_id: currentUser.id }
+        );
         if (error) {
             console.error('Error loading pending requests:', error);
             pendingFriendRequests = [];
             return;
         }
-
-        if (!rows || rows.length === 0) {
-            pendingFriendRequests = [];
-            return;
-        }
-
-        // Step 2: fetch profile info for each requester separately (avoids FK join issues)
-        const requesterIds = rows.map(r => r.requester_id);
-        const { data: profiles } = await supabaseClient
-            .from('profiles')
-            .select('id, display_name, avatar_url, email')
-            .in('id', requesterIds);
-
-        const profileMap = {};
-        (profiles || []).forEach(p => { profileMap[p.id] = p; });
-
-        // Normalise into the shape the rest of the UI expects:
-        // { out_id, out_requester_id, out_requester_name, out_avatar_url, out_created_at }
-        pendingFriendRequests = rows.map(row => {
-            const p = profileMap[row.requester_id] || {};
-            return {
-                out_id:             row.id,
-                out_requester_id:   row.requester_id,
-                out_requester_name: p.display_name || p.email || 'Someone',
-                out_avatar_url:     p.avatar_url || null,
-                out_created_at:     row.created_at
-            };
-        });
-
+        pendingFriendRequests = data || [];
     } catch (err) {
         console.error('Error in loadPendingFriendRequests:', err);
         pendingFriendRequests = [];
@@ -1153,45 +1123,19 @@ async function loadPendingFriendRequests() {
 async function loadOutgoingFriendRequests() {
     if (!currentUser) return;
     try {
-        const { data: rows, error } = await supabaseClient
-            .from('friendships')
-            .select('id, receiver_id, created_at')
-            .eq('requester_id', currentUser.id)
-            .eq('status', 'pending');
-
+        // Uses SECURITY DEFINER RPC so profiles join works even with restrictive RLS
+        const { data, error } = await supabaseClient.rpc(
+            'get_outgoing_friend_requests_with_profiles',
+            { p_user_id: currentUser.id }
+        );
         if (error) {
             console.error('Error loading outgoing friend requests:', error);
             outgoingFriendRequests = new Set();
             outgoingPendingRequests = [];
             return;
         }
-
-        if (!rows || rows.length === 0) {
-            outgoingFriendRequests = new Set();
-            outgoingPendingRequests = [];
-            return;
-        }
-
-        const receiverIds = rows.map(r => r.receiver_id);
-        const { data: profiles } = await supabaseClient
-            .from('profiles')
-            .select('id, display_name, avatar_url')
-            .in('id', receiverIds);
-
-        const profileMap = {};
-        (profiles || []).forEach(p => { profileMap[p.id] = p; });
-
-        outgoingFriendRequests = new Set(receiverIds);
-        outgoingPendingRequests = rows.map(row => {
-            const p = profileMap[row.receiver_id] || {};
-            return {
-                out_id:            row.id,
-                out_receiver_id:   row.receiver_id,
-                out_receiver_name: p.display_name || 'Someone',
-                out_avatar_url:    p.avatar_url || null,
-                out_created_at:    row.created_at
-            };
-        });
+        outgoingPendingRequests = data || [];
+        outgoingFriendRequests = new Set((data || []).map(r => r.out_receiver_id));
     } catch (err) {
         console.error('Error in loadOutgoingFriendRequests:', err);
         outgoingPendingRequests = [];
@@ -1489,17 +1433,21 @@ function updateFriendsDisplay() {
     friendsContainer.style.display = hasFriends ? 'block' : 'none';
     if (emptyState) emptyState.style.display = (!hasPending && !hasSent && !hasFriends) ? 'block' : 'none';
 
-    // Render pending requests
+    // Render pending requests (incoming)
     if (hasPending) {
         const list = document.getElementById('pendingRequestsList');
         if (list) {
             list.innerHTML = pendingFriendRequests.map(req => {
                 const initial = (req.out_requester_name || '?').charAt(0).toUpperCase();
                 const timeAgo = getTimeAgo(req.out_created_at);
+                const emailLine = req.out_email
+                    ? `<div class="friend-request-email">${escapeHtml(req.out_email)}</div>`
+                    : '';
                 return `<div class="friend-request-card">
                     <div class="friend-request-avatar">${initial}</div>
                     <div class="friend-request-info">
                         <div class="friend-request-name">${escapeHtml(req.out_requester_name || 'Unknown')}</div>
+                        ${emailLine}
                         <div class="friend-request-time">${timeAgo}</div>
                     </div>
                     <div class="friend-request-actions">
@@ -1517,10 +1465,14 @@ function updateFriendsDisplay() {
         if (sentList) {
             sentList.innerHTML = outgoingPendingRequests.map(req => {
                 const initial = (req.out_receiver_name || '?').charAt(0).toUpperCase();
+                const emailLine = req.out_email
+                    ? `<div class="friend-request-email">${escapeHtml(req.out_email)}</div>`
+                    : '';
                 return `<div class="friend-request-card">
                     <div class="friend-request-avatar">${initial}</div>
                     <div class="friend-request-info">
                         <div class="friend-request-name">${escapeHtml(req.out_receiver_name || 'Unknown')}</div>
+                        ${emailLine}
                         <div class="friend-request-time">Request sent · awaiting response</div>
                     </div>
                     <div class="friend-request-actions">
