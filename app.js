@@ -64,6 +64,7 @@ async function showMainApp() {
     endorsementsCache = {};
     friendsCache = [];
     pendingFriendRequests = [];
+    outgoingFriendRequests = new Set();
     blockedUsersCache = [];
     isFirstMessage = true;
     sessionMessages = [];
@@ -146,6 +147,7 @@ async function handleLogout() {
         currentProfile = null;
         friendsCache = [];
         pendingFriendRequests = [];
+        outgoingFriendRequests = new Set();
         blockedUsersCache = [];
         // Privacy: wipe ALL client state on logout.
         // localStorage is a shared unprotected store — clear it completely
@@ -228,6 +230,7 @@ async function executeDeleteAccount() {
         currentProfile = null;
         friendsCache = [];
         pendingFriendRequests = [];
+        outgoingFriendRequests = new Set();
         blockedUsersCache = [];
         localStorage.clear();
 
@@ -552,9 +555,10 @@ checkAuth();
 let currentProfile = null;
 
 // ===== FRIENDS NETWORK =====
-let friendsCache = [];           // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
-let pendingFriendRequests = [];  // Array: { out_id, out_requester_id, out_requester_name, ... }
-let blockedUsersCache = [];      // Array: { out_blocked_user_id, out_display_name }
+let friendsCache = [];              // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
+let pendingFriendRequests = [];     // Array: { out_id, out_requester_id, out_requester_name, ... } — INCOMING only
+let outgoingFriendRequests = new Set(); // Set of receiver UUIDs you've sent requests to this session
+let blockedUsersCache = [];         // Array: { out_blocked_user_id, out_display_name }
 
 async function loadUserProfile() {
     if (!currentUser) return;
@@ -688,7 +692,7 @@ async function loadProfilePage() {
         const { count: friendsCount } = await supabaseClient
             .from('friendships')
             .select('*', { count: 'exact', head: true })
-            .or(`user_id.eq.${currentUser.id},friend_id.eq.${currentUser.id}`)
+            .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
             .eq('status', 'accepted');
         document.getElementById('profilePeopleCount').textContent = friendsCount || 0;
     } catch (err) {
@@ -1098,15 +1102,40 @@ async function loadFriends() {
 async function loadPendingFriendRequests() {
     if (!currentUser) return;
     try {
-        const { data, error } = await supabaseClient.rpc('get_pending_friend_requests', {
-            p_user_id: currentUser.id
-        });
+        // Direct query — bypasses the RPC and reads the table directly.
+        // Fetches rows where I am the receiver and status is still pending,
+        // then joins profiles to get the requester's display name + avatar.
+        const { data, error } = await supabaseClient
+            .from('friendships')
+            .select(`
+                id,
+                requester_id,
+                created_at,
+                profiles!friendships_requester_id_fkey (
+                    display_name,
+                    avatar_url,
+                    email
+                )
+            `)
+            .eq('receiver_id', currentUser.id)
+            .eq('status', 'pending');
+
         if (error) {
             console.error('Error loading pending requests:', error);
             pendingFriendRequests = [];
             return;
         }
-        pendingFriendRequests = data || [];
+
+        // Normalise into the shape the rest of the UI expects:
+        // { out_id, out_requester_id, out_requester_name, out_avatar_url, out_created_at }
+        pendingFriendRequests = (data || []).map(row => ({
+            out_id:             row.id,
+            out_requester_id:   row.requester_id,
+            out_requester_name: row.profiles?.display_name || row.profiles?.email || 'Someone',
+            out_avatar_url:     row.profiles?.avatar_url || null,
+            out_created_at:     row.created_at
+        }));
+
     } catch (err) {
         console.error('Error in loadPendingFriendRequests:', err);
         pendingFriendRequests = [];
@@ -1207,7 +1236,8 @@ async function handleFriendSearchInput(event) {
             for (const profile of results) {
                 const initial = (profile.out_display_name || '?').charAt(0).toUpperCase();
                 const alreadyFriend = isFriend(profile.out_id);
-                const isPending = pendingFriendRequests.some(r => r.out_requester_id === profile.out_id);
+                const isPending = pendingFriendRequests.some(r => r.out_requester_id === profile.out_id)
+                               || outgoingFriendRequests.has(profile.out_id);
 
                 let statusHtml = '';
                 if (alreadyFriend) {
@@ -1236,37 +1266,41 @@ async function handleFriendSearchInput(event) {
 async function handleSendFriendRequest(receiverId, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
     try {
-        const { data, error } = await supabaseClient.rpc('send_friend_request', {
-            p_receiver_id: receiverId
-        });
+        // Direct insert — bypasses the RPC which was auto-accepting instead of setting status='pending'
+        const { error } = await supabaseClient
+            .from('friendships')
+            .insert({
+                requester_id: currentUser.id,
+                receiver_id: receiverId,
+                status: 'pending'
+            });
+
         if (error) {
             console.error('Error sending friend request:', error);
-            if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
+            // Handle duplicate (request already exists)
+            if (error.code === '23505') {
+                if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
+                outgoingFriendRequests.add(receiverId);
+            } else {
+                if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
+            }
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            // Check if this was auto-accepted (Founding Members)
-            if (receiverId === ODIN_HQ_USER_ID) {
-                if (btn) { btn.textContent = 'Added!'; btn.classList.add('sent'); }
-                showToast('Founding Members added! Their discoveries are now visible.');
-                await loadFriends();
-                await loadPendingRequests();
-                renderFriendsUI();
-            } else {
-                if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
-                showToast('Friend request sent!');
-            }
-            // Clear search bar and hide results after a short delay
-            setTimeout(() => {
-                const searchInput = document.getElementById('friendSearchInput');
-                const resultsDiv = document.getElementById('friendSearchResults');
-                if (searchInput) searchInput.value = '';
-                if (resultsDiv) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; }
-            }, 800);
-        } else {
-            const msg = data?.[0]?.out_message || 'Could not send request';
-            if (btn) { btn.disabled = false; btn.textContent = msg; }
-        }
+
+        // Track outgoing so "Pending" shows if they search again this session
+        outgoingFriendRequests.add(receiverId);
+
+        if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
+        showToast('Friend request sent!');
+
+        // Clear search bar and hide results after a short delay
+        setTimeout(() => {
+            const searchInput = document.getElementById('friendSearchInput');
+            const resultsDiv = document.getElementById('friendSearchResults');
+            if (searchInput) searchInput.value = '';
+            if (resultsDiv) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; }
+        }, 800);
+
     } catch (err) {
         console.error('Error in handleSendFriendRequest:', err);
         if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
