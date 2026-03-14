@@ -123,7 +123,7 @@ async function showMainApp() {
 
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
-    loadPendingFriendRequests();
+    await loadPendingFriendRequests();
 
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
