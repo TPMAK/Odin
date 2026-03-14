@@ -5453,13 +5453,31 @@ async function submitDiscovery(e) {
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
 
-    // Read photo BEFORE showing success (needs to happen synchronously)
+    // Read + compress photo BEFORE showing success
     let photoBase64 = null;
     const photoFile = document.getElementById('photo').files[0];
     if (photoFile) {
         photoBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Resize to max 1200px on longest side
+                    const MAX = 1200;
+                    let w = img.width, h = img.height;
+                    if (w > MAX || h > MAX) {
+                        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                        else        { w = Math.round(w * MAX / h); h = MAX; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    // Export as JPEG at 82% quality — well under Supabase's limit
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    resolve(dataUrl.split(',')[1]);
+                };
+                img.src = e.target.result;
+            };
             reader.readAsDataURL(photoFile);
         });
     }
