@@ -1868,9 +1868,13 @@ async function checkUnreadNotifications() {
 function startNotifPolling() {
     // Check immediately
     checkUnreadNotifications();
-    // Then poll every 30 seconds
+    loadPendingFriendRequests().then(updateFriendsDisplay);
+    // Then poll every 30 seconds — refresh both notification badge AND pending friend requests
     if (notifPollInterval) clearInterval(notifPollInterval);
-    notifPollInterval = setInterval(checkUnreadNotifications, 30000);
+    notifPollInterval = setInterval(() => {
+        checkUnreadNotifications();
+        loadPendingFriendRequests().then(updateFriendsDisplay);
+    }, 30000);
 }
 
 function stopNotifPolling() {
