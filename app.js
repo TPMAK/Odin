@@ -123,7 +123,7 @@ async function showMainApp() {
 
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
-    loadPendingFriendRequests();
+    await loadPendingFriendRequests();
 
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
@@ -1102,21 +1102,10 @@ async function loadFriends() {
 async function loadPendingFriendRequests() {
     if (!currentUser) return;
     try {
-        // Direct query — bypasses the RPC and reads the table directly.
-        // Fetches rows where I am the receiver and status is still pending,
-        // then joins profiles to get the requester's display name + avatar.
-        const { data, error } = await supabaseClient
+        // Step 1: get pending rows where I am the receiver
+        const { data: rows, error } = await supabaseClient
             .from('friendships')
-            .select(`
-                id,
-                requester_id,
-                created_at,
-                profiles!friendships_requester_id_fkey (
-                    display_name,
-                    avatar_url,
-                    email
-                )
-            `)
+            .select('id, requester_id, created_at')
             .eq('receiver_id', currentUser.id)
             .eq('status', 'pending');
 
@@ -1126,15 +1115,33 @@ async function loadPendingFriendRequests() {
             return;
         }
 
+        if (!rows || rows.length === 0) {
+            pendingFriendRequests = [];
+            return;
+        }
+
+        // Step 2: fetch profile info for each requester separately (avoids FK join issues)
+        const requesterIds = rows.map(r => r.requester_id);
+        const { data: profiles } = await supabaseClient
+            .from('profiles')
+            .select('id, display_name, avatar_url, email')
+            .in('id', requesterIds);
+
+        const profileMap = {};
+        (profiles || []).forEach(p => { profileMap[p.id] = p; });
+
         // Normalise into the shape the rest of the UI expects:
         // { out_id, out_requester_id, out_requester_name, out_avatar_url, out_created_at }
-        pendingFriendRequests = (data || []).map(row => ({
-            out_id:             row.id,
-            out_requester_id:   row.requester_id,
-            out_requester_name: row.profiles?.display_name || row.profiles?.email || 'Someone',
-            out_avatar_url:     row.profiles?.avatar_url || null,
-            out_created_at:     row.created_at
-        }));
+        pendingFriendRequests = rows.map(row => {
+            const p = profileMap[row.requester_id] || {};
+            return {
+                out_id:             row.id,
+                out_requester_id:   row.requester_id,
+                out_requester_name: p.display_name || p.email || 'Someone',
+                out_avatar_url:     p.avatar_url || null,
+                out_created_at:     row.created_at
+            };
+        });
 
     } catch (err) {
         console.error('Error in loadPendingFriendRequests:', err);
@@ -1236,8 +1243,9 @@ async function handleFriendSearchInput(event) {
             for (const profile of results) {
                 const initial = (profile.out_display_name || '?').charAt(0).toUpperCase();
                 const alreadyFriend = isFriend(profile.out_id);
-                const isPending = pendingFriendRequests.some(r => r.out_requester_id === profile.out_id)
-                               || outgoingFriendRequests.has(profile.out_id);
+                // isPending if: I sent to them (outgoing) OR they sent to me (incoming/pending)
+                const isPending = outgoingFriendRequests.has(profile.out_id)
+                               || pendingFriendRequests.some(r => r.out_requester_id === profile.out_id);
 
                 let statusHtml = '';
                 if (alreadyFriend) {
@@ -1266,7 +1274,15 @@ async function handleFriendSearchInput(event) {
 async function handleSendFriendRequest(receiverId, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
     try {
-        // Direct insert — bypasses the RPC which was auto-accepting instead of setting status='pending'
+        // Check if they already sent us a request — if so, auto-accept it instead of creating a duplicate
+        const incomingRequest = pendingFriendRequests.find(r => r.out_requester_id === receiverId);
+        if (incomingRequest) {
+            await handleAcceptFriendRequest(incomingRequest.out_id);
+            if (btn) { btn.textContent = 'Friends!'; btn.classList.add('sent'); }
+            return;
+        }
+
+        // Direct insert
         const { error } = await supabaseClient
             .from('friendships')
             .insert({
@@ -1277,10 +1293,18 @@ async function handleSendFriendRequest(receiverId, btn) {
 
         if (error) {
             console.error('Error sending friend request:', error);
-            // Handle duplicate (request already exists)
+            // Duplicate key — a row already exists (edge case: they sent request in another session)
             if (error.code === '23505') {
-                if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
-                outgoingFriendRequests.add(receiverId);
+                // Reload pending to pick up their request and show correct state
+                await loadPendingFriendRequests();
+                const nowIncoming = pendingFriendRequests.find(r => r.out_requester_id === receiverId);
+                if (nowIncoming) {
+                    await handleAcceptFriendRequest(nowIncoming.out_id);
+                    if (btn) { btn.textContent = 'Friends!'; btn.classList.add('sent'); }
+                } else {
+                    if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
+                    outgoingFriendRequests.add(receiverId);
+                }
             } else {
                 if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
             }
