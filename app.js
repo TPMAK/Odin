@@ -1421,11 +1421,10 @@ async function handleCancelFriendRequest(friendshipId) {
     const card = document.querySelector(`[data-cancel-id="${friendshipId}"]`);
     if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
     try {
-        const { error } = await supabaseClient
-            .from('friendships')
-            .delete()
-            .eq('id', friendshipId)
-            .eq('requester_id', currentUser.id); // safety: only sender can cancel
+        // RPC atomically deletes the friendship AND the receiver's notification
+        const { error } = await supabaseClient.rpc('cancel_friend_request', {
+            p_friendship_id: friendshipId
+        });
 
         if (error) {
             console.error('Error cancelling friend request:', error);
@@ -1434,7 +1433,7 @@ async function handleCancelFriendRequest(friendshipId) {
             return;
         }
 
-        // Remove from local state immediately
+        // Remove from local state immediately — no refetch needed
         outgoingPendingRequests = outgoingPendingRequests.filter(r => r.out_id !== friendshipId);
         outgoingFriendRequests = new Set(outgoingPendingRequests.map(r => r.out_receiver_id));
         updateFriendsDisplay();

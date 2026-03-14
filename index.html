@@ -3684,7 +3684,7 @@
             var emoji = _getEmoji(item.type);
             // Show emoji placeholder immediately; replace with image if available and loads
             var media = item.photo_url
-                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=\\\"hr-card-emoji\\\">' + emoji + '</div>\')">'
+                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=hr-card-emoji>' + emoji + '</div>\')">'
                 : '<div class="hr-card-emoji">' + emoji + '</div>';
             return '<div class="hr-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
                 + media
