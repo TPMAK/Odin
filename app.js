@@ -1417,6 +1417,34 @@ async function handleRejectFriendRequest(friendshipId) {
     }
 }
 
+async function handleCancelFriendRequest(friendshipId) {
+    const card = document.querySelector(`[data-cancel-id="${friendshipId}"]`);
+    if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
+    try {
+        const { error } = await supabaseClient
+            .from('friendships')
+            .delete()
+            .eq('id', friendshipId)
+            .eq('requester_id', currentUser.id); // safety: only sender can cancel
+
+        if (error) {
+            console.error('Error cancelling friend request:', error);
+            if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+            showToast('Could not cancel request. Try again.');
+            return;
+        }
+
+        // Remove from local state immediately
+        outgoingPendingRequests = outgoingPendingRequests.filter(r => r.out_id !== friendshipId);
+        outgoingFriendRequests = new Set(outgoingPendingRequests.map(r => r.out_receiver_id));
+        updateFriendsDisplay();
+        showToast('Request cancelled');
+    } catch (err) {
+        console.error('Error in handleCancelFriendRequest:', err);
+        if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+    }
+}
+
 function updateFriendsDisplay() {
     const requestsContainer = document.getElementById('pendingRequestsContainer');
     const sentContainer = document.getElementById('sentRequestsContainer');
@@ -1468,7 +1496,7 @@ function updateFriendsDisplay() {
                 const emailLine = req.out_email
                     ? `<div class="friend-request-email">${escapeHtml(req.out_email)}</div>`
                     : '';
-                return `<div class="friend-request-card">
+                return `<div class="friend-request-card" data-cancel-id="${req.out_id}">
                     <div class="friend-request-avatar">${initial}</div>
                     <div class="friend-request-info">
                         <div class="friend-request-name">${escapeHtml(req.out_receiver_name || 'Unknown')}</div>
@@ -1476,7 +1504,7 @@ function updateFriendsDisplay() {
                         <div class="friend-request-time">Request sent · awaiting response</div>
                     </div>
                     <div class="friend-request-actions">
-                        <span class="search-result-status pending">Pending</span>
+                        <button class="reject-btn" onclick="handleCancelFriendRequest('${req.out_id}')">Cancel</button>
                     </div>
                 </div>`;
             }).join('');
