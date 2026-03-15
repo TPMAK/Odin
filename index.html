@@ -1511,9 +1511,9 @@
 
                     <!-- Smart section tabs -->
                     <div class="dc-section-tabs" id="dcSectionTabs">
-                        <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">🔥 Trending this week</button>
-                        <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">📍 Popular nearby</button>
-                        <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">✨ New from circle</button>
+                        <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
+                        <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
+                        <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -3212,26 +3212,23 @@
         var titleEl = document.getElementById('dcCircleTitle');
 
         if (section === 'trending') {
-            // Most saved/endorsed this week — sort by save_count desc, cap at recent 7 days if field available
+            // Most saved — sort by saves_count desc (real Supabase field)
             var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             var recent = allD.filter(function(d) {
                 if (!d.created_at) return true;
                 return new Date(d.created_at) >= oneWeekAgo;
             });
-            // Fall back to all if not enough recent items
             var pool = recent.length >= 3 ? recent : allD;
             items = pool.slice().sort(function(a, b) {
-                return ((b.save_count || b.endorsements || 0) - (a.save_count || a.endorsements || 0));
+                return ((b.saves_count || 0) - (a.saves_count || 0));
             });
-            if (titleEl) titleEl.textContent = '🔥 Trending this week';
-            // Hide distance pills
+            if (titleEl) titleEl.textContent = 'Trending this week';
             var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         } else if (section === 'nearby') {
-            // Location-aware — filter to items with lat/lng, sort by proximity if we have user location
-            items = allD.filter(function(d) { return d.lat && d.lng; });
-            if (titleEl) titleEl.textContent = '📍 Popular nearby';
-            // Show distance pills
+            // Location-aware — filter to items with latitude/longitude (Supabase field names)
+            items = allD.filter(function(d) { return d.latitude && d.longitude; });
+            if (titleEl) titleEl.textContent = 'Popular nearby';
             var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'flex';
         } else if (section === 'new') {
@@ -3239,8 +3236,7 @@
             items = allD.slice().sort(function(a, b) {
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
-            if (titleEl) titleEl.textContent = '✨ New from your circle';
-            // Hide distance pills
+            if (titleEl) titleEl.textContent = 'New from your circle';
             var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         }

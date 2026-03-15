@@ -1,0 +1,101 @@
+table_name,column_name,data_type,is_nullable,column_default
+capture_tokens,id,uuid,NO,gen_random_uuid()
+capture_tokens,user_id,uuid,YES,null
+capture_tokens,token_hash,text,NO,null
+capture_tokens,created_at,timestamp with time zone,YES,now()
+capture_tokens,last_used_at,timestamp with time zone,YES,null
+capture_tokens,revoked,boolean,YES,false
+categories,id,uuid,NO,gen_random_uuid()
+categories,family_id,uuid,NO,null
+categories,name,text,NO,null
+categories,emoji,text,YES,'📍'::text
+categories,created_at,timestamp without time zone,YES,now()
+conversations,id,uuid,NO,gen_random_uuid()
+conversations,user_id,uuid,NO,null
+conversations,session_id,text,NO,null
+conversations,role,text,NO,null
+conversations,message,text,NO,null
+conversations,metadata,jsonb,YES,'{}'::jsonb
+conversations,created_at,timestamp with time zone,YES,now()
+duplicates,id,uuid,NO,gen_random_uuid()
+duplicates,original_item_id,uuid,NO,null
+duplicates,duplicate_item_id,uuid,NO,null
+duplicates,linked_by,uuid,NO,null
+duplicates,created_at,timestamp without time zone,YES,now()
+endorsements,id,uuid,NO,gen_random_uuid()
+endorsements,user_id,uuid,NO,null
+endorsements,item_id,uuid,NO,null
+endorsements,created_at,timestamp with time zone,YES,now()
+endorsements,visibility,text,YES,'friends'::text
+family_invites,id,uuid,NO,gen_random_uuid()
+family_invites,family_id,uuid,NO,null
+family_invites,inviter_id,uuid,NO,null
+family_invites,invitee_email,text,NO,null
+family_invites,role,text,YES,'member'::text
+family_invites,token,uuid,NO,gen_random_uuid()
+family_invites,expires_at,timestamp with time zone,NO,(now() + '7 days'::interval)
+family_invites,accepted_at,timestamp with time zone,YES,null
+family_invites,revoked,boolean,YES,false
+family_invites,created_at,timestamp with time zone,YES,now()
+friendships,id,uuid,NO,gen_random_uuid()
+friendships,requester_id,uuid,NO,null
+friendships,receiver_id,uuid,NO,null
+friendships,status,text,NO,'pending'::text
+friendships,created_at,timestamp with time zone,YES,now()
+friendships,updated_at,timestamp with time zone,YES,now()
+geography_columns,f_table_catalog,name,YES,null
+geography_columns,f_table_schema,name,YES,null
+geography_columns,f_table_name,name,YES,null
+geography_columns,f_geography_column,name,YES,null
+geography_columns,coord_dimension,integer,YES,null
+geography_columns,srid,integer,YES,null
+geography_columns,type,text,YES,null
+geometry_columns,f_table_catalog,character varying,YES,null
+geometry_columns,f_table_schema,name,YES,null
+geometry_columns,f_table_name,name,YES,null
+geometry_columns,f_geometry_column,name,YES,null
+geometry_columns,coord_dimension,integer,YES,null
+geometry_columns,srid,integer,YES,null
+geometry_columns,type,character varying,YES,null
+item_notes,id,uuid,NO,gen_random_uuid()
+item_notes,item_id,uuid,NO,null
+item_notes,user_id,uuid,NO,null
+item_notes,user_name,text,NO,null
+item_notes,note_text,text,NO,null
+item_notes,created_at,timestamp with time zone,YES,now()
+knowledge_categories,id,uuid,NO,gen_random_uuid()
+knowledge_categories,name,text,NO,null
+knowledge_categories,emoji,text,YES,'💡'::text
+knowledge_categories,type,text,NO,null
+knowledge_categories,created_at,timestamp without time zone,YES,now()
+knowledge_items,id,uuid,NO,gen_random_uuid()
+knowledge_items,type,text,YES,null
+knowledge_items,title,text,NO,null
+knowledge_items,description,text,YES,null
+knowledge_items,PersonalNote,text,YES,null
+knowledge_items,language,text,YES,'en'::text
+knowledge_items,address,text,YES,null
+knowledge_items,latitude,numeric,YES,null
+knowledge_items,longitude,numeric,YES,null
+knowledge_items,URL,jsonb,YES,'[]'::jsonb
+knowledge_items,metadata,jsonb,YES,'{}'::jsonb
+knowledge_items,embedding,USER-DEFINED,YES,null
+knowledge_items,added_by,uuid,YES,null
+knowledge_items,family_id,uuid,NO,null
+knowledge_items,network_layer,integer,YES,1
+knowledge_items,category_id,uuid,YES,null
+knowledge_items,created_at,timestamp without time zone,YES,now()
+knowledge_items,updated_at,timestamp without time zone,YES,now()
+knowledge_items,location_data,jsonb,YES,null
+knowledge_items,content,text,YES,null
+knowledge_items,enriched_description,text,YES,null
+knowledge_items,ts,tsvector,YES,null
+knowledge_items,keywords,ARRAY,YES,null
+knowledge_items,photo_url,text,YES,null
+knowledge_items,user_latitude,numeric,YES,null
+knowledge_items,user_longitude,numeric,YES,null
+knowledge_items,saves_count,integer,YES,1
+knowledge_items,latlng,USER-DEFINED,YES,null
+knowledge_items,added_by_name,text,YES,null
+knowledge_items,personal_note,text,YES,null
+knowledge_items,visibility,text,YES,'friends'::text
