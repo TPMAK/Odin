@@ -1,0 +1,335 @@
+================================================================================
+PROJECT STATUS SUMMARY — March 15, 2026
+ODIN — Voice-First Trusted Discovery Network
+================================================================================
+
+🎯 NORTH STAR (Unchanged since Sep 2025)
+"Tap into your friends' best discoveries — instantly"
+
+The WOW is in FINDING, not adding.
+
+Updated Positioning (March 2026):
+"Competing with NOISE — not Google."
+In an era of AI-generated content and fake reviews, Odin's value is TRUST.
+
+Working taglines:
+  • "Ask your life, not the internet."
+  • "No ads. No algorithms. Just people you trust."
+  • "Finally, information you can actually trust."
+
+
+================================================================================
+📦 WHAT'S BEEN BUILT (As of March 2026)
+================================================================================
+
+CORE INFRASTRUCTURE ✅
+-----------------------
+✓ Supabase database: 100–200 real entries (places, products, services)
+✓ Semantic search: AI understands "coffee for working" = wifi + quiet
+✓ Multilingual search: 13 languages supported — search in any language, AI understands intent cross-language
+✓ n8n AI workflow: Intent detection, location resolution, re-ranking
+✓ Location intelligence: Geocoding + distance-based filtering
+✓ Photo uploads: Working with personal notes
+✓ Session memory: Conversation continuity across searches
+✓ Intent router: 4 intent types (recall / place_decision / advice_synthesis / urgent_service)
+✓ AI-generated tags: Capture enrichment pipeline in place
+✓ Language detection: content_language stored at capture time
+✓ Translation layer: "Translate" button on each result card — translates "The Word" (personal note) into user's language. 13 languages, more easily added.
+  Design rule: Language affects PRESENTATION, not RETRIEVAL. Results are never filtered by language.
+
+AUTH & SOCIAL ✅
+----------------
+✓ OAuth / Google login: LIVE — users login with Google, real names assigned
+✓ Real user profiles: "Added by [Real Name]" across all entries
+✓ Friendships system: Supabase schema with requester/receiver + status
+✓ Endorsements (saves): user_saves table tracking who saved what
+✓ Visibility controls: "Only me" / "Friends" per item
+✓ Saves count: Visible per item in UI
+✓ Family invites: Token-based invite system live
+
+UX & FRONT END ✅
+-----------------
+✓ Deployed at: https://tpmak.github.io/thecommunity/
+✓ GitHub Pages hosting (cost controlled)
+✓ 5-tab UI: Home, Search, Discover, Add, Profile
+✓ Knowledge Base stat on Profile (unique visible items, deduped)
+✓ Rotating contextual phrases — 10 per page, per brand voice
+✓ Time-aware greetings (Morning / Afternoon / Evening)
+✓ Mobile-first responsive design
+✓ PWA manifest (home screen install ready)
+✓ Brand kit v3 finalised (icons, favicon, apple touch icons)
+✓ Odin name and identity locked
+
+VISIBILITY & FEED LOGIC ✅
+--------------------------
+✓ One-degree-only rule: No friends-of-friends (FoF) exposure
+✓ Adder controls visibility — saves don't change broadcast rules
+✓ Social proof: "Saved by Stanley MAK and Aden Mak" pattern
+✓ Feed shows saves from within user's circle only
+✓ Global counts hidden — only trusted circle saves shown
+✓ SAVE INHERITANCE (confirmed 15 Mar 2026):
+    When a friend saves an item from their own circle, that item
+    appears in your feed — but the original adder is anonymous to you.
+    You see: the item + "Saved by [your friend]" — that is enough trust signal.
+    The item's content travels. The source's identity does not.
+    This is NOT friends-of-friends — identity never propagates beyond 1 hop.
+✓ Consent tooltip (on Add page, "Friends" visibility):
+    "Your friends can save this, and their circle will see it was saved —
+     but not who added it."
+    One sentence. No fine print. More transparency than any other platform.
+
+SIRI CAPTURE (Stage 2 — Parked, Ready to Build)
+-------------------------------------------------
+○ iOS Shortcut designed: voice → title + take → GPS → n8n → Supabase
+○ n8n webhook already supports the payload fields
+○ Supabase schema already has all needed fields
+○ Waiting: Stage 1 UX validated with founding members first
+  Priority: HIGH for Stage 2
+
+
+================================================================================
+🔄 KEY PIVOTS MADE (AND WHY)
+================================================================================
+
+PIVOT 1: Name — "The Community" → ODIN
+  Why: "The Community" was too generic and didn't reflect the product's
+  identity. Odin conveys knowledge, trust, and intelligence.
+
+PIVOT 2: Family-only → Friend circles
+  Why: The trust mechanic doesn't require blood relation — it requires
+  genuine personal connection. Opening to friend circles widens TAM
+  while preserving the privacy-first model.
+
+PIVOT 3: Platform — Bubble.io → HTML/JS + GitHub Pages
+  Why: Faster iteration, lower cost, full control over logic.
+  Enabled custom AI search and n8n workflows impossible in Bubble.
+
+PIVOT 4: Model — Generic search → Intent-aware retrieval
+  Why: Different queries need different retrieval logic. A recall query
+  ("where was that sushi place?") needs different ranking than an
+  urgent service query ("I need a dentist now"). Intent routing
+  solved relevance without needing more data.
+
+PIVOT 5: Product positioning — "AI search tool" → "Trust layer"
+  Why: Competing with Google on search is unwinnable. Competing with
+  NOISE (AI-generated content, fake reviews, sponsored results) is
+  a real gap. Odin wins on trust, not volume.
+
+
+================================================================================
+🧪 CURRENT STATE — PILOT
+================================================================================
+
+Status: Pilot run with warm circle (2–5 real users)
+Stage: Daily iteration and pivots — pre-wide launch
+
+What's working in pilot:
+  ✓ Users logging in with Google (OAuth live)
+  ✓ Real names visible throughout
+  ✓ Items being added (100–200 in database)
+  ✓ Semantic search returning relevant results
+  ✓ Bilingual queries (English + Chinese)
+  ✓ Mobile use (primary device)
+
+Still validating:
+  ○ Do non-tech users add things without prompting?
+  ○ Does the social proof loop (add → friend saves → feel validated → add more) activate?
+  ○ Does the Knowledge Base stat create the "more friends = more value" hook?
+  ○ Are there intent types that still return poor results?
+
+Known UX issues being fixed (from March 15 review):
+  ○ Add page width — needs to match full content width of other pages
+  ○ Typography — heading sizes inconsistent across pages (fix: use Search page as standard)
+  ○ Profile page — missing heading + subtitle (fix: add heading block)
+  ○ User name repetition — keep "Hey, Stanley" on Home only; show avatar elsewhere
+
+
+================================================================================
+🚀 NEXT PHASE — WARM CIRCLE PUSH
+================================================================================
+
+IMMEDIATE (Before wider warm circle):
+  1. Fix UX issues from March 15 review (width, typography, profile heading)
+  2. Implement rotating phrases per page (10 phrases per page, loaded)
+  3. Validate: At least 3 pilot users have each added 3+ items organically
+  4. Validate: At least 1 save by a real user of another real user's item
+
+STAGE 2 TRIGGERS (When to start):
+  → Pilot users are returning unprompted (checking app on their own)
+  → At least 1 "WHOA!" moment documented
+  → Feed feels alive (not just Stanley's items)
+
+STAGE 2 FEATURES (After warm circle validation):
+  1. Siri Capture — iOS Shortcut for voice-first adds (designed, ready to build)
+  2. Push notifications — "Aden just added 3 new places — your Knowledge Base grew to 94"
+  3. Onboarding flow — trust/noise angle communicated from day one
+  4. Activity feed improvements — real-time via Supabase subscriptions
+
+
+================================================================================
+📊 SUCCESS METRICS (Updated)
+================================================================================
+
+PHASE 1 — WARM CIRCLE (Current)
+  Primary: At least 3 real users each add 3+ items in first 2 weeks
+  Social: At least 1 real user saves another user's item
+  Retention: At least 2 users return to the app unprompted after day 3
+  Search: "WHOA!" reaction from at least 1 tester on semantic search
+
+PHASE 2 — GROWTH (After validation)
+  Network: Average user has 3+ friends connected
+  Activity: 5+ new adds per week across the network
+  Retention: 60%+ of users open app at least once per week
+  Voice: Siri captures working for at least 3 users
+
+PHASE 3 — SCALE (3-6 months out)
+  Waitlist / signups from outside warm circle
+  Unit economics validated (cost per user < $1/month at 100 users)
+  First non-NZ users (diaspora / travel use case)
+
+
+================================================================================
+💰 COST STRUCTURE (Healthy)
+================================================================================
+
+Current: ~$25/month (n8n + OpenAI)
+At 100 users: Still ~$25/month (Supabase free tier holds)
+At 1,000 users: Estimate $50–100/month (Supabase Pro + OpenAI scale)
+Hosting: $0 (GitHub Pages)
+
+Cost advantage: No expensive infrastructure. AI costs scale with usage,
+not with users.
+
+
+================================================================================
+🏗️ TECH STACK SUMMARY
+================================================================================
+
+Frontend:   HTML / CSS / JavaScript — GitHub Pages (free hosting)
+Backend:    Supabase (PostgreSQL + Auth + Storage + RLS)
+AI/Search:  OpenAI embeddings + n8n workflow orchestration
+Voice:      iOS Shortcuts → n8n webhook (Stage 2)
+Auth:       Supabase Google OAuth
+Deploy:     GitHub Pages (auto-deploy from repo)
+
+Key design decisions:
+  • No native app — PWA on web, Siri via iOS Shortcuts
+  • No PostGIS — Haversine formula for distance (sufficient for MVP)
+  • No manual tags — AI-generated only, not exposed to users
+  • n8n handles all AI enrichment (intent, embedding, tags, language)
+
+
+================================================================================
+⚠️ KNOWN RISKS
+================================================================================
+
+Technical:
+  • Cold start problem — new users see an empty feed until friends connect
+  • RLS (Row Level Security) — needs thorough testing as friend graph grows
+  • n8n single point of failure — if workflow breaks, captures fail silently
+
+Business:
+  • Network effect dependency — value only materialises with 3+ active friends
+  • Privacy trust — users may hesitate to add personal data (dentists, private places)
+    → Mitigated by: Save Inheritance strips original identity beyond 1 hop.
+      Consent tooltip at add-time tells users exactly how far their data travels.
+  • Retention — without notifications, users may forget to return
+
+Mitigation in place:
+  • Invite flow ensures users see activity from day 1 (no empty start)
+  • Visibility controls give users privacy confidence
+  • Knowledge Base stat is a retention hook (more friends = bigger number)
+
+
+================================================================================
+📅 TIMELINE (Updated March 2026)
+================================================================================
+
+✅ Sep–Dec 2025:  Core build — search, n8n, Supabase, basic UI
+✅ Jan 2026:      MVP user stories, photo support, distance ranking
+✅ Feb 2026:      OAuth, saves, social proof, activity feed design
+✅ Mar 2026:      Pilot live, UX refresh, visibility logic, Odin brand locked
+                  Friend circles model confirmed (not family-only)
+
+→ Mar–Apr 2026:  Warm circle push (2–10 real users actively using)
+→ Apr–May 2026:  Stage 2 features (Siri, notifications, onboarding)
+→ Jun 2026:      Consider first outside-circle users / beta waitlist
+→ Q3 2026:       Evaluate monetisation (premium tier, $5/month)
+                  Funding conversations if traction proven
+
+
+================================================================================
+🌍 MULTILINGUAL SEARCH & TRANSLATION (Live — March 2026)
+================================================================================
+
+Odin supports search in any language. Users type or speak in Japanese, Thai,
+French, Chinese, Korean, or any supported language — the AI understands the
+intent and returns the most relevant results regardless of what language the
+content was originally added in.
+
+Results always return in the original language they were added.
+A Translate button on each card lets the user translate "The Word"
+(the personal note) into their own language.
+
+  Supported: 13 languages as of March 2026. More easily added.
+
+Design principle:
+  Language affects PRESENTATION, not RETRIEVAL.
+  Trust and relevance are never reduced because content was added
+  in a different language.
+
+Confirmed working (screenshot 15 Mar 2026):
+  Japanese query "おいしいコーヒーが飲みたい" → returned relevant Auckland
+  coffee results in English, with Chinese and Japanese translation of personal
+  note available on the card.
+
+
+================================================================================
+🔒 PRIVACY MODEL — USER-FACING EXPLANATION
+================================================================================
+
+(Draft text for in-app FAQ, onboarding, or help screen)
+
+  "Who can see what you add and save?
+
+   You are always in control. When you add something, you choose who sees it:
+
+   • Only me — completely private. Only you can ever see it.
+   • Friends — visible to people you've directly connected with on Odin.
+
+   Your friends can never see your private items. And people your friends
+   know (but you don't) can never see who added something — even if it
+   reaches their feed through a save. Odin only shares identity within
+   your direct circle. Never beyond it.
+
+   When you save something a friend added, that save is visible to your
+   circle — but it doesn't change who can see the original item. The
+   person who added it still controls that.
+
+   Before you post with 'Friends' visibility, we tell you exactly how
+   far your item can travel. No surprises.
+
+   No strangers. No algorithms surfacing your data.
+   No one outside your circle knows you added it."
+
+TO VALIDATE IN USER TESTING (15 Mar 2026 priorities):
+  1. Does the tooltip at add-time feel reassuring or alarming?
+  2. When a user sees an item with no original source shown —
+     do they trust it less, or does "Saved by [friend]" provide enough signal?
+  3. Does anonymous attribution feel fair or frustrating?
+  4. Does the Knowledge Base number feel motivating?
+
+
+================================================================================
+🧭 ONE-LINE PRODUCT DEFINITION
+================================================================================
+
+A private, trust-based recommendation memory that retrieves the right answer
+by understanding what kind of help you're actually asking for —
+from people you actually trust.
+
+
+================================================================================
+END OF STATUS — March 15, 2026
+Next review: After warm circle push (target: April 2026)
+================================================================================

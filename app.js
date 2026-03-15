@@ -5184,9 +5184,13 @@ function selectVisibility(el) {
     if (hidden)   hidden.value   = val === 'private' ? 'true' : 'false';
     if (visField) visField.value = val;
     if (hint) {
-        hint.textContent = val === 'private'
-            ? 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.'
-            : 'Your friends can see this. They can save and comment on it.';
+        if (val === 'private') {
+            hint.textContent = 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.';
+            hint.classList.remove('vis-hint--friends');
+        } else {
+            hint.innerHTML = '✦ Your friends can save this — and their circle will see it was saved, but not who added it. Your knowledge travels further, anonymously.';
+            hint.classList.add('vis-hint--friends');
+        }
     }
 }
 

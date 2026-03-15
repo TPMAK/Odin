@@ -8921,6 +8921,14 @@ body.map-view-open .content {
     color: var(--muted);
     margin: 5px 0 0;
     line-height: 1.4;
+    transition: color 0.2s, background 0.2s;
+}
+.vis-hint--friends {
+    color: var(--wb, #7B2D45);
+    background: rgba(123, 45, 69, 0.06);
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-top: 7px;
 }
 
 /* Private badge on discovery cards */

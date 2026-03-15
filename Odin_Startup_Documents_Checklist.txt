@@ -1,0 +1,264 @@
+================================================================================
+ODIN — STARTUP DOCUMENT READINESS CHECKLIST
+For: Funding Preparation (Friends & Family → Angel/Seed)
+Date: March 2026
+================================================================================
+
+STATUS KEY:
+  ✅  Done / Exists (may need polishing)
+  🔶  Partially done / needs work
+  ❌  Not done — needs to be created
+  ⏳  Not needed yet — create when closer to that stage
+
+
+================================================================================
+SECTION 1 — PITCH & STORY (Most important right now)
+================================================================================
+
+  ✅  1.1  Product vision & north star
+           → Exists in project docs. "Ask your life, not the internet."
+
+  ✅  1.2  Problem statement
+           → Well-defined: trusted recommendations get lost in WhatsApp noise
+
+  ✅  1.3  Solution narrative
+           → Clear: private social memory + AI search, trust over algorithms
+
+  ✅  1.4  Competitor landscape analysis
+           → Done (Jan 28 doc) — Mem, Likewise, Siri, etc.
+           → Conclusion: no direct competitor in this category
+
+  🔶  1.5  Pitch deck (slides)
+           → NOT YET CREATED as a proper investor deck
+           → You have the content — needs to be assembled into 10–12 slides
+           → Suggested structure: Problem → Solution → Demo → Market →
+             Business Model → Traction → Team → Ask
+
+  ❌  1.6  One-pager / executive summary (1 page)
+           → A single page investors can read in 2 minutes
+           → Covers: what it is, who it's for, traction, team, ask
+           → Critical for warm intro emails and first meetings
+
+  🔶  1.7  Demo script / walkthrough
+           → You know the product, but write down the 3-minute demo flow
+           → Standardise it so it always hits the emotional moments
+
+
+================================================================================
+SECTION 2 — MARKET & BUSINESS (Needed for seed conversations)
+================================================================================
+
+  🔶  2.1  Target market definition (ICP)
+           → You know your early adopters (NZ Chinese community, families, diaspora)
+           → Need to write it down: Who is the primary user? What problem do
+             they have? Why do they care about trust over volume?
+
+  ❌  2.2  Market size estimate (TAM / SAM / SOM)
+           → TAM: global social discovery / local recommendation market
+           → SAM: English + Chinese-speaking connected communities
+           → SOM: NZ/AUS warm launch cohort
+           → Doesn't need to be precise — just reasoned and honest
+
+  ❌  2.3  Go-to-market strategy (GTM)
+           → How do you grow beyond your warm circle?
+           → Hypothesis: diaspora communities, expat networks, friend-to-friend viral
+           → Write down the first 3 growth levers
+
+  ❌  2.4  Business model document
+           → Current: free (MVP)
+           → Phase 3 hypothesis: $5/month premium tier
+           → Need to articulate: what is free, what is paid, when does monetisation start
+
+  ❌  2.5  Unit economics (basic)
+           → Cost per user today (~$0.25/month at current scale)
+           → LTV hypothesis if premium ($5/month × avg 12 months = $60 LTV)
+           → CAC estimate (currently $0 — organic warm circle)
+
+
+================================================================================
+SECTION 3 — TRACTION & VALIDATION (Build this NOW — it's your story)
+================================================================================
+
+  🔶  3.1  Traction summary doc
+           → What you've built, when, what changed (your pivot story)
+           → Current: 100–200 items, 2–5 real users, OAuth live, semantic search
+           → This is STRONGER than most pre-seed startups. Document it.
+
+  ❌  3.2  User feedback / testimonials log
+           → Start collecting quotes from pilot users NOW
+           → Even informal: "This is way better than WhatsApp for this"
+           → Screenshots, voice memos, whatever — just capture it
+
+  ❌  3.3  Product metrics dashboard (simple)
+           → Weekly: new items added, searches run, saves made, active users
+           → Even a simple spreadsheet is fine
+           → Investors want to see you're measuring the right things
+
+  ❌  3.4  Case study / user story (1 real example)
+           → One real moment where Odin worked for a real user
+           → "Sarah was looking for a dentist. She searched 'dentist my area'
+             and found the one Mum recommended 6 months ago. She booked it."
+           → This is worth more than any TAM slide.
+
+
+================================================================================
+SECTION 4 — LEGAL & COMPANY STRUCTURE (Don't ignore this)
+================================================================================
+
+  ❌  4.1  Company incorporated
+           → You need a legal entity before taking any investment
+           → NZ: Register on the Companies Office (NZ Companies Register)
+           → Straightforward, ~$130 NZD, takes 1 day
+           → Do this BEFORE any funding conversation gets serious
+
+  ❌  4.2  Shareholding structure
+           → Who owns what? Even if it's 100% you right now — write it down
+           → Investors will ask. Have a clean cap table from day one.
+
+  ❌  4.3  IP ownership confirmation
+           → All code, brand, content must be owned by the company (not you personally)
+           → Assign IP to company when you incorporate
+           → Get advice from a startup lawyer (many NZ lawyers offer free first consult)
+
+  ❌  4.4  Privacy policy
+           → You are storing personal data (names, locations, saved items)
+           → NZ Privacy Act 2020 applies
+           → You need a basic privacy policy on the app — even a simple one
+           → Template available from NZ Privacy Commissioner website
+           → DIFFERENTIATOR TO HIGHLIGHT: Odin's Save Inheritance model
+             strips original identity beyond 1 hop. The adder's name never
+             travels to people they don't know. This is MORE privacy-protective
+             than almost any social platform. Make this a feature in the policy,
+             not just a legal clause.
+           → Draft user-facing explanation already written in project status doc.
+             Use that as the basis for the privacy policy plain-language section.
+
+  ❌  4.5  Terms of service / user agreement
+           → What users agree to when they join
+           → Protects you legally if something goes wrong
+           → Can use a template to start — customise for your use case
+           → Key clause to include: visibility consent — user acknowledges that
+             items set to "Friends" can be saved and travel one hop further
+             anonymously. The in-app tooltip already covers this at add-time.
+
+  ❌  4.6  Founder agreement (if co-founders added later)
+           → Not needed now (solo), but critical before adding a co-founder
+           → Covers: vesting, IP assignment, role split, exit provisions
+
+
+================================================================================
+SECTION 5 — FINANCIALS (Lightweight for early stage, but needed)
+================================================================================
+
+  ✅  5.1  Current cost structure documented
+           → ~$25/month (n8n + OpenAI). Supabase free tier.
+           → This is in your project docs. Well done.
+
+  ❌  5.2  12-month financial projection (simple)
+           → Revenue: $0 (MVP phase) → when does first $ come in?
+           → Costs: hosting, AI API, any team costs
+           → Runway: if you raise $X, how long does it last?
+           → Use a simple spreadsheet. Not complicated.
+
+  ❌  5.3  Funding ask summary
+           → How much are you raising? (Even if unsure — give a range)
+           → What will you use it for? (Time to build vs hire vs marketing)
+           → What milestone does this funding get you to?
+
+
+================================================================================
+SECTION 6 — TEAM (Lightweight now, important later)
+================================================================================
+
+  🔶  6.1  Founder bio / background
+           → 1 paragraph about you — why are YOU the right person to build this?
+           → Include: relevant experience, why you care about this problem,
+             what you've shipped so far
+
+  ❌  6.2  Team/hiring plan
+           → Who do you need to hire next? (Likely: a developer co-founder
+             or a community/growth person)
+           → Not needed immediately but good to have a view
+
+
+================================================================================
+SECTION 7 — TECHNICAL DOCS (For technical due diligence)
+================================================================================
+
+  ✅  7.1  Architecture overview
+           → Tech stack documented: HTML/JS, Supabase, n8n, OpenAI, GitHub Pages
+
+  ✅  7.2  Schema documentation
+           → Supabase schema CSV exported. Keep updated.
+
+  🔶  7.3  System diagram (visual)
+           → A simple diagram showing: User → App → n8n → OpenAI → Supabase
+           → Helps non-technical investors/advisors understand the stack
+
+  ❌  7.4  Data security / privacy architecture note
+           → How is user data protected? (RLS, OAuth, no FoF exposure)
+           → 1 page. Shows you've thought about this from day 1.
+
+  ❌  7.5  Scalability plan (brief)
+           → What happens at 1,000 users? 10,000?
+           → What breaks? What needs to be rebuilt?
+           → Honest answer is fine — investors respect awareness of limits.
+
+
+================================================================================
+📋 PRIORITY ORDER — WHERE TO START
+================================================================================
+
+PHASE A: Right now (next 2–4 weeks)
+  Priority 1:  3.2 → Start a user feedback log. Capture every real reaction.
+  Priority 2:  3.4 → Write one real user case study from your pilot.
+  Priority 3:  1.6 → Draft the one-pager (even rough).
+  Priority 4:  4.4 → Add a basic privacy policy to the app.
+
+PHASE B: When traction is visible (2–3 months)
+  Priority 5:  4.1 → Incorporate the company (NZ Companies Office)
+  Priority 6:  1.5 → Build the pitch deck properly.
+  Priority 7:  2.1 → Write the ICP and GTM document.
+  Priority 8:  3.1 → Polish the traction summary.
+  Priority 9:  5.2 → Build the 12-month financial model.
+
+PHASE C: Before any investor meeting
+  Priority 10: 2.2 → Market size estimate (even rough is fine)
+  Priority 11: 4.2 → Clean cap table
+  Priority 12: 5.3 → Funding ask summary
+  Priority 13: 4.5 → Terms of service
+
+
+================================================================================
+💡 STANLEY'S HONEST ASSESSMENT
+================================================================================
+
+WHAT YOU HAVE THAT MOST PRE-SEED STARTUPS DON'T:
+  ✓ A working product (not just a slide deck)
+  ✓ Real users using it (not just a mockup)
+  ✓ A clear positioning ("competing with noise, not Google")
+  ✓ A technical moat (semantic AI + trust graph — hard to clone)
+  ✓ Controlled costs ($25/month is remarkable)
+  ✓ A documented product vision going back to Sep 2025
+  ✓ A privacy model that is genuinely differentiated:
+      Save Inheritance — identity never travels beyond 1 hop.
+      In-app consent at the exact moment users need to understand it.
+      More transparency than any mainstream social platform.
+  ✓ Multilingual from day one — 13 languages, search in any language
+
+WHAT YOU NEED TO BUILD BEFORE PITCHING:
+  → The story told in 10 slides (you have the content, not the deck)
+  → One real user case study that makes investors feel the problem
+  → A company entity (so you can legally accept investment)
+  → A basic privacy policy (legal requirement, trust signal)
+
+THE HONEST TRUTH ABOUT FUNDING:
+  At this stage, investors are betting on YOU as much as the product.
+  Your story is: "I built this with $25/month, no team, while learning.
+  Here's what I've validated. Here's what I'll do with capital."
+  That is a compelling story. Prepare to tell it well.
+
+
+================================================================================
+END OF CHECKLIST — March 15, 2026
+================================================================================
