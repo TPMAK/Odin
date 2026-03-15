@@ -2762,6 +2762,15 @@ function strColour(str) {
 var CATEGORY_EMOJI = { place:'🍽️', product:'📦', service:'🔧', advice:'💡', book:'📚', experience:'✨' };
 
 function buildCollectionCards() {
+    // If the new section tabs are present, delegate to the active section instead
+    var activeTab = document.querySelector('.dc-stab.active');
+    if (activeTab) {
+        if (typeof setDiscoverSection === 'function') {
+            setDiscoverSection(activeTab, activeTab.dataset.section || 'trending');
+        }
+        return;
+    }
+
     var grid = document.getElementById('dcCollectionsGrid');
     if (!grid) return;
     grid.innerHTML = '';

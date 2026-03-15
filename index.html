@@ -1509,19 +1509,14 @@
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
                     </div>
 
-                    <!-- Category filter chips -->
-                    <div class="dc-chips-row" id="dcChipsRow">
-                        <button class="dc-chip active" data-cat="all"     onclick="setDiscoverChip(this,'all')">All <span class="dc-chip-count" id="dcCountAll"></span></button>
-                        <button class="dc-chip"        data-cat="place"   onclick="setDiscoverChip(this,'place')">Places <span class="dc-chip-count" id="dcCountPlace"></span></button>
-                        <button class="dc-chip"        data-cat="product" onclick="setDiscoverChip(this,'product')">Products <span class="dc-chip-count" id="dcCountProduct"></span></button>
-                        <button class="dc-chip"        data-cat="service" onclick="setDiscoverChip(this,'service')">Services <span class="dc-chip-count" id="dcCountService"></span></button>
-                        <button class="dc-chip"        data-cat="advice"  onclick="setDiscoverChip(this,'advice')">Advice <span class="dc-chip-count" id="dcCountAdvice"></span></button>
+                    <!-- Smart section tabs -->
+                    <div class="dc-section-tabs" id="dcSectionTabs">
+                        <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">🔥 Trending this week</button>
+                        <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">📍 Popular nearby</button>
+                        <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">✨ New from circle</button>
                     </div>
 
-                    <!-- Friends filter bubbles -->
-                    <div class="dc-friends-row" id="dcFriendsRow" style="display:none;"></div>
-
-                    <!-- Distance quick pills (shown when location is available) -->
+                    <!-- Distance quick pills (shown when location is available, for nearby section) -->
                     <div class="dc-distance-row" id="dcDistanceRow" style="display:none;">
                         <span class="dc-dist-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1531,13 +1526,9 @@
                         <button class="dc-dist-pill" data-dist="10" onclick="toggleDistancePill(this,10)">< 10 km</button>
                     </div>
 
-                    <!-- Collection cards grouped by friend / category -->
-                    <div class="dc-section-header" id="dcCircleHeader">
-                        <h2 class="dc-section-title">From your circle</h2>
-                        <div class="dc-group-toggle">
-                            <button class="dc-group-btn active" id="dcGroupFriend" onclick="setCollectionGrouping('friend')">By Friend</button>
-                            <button class="dc-group-btn" id="dcGroupCat" onclick="setCollectionGrouping('category')">By Type</button>
-                        </div>
+                    <!-- Collection cards -->
+                    <div class="dc-section-header" id="dcCircleHeader" style="display:none;">
+                        <h2 class="dc-section-title" id="dcCircleTitle">Trending this week</h2>
                     </div>
                     <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
 
@@ -1545,7 +1536,7 @@
                     <div id="dcAllItemsSection" style="display:none;">
                         <div class="dc-section-header" style="margin-top:20px;">
                             <h2 class="dc-section-title" id="dcAllItemsTitle">All items</h2>
-                            <button class="dc-back-btn" onclick="showAllCollections(); resetDiscoverChips();">← Back</button>
+                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -3206,6 +3197,58 @@
         document.querySelectorAll('.dc-chip').forEach(function(c) {
             c.classList.toggle('active', c.dataset.cat === 'all');
         });
+    }
+
+    // ── Smart section tabs ──
+    var currentDiscoverSection = 'trending';
+
+    function setDiscoverSection(el, section) {
+        currentDiscoverSection = section;
+        document.querySelectorAll('.dc-stab').forEach(function(b) { b.classList.remove('active'); });
+        el.classList.add('active');
+
+        var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
+        var items = [];
+        var titleEl = document.getElementById('dcCircleTitle');
+
+        if (section === 'trending') {
+            // Most saved/endorsed this week — sort by save_count desc, cap at recent 7 days if field available
+            var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            var recent = allD.filter(function(d) {
+                if (!d.created_at) return true;
+                return new Date(d.created_at) >= oneWeekAgo;
+            });
+            // Fall back to all if not enough recent items
+            var pool = recent.length >= 3 ? recent : allD;
+            items = pool.slice().sort(function(a, b) {
+                return ((b.save_count || b.endorsements || 0) - (a.save_count || a.endorsements || 0));
+            });
+            if (titleEl) titleEl.textContent = '🔥 Trending this week';
+            // Hide distance pills
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
+        } else if (section === 'nearby') {
+            // Location-aware — filter to items with lat/lng, sort by proximity if we have user location
+            items = allD.filter(function(d) { return d.lat && d.lng; });
+            if (titleEl) titleEl.textContent = '📍 Popular nearby';
+            // Show distance pills
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'flex';
+        } else if (section === 'new') {
+            // Latest additions from circle — sort by created_at desc
+            items = allD.slice().sort(function(a, b) {
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            });
+            if (titleEl) titleEl.textContent = '✨ New from your circle';
+            // Hide distance pills
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
+        }
+
+        var circleHeader = document.getElementById('dcCircleHeader');
+        if (circleHeader) circleHeader.style.display = 'flex';
+
+        openCollection(titleEl ? titleEl.textContent : section, items);
     }
 
     // ── 4b. Animated search bar placeholder ──
