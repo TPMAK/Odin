@@ -2960,6 +2960,7 @@ function setMode(mode) {
         // Always start on Collections sub-view when entering Discover
         switchDiscoverView('collections');
         loadDiscoveries();
+        if (typeof initDiscoverGreeting === 'function') initDiscoverGreeting();
     } else if (mode === 'saved') {
         if (savedEl) savedEl.classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');

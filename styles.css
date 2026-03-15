@@ -7741,11 +7741,13 @@
 .dc-search-inline .dc-search-row,
 .dc-search-inline .recently-viewed-section,
 .dc-search-inline .active-filters-bar {
-    max-width: none;
-    margin-left: 0;
-    margin-right: 0;
-    padding-left: 0;
-    padding-right: 0;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    box-sizing: border-box !important;
 }
 .dc-search-inline .dc-search-row { padding-top: 0; padding-bottom: 0; }
 /* Inner content mirrors discover-scroll-wrap centering */
@@ -7792,6 +7794,12 @@
     margin-top: 3px;
     color: var(--text-secondary);
     font-size: 14px;
+    line-height: 1.45;
+    min-height: 1.45em;
+    transition: opacity 0.35s ease;
+}
+.dc-subheading-fade {
+    opacity: 0;
 }
 
 /* Search row */

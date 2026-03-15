@@ -1486,8 +1486,8 @@
                 <div class="discover-scroll-wrap">
                     <!-- Heading sits at the very top -->
                     <div class="discover-header">
-                        <h1 class="dc-heading">Discover</h1>
-                        <p class="dc-subheading">Curated finds from your circle</p>
+                        <h1 class="dc-heading" id="dcGreeting">Discover</h1>
+                        <p class="dc-subheading" id="dcSubheading">Curated finds from your circle</p>
                     </div>
 
                     <!-- Filter bar — below heading, secondary role -->
@@ -3292,6 +3292,54 @@
         if (circleHeader) circleHeader.style.display = 'flex';
 
         openCollection(titleEl ? titleEl.textContent : section, items);
+    }
+
+    // ── Discover rotating greetings + nudge subtitles ──
+    var _dcGreetings = [
+        'Discover',
+        'What\'s your circle into?',
+        'See what\'s trending',
+        'Find something new',
+        'Your circle knows best',
+    ];
+    var _dcNudges = [
+        'Search like you\'d text a friend — "cosy brunch with good coffee" works better than just "cafe"',
+        'Semantic search means you don\'t need exact words — describe the vibe and Odin finds it',
+        'Saves with photos, notes and context surface first — add details when you save',
+        'The more your circle adds, the smarter every search gets — what did you discover today?',
+        'Try "best ramen Stanley tried" or "hair salon near home" — specifics always win',
+        'Every detail someone adds makes the whole circle smarter — don\'t just save, describe',
+    ];
+    var _dcGreetingIdx = 0;
+    var _dcNudgeIdx    = 0;
+
+    function initDiscoverGreeting() {
+        var greetEl = document.getElementById('dcGreeting');
+        var nudgeEl = document.getElementById('dcSubheading');
+        if (!greetEl || !nudgeEl) return;
+
+        // Pick based on time of day for greeting, random for nudge
+        var hour = new Date().getHours();
+        if (hour >= 5  && hour < 12) _dcGreetingIdx = 0;
+        else if (hour >= 12 && hour < 17) _dcGreetingIdx = 1;
+        else if (hour >= 17 && hour < 21) _dcGreetingIdx = 2;
+        else _dcGreetingIdx = 3;
+
+        _dcNudgeIdx = Math.floor(Math.random() * _dcNudges.length);
+        greetEl.textContent = _dcGreetings[_dcGreetingIdx];
+        nudgeEl.textContent = _dcNudges[_dcNudgeIdx];
+
+        // Rotate nudge every 6 seconds with a fade
+        if (window._dcNudgeTimer) clearInterval(window._dcNudgeTimer);
+        window._dcNudgeTimer = setInterval(function() {
+            if (!document.getElementById('dcSubheading')) return;
+            nudgeEl.classList.add('dc-subheading-fade');
+            setTimeout(function() {
+                _dcNudgeIdx = (_dcNudgeIdx + 1) % _dcNudges.length;
+                nudgeEl.textContent = _dcNudges[_dcNudgeIdx];
+                nudgeEl.classList.remove('dc-subheading-fade');
+            }, 350);
+        }, 6000);
     }
 
     // ── Sort control ──
