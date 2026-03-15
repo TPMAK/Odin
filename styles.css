@@ -7800,6 +7800,8 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
 }
 .dc-search-bar {
     flex: 1;
@@ -7866,6 +7868,90 @@
 }
 .dc-group-toggle {
     display: none;
+}
+
+/* Sort control */
+.dc-sort-wrap {
+    flex-shrink: 0;
+}
+.dc-sort-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236A5A4A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+    border: 1.5px solid var(--border-light);
+    border-radius: 8px;
+    padding: 5px 28px 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6A5A4A;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.18s;
+}
+.dc-sort-select:focus { border-color: #7B2D45; }
+
+/* Back row */
+.dc-back-row {
+    margin-bottom: 12px;
+}
+
+/* Empty state */
+.dc-empty-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 24px 32px;
+    gap: 12px;
+}
+.dc-empty-icon {
+    width: 64px; height: 64px;
+    background: var(--surface);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+}
+.dc-empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2A1E14;
+    letter-spacing: -0.2px;
+}
+.dc-empty-body {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    max-width: 280px;
+}
+.dc-empty-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 240px;
+    margin-top: 8px;
+}
+.dc-empty-btn {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.18s;
+}
+.dc-empty-btn:hover { opacity: 0.85; }
+.dc-empty-btn-primary {
+    background: #7B2D45;
+    color: #FAF6EE;
+}
+.dc-empty-btn-secondary {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: #2A1E14;
 }
 .dc-group-btn {
     padding: 4px 10px;
