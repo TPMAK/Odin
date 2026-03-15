@@ -2,13 +2,15 @@
 
 /* ── Odin Brand Tokens ── */
 :root {
-    --wb:       #7B2D45;   /* Winterberry  — logo "v", buttons, chips  */
-    --ink:      #2A1E14;   /* Cumberland   — all primary text          */
-    --bg:       #FAF6EE;   /* Page bg      — warm off-white            */
-    --mason:    #FAF6EE;   /* Mason Bay    — nav / card bg             */
-    --surface:  #FFFFFF;   /* Cream        — cards, search bar         */
-    --muted:    #9A8A7A;   /* Warm grey    — meta text, placeholders   */
-    --border:   #EAE0D2;   /* Warm border  — dividers, card borders    */
+    --wb:             #7B2D45;   /* Winterberry  — logo "v", buttons, chips  */
+    --ink:            #2A1E14;   /* Cumberland   — all primary text          */
+    --bg:             #FAF6EE;   /* Page bg      — warm off-white            */
+    --mason:          #FAF6EE;   /* Mason Bay    — nav / card bg             */
+    --surface:        #FFFFFF;   /* Cream        — cards, search bar         */
+    --muted:          #9A8A7A;   /* Warm grey    — meta text, placeholders   */
+    --border:         #EAE0D2;   /* Warm border  — dividers, card borders    */
+    --text-secondary: #9A8A7A;   /* Alias for --muted — search icons, hints  */
+    --border-light:   #EAE0D2;   /* Alias for --border — light dividers      */
 }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -380,17 +382,21 @@
         .hidden { display: none !important; }
 
         /* ── Global page heading token (Search page is the standard) ── */
+        /* !important on font-size beats all descendant/element selectors */
         .page-heading {
-            font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 26px;
-            font-weight: 400;
-            line-height: 1.15;
-            letter-spacing: -0.01em;
-            color: var(--ink, #2A1E14);
+            font-family: 'DM Serif Display', Georgia, serif !important;
+            font-size: 26px !important;
+            font-weight: 400 !important;
+            line-height: 1.15 !important;
+            letter-spacing: -0.01em !important;
+            color: var(--ink, #2A1E14) !important;
             margin: 0 0 4px;
         }
+        @media (min-width: 480px) {
+            .page-heading { font-size: 28px !important; }
+        }
         @media (min-width: 768px) {
-            .page-heading { font-size: 34px; }
+            .page-heading { font-size: 34px !important; }
         }
         .page-heading .highlight { color: #7B2D45; }
 
@@ -428,16 +434,8 @@
         }
 
         .home-greeting h1 {
-            font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 26px;
-            font-weight: 400;
+            /* font-size controlled by .page-heading global token */
             line-height: 1.15;
-            letter-spacing: -0.01em;
-            color: var(--ink);
-        }
-
-        @media (min-width: 768px) {
-            .home-greeting h1 { font-size: 34px; }
         }
 
         .home-greeting p {
@@ -2216,17 +2214,9 @@
         }
 
         .search-greeting h1 {
-            font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 26px;
-            font-weight: 400;
+            /* font-size controlled by .page-heading global token */
             line-height: 1.15;
-            letter-spacing: -0.01em;
-            color: var(--ink);
             margin-bottom: 4px;
-        }
-
-        @media (min-width: 768px) {
-            .search-greeting h1 { font-size: 34px; }
         }
 
         .search-greeting p {
@@ -3470,16 +3460,40 @@
             .input-form-container { padding: 0 20px 120px; }
         }
         @media (min-width: 768px) {
-            .input-form-container { max-width: 900px; padding: 0 32px 140px; }
+            .input-form-container { max-width: 800px; padding: 0 40px 140px; }
+        }
+        @media (min-width: 1024px) {
+            .input-form-container { max-width: 860px; }
+        }
+
+        /* ── Add page desktop 2-column grid ── */
+        @media (min-width: 768px) {
+            #addForm {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                column-gap: 24px;
+            }
+            /* Full-width rows */
+            #addForm .form-group-title,
+            #addForm .visibility-group,
+            #addForm .submit-btn {
+                grid-column: 1 / -1;
+            }
+            /* Left column */
+            #addForm .form-group-category { grid-column: 1; }
+            #addForm .address-group       { grid-column: 1; }
+            /* Right column */
+            #addForm .form-group-take  { grid-column: 2; grid-row: 2 / 4; }
+            #addForm .form-group-photo { grid-column: 2; }
+            /* Make textarea fill the available height */
+            #addForm .form-group-take .your-take-textarea {
+                min-height: 190px;
+            }
         }
 
         .input-form-container h2 {
-            font-family: 'DM Serif Display', serif;
-            font-size: 20px;
-            font-weight: 400;
-            color: var(--ink);
+            /* font-size controlled by .page-heading global token */
             margin-bottom: 2px;
-            letter-spacing: -0.01em;
         }
 
         .input-form-container p {
@@ -7391,11 +7405,7 @@
 }
 
 .launcher-greeting h1 {
-    font-family: 'DM Serif Display', Georgia, serif;
-    font-size: 26px;
-    font-weight: 400;
-    color: var(--ink);
-    letter-spacing: -0.01em;
+    /* font-size controlled by .page-heading global token */
     margin: 0;
     line-height: 1.2;
 }
@@ -7820,12 +7830,8 @@
 .dc-search-pinned .active-filters-bar { margin-bottom: 0; padding-bottom: 8px; }
 .discover-header { padding: 16px 0 12px; }
 .dc-heading {
-    font-family: 'DM Serif Display', Georgia, serif;
-    font-size: 27px;
-    font-weight: 400;
+    /* font-size controlled by .page-heading global token */
     line-height: 1.15;
-    letter-spacing: -0.3px;
-    color: #2A1E14;
 }
 /* .dc-subheading now inherits all styles from .page-subtitle */
 .dc-subheading {

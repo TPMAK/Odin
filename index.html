@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=49">
+    <link rel="stylesheet" href="styles.css?v=50">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1888,7 +1888,7 @@
                 <form id="addForm" onsubmit="submitDiscovery(event)">
 
                     <!-- 1. TITLE -->
-                    <div class="form-group">
+                    <div class="form-group form-group-title">
                         <input type="text" id="title" class="title-input-large" placeholder="What's the name?" required>
                     </div>
 
@@ -1921,7 +1921,7 @@
                     </div>
 
                     <!-- 3. YOUR TAKE (merged description + personal note) -->
-                    <div class="form-group">
+                    <div class="form-group form-group-take">
                         <label class="field-label-inline">Your take</label>
                         <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
                         <!-- Hidden description mirrors personalNote value on submit -->
@@ -1947,7 +1947,7 @@
                     </div>
 
                     <!-- 5. PHOTO — compact -->
-                    <div class="form-group">
+                    <div class="form-group form-group-photo">
                         <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
                         <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -2418,7 +2418,9 @@
         chips.forEach(function(item) {
             var span = document.createElement('span');
             span.className = 'suggestion-chip';
-            span.textContent = item.label;
+            // Strip leading emoji + space from label
+            var cleanLabel = item.label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '');
+            span.textContent = cleanLabel;
             span.onclick = (function(q) { return function() { sendMessage(q); }; })(item.q);
             container.appendChild(span);
         });
