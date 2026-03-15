@@ -7725,6 +7725,24 @@
     width: 100%;
     box-sizing: border-box;
 }
+
+/* Inline variant — inside the scroll wrap, flows with content, no sticky behaviour */
+.dc-search-inline {
+    border-bottom: none;
+    background: transparent;
+    width: auto;
+    margin-bottom: 4px;
+}
+.dc-search-inline .dc-search-row,
+.dc-search-inline .recently-viewed-section,
+.dc-search-inline .active-filters-bar {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 0;
+    padding-right: 0;
+}
+.dc-search-inline .dc-search-row { padding-top: 0; padding-bottom: 0; }
 /* Inner content mirrors discover-scroll-wrap centering */
 .dc-search-pinned .dc-search-row,
 .dc-search-pinned .recently-viewed-section,
