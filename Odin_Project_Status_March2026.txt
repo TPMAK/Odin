@@ -53,7 +53,7 @@ UX & FRONT END ✅
 ✓ GitHub Pages hosting (cost controlled)
 ✓ 5-tab UI: Home, Search, Discover, Add, Profile
 ✓ Knowledge Base stat on Profile (unique visible items, deduped)
-✓ Rotating contextual phrases — 10 per page, per brand voice
+✓ Rotating contextual phrases — per page, per brand voice (10+ per page)
 ✓ Time-aware greetings (Morning / Afternoon / Evening)
 ✓ Mobile-first responsive design
 ✓ PWA manifest (home screen install ready)
@@ -128,7 +128,7 @@ What's working in pilot:
   ✓ Real names visible throughout
   ✓ Items being added (100–200 in database)
   ✓ Semantic search returning relevant results
-  ✓ Bilingual queries (English + Chinese)
+  ✓ Multilingual queries — 13 languages supported
   ✓ Mobile use (primary device)
 
 Still validating:

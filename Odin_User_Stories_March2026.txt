@@ -1,0 +1,276 @@
+================================================================================
+ODIN — USER STORIES (Updated March 2026)
+Replaces: MVP_User_Stories_Updated_21Jan2026
+================================================================================
+
+🎯 CORE INSIGHT (Unchanged since Sep 2025)
+"The WOW is in FINDING, not adding."
+
+Friends tell you things. You save them. Everyone searches and discovers magic.
+The network gets smarter every time someone adds or saves something.
+
+
+================================================================================
+WHAT HAS CHANGED SINCE JAN 2026
+================================================================================
+
+Jan 2026 said "NOT building":          March 2026 reality:
+─────────────────────────────────────  ──────────────────────────────────────
+No user accounts / login               ✅ Google OAuth live
+No social features                     ✅ Saves, endorsements, social proof
+No friends adding their own items      ✅ All users can add
+No cross-language search               ✅ 13 languages live
+No friend-of-friend discovery          ✅ Save Inheritance (better than FoF)
+No reputation system                   ✅ Knowledge Base stat
+Bubble.io as frontend                  ✅ HTML/JS + GitHub Pages
+Admin-only capture                     ✅ Any user captures their own items
+"Added by" = text field                ✅ "Added by" = real Google account name
+
+Platform: Bubble.io → HTML/JS + GitHub Pages + Supabase + n8n + OpenAI
+
+
+================================================================================
+👤 USER STORY A — Any User: Capture a Discovery
+================================================================================
+
+As a user,
+I want to quickly save a place, product, or service I've discovered or heard about,
+so that I and my friends can find it later through natural language search.
+
+✅ Acceptance Criteria (Current — March 2026)
+
+CAPTURE FORM (Live ✅)
+  - I open the app (mobile or desktop) and tap "Add"
+  - I fill in:
+      Title (required)
+      Description (required)
+      Personal Note — "The Word" — my private take (optional)
+      Category (required)
+      Photo (optional)
+      Address / location (optional)
+      URL (optional)
+      Visibility: Only me / Friends
+  - I tap Save → item appears in my feed immediately
+  - n8n enrichment runs in the background:
+      AI generates embedding for semantic search
+      Language detected and stored
+      AI generates up to 6 tags (not shown to user)
+      Address geocoded to lat/lng if provided
+
+VISIBILITY CONSENT (Live ✅)
+  - If I select "Friends" visibility, I see:
+    "Your friends can save this, and their circle will see it was saved —
+     but not who added it."
+  - One sentence. I know exactly how far my item travels.
+
+Example Workflow
+  I hear about a coffee place from a friend.
+  Title: "Roma Coffee Roasters Pakuranga"
+  Description: "Specialty roastery, excellent single origin."
+  Personal Note: "Heart café vibes. Food is sincere. 4 bean choices, one is
+                  caffeine bomb level!"
+  Category: Café
+  Visibility: Friends
+  → Saved in <30 seconds. Friends see it. Their saves are anonymous.
+
+
+================================================================================
+👤 USER STORY B — Any User: Search & Discover
+================================================================================
+
+As a user,
+I want to search using natural language (in my own language)
+and get smart, trusted results from people I actually know,
+so that I find the right place, product, or service quickly.
+
+✅ Acceptance Criteria (Current — March 2026)
+
+SEARCH (Live ✅)
+  - I type (or will speak) a natural language query in any language
+  - Examples:
+      "best coffee for working"              (English)
+      "おいしいコーヒーが飲みたい"              (Japanese)
+      "romantic dinner anniversary"          (English)
+      "dentist I need urgently"              (English)
+      "朋友推薦嘅咖啡廳"                      (Cantonese)
+  - AI detects my intent (recall / place_decision / advice_synthesis / urgent_service)
+  - Results ranked by intent type + distance + trust signals
+  - Results show within ~2 seconds
+
+RESULTS DISPLAY (Live ✅)
+  - Each result shows:
+      Photo (if available)
+      Title + distance
+      Added by: [Real Name] or "Founding Members"
+      "The Word" — the personal note in the original language
+      Translate button → translates personal note into my language (13 languages)
+      "Saved by [Friend Name]" social proof
+      Address, website, directions
+  - TOP PICKS shown first (AI-ranked best matches)
+  - MORE GREAT OPTIONS shown below
+
+TRUST SIGNALS (Live ✅)
+  - I only see items from:
+      My own adds
+      My direct friends' adds (Friends visibility)
+      Items my direct friends saved (anonymous source — Save Inheritance)
+  - I NEVER see items from strangers or people two hops away with attribution
+  - Social proof shows saves only from MY circle (not global counts)
+
+MULTILINGUAL (Live ✅)
+  - I can search in any language
+  - Results return in their original language
+  - I can translate "The Word" into my language per card
+  - 13 languages supported. More easily added.
+
+Example Search Journey
+  I search: "romantic dinner anniversary"
+  → Intent detected: place_decision (occasion: romantic)
+  → Returns: restaurants my friends added or saved
+  → Each card shows who recommended it and their personal note
+  → I tap Translate → note appears in Chinese
+  → I tap Directions → opens Maps
+
+
+================================================================================
+👤 USER STORY C — Any User: Build Your Network
+================================================================================
+
+As a user,
+I want to connect with people I trust on Odin,
+so that my Knowledge Base grows and I get more trusted discoveries.
+
+✅ Acceptance Criteria (Current — March 2026)
+
+FRIENDSHIP / CONNECTIONS (Live ✅)
+  - I can send a friend request to another Odin user
+  - They accept → we are connected (one degree)
+  - Their "Friends" visibility items now appear in my feed
+  - My Knowledge Base number grows
+
+KNOWLEDGE BASE STAT (Live ✅)
+  - My profile shows 4 stats: Items / People / Saves / Knowledge Base
+  - Knowledge Base = total unique items visible to me (deduped)
+  - Every time a friend adds or saves something → my Knowledge Base grows
+  - More friends = bigger Knowledge Base = more value
+  - This number is the primary retention hook
+
+SAVE MECHANIC (Live ✅)
+  - I can save any item I can see
+  - My save is visible within my circle: "Saved by [My Name]"
+  - My save carries the item to my friends' feeds — anonymously
+  - The original adder's identity is never exposed to people outside their circle
+
+INVITE FLOW (Live ✅)
+  - Token-based invite system
+  - I can invite someone by email
+  - They join and are automatically connected to me
+
+
+================================================================================
+👤 USER STORY D — User: Understand Your Visibility
+================================================================================
+
+As a user,
+I want to know exactly who can see what I add and save,
+so that I feel confident adding private or personal information.
+
+✅ Acceptance Criteria (Current — March 2026)
+
+VISIBILITY CONTROLS (Live ✅)
+  - Every item I add has a visibility setting I choose:
+      Only me — completely private, only I can see it
+      Friends — visible to my direct connections only
+  - I can change visibility after adding
+
+HOW FAR MY ITEM TRAVELS
+  - Only me: Never leaves my view
+  - Friends: My direct friends see it
+             If a friend saves it → their circle sees it was saved by [friend],
+             but NOT who originally added it (my identity is protected)
+             My item's content can travel 2 hops.
+             My identity travels only 1 hop — never beyond my direct circle.
+
+WHAT I SEE FROM OTHERS
+  - I see items my friends added (Friends visibility)
+  - I see items friends saved from their circle (source anonymous to me)
+  - I NEVER see who originally added an item that came via a friend's save
+  - I NEVER see items from people my friends know but I don't — with attribution
+
+
+================================================================================
+🎯 CURRENT SCOPE — WHAT'S IN (March 2026 Pilot)
+================================================================================
+
+✅ IN — Live now:
+  - Google OAuth login (real identity, real names)
+  - Any user can add items (not admin-only)
+  - Semantic AI search — intent-aware, 4 intent types
+  - Multilingual search — 13 languages
+  - Translation per card — "The Word" in your language
+  - Photo uploads
+  - Location + distance ranking
+  - Friendship system (send/accept)
+  - Saves / endorsements with social proof
+  - Save Inheritance (anonymous 1-hop content sharing)
+  - Visibility controls (Only me / Friends)
+  - Consent tooltip at add-time
+  - Knowledge Base stat on profile
+  - PWA (installable on home screen)
+  - Mobile-first design
+
+🔜 STAGE 2 — Ready to build (after pilot validation):
+  - Siri voice capture (iOS Shortcut designed and ready)
+  - Push notifications ("Your Knowledge Base grew to 94")
+  - Onboarding flow (trust/noise angle from day one)
+  - Real-time feed (Supabase subscriptions)
+
+❌ STILL OUT (deliberate):
+  - Map view
+  - Multiple photos per item
+  - Native iOS/Android app
+  - PostGIS (using Haversine — sufficient)
+  - Public profiles / public discovery
+  - Comments (not planned — noise risk)
+  - Friends-of-friends with attribution (Save Inheritance replaces this better)
+
+
+================================================================================
+📊 SUCCESS CRITERIA — PILOT PHASE (March–April 2026)
+================================================================================
+
+Quantitative:
+  - 3+ real users each add 3+ items organically (unprompted)
+  - 1+ real user saves another user's item
+  - 2+ users return to the app unprompted after day 3
+  - 100–200 total items in database (on track)
+
+Qualitative (The Real Test — unchanged since Sep 2025):
+  - At least 1 friend says "WHOA!" on search
+  - User reports: "I forgot about that place — this is so useful"
+  - Search feels smarter than WhatsApp scrolling
+  - "Saved by [friend name]" feels more meaningful than a star rating
+  - Users feel SAFE adding personal recommendations (dentists, private spots)
+
+Save Inheritance validation (new — 15 Mar 2026):
+  - Do users understand the tooltip at add-time?
+  - Does "Saved by Aden" provide enough trust when source is anonymous?
+  - Does the Knowledge Base number make users want to add more friends?
+
+
+================================================================================
+🧭 THE ONE THING THAT MATTERS (Unchanged)
+================================================================================
+
+When a friend searches for something —
+a dentist, a restaurant, a place they half-remember —
+they find it, they see who saved it, they trust it,
+and they say: "This is so much better than asking in the group chat."
+
+Everything else is just a path to that moment.
+
+
+================================================================================
+END — March 2026
+Supersedes: MVP_User_Stories_Updated_21Jan2026 copy.txt
+================================================================================
