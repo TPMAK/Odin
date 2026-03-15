@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=50">
+    <link rel="stylesheet" href="styles.css?v=51">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1193,11 +1193,6 @@
                 <span class="odin-wordmark"><span class="odin-o">O</span><span class="odin-din">din</span></span>
             </div>
             <div class="header-right">
-                <!-- Discover / Map toggle (discover screen only) -->
-                <div class="header-mode-pills" id="headerDiscoverPills" style="display:none;">
-                    <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
-                    <button class="hdr-pill" id="hdrPillMap" onclick="switchDiscoverView('map')">Map</button>
-                </div>
                 <!-- Language picker button — shown only on profile page -->
                 <div class="header-lang-wrap" id="headerLangWrap" style="display:none;">
                     <button class="header-lang-btn" id="headerLangBtn" onclick="toggleLangPicker(event)" aria-label="Language">
@@ -1486,7 +1481,13 @@
                 <div class="discover-scroll-wrap">
                     <!-- Heading sits at the very top -->
                     <div class="discover-header">
-                        <h1 class="page-heading dc-heading" id="dcGreeting">Discover</h1>
+                        <div class="discover-title-row">
+                            <h1 class="page-heading dc-heading" id="dcGreeting">Discover</h1>
+                            <button class="dc-map-toggle-btn" id="dcMapToggleBtn" onclick="switchDiscoverView('map')" title="View as map">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                                Map
+                            </button>
+                        </div>
                         <p class="page-subtitle dc-subheading" id="dcSubheading">Curated finds from your circle</p>
                     </div>
 
