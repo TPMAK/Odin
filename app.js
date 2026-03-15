@@ -662,6 +662,10 @@ async function loadProfilePage() {
     const nameEl = document.getElementById('profileDisplayName');
     nameEl.textContent = name;
     nameEl.style.color = '#7B2D45';
+
+    // Update the profile page-level heading with the user's name
+    var profilePageNameEl = document.getElementById('profilePageName');
+    if (profilePageNameEl) profilePageNameEl.textContent = name || 'Your Profile';
     document.getElementById('profileEmail').textContent = currentUser.email || '';
     document.getElementById('profileNameInput').value = name;
     document.getElementById('profileBioInput').value = currentProfile.bio || '';
@@ -2968,10 +2972,12 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+        if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         loadProfilePage();
+        if (typeof _startPhraseRotation === 'function') _startPhraseRotation('profilePageSubtitle', 'profile', 7000);
     }
 
     updateTabBar(mode);

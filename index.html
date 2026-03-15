@@ -1246,8 +1246,8 @@
             <div id="launcherHome" style="display:block;">
                 <div class="launcher-page">
                     <div class="launcher-greeting">
-                        <h1 id="launcherGreetingLine">Good morning, <span id="launcherGreetingName" class="launcher-name"></span></h1>
-                        <p id="launcherSubGreeting" class="launcher-sub-greeting"></p>
+                        <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
+                        <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
                     </div>
 
                     <!-- Main action tiles -->
@@ -1327,8 +1327,8 @@
             <div class="home-page">
                 <!-- Greeting -->
                 <div class="home-greeting">
-                    <h1 id="homeGreeting">Good morning</h1>
-                    <p id="homeSubtitle" class="home-subtitle"></p>
+                    <h1 id="homeGreeting" class="page-heading">Good morning</h1>
+                    <p id="homeSubtitle" class="page-subtitle home-subtitle"></p>
                 </div>
 
                 <!-- Breathing Search Bar -->
@@ -1455,8 +1455,8 @@
             <div class="chat-container" id="chatContainer">
                 <div class="welcome" id="searchWelcome">
                     <div class="search-greeting">
-                        <h1 id="searchGreeting"></h1>
-                        <p id="searchGreetingSub"></p>
+                        <h1 id="searchGreeting" class="page-heading"></h1>
+                        <p id="searchGreetingSub" class="page-subtitle"></p>
                     </div>
                     <!-- Recent searches: compact horizontal pill row -->
                     <div id="recentSearchesSection" style="display:none; margin-bottom:20px;">
@@ -1486,8 +1486,8 @@
                 <div class="discover-scroll-wrap">
                     <!-- Heading sits at the very top -->
                     <div class="discover-header">
-                        <h1 class="dc-heading" id="dcGreeting">Discover</h1>
-                        <p class="dc-subheading" id="dcSubheading">Curated finds from your circle</p>
+                        <h1 class="page-heading dc-heading" id="dcGreeting">Discover</h1>
+                        <p class="page-subtitle dc-subheading" id="dcSubheading">Curated finds from your circle</p>
                     </div>
 
                     <!-- Filter bar — below heading, secondary role -->
@@ -1640,6 +1640,12 @@
         <!-- PROFILE MODE -->
         <div id="profileMode" class="hidden">
             <div class="profile-container">
+                <!-- Profile page heading -->
+                <div class="profile-page-header">
+                    <h1 class="page-heading" id="profilePageName">Your Profile</h1>
+                    <p class="page-subtitle" id="profilePageSubtitle">Your circle is your most valuable asset.</p>
+                </div>
+
                 <!-- View Mode (default) -->
                 <div id="profileViewMode">
                     <!-- Airbnb-style card: avatar+name left, stats right -->
@@ -1832,8 +1838,8 @@
             <div class="input-form-container">
                 <div class="capture-form-header">
                     <div>
-                        <h2>Add Discovery</h2>
-                        <p>Anything worth knowing — save it for yourself and your circle</p>
+                        <h2 class="page-heading">Add Discovery</h2>
+                        <p class="page-subtitle" id="addSubtitle">Anything worth knowing — save it for yourself and your circle</p>
                     </div>
                     <button type="button" class="clear-form-btn" onclick="clearCaptureForm()" title="Clear form">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
@@ -2162,42 +2168,126 @@
         return 'home';
     }
 
+    // ══════════════════════════════════════════════════════════
+    // ── GLOBAL ROTATING PHRASES CONFIG ──
+    // ══════════════════════════════════════════════════════════
+    var ODIN_PHRASES = {
+        home: [
+            'Everything here, a real person vouched for.',
+            'Your circle knows things Google doesn\'t.',
+            'No ads. No algorithms. Just people you trust.',
+            'The best tips are hiding in your friends list.',
+            'Noise is everywhere. This isn\'t it.',
+            'Real people. Real places. Real takes.',
+            'Your feed, curated by people who actually care.',
+            'Every item here has a human behind it.',
+            'The internet is loud. Your circle isn\'t.',
+            'What your people know, now you know too.',
+        ],
+        discover: [
+            'See what your world is excited about.',
+            'Trending here means trusted people saved it.',
+            'Explore what your circle has built together.',
+            'Every item here passed the friend test.',
+            'The bigger your circle, the richer this gets.',
+            'Real places. Real takes. Real people.',
+            'Trending doesn\'t mean viral. It means trusted.',
+            'Your Knowledge Base, all in one place.',
+            'Discover more by knowing more people.',
+            'What\'s popular here actually means something.',
+        ],
+        search: [
+            'Search like you\'d text a friend.',
+            'Every result here was put here by a real person.',
+            'No sponsored results. No fake reviews.',
+            'The answer you need has already been saved.',
+            'Trusted knowledge, one search away.',
+            'Ask it like you\'d ask someone who knows.',
+            'Your friends already know. Just ask.',
+            'The best search engine is a trusted circle.',
+            'No SEO. No ads. Just real answers.',
+            'Someone in your circle already knows this.',
+        ],
+        add: [
+            'Your knowledge is someone else\'s answer.',
+            'Add it once. Your whole circle benefits.',
+            'Be the friend with the best recommendations.',
+            'What you add becomes someone\'s trusted source.',
+            'Someone in your circle needs exactly what you know.',
+            'The best gift you can give is what you already know.',
+            'Every add makes your circle smarter.',
+            'You know something worth saving. Add it.',
+            'Your take matters more than any review site.',
+            'Knowledge shared is knowledge multiplied.',
+        ],
+        profile: [
+            'Your Knowledge Base grows with every connection.',
+            'More friends. Less noise. More signal.',
+            'Everything here, earned through trust.',
+            'Your circle is your most valuable asset.',
+            'The more you give, the more your circle grows.',
+            'Your Knowledge Base is yours. Build it well.',
+            'Three friends today. A hundred trusted items tomorrow.',
+            'Every person you add expands what you know.',
+            'Small circle. High trust. That\'s the point.',
+            'Quality of connections over quantity of content.',
+        ],
+    };
+
+    // Shared rotate util — fades out, swaps text, fades in
+    var _phraseTimers = {};
+    function _startPhraseRotation(subtitleId, phraseKey, intervalMs) {
+        var el = document.getElementById(subtitleId);
+        if (!el) return;
+        var pool = ODIN_PHRASES[phraseKey] || [];
+        var idx  = Math.floor(Math.random() * pool.length);
+        el.textContent = pool[idx];
+        if (_phraseTimers[subtitleId]) clearInterval(_phraseTimers[subtitleId]);
+        _phraseTimers[subtitleId] = setInterval(function() {
+            var el2 = document.getElementById(subtitleId);
+            if (!el2) return;
+            el2.classList.add('page-subtitle-fade');
+            setTimeout(function() {
+                idx = (idx + 1) % pool.length;
+                el2.textContent = pool[idx];
+                el2.classList.remove('page-subtitle-fade');
+            }, 350);
+        }, intervalMs || 6000);
+    }
+
+    function _timeGreeting() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 12) return 'Good morning';
+        if (h >= 12 && h < 18) return 'Good afternoon';
+        return 'Good evening';
+    }
+
+    function _firstName() {
+        return (typeof currentProfile !== 'undefined' && currentProfile)
+            ? (currentProfile.display_name || '').split(' ')[0] : '';
+    }
+
     // ── Search page greeting ──
     function updateSearchGreeting() {
-        var h1 = document.getElementById('searchGreeting');
+        var h1  = document.getElementById('searchGreeting');
         var sub = document.getElementById('searchGreetingSub');
         if (!h1 || !sub) return;
-        var hour = new Date().getHours();
-        var name = (typeof currentProfile !== 'undefined' && currentProfile)
-            ? (currentProfile.display_name || '').split(' ')[0] : '';
-
-        // Greeting
-        var greeting = 'Good evening';
-        if (hour < 12)       greeting = 'Good morning';
-        else if (hour < 17)  greeting = 'Good afternoon';
+        var name = _firstName();
+        var greeting = _timeGreeting();
         if (name) {
-            h1.innerHTML = greeting + ', <span style="color:#7B2D45;">' + name + '</span>';
+            h1.innerHTML = greeting + ', <span class="highlight">' + name + '</span>';
         } else {
             h1.textContent = greeting;
         }
-
-        // Time-based search prompt
-        var prompts = {
-            morning:   ['What are you hunting for today?', 'Start your day with a great find.', 'What can your friends help you discover?'],
-            lunch:     ['Hungry? Ask your friends.', 'What are you in the mood for?', 'What would you like to find today?'],
-            afternoon: ['What are you looking for?', 'Your friends might know just the thing.', 'What can we help you find?'],
-            evening:   ['What are you after tonight?', 'Let your friends guide you.', 'What sounds good right now?'],
-        };
-        var pool = hour < 12 ? prompts.morning : hour < 14 ? prompts.lunch : hour < 18 ? prompts.afternoon : prompts.evening;
-        sub.textContent = pool[Math.floor(Math.random() * pool.length)];
+        _startPhraseRotation('searchGreetingSub', 'search', 7000);
 
         // Always show suggestion chips on search page welcome state
         var chipsEl = document.getElementById('searchSuggestions');
         if (chipsEl) {
             chipsEl.style.display = '';
-            renderSearchChips(); // populate with time-based bilingual chips
+            renderSearchChips();
         }
-        renderRecentSearches(); // show recent history if any
+        renderRecentSearches();
     }
 
     // ══════════════════════════════════════════════
@@ -2952,8 +3042,13 @@
         }
 
         var gi = Math.floor(Math.random() * greetings.length);
-        lineEl.innerHTML = greetings[gi] + '<span id="launcherGreetingName" class="launcher-name">' + safeName + '</span>';
-        if (subEl) subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
+        lineEl.innerHTML = greetings[gi] + '<span id="launcherGreetingName" class="launcher-name highlight">' + safeName + '</span>';
+        // Use ODIN_PHRASES home pool for subtitle (branding nudges)
+        if (subEl && typeof _startPhraseRotation === 'function') {
+            _startPhraseRotation('launcherSubGreeting', 'home', 7000);
+        } else if (subEl) {
+            subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
+        }
     }
 
     function updateStyleToggleUI() {
@@ -2975,33 +3070,22 @@
 
     // ===== HOME PAGE ENHANCEMENTS =====
 
-    // ── 1. Greeting with user name (already correct, kept as-is) ──
+    // ── 1. Home greeting with name ──
     function updateHomeGreeting() {
-        const el = document.getElementById('homeGreeting');
+        var el = document.getElementById('homeGreeting');
         if (!el) return;
-        const hour = new Date().getHours();
-        let greeting = 'Good evening';
-        if (hour < 12) greeting = 'Good morning';
-        else if (hour < 17) greeting = 'Good afternoon';
-        const name = (typeof currentProfile !== 'undefined' && currentProfile)
-            ? (currentProfile.display_name || '').split(' ')[0]
-            : '';
+        var name = _firstName();
+        var greeting = _timeGreeting();
         if (name) {
-            el.innerHTML = greeting + ', <span style="color:#7B2D45;">' + name + '</span>';
+            el.innerHTML = greeting + ', <span class="highlight">' + name + '</span>';
         } else {
             el.textContent = greeting;
         }
     }
 
-    // ── 1b. Time-of-day subtitle ──
+    // ── 1b. Home subtitle — rotating phrases ──
     function updateHomeSubtitle() {
-        var el = document.getElementById('homeSubtitle');
-        if (!el) return;
-        var hour = new Date().getHours();
-        if (hour >= 6 && hour < 11)        el.textContent = 'Looking for a breakfast spot?';
-        else if (hour >= 11 && hour < 14)  el.textContent = 'Looking for a lunch spot?';
-        else if (hour >= 14 && hour < 18)  el.textContent = 'Looking for a coffee break?';
-        else                               el.textContent = 'Looking for dinner ideas?';
+        _startPhraseRotation('homeSubtitle', 'home', 7000);
     }
 
     // ── 2. Location-aware subtitle line — ON by default ──
@@ -3294,52 +3378,24 @@
         openCollection(titleEl ? titleEl.textContent : section, items);
     }
 
-    // ── Discover rotating greetings + nudge subtitles ──
-    var _dcGreetings = [
-        'Discover',
-        'What\'s your circle into?',
+    // ── Discover heading + rotating subtitle ──
+    var _dcHeadings = [
         'See what\'s trending',
+        'What\'s your circle into?',
+        'Discover',
         'Find something new',
         'Your circle knows best',
     ];
-    var _dcNudges = [
-        'Search like you\'d text a friend — "cosy brunch with good coffee" works better than just "cafe"',
-        'Semantic search means you don\'t need exact words — describe the vibe and Odin finds it',
-        'Saves with photos, notes and context surface first — add details when you save',
-        'The more your circle adds, the smarter every search gets — what did you discover today?',
-        'Try "best ramen Stanley tried" or "hair salon near home" — specifics always win',
-        'Every detail someone adds makes the whole circle smarter — don\'t just save, describe',
-    ];
-    var _dcGreetingIdx = 0;
-    var _dcNudgeIdx    = 0;
 
     function initDiscoverGreeting() {
         var greetEl = document.getElementById('dcGreeting');
-        var nudgeEl = document.getElementById('dcSubheading');
-        if (!greetEl || !nudgeEl) return;
-
-        // Pick based on time of day for greeting, random for nudge
-        var hour = new Date().getHours();
-        if (hour >= 5  && hour < 12) _dcGreetingIdx = 0;
-        else if (hour >= 12 && hour < 17) _dcGreetingIdx = 1;
-        else if (hour >= 17 && hour < 21) _dcGreetingIdx = 2;
-        else _dcGreetingIdx = 3;
-
-        _dcNudgeIdx = Math.floor(Math.random() * _dcNudges.length);
-        greetEl.textContent = _dcGreetings[_dcGreetingIdx];
-        nudgeEl.textContent = _dcNudges[_dcNudgeIdx];
-
-        // Rotate nudge every 6 seconds with a fade
-        if (window._dcNudgeTimer) clearInterval(window._dcNudgeTimer);
-        window._dcNudgeTimer = setInterval(function() {
-            if (!document.getElementById('dcSubheading')) return;
-            nudgeEl.classList.add('dc-subheading-fade');
-            setTimeout(function() {
-                _dcNudgeIdx = (_dcNudgeIdx + 1) % _dcNudges.length;
-                nudgeEl.textContent = _dcNudges[_dcNudgeIdx];
-                nudgeEl.classList.remove('dc-subheading-fade');
-            }, 350);
-        }, 6000);
+        if (!greetEl) return;
+        // Pick heading based on time of day
+        var h = new Date().getHours();
+        var hi = (h >= 5 && h < 12) ? 0 : (h >= 12 && h < 17) ? 1 : (h >= 17 && h < 21) ? 2 : 3;
+        greetEl.textContent = _dcHeadings[hi] || _dcHeadings[0];
+        // Subtitle uses the ODIN_PHRASES discover pool
+        _startPhraseRotation('dcSubheading', 'discover', 7000);
     }
 
     // ── Sort control ──

@@ -379,6 +379,31 @@
 
         .hidden { display: none !important; }
 
+        /* ── Global page heading token (Search page is the standard) ── */
+        .page-heading {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 26px;
+            font-weight: 400;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            color: var(--ink, #2A1E14);
+            margin: 0 0 4px;
+        }
+        @media (min-width: 768px) {
+            .page-heading { font-size: 34px; }
+        }
+        .page-heading .highlight { color: #7B2D45; }
+
+        .page-subtitle {
+            font-size: 15px;
+            color: var(--muted, #8A7968);
+            line-height: 1.5;
+            margin: 0 0 20px;
+            min-height: 1.5em;
+            transition: opacity 0.35s ease;
+        }
+        .page-subtitle-fade { opacity: 0; }
+
         /* (Landing page removed) */
 
         /* HOME PAGE - Recurring users */
@@ -3436,10 +3461,16 @@
 
         .input-form-container {
             width: 100%;
-            max-width: 480px;
+            max-width: 600px;
             margin: 0 auto;
-            padding: 0 20px 120px;
+            padding: 0 16px 120px;
             box-sizing: border-box;
+        }
+        @media (min-width: 480px) {
+            .input-form-container { padding: 0 20px 120px; }
+        }
+        @media (min-width: 768px) {
+            .input-form-container { max-width: 900px; padding: 0 32px 140px; }
         }
 
         .input-form-container h2 {
@@ -4693,6 +4724,12 @@
 
 @media (min-width: 768px) {
     .profile-container { max-width: 900px; padding: 20px 32px 120px; }
+}
+
+/* ── Profile page header ── */
+.profile-page-header {
+    padding-top: 8px;
+    margin-bottom: 4px;
 }
 
 /* ── Airbnb-style profile card ── */
@@ -7790,16 +7827,9 @@
     letter-spacing: -0.3px;
     color: #2A1E14;
 }
+/* .dc-subheading now inherits all styles from .page-subtitle */
 .dc-subheading {
     margin-top: 3px;
-    color: var(--text-secondary);
-    font-size: 14px;
-    line-height: 1.45;
-    min-height: 1.45em;
-    transition: opacity 0.35s ease;
-}
-.dc-subheading-fade {
-    opacity: 0;
 }
 
 /* Search row */
