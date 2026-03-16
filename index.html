@@ -1726,8 +1726,29 @@
                     <h2>Your Circle</h2>
                 </div>
 
+                <!-- ── Invite via Link ── -->
+                <div class="invite-link-section" id="inviteLinkSection">
+                    <div class="invite-link-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <span>Invite someone to Odin</span>
+                    </div>
+                    <p class="invite-link-body">Generate a personal invite link. When they sign up through it, you'll get a friend request automatically.</p>
+                    <button class="invite-link-btn" id="inviteLinkBtn" onclick="generateInviteLink()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        Generate invite link
+                    </button>
+                    <!-- Generated link display (hidden until generated) -->
+                    <div class="invite-link-result" id="inviteLinkResult" style="display:none;">
+                        <div class="invite-link-box">
+                            <span class="invite-link-url" id="inviteLinkUrl"></span>
+                            <button class="invite-link-copy" id="inviteLinkCopy" onclick="copyInviteLink()">Copy</button>
+                        </div>
+                        <p class="invite-link-hint">Send this link via WhatsApp, iMessage, or email. Works once — expires after use.</p>
+                    </div>
+                </div>
+
                 <div class="friends-search-container">
-                    <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search or invite by name / email..." onkeyup="handleFriendSearchInput(event)">
+                    <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search by name / email..." onkeyup="handleFriendSearchInput(event)">
                     <div id="friendSearchResults" class="friend-search-results" style="display:none;"></div>
                 </div>
 

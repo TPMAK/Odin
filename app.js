@@ -6038,6 +6038,85 @@ async function autoFriendOdinHQ() {
 }
 
 // ══════════════════════════════════════════════════════════
+// INVITE LINK SYSTEM
+// Profile tab → "Generate invite link" → share via WhatsApp/iMessage
+// When new user signs up via link → friend request sent to inviter
+// March 2026
+// ══════════════════════════════════════════════════════════
+
+async function generateInviteLink() {
+    if (!currentUser) return;
+
+    const btn = document.getElementById('inviteLinkBtn');
+    const result = document.getElementById('inviteLinkResult');
+    const urlEl = document.getElementById('inviteLinkUrl');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+
+    try {
+        // Generate a random token — 12 chars, URL-safe
+        const token = Array.from(crypto.getRandomValues(new Uint8Array(9)))
+            .map(b => b.toString(36).padStart(2, '0'))
+            .join('')
+            .slice(0, 12);
+
+        // Save to Supabase invitations table
+        const { error } = await supabaseClient
+            .from('invitations')
+            .insert({
+                token: token,
+                inviter_id: currentUser.id
+            });
+
+        if (error) throw error;
+
+        // Build the shareable URL
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const inviteUrl = `${baseUrl}?token=${token}`;
+
+        // Display it
+        if (urlEl) urlEl.textContent = inviteUrl;
+        if (result) result.style.display = 'block';
+        if (btn) { btn.textContent = 'Generate new link'; btn.disabled = false; }
+
+    } catch (err) {
+        console.error('Failed to generate invite link:', err);
+        if (btn) { btn.textContent = 'Try again'; btn.disabled = false; }
+    }
+}
+
+function copyInviteLink() {
+    const urlEl = document.getElementById('inviteLinkUrl');
+    const copyBtn = document.getElementById('inviteLinkCopy');
+    if (!urlEl) return;
+
+    const url = urlEl.textContent.trim();
+    navigator.clipboard.writeText(url).then(() => {
+        if (copyBtn) {
+            copyBtn.textContent = 'Copied!';
+            copyBtn.style.background = '#2A6B3C';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.style.background = '';
+            }, 2000);
+        }
+    }).catch(() => {
+        // Fallback for older browsers / non-HTTPS
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (copyBtn) {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════
 // ONBOARDING FLOW — 4-step, fires once on first login
 // Trigger: profiles.onboarding_completed_at === null
 // March 2026
@@ -6135,20 +6214,33 @@ async function onbAcceptInvite() {
     }
 
     const btn = document.getElementById('onbConnectBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending request...'; }
 
     try {
-        // Create friendship (requester = new user, receiver = inviter)
+        // Send a PENDING friend request to the inviter.
+        // Status = 'pending' so the inviter sees it in their Requests tab
+        // and gets a notification — matching the normal friendship flow.
+        // new user = requester, inviter = receiver
         const { error: friendErr } = await supabaseClient
             .from('friendships')
             .insert({
                 requester_id: currentUser.id,
                 receiver_id: _onbInviterData.id,
-                status: 'accepted'
+                status: 'pending'
             });
 
         if (!friendErr) {
-            // Mark token as used
+            // Notify the inviter via the existing secure RPC
+            const newUserName = currentProfile?.display_name ||
+                                currentUser?.user_metadata?.full_name ||
+                                currentUser?.email?.split('@')[0] || 'Someone';
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: _onbInviterData.id,
+                p_actor_id:    currentUser.id,
+                p_message:     `${newUserName} accepted your invite and wants to connect on Odin.`
+            });
+
+            // Mark invite token as used
             if (_onbInviteToken) {
                 await supabaseClient
                     .from('invitations')
@@ -6156,29 +6248,33 @@ async function onbAcceptInvite() {
                     .eq('token', _onbInviteToken);
                 sessionStorage.removeItem('odin_invite_token');
             }
-            // Refresh friends so feed populates
-            await loadFriends();
+
+            if (btn) btn.textContent = 'Request sent ✓';
+        } else {
+            console.warn('Friend request insert failed:', friendErr);
+            if (btn) btn.textContent = 'Could not send — skip';
         }
     } catch (err) {
         console.warn('Auto-connect on invite failed:', err);
+        if (btn) btn.textContent = 'Could not send — skip';
     }
 
-    onbGoStep(3);
+    // Short pause so user sees the confirmation, then move on
+    setTimeout(() => onbGoStep(3), 1000);
 }
 
 function onbGoAdd() {
-    // Complete onboarding then open the Add form
+    // Mode name is 'input' (not 'add') — matches setMode() in app
     onbComplete();
-    setTimeout(() => setMode('add'), 300);
+    setTimeout(() => setMode('input'), 300);
 }
 
 function onbGoSearch() {
-    // Complete onboarding then open Search with keyboard focused
+    // Mode name is 'search', input element is 'messageInput'
     onbComplete();
     setTimeout(() => {
-        setMode('discover');
-        const searchInput = document.getElementById('searchInput') ||
-                            document.querySelector('input[type="search"], .search-input');
+        setMode('search');
+        const searchInput = document.getElementById('messageInput');
         if (searchInput) searchInput.focus();
     }, 300);
 }
