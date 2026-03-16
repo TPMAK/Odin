@@ -5043,8 +5043,6 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--ink);
-    padding: 10px 14px 12px;
-    background: #fff;
 }
 
 /* Invite Button */
@@ -5089,6 +5087,251 @@
 .logout-btn:hover {
     background: #fef2f2;
     border-color: #dc2626;
+}
+
+/* ══════════════════════════════════════════
+   PROFILE V2 — Airbnb-style redesign
+══════════════════════════════════════════ */
+
+/* Identity card */
+.profile-card-v2 {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 18px 16px;
+    margin: 8px 0 4px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    position: relative;
+}
+
+.pcv2-avatar-wrap {
+    flex: 0 0 auto;
+}
+
+.pcv2-identity {
+    flex: 1;
+    min-width: 0;
+}
+
+.pcv2-identity .profile-name {
+    text-align: left;
+    margin-bottom: 3px;
+}
+
+.pcv2-identity .profile-bio {
+    text-align: left;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pcv2-edit-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #f5f0e8;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #7B2D45;
+    transition: background 0.18s;
+    padding: 0;
+}
+.pcv2-edit-btn:hover { background: #ede8e0; }
+
+/* Stats row — horizontal, 4 cols */
+.profile-stats-row {
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 14px 8px;
+    margin: 10px 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    gap: 0;
+}
+
+.profile-stat-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.pstat-kb .profile-stat-number {
+    color: #7B2D45;
+}
+
+.pstat-kb .profile-stat-label {
+    font-size: 10px;
+    letter-spacing: -0.1px;
+}
+
+.pstat-divider {
+    width: 1px;
+    height: 32px;
+    background: #f0ece4;
+    flex-shrink: 0;
+}
+
+/* pbox label row with count */
+.pbox-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 12px;
+    background: #fff;
+}
+
+.pbox-count {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+/* Settings list rows */
+.profile-settings-list {
+    margin-top: 16px;
+    background: #ffffff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.profile-settings-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 15px 16px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid #f5f2ee;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.profile-settings-row:last-child {
+    border-bottom: none;
+}
+
+.profile-settings-row:hover {
+    background: #faf8f5;
+}
+
+.profile-settings-row--danger {
+    color: #dc2626;
+}
+
+.profile-settings-row--danger svg {
+    stroke: #dc2626;
+}
+
+/* ══════════════════════════════════════════
+   PROFILE SLIDE-UP DRAWERS (Circle + Saves)
+══════════════════════════════════════════ */
+.profile-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.28s ease;
+}
+
+.profile-drawer.is-open {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.profile-drawer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+}
+
+.profile-drawer-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 88vh;
+    background: var(--bg, #FAF8F5);
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 0.32s cubic-bezier(0.32,0.72,0,1);
+    overflow: hidden;
+}
+
+.profile-drawer.is-open .profile-drawer-sheet {
+    transform: translateY(0);
+}
+
+.profile-drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: #d1cbc3;
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+}
+
+.profile-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0ece4;
+}
+
+.profile-drawer-title {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0;
+}
+
+.profile-drawer-close {
+    background: #f0ece4;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--ink);
+    padding: 0;
+    transition: background 0.15s;
+}
+.profile-drawer-close:hover { background: #e5e0d8; }
+
+.profile-drawer-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 16px 18px 40px;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ── Close account (subtle) ── */

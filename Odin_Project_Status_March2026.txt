@@ -48,17 +48,25 @@ AUTH & SOCIAL ✅
 ✓ Invite system: Token-based invite links — invitations table in Supabase (added 16 Mar 2026)
     Token stored in URL: yourapp.com/join?token=XXXXXXXX
     Token survives Google OAuth redirect via sessionStorage
-    On login: token looked up → inviter auto-connected → token marked used
+    On login: token looked up → pending friend request auto-sent to inviter
+    Inviter gets bell notification → accepts from Requests tab
+    Token marked used after request sent (single-use)
+✓ Invite link generator: UI on Profile tab (built 16 Mar 2026)
+    "Generate invite link" button → creates token in Supabase → shows shareable URL
+    One-tap copy → share via WhatsApp / iMessage / email
+    Each link is single-use and expires after the new user connects
 
 ONBOARDING FLOW ✅ (Built 16 Mar 2026)
 ---------------------------------------
 ✓ Replaced old static welcome banner with 4-step full-screen onboarding flow
 ✓ Trigger: profiles.onboarding_completed_at = null (fires once, never again)
+✓ Overlay placed at mainApp root level (not inside tab panels) — renders correctly
 ✓ Step 1 — Welcome: personalised with user's first name
-✓ Step 2 — Connect with inviter: auto-shows inviter name + one-tap accept
+✓ Step 2 — Connect with inviter: auto-shows inviter name + one-tap "Send request"
+           Sends pending friend request to inviter + notification via notify_friend_request RPC
            (skipped automatically if no invite token present)
-✓ Step 3 — Add first item: habit seeding, routes to Add form
-✓ Step 4 — Search / WOW moment: routes to Search with keyboard focused
+✓ Step 3 — Add first item: habit seeding, routes to Add form (mode: 'input')
+✓ Step 4 — Search / WOW moment: routes to semantic Search (mode: 'search'), keyboard focused
 ✓ Completion: writes onboarding_completed_at timestamp to Supabase profiles
 ✓ All steps skippable except Step 1
 ✓ Progress dots indicator across all 4 steps
@@ -163,7 +171,10 @@ Known UX issues being fixed (from March 15 review):
 Completed since March 15:
   ✓ Onboarding flow — 4-step full-screen overlay replacing old welcome banner (16 Mar 2026)
   ✓ Invite token system — invitations table + token persistence across OAuth (16 Mar 2026)
+  ✓ Invite link generator UI — Profile tab, one-tap copy, single-use links (16 Mar 2026)
+  ✓ Auto friend request on onboarding — new user sends pending request to inviter (16 Mar 2026)
   ✓ First-time login flow documented in Odin_FirstTimeLogin_Flow_March2026.txt
+  ✓ Bug fix: onboarding overlay moved to mainApp root (was inside hidden tab panel)
 
 
 ================================================================================
