@@ -5343,6 +5343,70 @@
     -webkit-overflow-scrolling: touch;
 }
 
+/* Settings row — right-aligned value label */
+.profile-settings-value {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7B2D45;
+    background: #FAF0F3;
+    padding: 2px 8px;
+    border-radius: 6px;
+}
+
+/* Language drawer list */
+.lang-drawer-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.lang-drawer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lang-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 13px 14px;
+    background: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.lang-drawer-item:hover {
+    background: #f5f0e8;
+}
+
+.lang-drawer-item.is-active {
+    background: #FAF0F3;
+    color: #7B2D45;
+    font-weight: 600;
+}
+
+.lang-drawer-item.is-active::after {
+    content: '✓';
+    margin-left: auto;
+    font-size: 14px;
+    color: #7B2D45;
+}
+
+/* Hide old header language button — superseded by profile settings row */
+#headerLangWrap {
+    display: none !important;
+}
+
 /* ── Close account (subtle) ── */
 .close-account-subtle {
     margin-top: 32px;
