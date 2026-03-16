@@ -1340,90 +1340,6 @@
                     <button class="home-loc-pill" id="homeLocPill" onclick="toggleHomeLocation()"></button>
                 </div>
 
-                <!-- ══════════════════════════════════════════════ -->
-                <!-- ONBOARDING FLOW — 4-step, fires once on      -->
-                <!-- first login. Triggered by onboarding_        -->
-                <!-- completed_at = null in profiles table.       -->
-                <!-- ══════════════════════════════════════════════ -->
-                <div id="onboardingOverlay" style="display:none;">
-
-                    <!-- Step 1: Welcome -->
-                    <div id="onbStep1" class="onb-screen">
-                        <div class="onb-screen-inner">
-                            <div class="onb-logo-mark">
-                                <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="18" fill="#7B2D45"/><text x="18" y="24" text-anchor="middle" font-family="DM Serif Display, serif" font-size="20" fill="#FAF6EE">O</text></svg>
-                            </div>
-                            <h1 class="onb-heading">Welcome to <span class="onb-brand">Odin</span>, <span id="onbUserName">friend</span>.</h1>
-                            <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle.</p>
-                            <button class="onb-btn-primary" onclick="onbGoStep(2)">Let's go →</button>
-                            <div class="onb-dots">
-                                <span class="onb-dot onb-dot-active"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Connect with inviter -->
-                    <div id="onbStep2" class="onb-screen" style="display:none;">
-                        <div class="onb-screen-inner">
-                            <div class="onb-invite-avatar" id="onbInviterAvatar">
-                                <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
-                            </div>
-                            <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
-                            <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge Base grows the moment you connect.</p>
-                            <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
-                            <button class="onb-btn-skip" onclick="onbGoStep(3)">Skip for now</button>
-                            <div class="onb-dots">
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot onb-dot-active"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Add first item -->
-                    <div id="onbStep3" class="onb-screen" style="display:none;">
-                        <div class="onb-screen-inner">
-                            <div class="onb-icon-circle">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                            </div>
-                            <h1 class="onb-heading">What's one thing you'd recommend to a friend?</h1>
-                            <p class="onb-body">A café, a dentist, a product — anything worth sharing. Adding it takes 30 seconds.</p>
-                            <button class="onb-btn-primary" onclick="onbGoAdd()">Add it →</button>
-                            <button class="onb-btn-skip" onclick="onbGoStep(4)">Skip for now</button>
-                            <div class="onb-dots">
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot onb-dot-active"></span>
-                                <span class="onb-dot"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Search / WOW moment -->
-                    <div id="onbStep4" class="onb-screen" style="display:none;">
-                        <div class="onb-screen-inner">
-                            <div class="onb-icon-circle">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                            </div>
-                            <h1 class="onb-heading">Now try searching for something.</h1>
-                            <p class="onb-body">Ask it like you'd ask a friend.<br><br>Try <em>"best coffee nearby"</em> or <em>"dentist I can trust"</em>.</p>
-                            <button class="onb-btn-primary" onclick="onbGoSearch()">Search now →</button>
-                            <button class="onb-btn-skip" onclick="onbComplete()">Explore later</button>
-                            <div class="onb-dots">
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot"></span>
-                                <span class="onb-dot onb-dot-active"></span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div><!-- end onboardingOverlay -->
-
                 <!-- Legacy banner kept as hidden shell (referenced in old code) -->
                 <div id="onboardingBanner" style="display:none;"></div>
 
@@ -2196,6 +2112,92 @@
         <span class="lightbox-close">×</span>
         <img id="lightboxImg" src="" alt="">
     </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- ONBOARDING FLOW — 4-step full-screen overlay          -->
+    <!-- MUST live here at mainApp root level — NOT inside     -->
+    <!-- #homePage or any tab panel, because those panels use  -->
+    <!-- display:none/.hidden and will suppress a fixed child. -->
+    <!-- Triggered when profiles.onboarding_completed_at=null  -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="onboardingOverlay" style="display:none;">
+
+        <!-- Step 1: Welcome -->
+        <div id="onbStep1" class="onb-screen">
+            <div class="onb-screen-inner">
+                <div class="onb-logo-mark">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="18" fill="#7B2D45"/><text x="18" y="24" text-anchor="middle" font-family="DM Serif Display, serif" font-size="20" fill="#FAF6EE">O</text></svg>
+                </div>
+                <h1 class="onb-heading">Welcome to <span class="onb-brand">Odin</span>, <span id="onbUserName">friend</span>.</h1>
+                <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle.</p>
+                <button class="onb-btn-primary" onclick="onbGoStep(2)">Let's go →</button>
+                <div class="onb-dots">
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Connect with inviter -->
+        <div id="onbStep2" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-invite-avatar" id="onbInviterAvatar">
+                    <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
+                </div>
+                <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
+                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge Base grows the moment you connect.</p>
+                <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
+                <button class="onb-btn-skip" onclick="onbGoStep(3)">Skip for now</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Add first item -->
+        <div id="onbStep3" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </div>
+                <h1 class="onb-heading">What's one thing you'd recommend to a friend?</h1>
+                <p class="onb-body">A café, a dentist, a product — anything worth sharing. Adding it takes 30 seconds.</p>
+                <button class="onb-btn-primary" onclick="onbGoAdd()">Add it →</button>
+                <button class="onb-btn-skip" onclick="onbGoStep(4)">Skip for now</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Search / WOW moment -->
+        <div id="onbStep4" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+                <h1 class="onb-heading">Now try searching for something.</h1>
+                <p class="onb-body">Ask it like you'd ask a friend.<br><br>Try <em>"best coffee nearby"</em> or <em>"dentist I can trust"</em>.</p>
+                <button class="onb-btn-primary" onclick="onbGoSearch()">Search now →</button>
+                <button class="onb-btn-skip" onclick="onbComplete()">Explore later</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end onboardingOverlay -->
 
     </div><!-- end mainApp -->
 

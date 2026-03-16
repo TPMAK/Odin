@@ -1,5 +1,5 @@
 ================================================================================
-PROJECT STATUS SUMMARY — March 15, 2026
+PROJECT STATUS SUMMARY — March 16, 2026
 ODIN — Voice-First Trusted Discovery Network
 ================================================================================
 
@@ -45,7 +45,24 @@ AUTH & SOCIAL ✅
 ✓ Endorsements (saves): user_saves table tracking who saved what
 ✓ Visibility controls: "Only me" / "Friends" per item
 ✓ Saves count: Visible per item in UI
-✓ Family invites: Token-based invite system live
+✓ Invite system: Token-based invite links — invitations table in Supabase (added 16 Mar 2026)
+    Token stored in URL: yourapp.com/join?token=XXXXXXXX
+    Token survives Google OAuth redirect via sessionStorage
+    On login: token looked up → inviter auto-connected → token marked used
+
+ONBOARDING FLOW ✅ (Built 16 Mar 2026)
+---------------------------------------
+✓ Replaced old static welcome banner with 4-step full-screen onboarding flow
+✓ Trigger: profiles.onboarding_completed_at = null (fires once, never again)
+✓ Step 1 — Welcome: personalised with user's first name
+✓ Step 2 — Connect with inviter: auto-shows inviter name + one-tap accept
+           (skipped automatically if no invite token present)
+✓ Step 3 — Add first item: habit seeding, routes to Add form
+✓ Step 4 — Search / WOW moment: routes to Search with keyboard focused
+✓ Completion: writes onboarding_completed_at timestamp to Supabase profiles
+✓ All steps skippable except Step 1
+✓ Progress dots indicator across all 4 steps
+  Reference: Odin_FirstTimeLogin_Flow_March2026.txt
 
 UX & FRONT END ✅
 -----------------
@@ -143,6 +160,11 @@ Known UX issues being fixed (from March 15 review):
   ○ Profile page — missing heading + subtitle (fix: add heading block)
   ○ User name repetition — keep "Hey, Stanley" on Home only; show avatar elsewhere
 
+Completed since March 15:
+  ✓ Onboarding flow — 4-step full-screen overlay replacing old welcome banner (16 Mar 2026)
+  ✓ Invite token system — invitations table + token persistence across OAuth (16 Mar 2026)
+  ✓ First-time login flow documented in Odin_FirstTimeLogin_Flow_March2026.txt
+
 
 ================================================================================
 🚀 NEXT PHASE — WARM CIRCLE PUSH
@@ -162,7 +184,7 @@ STAGE 2 TRIGGERS (When to start):
 STAGE 2 FEATURES (After warm circle validation):
   1. Siri Capture — iOS Shortcut for voice-first adds (designed, ready to build)
   2. Push notifications — "Aden just added 3 new places — your Knowledge Base grew to 94"
-  3. Onboarding flow — trust/noise angle communicated from day one
+  3. ✅ Onboarding flow — BUILT (16 Mar 2026) — 4-step flow live
   4. Activity feed improvements — real-time via Supabase subscriptions
 
 
@@ -250,9 +272,13 @@ Mitigation in place:
 ✅ Feb 2026:      OAuth, saves, social proof, activity feed design
 ✅ Mar 2026:      Pilot live, UX refresh, visibility logic, Odin brand locked
                   Friend circles model confirmed (not family-only)
+                  Save Inheritance logic finalised (15 Mar)
+                  4-step onboarding flow built (16 Mar)
+                  Invite token system (invitations table) built (16 Mar)
+                  First-time login flow documented (16 Mar)
 
 → Mar–Apr 2026:  Warm circle push (2–10 real users actively using)
-→ Apr–May 2026:  Stage 2 features (Siri, notifications, onboarding)
+→ Apr–May 2026:  Stage 2 features (Siri, push notifications)
 → Jun 2026:      Consider first outside-circle users / beta waitlist
 → Q3 2026:       Evaluate monetisation (premium tier, $5/month)
                   Funding conversations if traction proven
@@ -330,6 +356,6 @@ from people you actually trust.
 
 
 ================================================================================
-END OF STATUS — March 15, 2026
+END OF STATUS — March 16, 2026
 Next review: After warm circle push (target: April 2026)
 ================================================================================
