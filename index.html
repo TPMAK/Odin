@@ -4126,9 +4126,9 @@
         var d = document.getElementById('circleDrawer');
         if (!d) return;
         d.classList.add('is-open');
-        d.setAttribute('aria-hidden', 'false');
+        d.removeAttribute('aria-hidden');
         document.body.style.overflow = 'hidden';
-        // Focus the search input after animation
+        // Focus search input after slide animation completes
         setTimeout(function() {
             var inp = document.getElementById('friendSearchInput');
             if (inp) inp.focus();
@@ -4145,9 +4145,8 @@
         var d = document.getElementById('mySavesDrawer');
         if (!d) return;
         d.classList.add('is-open');
-        d.setAttribute('aria-hidden', 'false');
+        d.removeAttribute('aria-hidden');
         document.body.style.overflow = 'hidden';
-        // Sync saves list into drawer
         syncMySavesDrawer();
     }
     function closeMySavesDrawer() {
@@ -4196,20 +4195,18 @@
 
     // ── Box count badges ──
     function updateProfileBoxCounts() {
-        // My Saves count
+        // My Saves count — read from the stat number already set correctly by app.js
         var savesEl = document.getElementById('pboxSavesCount');
         if (savesEl) {
-            var saveSrc = document.getElementById('myEndorsementsList');
-            if (saveSrc) {
-                var cards = saveSrc.querySelectorAll('.endorsement-card, .my-endorse-card, [class*="endorse"], [class*="save-card"]');
-                if (cards.length > 0) savesEl.textContent = cards.length;
-            }
+            var statEl = document.getElementById('profileEndorsementCount');
+            var n = statEl ? parseInt(statEl.textContent, 10) : 0;
+            savesEl.textContent = n > 0 ? n + ' save' + (n !== 1 ? 's' : '') : '';
         }
         // Circle count
         var circleEl = document.getElementById('pboxCircleCount');
         if (circleEl) {
             var count = (typeof friendsCache !== 'undefined') ? friendsCache.length : 0;
-            if (count > 0) circleEl.textContent = count + ' friend' + (count !== 1 ? 's' : '');
+            circleEl.textContent = count > 0 ? count + ' friend' + (count !== 1 ? 's' : '') : '';
         }
     }
 
