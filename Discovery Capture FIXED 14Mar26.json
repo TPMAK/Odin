@@ -1,5 +1,5 @@
 {
-  "name": "Simple Discovery Capture (with photo) 23Jan2026 2200 with OG picture download",
+  "name": "Discovery Capture FIXED 14Mar26",
   "nodes": [
     {
       "parameters": {
@@ -11,10 +11,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        48,
-        192
+        1952,
+        128
       ],
-      "id": "492baa63-b6e6-4573-bcb9-359ce018f654",
+      "id": "0dfb7854-2679-436d-ab1b-12fbd08d2fa9",
       "name": "Capture Webhook",
       "webhookId": "capture"
     },
@@ -25,10 +25,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        256,
-        192
+        2160,
+        128
       ],
-      "id": "d735f7cc-35b0-47c5-a973-4bca3b849f22",
+      "id": "90c0cfcf-ae81-40fd-a0b2-40b9b6a8f1e4",
       "name": "Handle Photo Upload"
     },
     {
@@ -58,10 +58,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        432,
-        192
+        2336,
+        128
       ],
-      "id": "40198da1-7bf4-472e-b662-ae1240fe9a03",
+      "id": "0d4b267f-235f-40b8-ac17-8d31d90bd46d",
       "name": "Check If Photo Exists"
     },
     {
@@ -91,10 +91,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        656,
-        176
+        2560,
+        112
       ],
-      "id": "3c7de413-ea99-4394-a6c8-35bddd4081d6",
+      "id": "987ef357-a6dd-44fb-8280-fe15db832f7e",
       "name": "Upload to Supabase Storage",
       "credentials": {
         "supabaseApi": {
@@ -110,10 +110,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        80,
-        448
+        1984,
+        384
       ],
-      "id": "714ad235-f172-4781-ad71-bdc8da5470f9",
+      "id": "f7559163-03ff-4951-be23-31cea22ec934",
       "name": "Check OG Image"
     },
     {
@@ -143,10 +143,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        256,
-        448
+        2160,
+        384
       ],
-      "id": "a312be7a-f4d8-406d-b727-33e6e4e3b3c8",
+      "id": "bfa63fc0-9b45-4e9d-a01c-22e8957b16fd",
       "name": "Has OG Image?"
     },
     {
@@ -163,10 +163,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        432,
-        432
+        2336,
+        368
       ],
-      "id": "f43ae51f-2c8d-4a66-9e99-ff0d51e04a82",
+      "id": "a9fe851c-7a16-42b4-9095-cd5e8ef48b6e",
       "name": "Download OG Image"
     },
     {
@@ -176,10 +176,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        656,
-        432
+        2560,
+        368
       ],
-      "id": "6b779d25-9e39-4beb-8f8a-f5189acf7e1f",
+      "id": "7a4b364f-32d5-49f3-b4fa-7cdf4858fef5",
       "name": "Prepare OG Photo for Upload"
     },
     {
@@ -191,10 +191,10 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.7,
       "position": [
-        880,
-        208
+        2784,
+        144
       ],
-      "id": "380515a6-fe47-4132-bccb-9f0e4df1065e",
+      "id": "c31c94c8-84dc-43b5-86ba-64958699be7d",
       "name": "AI Enhance"
     },
     {
@@ -213,10 +213,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        880,
-        416
+        2784,
+        352
       ],
-      "id": "ec0dbbe0-bd1d-4afb-a032-71d0a9f44418",
+      "id": "19c94bb4-fa81-4360-bcc2-9eb814c9ca36",
       "name": "GPT-4o-mini",
       "credentials": {
         "openAiApi": {
@@ -227,15 +227,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI response\nlet ai;\ntry {\n  const text = $json.text || '{}';\n  const cleaned = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  ai = JSON.parse(cleaned);\n} catch (e) {\n  ai = { enriched_description: '', keywords: [] };\n}\n\n// Get original data from Handle Photo Upload\nconst originalData = $('Handle Photo Upload').first().json;\n\n// Resolve photo URL — check both manual upload and OG image paths\nlet photoUrl = null;\ntry {\n  const ogData = $('Prepare OG Photo for Upload').first()?.json;\n  const filename = originalData.photoFilename || ogData?.photoFilename;\n  if (filename) {\n    photoUrl = `https://hedywkwmgkvojujvczqr.supabase.co/storage/v1/object/public/recommendation-photos/${filename}`;\n  }\n} catch (e) {\n  photoUrl = null;\n}\n\n// NOTE: ogImageUrl is no longer used directly — it is downloaded and re-uploaded to Supabase\n// so photo_url will always be a permanent Supabase URL\n\nconst payload = {\n  title: originalData.title || 'Untitled',\n  description: originalData.description || '',\n  enriched_description: ai.enriched_description || originalData.description || '',\n  keywords: Array.isArray(ai.keywords) ? ai.keywords : [],\n  type: (originalData.type || 'place').toLowerCase(),\n  address: originalData.address || null,\n  URL: originalData.url ? [originalData.url] : [],\n  added_by: originalData.UserID,\n  added_by_name: originalData.addedBy || 'Unknown',\n  family_id: originalData.familyId,\n  network_layer: 1,\n  language: 'en',\n  photo_url: photoUrl,\n  personal_note: originalData.personalNote || null,\n  metadata: {\n    source: 'web_form',\n    created: new Date().toISOString()\n  }\n};\n\nconst embedding_text = [\n  payload.title,\n  payload.enriched_description,\n  payload.personal_note,\n  payload.type,\n  payload.added_by_name,\n  payload.keywords.join(', '),\n  payload.address\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { payload, embedding_text } }];"
+        "jsCode": "// FIX: Parse AI response\nlet ai;\ntry {\n  const text = $json.text || '{}';\n  const cleaned = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  ai = JSON.parse(cleaned);\n} catch (e) {\n  ai = { enriched_description: '', keywords: [] };\n}\n\n// Get original data from Handle Photo Upload\nconst originalData = $('Handle Photo Upload').first().json;\n\n// FIX: Resolve photo URL\n// Priority 1: manual upload — photoFilename is set directly on originalData\n// Priority 2: OG image path — set on Prepare OG Photo for Upload\n// Priority 3: no photo\nlet photoUrl = null;\n\nif (originalData.photoFilename) {\n  // Manual upload path — filename already on original data\n  photoUrl = `https://hedywkwmgkvojujvczqr.supabase.co/storage/v1/object/public/recommendation-photos/${originalData.photoFilename}`;\n} else {\n  // Try OG image path\n  try {\n    const ogFilename = $('Prepare OG Photo for Upload').first()?.json?.photoFilename;\n    if (ogFilename) {\n      photoUrl = `https://hedywkwmgkvojujvczqr.supabase.co/storage/v1/object/public/recommendation-photos/${ogFilename}`;\n    }\n  } catch (e) {\n    photoUrl = null;\n  }\n}\n\nconst payload = {\n  title: originalData.title || 'Untitled',\n  description: originalData.description || '',\n  enriched_description: ai.enriched_description || originalData.description || '',\n  keywords: Array.isArray(ai.keywords) ? ai.keywords : [],\n  type: (originalData.type || 'place').toLowerCase(),\n  address: originalData.address || null,\n  URL: originalData.url ? [originalData.url] : [],\n  added_by: originalData.UserID || null,\n  added_by_name: originalData.addedBy || 'Unknown',\n  family_id: originalData.familyId || null,\n  network_layer: 1,\n  language: 'en',\n  photo_url: photoUrl,\n  personal_note: originalData.personalNote || null,\n  metadata: {\n    source: 'web_form',\n    created: new Date().toISOString()\n  }\n};\n\nconst embedding_text = [\n  payload.title,\n  payload.enriched_description,\n  payload.personal_note,\n  payload.type,\n  payload.added_by_name,\n  payload.keywords.join(', '),\n  payload.address\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { payload, embedding_text } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1136,
-        208
+        3040,
+        144
       ],
-      "id": "0b509101-7817-4945-b6bf-e6c51dd20177",
+      "id": "a8d81b42-7fc2-454e-8b8b-11f427d21260",
       "name": "Build Record"
     },
     {
@@ -252,10 +252,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1280,
-        208
+        3184,
+        144
       ],
-      "id": "0b413615-be97-42b6-a9b1-d74950a13c2e",
+      "id": "a49f5e29-2b78-496f-80c4-b239c6fba70e",
       "name": "Generate Embedding",
       "credentials": {
         "openAiApi": {
@@ -271,10 +271,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1440,
-        208
+        3344,
+        144
       ],
-      "id": "2314bba4-07a7-4c17-9da3-14f17c4268f4",
+      "id": "1ddf410f-f5c5-4aa2-9553-4eef7c379b9a",
       "name": "Add Embedding"
     },
     {
@@ -300,10 +300,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1616,
-        208
+        3520,
+        144
       ],
-      "id": "5d7b86db-8b1b-4bb7-9a99-e6bb3d2e17f1",
+      "id": "72616f5d-c19b-44aa-81e4-3a1578a95b0c",
       "name": "Save to Supabase",
       "credentials": {
         "supabaseApi": {
@@ -311,19 +311,6 @@
           "name": "Supabase account"
         }
       }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Save to Supabase returns the created row — extract item_id and user_id\n// $json is the first item from the Supabase response array\nconst savedItem = Array.isArray($json) ? $json[0] : $json;\n\n// Fallback: pull added_by from the original Build Record payload\nconst originalPayload = $('Build Record').first().json.payload;\n\nconst itemId   = savedItem.id       || null;\nconst userId   = savedItem.added_by || originalPayload.added_by || null;\nconst visibility = savedItem.visibility || originalPayload.visibility || 'friends';\n\nif (!itemId || !userId) {\n  throw new Error(`Missing IDs for endorsement — itemId: ${itemId}, userId: ${userId}`);\n}\n\nreturn [{ json: { item_id: itemId, user_id: userId, visibility } }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1776,
-        208
-      ],
-      "id": "prep-endorsement-code",
-      "name": "Prepare Endorsement"
     },
     {
       "parameters": {
@@ -342,16 +329,16 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
+        "jsonBody": "={\n  \"user_id\": \"{{ $json.added_by }}\",\n  \"item_id\": \"{{ $json.id }}\",\n  \"visibility\": \"friends\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1952,
-        208
+        3680,
+        144
       ],
-      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "id": "e17a168f-6d66-469e-a46a-d0c5e10da4a2",
       "name": "Auto-Save Endorsement",
       "credentials": {
         "supabaseApi": {
@@ -363,16 +350,16 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: true, id: $('Save to Supabase').first().json[0].id, title: $('Save to Supabase').first().json[0].title } }}",
+        "responseBody": "={{ { success: true, id: $('Save to Supabase').first().json.id, title: $('Save to Supabase').first().json.title } }}",
         "options": {}
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2128,
-        208
+        3856,
+        144
       ],
-      "id": "9e6d096a-1877-4fce-9d81-ec4fae069058",
+      "id": "74176671-e462-447c-a385-5d93ad9326fd",
       "name": "Success Response"
     },
     {
@@ -383,11 +370,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1776,
-        40
+        3680,
+        -32
       ],
       "typeVersion": 1,
-      "id": "note-auto-save",
+      "id": "6f77fc90-f707-4fdf-a5db-746fe95fe52a",
       "name": "Sticky Note Auto Save"
     },
     {
@@ -398,12 +385,27 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        400,
-        -48
+        2304,
+        -112
       ],
       "typeVersion": 1,
-      "id": "8b2983ac-d8ee-47c2-9067-cfd430f1d54a",
+      "id": "ac8fa436-fa5a-4de0-bc2b-b9b8b9147212",
       "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## FIX 1: photo_url\nBuild Record now checks originalData.photoFilename FIRST (manual upload path), then falls back to Prepare OG Photo for Upload (OG path). Previously the order was reversed causing photo_url to be null on manual uploads.\n\n## FIX 2: Endorsement UUID error\nn8n HTTP node v4.2 unwraps Supabase's returned array — so $json IS the object, not $json[0].\nChanged $json[0].id → $json.id and $json[0].added_by → $json.added_by in Auto-Save Endorsement.\nAlso fixed same issue in Success Response node.",
+        "height": 220,
+        "width": 460
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2960,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "bb1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e",
+      "name": "Fix Notes"
     }
   ],
   "pinData": {},
@@ -569,17 +571,6 @@
       "main": [
         [
           {
-            "node": "Prepare Endorsement",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Prepare Endorsement": {
-      "main": [
-        [
-          {
             "node": "Auto-Save Endorsement",
             "type": "main",
             "index": 0
@@ -607,10 +598,10 @@
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "c267414c-a031-43f0-8380-80064d9b326b",
+  "versionId": "da93e02c-8593-4564-915c-e642859c46ae",
   "meta": {
     "instanceId": "912377b85bb7b8601567b7eac75891920e6a3ebc38db810460689020425b8aa6"
   },
-  "id": "ZpluKcbspO0P7V05",
+  "id": "7FKOk1csi3iwx3KF",
   "tags": []
 }

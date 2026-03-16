@@ -17,211 +17,6 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "=You are enriching discovery data for semantic search. Use ONLY the provided inputs below.\n\nINPUTS:\n- Title: {{ $('Handle Photo Upload').item.json.title }}\n- Description: {{ $('Handle Photo Upload').item.json.description }}\n- Category: {{ $('Handle Photo Upload').item.json.type }}\n- Address: {{ $('Handle Photo Upload').item.json.address || 'none' }}\n- URL: {{ $('Handle Photo Upload').item.json.url || 'none' }}\n\nCRITICAL: The enriched description MUST be based on the title \"{{ $('Handle Photo Upload').item.json.title }}\" and description \"{{ $('Handle Photo Upload').item.json.description }}\" above. Do not invent unrelated content.\n\nTASK:\nGenerate a JSON response with:\n{\n  \"enriched_description\": \"<expand the provided description with relevant context, max 80 words>\",\n  \"keywords\": [\"<5-8 relevant keywords based on the category and description>\"]\n}\n\nKeyword examples by category:\n- For medical/healthcare: [\"healthcare\", \"medical\", \"specialist\", \"clinic\", \"doctor\", location]\n- For coffee shops: [\"coffee\", \"cafe\", \"wifi\", \"atmosphere\", location]\n- For restaurants: [\"food\", \"dining\", \"cuisine\", \"restaurant\", location]\n\nReturn ONLY valid JSON with no explanation or markdown formatting.",
-        "batching": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.chainLlm",
-      "typeVersion": 1.7,
-      "position": [2320, 112],
-      "id": "a1bdb76e-08c8-4d25-9c23-b36fe76ac282",
-      "name": "AI Enhance"
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
-        },
-        "options": {
-          "maxTokens": 400,
-          "temperature": 0
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.2,
-      "position": [2320, 320],
-      "id": "d7d74ae8-f36c-49b0-9586-208b9f7caff2",
-      "name": "GPT-4o-mini",
-      "credentials": {
-        "openAiApi": {
-          "id": "O5dHjIM6T4oRwzFq",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Parse AI response\nlet ai;\ntry {\n  const text = $json.text || '{}';\n  const cleaned = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  ai = JSON.parse(cleaned);\n} catch (e) {\n  ai = { enriched_description: '', keywords: [] };\n}\n\n// Get original data from Handle Photo Upload\nconst originalData = $('Handle Photo Upload').first().json;\n\n// Check for photo upload result\nlet photoUrl = null;\ntry {\n  if (originalData.hasPhoto) {\n    const filename = originalData.photoFilename;\n    photoUrl = `https://hedywkwmgkvojujvczqr.supabase.co/storage/v1/object/public/recommendation-photos/${filename}`;\n  }\n} catch (e) {\n  photoUrl = null;\n}\n\n// Fall back to OG image from URL if no manual photo uploaded\nif (!photoUrl && originalData.ogImageUrl) {\n  photoUrl = originalData.ogImageUrl;\n}\n\nconst payload = {\n  title: originalData.title || 'Untitled',\n  description: originalData.description || '',\n  enriched_description: ai.enriched_description || originalData.description || '',\n  keywords: Array.isArray(ai.keywords) ? ai.keywords : [],\n  type: (originalData.type || 'place').toLowerCase(),\n  address: originalData.address || null,\n  URL: originalData.url ? [originalData.url] : [],\n  added_by: originalData.UserID,\n  added_by_name: originalData.addedBy || 'Unknown',\n  family_id: originalData.familyId,\n  network_layer: 1,\n  language: 'en',\n  photo_url: photoUrl,\n  personal_note: originalData.personalNote || null,\n  metadata: {\n    source: 'web_form',\n    created: new Date().toISOString()\n  }\n};\n\nconst embedding_text = [\n  payload.title,\n  payload.enriched_description,\n  payload.personal_note,\n  payload.type,\n  payload.added_by_name,\n  payload.keywords.join(', '),\n  payload.address\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { payload, embedding_text } }];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2576, 112],
-      "id": "bb89e6a7-f639-4d02-af1b-0a7ef5397096",
-      "name": "Build Record"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.openai.com/v1/embeddings",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "openAiApi",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": {{ JSON.stringify($json.embedding_text) }}\n}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2720, 112],
-      "id": "f6a45a0b-9e7e-40ad-9cb6-5641dd64b2e1",
-      "name": "Generate Embedding",
-      "credentials": {
-        "openAiApi": {
-          "id": "O5dHjIM6T4oRwzFq",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const payload = $('Build Record').first().json.payload;\nconst embedding = $json.data[0].embedding;\n\nreturn [{\n  json: {\n    ...payload,\n    embedding: embedding\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2880, 112],
-      "id": "83addb91-fadd-44df-ac02-32ba5a88f37e",
-      "name": "Add Embedding"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/knowledge_items",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "supabaseApi",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Prefer",
-              "value": "return=representation"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [3056, 112],
-      "id": "d76885bc-8261-49de-996f-4e7ec81dc2f3",
-      "name": "Save to Supabase",
-      "credentials": {
-        "supabaseApi": {
-          "id": "7wWc27Eaxmxi7FC2",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "value": "gpt-4o-mini",
-          "mode": "list",
-          "cachedResultName": "gpt-4o-mini"
-        },
-        "options": {
-          "maxTokens": 40,
-          "temperature": 0.3
-        },
-        "messages": {
-          "values": [
-            {
-              "role": "system",
-              "content": "You are a summariser for a social recommendation app. Given a title and optional description, return ONLY a 5–10 word punchy summary that describes what this saved item is about. No punctuation at the end. No quotes. Examples:\n- Amazing rooftop bar with city views\n- Best ramen in Tokyo near Shinjuku\n- Hidden beach perfect for sunset picnics\n- Fast reliable accountant for small business"
-            },
-            {
-              "role": "user",
-              "content": "=Title: {{ $('Save to Supabase').item.json[0].title }}\nDescription: {{ $('Save to Supabase').item.json[0].description || 'No description' }}\n\nReturn only the 5-10 word summary."
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 1.7,
-      "position": [3220, 112],
-      "id": "c1a2b3d4-e5f6-7890-abcd-ef1234567890",
-      "name": "Generate Card Summary",
-      "credentials": {
-        "openAiApi": {
-          "id": "O5dHjIM6T4oRwzFq",
-          "name": "OpenAi account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// Clean up the summary — strip surrounding quotes, trim whitespace\nconst raw = $json.message?.content || $json.choices?.[0]?.message?.content || '';\nconst summary = raw.replace(/^[\"']/g, '').replace(/[\"']$/g, '').trim();\n\n// Get the saved item id from Save to Supabase (returns array with [0])\nconst savedItem = $('Save to Supabase').first().json;\nconst itemId = Array.isArray(savedItem) ? savedItem[0].id : savedItem.id;\n\nreturn [{\n  json: {\n    id: itemId,\n    feed_card_summary: summary\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [3400, 112],
-      "id": "f1e2d3c4-b5a6-9780-cdef-ab9876543210",
-      "name": "Clean Card Summary"
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "tableId": "knowledge_items",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "id",
-              "condition": "eq",
-              "keyValue": "={{ $json.id }}"
-            }
-          ]
-        },
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldName": "feed_card_summary",
-              "fieldValue": "={{ $json.feed_card_summary }}"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [3580, 112],
-      "id": "a9b8c7d6-e5f4-3210-9876-fedcba012345",
-      "name": "Save Summary to Supabase",
-      "credentials": {
-        "supabaseApi": {
-          "id": "7wWc27Eaxmxi7FC2",
-          "name": "Supabase account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { success: true, id: $('Save to Supabase').first().json[0]?.id || $('Save to Supabase').first().json?.id, title: $('Save to Supabase').first().json[0]?.title || $('Save to Supabase').first().json?.title } }}",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [3760, 112],
-      "id": "83f88ada-0cc3-4e0d-8cef-2215ba156e6a",
-      "name": "Success Response"
-    },
-    {
-      "parameters": {
         "jsCode": "const body = $json.body;\n\n// Check if photo exists\nif (!body.photo) {\n  // No photo - pass through\n  return [{ json: body }];\n}\n\n// Photo exists - prepare for upload\nconst photoBase64 = body.photo;\nconst originalFilename = body.photoFilename || 'photo.jpg';\n\n// Clean filename\nconst fileExtension = originalFilename.split('.').pop().toLowerCase();\nconst timestamp = Date.now();\nconst randomStr = Math.random().toString(36).substring(2, 8);\nconst cleanFilename = `${timestamp}_${randomStr}.${fileExtension}`;\n\n// Convert base64 to binary\nconst binaryData = Buffer.from(photoBase64, 'base64');\n\n// Determine MIME type\nlet mimeType = 'image/jpeg';\nif (fileExtension === 'png') mimeType = 'image/png';\nif (fileExtension === 'webp') mimeType = 'image/webp';\n\nreturn [{\n  json: {\n    ...body,\n    photoFilename: cleanFilename,\n    hasPhoto: true\n  },\n  binary: {\n    photo: {\n      data: binaryData.toString('base64'),\n      mimeType: mimeType,\n      fileName: cleanFilename\n    }\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
@@ -298,27 +93,220 @@
     },
     {
       "parameters": {
-        "content": "## Check if there's photo",
-        "height": 352,
-        "width": 544
+        "jsCode": "const body = $json;\n\n// Only attempt OG download if there's an ogImageUrl and no manual photo\nif (body.ogImageUrl && body.ogImageUrl.startsWith('http')) {\n  return [{ json: { ...body, hasOGImage: true } }];\n}\n\n// No OG image — pass through\nreturn [{ json: { ...body, hasOGImage: false } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2128, 160],
+      "id": "c1a2b3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Check OG Image"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9f8e7d6c-5b4a-3210-fedc-ba9876543210",
+              "leftValue": "={{ $json.hasOGImage }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [2320, 160],
+      "id": "d2e3f4a5-b6c7-8901-bcde-f23456789012",
+      "name": "Has OG Image?"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.ogImageUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [2496, 64],
+      "id": "e3f4a5b6-c7d8-9012-cdef-345678901234",
+      "name": "Download OG Image"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get original body from Check OG Image node\nconst body = $('Check OG Image').first().json;\n\n// Generate a clean filename for storage\nconst timestamp = Date.now();\nconst randomStr = Math.random().toString(36).substring(2, 8);\nconst cleanFilename = `og_${timestamp}_${randomStr}.jpg`;\n\n// Get the binary data downloaded from OG URL\nconst binaryData = $binary.data;\n\nreturn [{\n  json: {\n    ...body,\n    photoFilename: cleanFilename,\n    hasPhoto: true,\n    photoSource: 'og',\n    ogImageUrl: null\n  },\n  binary: {\n    photo: {\n      data: binaryData.data,\n      mimeType: binaryData.mimeType || 'image/jpeg',\n      fileName: cleanFilename\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2496, 240],
+      "id": "f4a5b6c7-d8e9-0123-defa-456789012345",
+      "name": "Prepare OG Photo for Upload"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are enriching discovery data for semantic search. Use ONLY the provided inputs below.\n\nINPUTS:\n- Title: {{ $('Handle Photo Upload').item.json.title }}\n- Description: {{ $('Handle Photo Upload').item.json.description }}\n- Category: {{ $('Handle Photo Upload').item.json.type }}\n- Address: {{ $('Handle Photo Upload').item.json.address || 'none' }}\n- URL: {{ $('Handle Photo Upload').item.json.url || 'none' }}\n\nCRITICAL: The enriched description MUST be based on the title \"{{ $('Handle Photo Upload').item.json.title }}\" and description \"{{ $('Handle Photo Upload').item.json.description }}\" above. Do not invent unrelated content.\n\nTASK:\nGenerate a JSON response with:\n{\n  \"enriched_description\": \"<expand the provided description with relevant context, max 80 words>\",\n  \"keywords\": [\"<5-8 relevant keywords based on the category and description>\"]\n}\n\nKeyword examples by category:\n- For medical/healthcare: [\"healthcare\", \"medical\", \"specialist\", \"clinic\", \"doctor\", location]\n- For coffee shops: [\"coffee\", \"cafe\", \"wifi\", \"atmosphere\", location]\n- For restaurants: [\"food\", \"dining\", \"cuisine\", \"restaurant\", location]\n\nReturn ONLY valid JSON with no explanation or markdown formatting.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [2720, 112],
+      "id": "a1bdb76e-08c8-4d25-9c23-b36fe76ac282",
+      "name": "AI Enhance"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 400,
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [2720, 320],
+      "id": "d7d74ae8-f36c-49b0-9586-208b9f7caff2",
+      "name": "GPT-4o-mini",
+      "credentials": {
+        "openAiApi": {
+          "id": "O5dHjIM6T4oRwzFq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response\nlet ai;\ntry {\n  const text = $json.text || '{}';\n  const cleaned = text.replace(/```json\\n?|```\\n?/g, '').trim();\n  ai = JSON.parse(cleaned);\n} catch (e) {\n  ai = { enriched_description: '', keywords: [] };\n}\n\n// Get original data from Handle Photo Upload\nconst originalData = $('Handle Photo Upload').first().json;\n\n// Resolve photo URL — always from Supabase storage now\nlet photoUrl = null;\ntry {\n  // Manual upload OR OG image downloaded and re-uploaded — both set hasPhoto + photoFilename\n  if (originalData.hasPhoto && originalData.photoFilename) {\n    photoUrl = `https://hedywkwmgkvojujvczqr.supabase.co/storage/v1/object/public/recommendation-photos/${originalData.photoFilename}`;\n  }\n} catch (e) {\n  photoUrl = null;\n}\n\n// NOTE: ogImageUrl is no longer used directly — it is downloaded and re-uploaded to Supabase\n// so photo_url will always be a permanent Supabase URL\n\nconst payload = {\n  title: originalData.title || 'Untitled',\n  description: originalData.description || '',\n  enriched_description: ai.enriched_description || originalData.description || '',\n  keywords: Array.isArray(ai.keywords) ? ai.keywords : [],\n  type: (originalData.type || 'place').toLowerCase(),\n  address: originalData.address || null,\n  URL: originalData.url ? [originalData.url] : [],\n  added_by: originalData.UserID,\n  added_by_name: originalData.addedBy || 'Unknown',\n  family_id: originalData.familyId,\n  network_layer: 1,\n  language: 'en',\n  photo_url: photoUrl,\n  personal_note: originalData.personalNote || null,\n  metadata: {\n    source: 'web_form',\n    created: new Date().toISOString()\n  }\n};\n\nconst embedding_text = [\n  payload.title,\n  payload.enriched_description,\n  payload.personal_note,\n  payload.type,\n  payload.added_by_name,\n  payload.keywords.join(', '),\n  payload.address\n].filter(Boolean).join('\\n');\n\nreturn [{ json: { payload, embedding_text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2976, 112],
+      "id": "bb89e6a7-f639-4d02-af1b-0a7ef5397096",
+      "name": "Build Record"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": {{ JSON.stringify($json.embedding_text) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3120, 112],
+      "id": "f6a45a0b-9e7e-40ad-9cb6-5641dd64b2e1",
+      "name": "Generate Embedding",
+      "credentials": {
+        "openAiApi": {
+          "id": "O5dHjIM6T4oRwzFq",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Build Record').first().json.payload;\nconst embedding = $json.data[0].embedding;\n\nreturn [{\n  json: {\n    ...payload,\n    embedding: embedding\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3280, 112],
+      "id": "83addb91-fadd-44df-ac02-32ba5a88f37e",
+      "name": "Add Embedding"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/knowledge_items",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3456, 112],
+      "id": "d76885bc-8261-49de-996f-4e7ec81dc2f3",
+      "name": "Save to Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, id: $json.id, title: $json.title } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3616, 112],
+      "id": "83f88ada-0cc3-4e0d-8cef-2215ba156e6a",
+      "name": "Success Response"
+    },
+    {
+      "parameters": {
+        "content": "## Manual Photo Upload Path\nUser uploaded a photo directly from their device.\nConverts base64 → binary → uploads to Supabase Storage.",
+        "height": 200,
+        "width": 400
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [1728, -96],
+      "position": [1728, -200],
       "typeVersion": 1,
       "id": "7660b9e3-469c-46de-985f-4967756d4904",
       "name": "Sticky Note2"
     },
     {
       "parameters": {
-        "content": "## Generate feed_card_summary\nGenerates a 5-10 word punchy summary\nand writes it back to Supabase.\nRuns AFTER the main save so it never\nblocks the webhook response.",
-        "height": 200,
-        "width": 580
+        "content": "## OG Image Download Path (NEW)\nWhen no manual photo but ogImageUrl exists:\n1. Check OG Image — detects ogImageUrl\n2. Has OG Image? — IF branch\n3. Download OG Image — fetches binary from URL\n4. Prepare OG Photo for Upload — renames, prepares binary\n5. Upload to Supabase Storage — same node as manual path\n\nResult: photo_url is always a permanent Supabase URL.\nNo more 403s from Instagram / Facebook CDN.",
+        "height": 280,
+        "width": 500
       },
       "type": "n8n-nodes-base.stickyNote",
-      "position": [3200, -40],
+      "position": [2080, 320],
       "typeVersion": 1,
-      "id": "note-summary-section",
-      "name": "Sticky Note Summary"
+      "id": "a9b8c7d6-e5f4-3210-abcd-ef9876543210",
+      "name": "Sticky Note OG Path"
     }
   ],
   "pinData": {},
@@ -334,11 +322,91 @@
         ]
       ]
     },
-    "AI Enhance": {
+    "Handle Photo Upload": {
       "main": [
         [
           {
-            "node": "Build Record",
+            "node": "Check If Photo Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check If Photo Exists": {
+      "main": [
+        [
+          {
+            "node": "Upload to Supabase Storage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check OG Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Supabase Storage": {
+      "main": [
+        [
+          {
+            "node": "AI Enhance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check OG Image": {
+      "main": [
+        [
+          {
+            "node": "Has OG Image?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has OG Image?": {
+      "main": [
+        [
+          {
+            "node": "Download OG Image",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Enhance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download OG Image": {
+      "main": [
+        [
+          {
+            "node": "Prepare OG Photo for Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare OG Photo for Upload": {
+      "main": [
+        [
+          {
+            "node": "Upload to Supabase Storage",
             "type": "main",
             "index": 0
           }
@@ -351,6 +419,17 @@
           {
             "node": "AI Enhance",
             "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Enhance": {
+      "main": [
+        [
+          {
+            "node": "Build Record",
+            "type": "main",
             "index": 0
           }
         ]
@@ -393,80 +472,7 @@
       "main": [
         [
           {
-            "node": "Generate Card Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Generate Card Summary": {
-      "main": [
-        [
-          {
-            "node": "Clean Card Summary",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Clean Card Summary": {
-      "main": [
-        [
-          {
-            "node": "Save Summary to Supabase",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Save Summary to Supabase": {
-      "main": [
-        [
-          {
             "node": "Success Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Handle Photo Upload": {
-      "main": [
-        [
-          {
-            "node": "Check If Photo Exists",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check If Photo Exists": {
-      "main": [
-        [
-          {
-            "node": "Upload to Supabase Storage",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "AI Enhance",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Upload to Supabase Storage": {
-      "main": [
-        [
-          {
-            "node": "AI Enhance",
             "type": "main",
             "index": 0
           }

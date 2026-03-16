@@ -1,0 +1,167 @@
+ODIN — VISIBILITY & FEED LOGIC SUMMARY
+Date: 14 March 2026 (updated 15 March 2026)
+Session: Home Screen, Profile Page, Save/Visibility Design Discussion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. CORE PHILOSOPHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Odin is not competing with Google or TripAdvisor.
+It is competing with NOISE.
+
+In an era of AI-generated content, fake reviews, and sponsored results,
+Odin's value is TRUST — not volume.
+
+Positioning: "Finally, information you can actually trust."
+The Knowledge Base number represents the value of trusted data, not just reach.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. WHAT A USER CAN SEE (VISIBILITY LOGIC)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A user's visible items come from three sources — NO duplicates:
+
+  1. Their own adds
+  2. Their direct friends' adds (set to "Friends" visibility)
+  3. Their direct friends' saves (items friends saved from their own circle)
+
+Rule: Same item saved by 3 friends = still counts as 1 item.
+Rule: NO friends-of-friends (FoF) exposure. One degree only.
+Rule: Items always appear under the original adder's visibility settings.
+Rule: The person who ADDS controls visibility. Saves do not change broadcast rules.
+
+WORKED EXAMPLE — CONFIRMED 15 Mar 2026:
+  - Stanley is friends with Aden.
+  - Aden is friends with Person X. Stanley does NOT know Person X.
+  - Person X adds an item and sets visibility to "Friends."
+  - Aden sees Person X's item and saves it.
+  - Stanley sees the item in his feed because Aden saved it.
+  - Stanley sees: full item details (name, description, photo, address).
+  - Stanley sees: "Saved by Aden" — the trust signal.
+  - Stanley does NOT see: who originally added it. Person X is anonymous to Stanley.
+
+This is called "SAVE INHERITANCE."
+Aden's save carries the item one hop further — anonymously.
+Stanley trusts Aden. Aden curated it. That is enough signal.
+The original adder's identity never travels beyond their intended circle.
+
+THIS IS NOT FRIENDS-OF-FRIENDS (FoF).
+The distinction is critical:
+  - FoF = you see content from people two hops away, with attribution.
+  - Save Inheritance = you see content curated by your direct friend,
+    with no attribution to the original source.
+  - Trust chain is always exactly ONE degree. Never more.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. SAVE MECHANICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- When a user saves a friend's item, that save is VISIBLE within their circle by default.
+- Saves are public within your circle — not broadcast to the world.
+- This creates the social proof loop: Add → Friends see it → They save it → You see the save → Feel validated → Add more.
+- "Saved by Stanley MAK and Aden Mak" UI pattern = correct. Personal, not just a number.
+
+When adding an item, user chooses visibility:
+  - Only me (private)
+  - Friends (visible to direct connections)
+
+PRIVACY RULE ON SAVES — CONFIRMED:
+- The person who ADDS the item controls visibility.
+- A save does NOT change or override the original visibility setting.
+- A save carries the item one hop further — but strips the original adder's identity.
+- The item's content travels. The source's identity does not.
+
+CONSENT TRANSPARENCY — CONFIRMED DECISION:
+- When a user selects "Friends" visibility on the Add page, show this helper text:
+  "Your friends can save this, and their circle will see it was saved —
+   but not who added it."
+- This is the consent moment. One sentence. No fine print.
+- This is a FEATURE, not a liability. It tells users exactly how their
+  knowledge travels — which is more transparency than any other platform offers.
+- See UX file for tooltip implementation details and next session prompt.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. SOCIAL PROOF — SAVE COUNTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- An item may have 100 total saves globally.
+- The user only sees saves FROM THEIR CIRCLE.
+- If 8 of their friends saved it → show "8 friends saved this."
+- Only those 8 matter. Global counts are irrelevant noise.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. ENGAGEMENT / GROWTH FLYWHEEL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+The virtuous loop:
+  Add something → friends see it → they save it → you see they saved it
+  → feel validated → add more → knowledge base grows for everyone
+
+Adding more friends = Knowledge Base grows rapidly.
+This is the core retention and growth mechanic.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. PROFILE PAGE — STATS BLOCK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Current stats: Items / People / Saves
+Add a 4th stat: Knowledge Base
+
+  55 Items
+  3  People
+  11 Saves
+  94 Knowledge Base   ← NEW
+
+Knowledge Base = total unique items visible to this user (deduped).
+Label chosen: "Knowledge Base" — implies something curated, owned, and compounding.
+Framing: "94 trusted items" — the word "trusted" reinforces why this number matters.
+
+User should always feel: more friends = bigger Knowledge Base = more value.
+This number is the primary retention metric on the profile page.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. KNOWLEDGE BASE — WHAT COUNTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Knowledge Base = total unique items a user can see. Deduped. No double counting.
+
+Counts:
+  ✓ Items the user added themselves
+  ✓ Items their direct friends added (Friends visibility)
+  ✓ Items their direct friends saved (save inheritance, anonymous source)
+  ✗ Does NOT count the same item twice even if 3 friends saved it
+  ✗ Does NOT count private (Only me) items from friends
+  ✗ Does NOT count items from people two hops away with attribution
+
+Why this number matters:
+  - It is the most important retention metric in the app.
+  - It grows every time a friend adds or saves something new.
+  - It makes the value of adding more friends tangible and visible.
+  - User should always feel: more connections = bigger Knowledge Base = more value.
+  - We are in an age of information overload and fake data.
+    Every item in a user's Knowledge Base was put there by a real person they trust.
+    That is the core differentiator. Quality over quantity. Signal over noise.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. FUTURE CONSIDERATION (NOT MVP)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Notification: "Aden just added 3 new places — your Knowledge Base grew to 94"
+- Onboarding flow that communicates the trust/noise angle from day one
+- Visual knowledge map (v3 concept — nodes showing network radius)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. USER TESTING FOCUS — 15 Mar 2026
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+When putting this in front of real users, pay close attention to:
+
+  1. Do users understand what "Friends" visibility means after reading the tooltip?
+  2. Do users feel comfortable knowing their save can travel one hop anonymously?
+  3. Does the tooltip feel reassuring or alarming?
+  4. Does anonymous attribution feel fair or frustrating when receiving content?
+  5. KEY MOMENT: When a user sees an item with no original source shown —
+     do they trust it less, or does "saved by [friend]" provide enough signal?
+  6. Does the Knowledge Base number feel motivating?
+     Do users want to grow it by adding more friends?
+  7. Does the social proof ("8 friends saved this") feel more meaningful
+     than a generic review count?

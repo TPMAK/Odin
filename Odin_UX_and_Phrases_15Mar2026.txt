@@ -1,0 +1,205 @@
+ODIN — UX FEEDBACK + ROTATING PHRASES
+Date: 15 March 2026
+Session: Page-by-page UX review and copy refresh
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DEV NOTES — UX FIXES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[1] USER NAME PLACEMENT
+- Keep personalized greeting (e.g. "Hey, Stanley") on HOME page only.
+- On all other pages: show user avatar/initial in top-right menu bar only.
+- Name can appear as tooltip or small label on hover/tap of avatar.
+- Reason: prevents repetition across pages while keeping the personal feel
+  where it matters most (the home/welcome moment).
+
+[2] ADD PAGE WIDTH — FIX REQUIRED
+- Current: Add page renders as a narrow centered form, feels like a modal.
+- Fix: Match full content width of all other pages.
+- Form fields (name, take, address) should stretch to full content width.
+- "YOUR TAKE" placeholder text is good — preserve it at wider layout.
+- Visually it should feel like a full page, not a floating card.
+
+[3] TYPOGRAPHY — STANDARDISE HEADING SIZE
+- Current issue: Heading sizes are inconsistent across pages.
+  - Home: mid-weight "Hey, Stanley"
+  - Search: larger bold "Good evening, Stanley" ← USE THIS AS STANDARD
+  - Discover: "See what's trending" at different weight
+- Fix: Use Search page heading size and weight as the global standard
+  for ALL page titles across Home, Discover, Add, Profile.
+- Subtitle text should also be standardised — one size, one weight, all pages.
+
+[4] PROFILE PAGE — ADD TITLE + SUBTITLE
+- Currently Profile has no page-level heading or subtitle.
+- Add a heading and rotating subtitle consistent with all other pages.
+- Suggested heading: "Your Profile" or just the user's name e.g. "Stanley MAK"
+- Subtitle rotates from the Profile phrases list below.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ROTATING PHRASES — 10 PER PAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Note: Phrases appear as the subtitle line beneath the page heading.
+Keep phrases to 6-8 words max for readability at small subtitle size.
+Rotate randomly or sequentially on each page load/visit.
+
+────────────────────────────────────────
+HOME PAGE
+Heading: "Hey, [Name]" (time-aware: Morning / Afternoon / Evening)
+Subtitle rotates:
+1. Everything here, a real person vouched for.
+2. Your circle knows things Google doesn't.
+3. No ads. No algorithms. Just people you trust.
+4. The best tips are hiding in your friends list.
+5. Noise is everywhere. This isn't it.
+6. Real people. Real places. Real takes.
+7. Your feed, curated by people who actually care.
+8. Every item here has a human behind it.
+9. The internet is loud. Your circle isn't.
+10. What your people know, now you know too.
+
+────────────────────────────────────────
+DISCOVER PAGE
+Heading: "See what's trending"
+Subtitle rotates:
+1. See what your world is excited about.
+2. Trending here means trusted people saved it.
+3. Explore what your circle has built together.
+4. Every item here passed the friend test.
+5. The bigger your circle, the richer this gets.
+6. Real places. Real takes. Real people.
+7. Trending doesn't mean viral. It means trusted.
+8. Your Knowledge Base, all in one place.
+9. Discover more by knowing more people.
+10. What's popular here actually means something.
+
+────────────────────────────────────────
+SEARCH PAGE
+Heading: "Good [morning/afternoon/evening], [Name]"
+Subtitle rotates:
+1. Search like you'd text a friend.
+2. Every result here was put here by a real person.
+3. No sponsored results. No fake reviews.
+4. The answer you need has already been saved.
+5. Trusted knowledge, one search away.
+6. Ask it like you'd ask someone who knows.
+7. Your friends already know. Just ask.
+8. The best search engine is a trusted circle.
+9. No SEO. No ads. Just real answers.
+10. Someone in your circle already knows this.
+
+────────────────────────────────────────
+ADD PAGE
+Heading: "Add Discovery"
+Subtitle rotates:
+1. Your knowledge is someone else's answer.
+2. Add it once. Your whole circle benefits.
+3. Be the friend with the best recommendations.
+4. What you add becomes someone's trusted source.
+5. Someone in your circle needs exactly what you know.
+6. The best gift you can give is what you already know.
+7. Every add makes your circle smarter.
+8. You know something worth saving. Add it.
+9. Your take matters more than any review site.
+10. Knowledge shared is knowledge multiplied.
+
+────────────────────────────────────────
+PROFILE PAGE  ← NEW — heading + subtitle added
+Heading: "[Name]" or "Your Profile"
+Subtitle rotates:
+1. Your Knowledge Base grows with every connection.
+2. More friends. Less noise. More signal.
+3. Everything here, earned through trust.
+4. Your circle is your most valuable asset.
+5. The more you give, the more your circle grows.
+6. Your Knowledge Base is yours. Build it well.
+7. Three friends today. A hundred trusted items tomorrow.
+8. Every person you add expands what you know.
+9. Small circle. High trust. That's the point.
+10. Quality of connections over quantity of content.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+IMPLEMENTATION NOTES FOR DEV
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Store phrases per page as an array in a config or constants file.
+- On page load, pick randomly (Math.random) or cycle sequentially.
+- Time-aware greetings (Morning / Afternoon / Evening) on Home and Search:
+    Morning:   05:00 – 11:59
+    Afternoon: 12:00 – 17:59
+    Evening:   18:00 – 04:59
+- Heading font: use Search page heading size + weight as the global token.
+- Subtitle font: one size, one weight, one color — apply globally.
+- Profile page: add heading block at top consistent with all other pages.
+- Add page: remove max-width constraint, match content width of other pages.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIVACY MECHANIC — KEY PRODUCT DECISION (15 Mar 2026)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTEXT:
+This is one of the most important product decisions in Odin's design.
+It defines how knowledge travels through the network and how privacy is handled.
+
+THE MECHANIC — CONFIRMED:
+  - Stanley is friends with Aden.
+  - Aden is friends with Person X (not connected to Stanley).
+  - Person X adds an item, sets visibility to "Friends."
+  - Aden sees it and saves it.
+  - Stanley sees the item in his feed because Aden saved it.
+  - Stanley does NOT see who added it — only that Aden saved it.
+
+This is "save inheritance" — Aden's save carries the item one hop further,
+anonymously. The trust chain stays clean: Stanley trusts Aden,
+Aden curated it, that's enough signal. The original adder's identity is protected.
+
+WHY THIS IS THE RIGHT DESIGN:
+  - Protects original adder's identity beyond their intended circle.
+  - Keeps trust chain to exactly one degree — never more.
+  - Makes the curating friend (Aden) the signal, not the source.
+  - Content travels further than intended — but anonymously and transparently.
+  - This is Odin's core differentiator: trusted signal without privacy violation.
+
+CONSENT & TRANSPARENCY — CONFIRMED DECISION:
+  Be transparent about this mechanic upfront.
+  When a user sets visibility to "Friends" on the Add page, show this tooltip/helper text:
+
+  ┌─────────────────────────────────────────────────────────────────┐
+  │ "Your friends can save this, and their circle will see it was   │
+  │  saved — but not who added it."                                 │
+  └─────────────────────────────────────────────────────────────────┘
+
+  This is the consent moment. One sentence. Clear, honest, no fine print.
+  This turns a potential privacy liability into a FEATURE — users know
+  exactly how their knowledge travels, which reinforces Odin's trust promise.
+
+TESTING FOCUS:
+  When testing with users, pay close attention to:
+  - Do users understand what "Friends" visibility means after reading the tooltip?
+  - Do users feel comfortable knowing their save can travel one hop anonymously?
+  - Do users feel the tooltip is reassuring or alarming?
+  - Does the anonymous attribution feel fair or frustrating when receiving content?
+  - Key moment: when a user sees an item with no attributed source — do they
+    trust it less, or does "saved by [friend]" provide enough signal?
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT SESSION PROMPT — VISIBILITY TOOLTIP UI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Use this prompt to pick up this work in a future session:
+
+"I am building Odin — a trusted knowledge sharing app built on Supabase,
+n8n and HTML frontend. On the Add Discovery page, users choose visibility:
+'Only me' or 'Friends'. When they select 'Friends', I want to show a tooltip
+or helper text that reads: 'Your friends can save this, and their circle will
+see it was saved — but not who added it.'
+
+This is a key consent and transparency moment — it tells users exactly how
+their knowledge travels through the network. It should feel reassuring, not
+alarming. Warm tone, small text, sits just below the Friends/Only me toggle.
+
+Please help me implement this tooltip/helper text on the Add Discovery page.
+The current toggle UI is a two-button toggle: [Only me] [Friends].
+The helper text already changes based on selection — update it to include
+this privacy transparency message when Friends is selected."

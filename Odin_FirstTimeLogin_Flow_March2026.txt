@@ -1,0 +1,212 @@
+================================================================================
+ODIN — FIRST-TIME LOGIN FLOW
+Created: March 16, 2026
+================================================================================
+
+PURPOSE
+-------
+Define the onboarding experience for brand new users logging into Odin for
+the first time. This flow fires once and never again.
+
+Core goal: Activate the new user in the right sequence —
+  1. Connect with who invited them (non-empty feed immediately)
+  2. Understand what Odin is
+  3. Add their first item (habit seeding)
+  4. Run their first search (the WOW moment)
+
+
+================================================================================
+TRIGGER CONDITION
+================================================================================
+
+Column: profiles.onboarding_completed_at (TIMESTAMP, nullable)
+  - NULL  → user is new → show onboarding flow
+  - NOT NULL → user has completed onboarding → skip, go straight to Home
+
+This column already exists in the profiles table (confirmed March 2026).
+
+On completion of final step → set onboarding_completed_at = NOW()
+This fires once. Never fires again for this user.
+
+
+================================================================================
+FLOW OVERVIEW (4 STEPS)
+================================================================================
+
+STEP 1 — Welcome
+STEP 2 — Connect with who invited you  ← most critical for network activation
+STEP 3 — Add your first thing
+STEP 4 — Search (the WOW moment)
+
+Progress indicator: 4 dots shown across all steps.
+Each step is a full-screen overlay (not a modal).
+Every step has a "Skip" or "Skip for now" option (except Step 1).
+
+
+================================================================================
+STEP 1 — WELCOME
+================================================================================
+
+Headline:
+  "Welcome to Odin, [First Name]."
+
+Body:
+  "This is your private discovery network —
+   recommendations from people you actually trust.
+   No ads. No strangers. Just your circle."
+
+CTA (primary):   "Let's go →"
+
+Notes:
+  - Pull first name from profiles.display_name (Google OAuth name)
+  - No skip on this step — it's 5 seconds, just a CTA
+
+
+================================================================================
+STEP 2 — CONNECT WITH WHO INVITED YOU
+================================================================================
+
+Context:
+  Most new users in the pilot arrive via an invite token link.
+  Format: yourapp.com/join?token=XXXXXXXX
+  The token is stored in the URL and should be read after Google OAuth completes.
+
+Logic:
+  IF invite token exists in URL on login:
+    → Look up token in invitations table
+    → Retrieve inviter's display_name
+    → Show this screen
+
+  IF no invite token:
+    → Skip this step, go to Step 3
+
+Screen copy (when inviter is known):
+  Headline: "[Inviter Name] invited you."
+  Body:     "Accept to start seeing their recommendations in your feed."
+
+  CTA (primary):   "Connect with [Inviter Name] →"
+  CTA (secondary): "Skip"
+
+What happens on accept:
+  - Friendship record created between new user and inviter
+  - Invite token marked as used
+  - New user's Knowledge Base immediately populated with inviter's items
+  - Proceed to Step 3
+
+Notes:
+  - This is the most important step for network activation
+  - Without this, user lands with an empty feed and no reason to stay
+  - "Knowledge Base" number should visibly increase after accepting
+
+
+================================================================================
+STEP 3 — ADD YOUR FIRST THING
+================================================================================
+
+Headline:
+  "What's one place, product, or service you'd
+   recommend to a friend right now?"
+
+Sub-copy:
+  "It could be a café, a dentist, a product — anything worth sharing."
+
+CTA (primary):   "Add it →"   → opens the Add form
+CTA (secondary): "Skip for now"
+
+Notes:
+  - This seeds the habit of adding from day one
+  - Use the existing Add form (no need for a stripped-down version initially)
+  - On successful save → proceed to Step 4
+  - On skip → proceed to Step 4
+
+
+================================================================================
+STEP 4 — SEARCH (THE WOW MOMENT)
+================================================================================
+
+Headline:
+  "Now try searching for something."
+
+Sub-copy:
+  "Ask it like you'd ask a friend.
+   Try: 'best coffee nearby' or 'dentist I can trust'."
+
+CTA (primary):   "Search now →"   → opens Search tab with keyboard pre-focused
+CTA (secondary): "Explore later"  → lands on Home tab
+
+Notes:
+  - If user just added something in Step 3, their item may appear in results
+  - This is where the value of the network becomes tangible
+  - Even with 1 friend connected, results should show something real
+  - On either CTA → set onboarding_completed_at = NOW() in profiles table
+
+
+================================================================================
+SUPABASE — PROFILE DATA REFERENCE
+================================================================================
+
+Confirmed column (from live data, March 2026):
+  profiles.onboarding_completed_at  TIMESTAMP  nullable
+
+Sample profile record structure:
+  id                      uuid
+  email                   text
+  name                    text
+  display_name            text        ← use for personalisation in Step 1 & 2
+  onboarding_completed_at timestamp   ← NULL = new user, NOT NULL = returning
+  last_active_at          timestamp
+  preferred_language      text
+  locale                  text
+  settings                jsonb
+
+Invite token lookup (existing invite system):
+  invitations table → columns: token, inviter_id, invitee_email, used, created_at
+  On login: read ?token= from URL → look up invitations → get inviter profile
+
+
+================================================================================
+IMPLEMENTATION NOTES (HTML/JS + Supabase stack)
+================================================================================
+
+1. After Google OAuth callback:
+   → Fetch profiles record for logged-in user
+   → Check onboarding_completed_at
+   → If NULL: read ?token= from URL, store in sessionStorage, show Step 1
+
+2. Step 2 token logic:
+   → Read token from sessionStorage (survives OAuth redirect)
+   → Query invitations table WHERE token = X AND used = false
+   → If found: fetch inviter display_name, show Step 2
+   → On accept: INSERT into friendships, UPDATE invitations SET used = true
+
+3. Step completion tracking:
+   → Can use a simple JS variable: currentStep = 1,2,3,4
+   → No need to persist to DB until final step
+
+4. Final step:
+   → UPDATE profiles SET onboarding_completed_at = NOW()
+       WHERE id = currentUser.id
+   → Redirect to Home or Search tab
+
+5. Returning user check (app.js or main init):
+   if (profile.onboarding_completed_at === null) {
+     showOnboarding();
+   } else {
+     showApp();
+   }
+
+
+================================================================================
+FUTURE ENHANCEMENTS (Post-Pilot)
+================================================================================
+
+  - Push notification opt-in as a Step 5 ("Get notified when your Knowledge
+    Base grows")
+  - Location permission request (improves distance ranking in search)
+  - Short animated explainer for Save Inheritance (trust/noise angle)
+  - A/B test: Step 3 (Add) before Step 2 (Connect) — which drives more retention?
+
+
+================================================================================
+END — March 16, 2026
+================================================================================

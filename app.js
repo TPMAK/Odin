@@ -329,6 +329,16 @@ async function handleGoogleLogin() {
         setButtonLoading(btn, 'Connecting...');
         clearAuthMessage();
 
+        // ── Preserve invite token across OAuth redirect ──
+        // Google OAuth strips all URL params on redirect back.
+        // Save the token to sessionStorage NOW so we can read it
+        // after the redirect completes in checkOnboardingBanner().
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteToken = urlParams.get('token');
+        if (inviteToken) {
+            sessionStorage.setItem('odin_invite_token', inviteToken);
+        }
+
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -6027,48 +6037,190 @@ async function autoFriendOdinHQ() {
     }
 }
 
-function checkOnboardingBanner() {
-    const banner = document.getElementById('onboardingBanner');
-    if (!banner) return;
+// ══════════════════════════════════════════════════════════
+// ONBOARDING FLOW — 4-step, fires once on first login
+// Trigger: profiles.onboarding_completed_at === null
+// March 2026
+// ══════════════════════════════════════════════════════════
 
-    // Don't show if already dismissed
-    if (localStorage.getItem('onboarding_welcome_dismissed')) {
-        banner.style.display = 'none';
+// Stores the invite token read from the URL (survives OAuth redirect via sessionStorage)
+let _onbInviteToken = null;
+let _onbInviterData = null; // { id, display_name }
+
+async function checkOnboardingBanner() {
+    // ── Legacy banner: always hide (replaced by new flow) ──
+    const legacyBanner = document.getElementById('onboardingBanner');
+    if (legacyBanner) legacyBanner.style.display = 'none';
+
+    // ── New flow: check onboarding_completed_at in profiles ──
+    if (!currentProfile) return;
+    if (currentProfile.onboarding_completed_at) return; // returning user, skip
+
+    // Read invite token from sessionStorage (stored before OAuth redirect)
+    _onbInviteToken = sessionStorage.getItem('odin_invite_token');
+
+    // Populate step 1 user name
+    const nameEl = document.getElementById('onbUserName');
+    if (nameEl) {
+        const firstName = (currentProfile.display_name || '').split(' ')[0] || 'friend';
+        nameEl.textContent = firstName;
+    }
+
+    // If we have a token, look up the inviter before showing step 2
+    if (_onbInviteToken) {
+        try {
+            const { data: inv, error } = await supabaseClient
+                .from('invitations')
+                .select('inviter_id, used')
+                .eq('token', _onbInviteToken)
+                .eq('used', false)
+                .single();
+
+            if (!error && inv) {
+                // Fetch inviter's display name
+                const { data: inviter } = await supabaseClient
+                    .from('profiles')
+                    .select('id, display_name')
+                    .eq('id', inv.inviter_id)
+                    .single();
+
+                if (inviter) {
+                    _onbInviterData = inviter;
+                    // Populate step 2 UI
+                    const nameSpan = document.getElementById('onbInviterName');
+                    const initialSpan = document.getElementById('onbInviterInitial');
+                    const connectBtn = document.getElementById('onbConnectBtn');
+                    if (nameSpan) nameSpan.textContent = inviter.display_name || 'Someone';
+                    if (initialSpan) initialSpan.textContent = (inviter.display_name || '?')[0].toUpperCase();
+                    if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+                }
+            } else {
+                // Token invalid or already used — clear it
+                _onbInviteToken = null;
+                sessionStorage.removeItem('odin_invite_token');
+            }
+        } catch (err) {
+            console.warn('Invite token lookup failed:', err);
+            _onbInviteToken = null;
+        }
+    }
+
+    // Show the overlay and start at step 1
+    onbGoStep(1);
+}
+
+function onbGoStep(step) {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (!overlay) return;
+
+    // If no inviter data, skip step 2 automatically
+    if (step === 2 && !_onbInviterData) {
+        onbGoStep(3);
         return;
     }
 
-    // Show if user has no friends (excluding Odin HQ) and no endorsements
-    const realFriends = friendsCache.filter(f => f.out_user_id !== ODIN_HQ_USER_ID);
-    const hasNoRealFriends = realFriends.length === 0;
-    const hasNoEndorsements = Object.values(endorsementsCache || {}).every(e => !e.userEndorsed);
+    overlay.style.display = 'flex';
 
-    if (hasNoRealFriends && hasNoEndorsements) {
-        banner.style.display = 'flex';
-    } else {
-        banner.style.display = 'none';
-    }
+    // Hide all steps, show the requested one
+    [1,2,3,4].forEach(n => {
+        const el = document.getElementById(`onbStep${n}`);
+        if (el) el.style.display = n === step ? 'flex' : 'none';
+    });
 }
 
-function dismissOnboarding() {
+async function onbAcceptInvite() {
+    if (!_onbInviterData || !currentUser) {
+        onbGoStep(3);
+        return;
+    }
+
+    const btn = document.getElementById('onbConnectBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
+
+    try {
+        // Create friendship (requester = new user, receiver = inviter)
+        const { error: friendErr } = await supabaseClient
+            .from('friendships')
+            .insert({
+                requester_id: currentUser.id,
+                receiver_id: _onbInviterData.id,
+                status: 'accepted'
+            });
+
+        if (!friendErr) {
+            // Mark token as used
+            if (_onbInviteToken) {
+                await supabaseClient
+                    .from('invitations')
+                    .update({ used: true, used_at: new Date().toISOString() })
+                    .eq('token', _onbInviteToken);
+                sessionStorage.removeItem('odin_invite_token');
+            }
+            // Refresh friends so feed populates
+            await loadFriends();
+        }
+    } catch (err) {
+        console.warn('Auto-connect on invite failed:', err);
+    }
+
+    onbGoStep(3);
+}
+
+function onbGoAdd() {
+    // Complete onboarding then open the Add form
+    onbComplete();
+    setTimeout(() => setMode('add'), 300);
+}
+
+function onbGoSearch() {
+    // Complete onboarding then open Search with keyboard focused
+    onbComplete();
+    setTimeout(() => {
+        setMode('discover');
+        const searchInput = document.getElementById('searchInput') ||
+                            document.querySelector('input[type="search"], .search-input');
+        if (searchInput) searchInput.focus();
+    }, 300);
+}
+
+async function onbComplete() {
+    // Hide overlay
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.style.opacity = '';
+            overlay.style.transition = '';
+        }, 300);
+    }
+
+    // Persist completion to Supabase — fires once, never again
+    if (currentUser) {
+        try {
+            await supabaseClient
+                .from('profiles')
+                .update({ onboarding_completed_at: new Date().toISOString() })
+                .eq('id', currentUser.id);
+            // Update local cache so we don't re-trigger
+            if (currentProfile) currentProfile.onboarding_completed_at = new Date().toISOString();
+        } catch (err) {
+            console.warn('Could not save onboarding completion:', err);
+        }
+    }
+
+    // Also set localStorage as quick-check fallback
     localStorage.setItem('onboarding_welcome_dismissed', 'true');
-    const banner = document.getElementById('onboardingBanner');
-    if (banner) {
-        banner.style.opacity = '0';
-        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = ''; }, 300);
-    }
 }
 
-function handleOnbOverlayClick(e) {
-    // Dismiss when clicking the backdrop (not the card itself)
-    if (e.target === document.getElementById('onboardingBanner')) {
-        dismissOnboarding();
-    }
-}
+// Legacy stubs — kept so any old HTML onclick references don't break
+function dismissOnboarding() { onbComplete(); }
+function handleOnbOverlayClick(e) {}
 
 function goToFindFriends() {
-    dismissOnboarding();
+    onbComplete();
     setMode('profile');
-    // Scroll to and focus the friend search input after a short delay
     setTimeout(() => {
         const input = document.getElementById('friendSearchInput');
         if (input) {

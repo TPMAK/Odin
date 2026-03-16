@@ -1,5 +1,7 @@
 {
-  "_instructions": "Add these 3 nodes into your existing CAPTURE workflow. Place them AFTER your 'Save to Supabase' node. The Code node reads the item id from the save step, OpenAI generates the summary, then the Supabase node writes it back. Reconnect whatever came after 'Save to Supabase' to continue after the last node here.",
+  "_instructions": "These 3 nodes slot into the UPDATED capture workflow (capture_flow_updated.json). Add them AFTER 'Save to Supabase' and BEFORE 'Success Response'. The Code node reads the saved item id, OpenAI generates a short card summary, then Supabase writes it back. Then reconnect to Success Response.",
+
+  "_flow_position": "Save to Supabase → Generate Card Summary → Clean Card Summary → Save Summary to Supabase → Success Response",
 
   "nodes_to_add": [
     {
@@ -26,22 +28,22 @@
       "name": "Generate Card Summary",
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1.4,
-      "position": [900, 300],
+      "position": [3616, 112],
       "credentials": {
         "openAiApi": {
-          "name": "OpenAI"
+          "name": "OpenAi account"
         }
       }
     },
     {
       "parameters": {
-        "jsCode": "// Strip quotes and trim\nconst raw = $input.first().json.message?.content || $input.first().json.choices?.[0]?.message?.content || '';\nconst summary = raw.replace(/^[\"']/g, '').replace(/[\"']$/g, '').trim();\n\n// Get the saved item's id from the upstream Save to Supabase node\n// Adjust the node name below if yours is named differently\nconst savedItem = $('Save to Supabase').first().json;\n\nreturn [{\n  json: {\n    id: savedItem.id,\n    feed_card_summary: summary\n  }\n}];"
+        "jsCode": "// Strip quotes and trim\nconst raw = $input.first().json.message?.content || $input.first().json.choices?.[0]?.message?.content || '';\nconst summary = raw.replace(/^[\"']/g, '').replace(/[\"']$/g, '').trim();\n\n// Get the saved item id from Save to Supabase\nconst savedItem = $('Save to Supabase').first().json;\n\nreturn [{\n  json: {\n    id: savedItem.id,\n    feed_card_summary: summary\n  }\n}];"
       },
       "id": "capture-clean-summary",
       "name": "Clean Card Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300]
+      "position": [3776, 112]
     },
     {
       "parameters": {
@@ -69,32 +71,32 @@
       "name": "Save Summary to Supabase",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1340, 300],
+      "position": [3936, 112],
       "credentials": {
         "supabaseApi": {
-          "name": "Supabase"
+          "name": "Supabase account"
         }
       }
     }
   ],
 
-  "connections_to_add": {
-    "Save to Supabase": {
-      "main": [
-        [{"node": "Generate Card Summary", "type": "main", "index": 0}]
-      ]
-    },
-    "Generate Card Summary": {
-      "main": [
-        [{"node": "Clean Card Summary", "type": "main", "index": 0}]
-      ]
-    },
-    "Clean Card Summary": {
-      "main": [
-        [{"node": "Save Summary to Supabase", "type": "main", "index": 0}]
-      ]
+  "connections_to_update": {
+    "REMOVE": "Save to Supabase → Success Response",
+    "ADD": {
+      "Save to Supabase": {
+        "main": [[{"node": "Generate Card Summary", "type": "main", "index": 0}]]
+      },
+      "Generate Card Summary": {
+        "main": [[{"node": "Clean Card Summary", "type": "main", "index": 0}]]
+      },
+      "Clean Card Summary": {
+        "main": [[{"node": "Save Summary to Supabase", "type": "main", "index": 0}]]
+      },
+      "Save Summary to Supabase": {
+        "main": [[{"node": "Success Response", "type": "main", "index": 0}]]
+      }
     }
   },
 
-  "_note": "After 'Save Summary to Supabase', reconnect to whatever node came after 'Save to Supabase' in your original flow (e.g. Send Notification, Webhook Response, etc). Also check the Code node — if your upstream Supabase save node has a different name, update '$('Save to Supabase')' to match."
+  "_note": "Positions are set to continue the horizontal layout of capture_flow_updated.json. Success Response should be moved to x=4096 to make room."
 }

@@ -1,0 +1,846 @@
+{
+  "name": "Semantic Discovery Search - All Languages Dynamic User ID Smart AI Filter",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "### RPC in Supabase to get the data in the Hybird Search",
+        "height": 336
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        9424,
+        1760
+      ],
+      "typeVersion": 1,
+      "id": "87400a95-7ba8-4886-a71b-2c5547b8a3d4",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Extract search terms and understand user intent for semantic retrieval.\nCRITICAL: Always work in English internally for semantic matching.\n\nCONVERSATION HISTORY:\n{{ $('Fetch Conversation History').all().length > 0 ? $('Fetch Conversation History').all().map(item => `${item.json.role}: ${item.json.message}`).reverse().join('\\n') : 'No previous messages' }}\n\nCURRENT USER QUERY: \"{{ $('Webhook').first().json.body.query }}\"\n\n═══════════════════════════════════════════════════════════════\nEXTRACTION RULES (APPLY TO EVERY QUERY)\n═══════════════════════════════════════════════════════════════\n\n1. LOCATION_HINT - Extract specific place names from patterns:\n   \"in [place]\", \"to [place]\", \"at [place]\", \"係[place]\", \"喺[place]\", \"[place] area\"\n   CRITICAL: If a place name appears ANYWHERE in the query, extract it as location_hint!\n\n2. PERSON_NAME - Extract if someone is mentioned:\n   \"X recommended\", \"X said\", \"X mentioned\", \"X話\", \"X講過\", \"X推薦\"\n\n═══════════════════════════════════════════════════════════════\nFOLLOW-UP QUERY HANDLING\n═══════════════════════════════════════════════════════════════\n\nDetect if current query ADDS to previous request.\nSignals: \"also\", \"as well\", \"too\", \"and\", \"plus\", \"都\", \"同埋\", \"仲有\", or incomplete requests.\n\nIF FOLLOW-UP:\n1. Extract the MOST RECENT user query from history\n2. MERGE current + previous query\n3. Create COMBINED search satisfying BOTH\n4. Re-extract location_hint and person_name from FINAL combined text\n\n═══════════════════════════════════════════════════════════════\nNON-ENGLISH QUERY HANDLING\n═══════════════════════════════════════════════════════════════\n\nYou are multilingual. For ANY non-English query:\n1. Detect the language → set query_language to its ISO 639-1 code\n   (e.g. \"zh\", \"ja\", \"ko\", \"fr\", \"es\", \"pt\", \"th\", \"vi\", \"ms\", \"id\", \"de\", \"it\", \"ar\", \"hi\", \"ru\", etc.)\n2. Extract person_name and location_hint from the ORIGINAL text first\n3. Translate the MEANING to English (preserve names/places as-is)\n4. Expand terms in English\n5. For Cantonese specifically, set query_language: \"zh-HK\"\n6. Default to \"en\" only if the query is in English\n\n═══════════════════════════════════════════════════════════════\nINTENT CLASSIFICATION\n═══════════════════════════════════════════════════════════════\n\n- recall: remembering something (\"where was\", \"that place\", \"記唔記得\", \"上次\")\n- place_decision: choosing where to go (\"find\", \"搵\", \"recommend\", \"suggest\", \"looking for\")\n- advice_synthesis: planning/itinerary (\"trip\", \"days\", \"itinerary\", \"plan\", \"旅行\", \"行程\")\n- urgent_service: time-sensitive (\"need now\", \"urgent\", \"emergency\", \"而家\", \"pain\")\n- content_recommendation: non-location items, online resources, or purchasable products \n  (\"book\", \"product\", \"toy\", \"gift\", \"watch\", \"read\", \"buy\", \"purchase\", \"shampoo\", \n  \"app\", \"website\", \"youtube\", \"video\", \"link\", \"online\", \"subscribe\", \"download\",\n  \"software\", \"tool\", \"course\", \"music\", \"podcast\", \"channel\", \"facebook\", \"instagram\")\n\n═══════════════════════════════════════════════════════════════\nNEEDS_NEAR_ME (STRICT)\n═══════════════════════════════════════════════════════════════\n\nONLY true if query EXPLICITLY contains: \"near me\", \"nearby\", \"close by\", \"附近\", \"近\", \"喺度近\"\n\"find coffee shop\" → false. \"find coffee shop near me\" → true. \"coffee in Ponsonby\" → false.\n\n═══════════════════════════════════════════════════════════════\nEXPANSION RULES\n═══════════════════════════════════════════════════════════════\n\nExpand with relevant synonyms matching intent:\n- work → wifi, laptop, quiet, productive\n- romantic → intimate, date night, special\n- kids → children, family, playground, family-friendly\n- cheap → affordable, budget, value\n- coffee → cafe, espresso, latte\n- trip → travel, itinerary, planning, visit\nDO NOT include location names in expanded_terms.\n\n═══════════════════════════════════════════════════════════════\nOTHER FIELDS\n═══════════════════════════════════════════════════════════════\n\ncategory_hint: \"place\" (food/venues), \"product\" (physical items), \"service\" (professionals), \"advice\" (tips)\nurgency: \"high\" (now/urgent/而家), \"medium\" (tomorrow/聽日/celebration), \"low\" (default)\n\n═══════════════════════════════════════════════════════════════\nOUTPUT FORMAT (JSON ONLY)\n═══════════════════════════════════════════════════════════════\n\n{\n  \"expanded_terms\": [\"term1\", \"term2\"],\n  \"search_text\": \"natural language in English\",\n  \"category_hint\": \"place|product|service|advice|null\",\n  \"intent_type\": \"recall|place_decision|advice_synthesis|urgent_service|content_recommendation\",\n  \"person_name\": \"string or null\",\n  \"location_hint\": \"string or null\",\n  \"needs_near_me\": true|false,\n  \"urgency\": \"low|medium|high\",\n  \"query_language\": \"ISO 639-1 code (en, zh, zh-HK, ja, ko, fr, es, th, vi...)\",\n  \"confidence\": 0.0-1.0\n}\n\nEXAMPLES:\n\n\"planning a trip to Queenstown\" →\n{\"expanded_terms\":[\"trip\",\"travel\",\"itinerary\",\"planning\",\"visit\",\"activities\"],\"search_text\":\"planning trip to Queenstown activities and recommendations\",\"intent_type\":\"advice_synthesis\",\"location_hint\":\"Queenstown\",\"person_name\":null,\"needs_near_me\":false,\"urgency\":\"low\",\"query_language\":\"en\",\"category_hint\":\"advice\",\"confidence\":0.9}\n\n\"Stanley話係Queenstown邊度買生日蛋糕？\" →\n{\"expanded_terms\":[\"birthday\",\"cake\",\"bakery\",\"buy\",\"purchase\",\"celebration\"],\"search_text\":\"where to buy birthday cake in Queenstown\",\"intent_type\":\"place_decision\",\"person_name\":\"Stanley\",\"location_hint\":\"Queenstown\",\"needs_near_me\":false,\"urgency\":\"low\",\"query_language\":\"zh\",\"category_hint\":\"place\",\"confidence\":0.9}\n\n\"coffee in Ponsonby\" →\n{\"expanded_terms\":[\"coffee\",\"cafe\",\"espresso\"],\"search_text\":\"coffee cafe\",\"intent_type\":\"place_decision\",\"location_hint\":\"Ponsonby\",\"person_name\":null,\"needs_near_me\":false,\"urgency\":\"low\",\"query_language\":\"en\",\"category_hint\":\"place\",\"confidence\":0.9}\n\n\"ฉันอยากกินไอศกรีม\" →\n{\"expanded_terms\":[\"ice cream\",\"gelato\",\"dessert\",\"frozen\",\"sweet\"],\"search_text\":\"ice cream gelato dessert\",\"intent_type\":\"place_decision\",\"person_name\":null,\"location_hint\":null,\"needs_near_me\":false,\"urgency\":\"low\",\"query_language\":\"th\",\"category_hint\":\"place\",\"confidence\":0.9}\n\n\"Queenstown에서 좋은 레스토랑 추천해주세요\" →\n{\"expanded_terms\":[\"restaurant\",\"dining\",\"food\",\"recommend\"],\"search_text\":\"good restaurant recommendation in Queenstown\",\"intent_type\":\"place_decision\",\"person_name\":null,\"location_hint\":\"Queenstown\",\"needs_near_me\":false,\"urgency\":\"low\",\"query_language\":\"ko\",\"category_hint\":\"place\",\"confidence\":0.9}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        8416,
+        1872
+      ],
+      "id": "97e1e224-026a-4b17-806b-9cd1274caa17",
+      "name": "Query Expansion AI",
+      "notesInFlow": true,
+      "notes": "Expands lazy input like 'coffee' into comprehensive search terms"
+    },
+    {
+      "parameters": {
+        "jsCode": "// -----------------------------\n// Process Query Data (ROBUST)\n// Parses JSON from Query Expansion AI's `text` field (often wrapped in ```json fences)\n// -----------------------------\n\nconst input = $json || {};\nconst webhook = $('Webhook').first().json.body || {};\n\nconst userLat = webhook.user_latitude ?? null;\nconst userLon = webhook.user_longitude ?? null;\n\nfunction toBool(v) {\n  return v === true || v === 'true' || v === 1 || v === '1';\n}\n\nfunction parseAiPayload(raw) {\n  if (!raw) return null;\n\n  // If node already returns object, use it\n  if (typeof raw === 'object') return raw;\n\n  if (typeof raw !== 'string') return null;\n\n  // Remove ```json ... ``` fences if present\n  let s = raw.trim();\n  s = s.replace(/^```json\\s*/i, '').replace(/^```\\s*/i, '');\n  s = s.replace(/```$/i, '').trim();\n\n  // Some models wrap JSON in extra text; try to extract first {...}\n  const start = s.indexOf('{');\n  const end = s.lastIndexOf('}');\n  if (start !== -1 && end !== -1 && end > start) {\n    s = s.slice(start, end + 1);\n  }\n\n  try {\n    return JSON.parse(s);\n  } catch (e) {\n    return null;\n  }\n}\n\n// 1) Read AI JSON from `text` (your screenshot shows it's in text)\nconst ai = parseAiPayload(input.text) || input;\n\n// 2) Trust AI output (do NOT override)\nconst intent_type   = ai.intent_type || 'place_decision';\nconst category_hint = ai.category_hint || null;\nconst person_name   = ai.person_name || null;\nconst location_hint = ai.location_hint || null;\nconst needs_near_me = toBool(ai.needs_near_me);\nconst urgency       = ai.urgency || 'low';\nconst query_language = ai.query_language || 'en';\n\n// 3) Anchor logic\nlet anchor_location;\n\nif (location_hint) {\n  anchor_location = {\n    type: 'query',\n    location_name: location_hint,\n    lat: null,\n    lon: null,\n    needs_geocode: true\n  };\n} else {\n  anchor_location = {\n    type: 'user',\n    location_name: null,\n    lat: userLat,\n    lon: userLon,\n    needs_geocode: false\n  };\n}\n\n// 4) Output\n\nreturn [{\n  json: {\n    intent_type,\n    category_hint,\n    person_name,\n    location_hint,\n    needs_near_me,\n    urgency,\n    query_language,\n    anchor_location,\n    expanded_terms: ai.expanded_terms || [],\n    search_text: ai.search_text || ai.text || ''\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8672,
+        1872
+      ],
+      "id": "ac6bcf19-2f95-46cb-84d5-182b30b0271e",
+      "name": "Process Query Data",
+      "notesInFlow": true,
+      "notes": "Parses AI response and prepares data for embedding generation"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "="
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"text-embedding-3-small\",\n  \"input\": \"{{ $json.search_text }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        9264,
+        1872
+      ],
+      "id": "5472fc8b-7232-41b9-aa63-e916490e5c48",
+      "name": "Generate Search Embedding",
+      "notesInFlow": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "O5dHjIM6T4oRwzFq",
+          "name": "OpenAi account"
+        }
+      },
+      "notes": "Converts expanded query text into vector embeddings"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/rpc/search_knowledge_items_hybrid",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "match_threshold",
+              "value": "0.1"
+            },
+            {
+              "name": "max_matches",
+              "value": "18"
+            },
+            {
+              "name": "query_embedding",
+              "value": "={{ $json.data[0].embedding }}"
+            },
+            {
+              "name": "query_text",
+              "value": "={{ $('Webhook').first().json.body.query }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $('Webhook').first().json.body.user_id || '4c81734b-63a1-44fb-9c54-ed14760e16e7' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        9488,
+        1872
+      ],
+      "id": "0c5019c1-3ce6-4459-9b78-c176850a4be1",
+      "name": "Hybrid Database Search",
+      "notesInFlow": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        }
+      },
+      "notes": "Executes semantic + text + keyword search in Supabase"
+    },
+    {
+      "parameters": {
+        "jsCode": "function calculateDistance(lat1, lon1, lat2, lon2) {\n  if (!lat1 || !lon1 || !lat2 || !lon2) return null;\n  const R = 6371;\n  const dLat = (lat2 - lat1) * Math.PI / 180;\n  const dLon = (lon2 - lon1) * Math.PI / 180;\n  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +\n    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *\n    Math.sin(dLon/2) * Math.sin(dLon/2);\n  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));\n  return R * c;\n}\n\nconst webhookData = $('Webhook').first().json.body;\nconst userQuery = webhookData.query;\nconst userLat = webhookData.user_latitude || null;\nconst userLon = webhookData.user_longitude || null;\n\nconst queryData = $('Merge Anchor Path').first().json || {};\nconst queryLanguage = queryData.query_language || 'en';\nconst intentType = queryData.intent_type || 'place_decision';\n\nconst results = items || [];\n\nif (results.length === 0) {\n  return [{\n    json: {\n      q: userQuery,\n      results: [],\n      resultsText: \"No results found.\",\n      has_results: false,\n      query_language: queryLanguage,\n      intent_type: intentType\n    }\n  }];\n}\n\n// ---------- Format each result ----------\n// The Re-rank node already scored and sorted everything.\n// This node just formats for display — NO re-sorting.\nvar enrichedResults = results.map(function(item) {\n  var r = item.json;\n\n  // Calculate distance for display only\n  var distance_km = null;\n  if (userLat && userLon && r.latitude && r.longitude) {\n    distance_km = calculateDistance(userLat, userLon, r.latitude, r.longitude);\n    distance_km = Math.round(distance_km * 10) / 10;\n  }\n\n  // Use _distance_km from re-rank if available (more accurate)\n  if (r._distance_km !== null && r._distance_km !== undefined) {\n    distance_km = Math.round(r._distance_km * 10) / 10;\n  }\n\n  // Extract URL\n  var url = null;\n  if (r.URL || r.url) {\n    var rawUrl = r.URL || r.url;\n    try {\n      if (typeof rawUrl === 'string') {\n        var parsed = JSON.parse(rawUrl);\n        if (Array.isArray(parsed) && parsed.length > 0) url = parsed[0];\n      } else if (Array.isArray(rawUrl) && rawUrl.length > 0) {\n        url = rawUrl[0];\n      }\n    } catch (e) {\n      if (typeof rawUrl === 'string' && rawUrl.startsWith('http')) {\n        url = rawUrl;\n      }\n    }\n  }\n\n  var photo_url = r.photo_url || null;\n  var added_by_name = r.added_by_name || 'Unknown';\n\n  // Extract personal note\n  var personal_note = r.personal_note || null;\n  if (!personal_note && r.metadata) {\n    try {\n      var metadata = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata;\n      personal_note = metadata.personal_note || null;\n    } catch (e) {}\n  }\n\n  return {\n    title: r.title || 'Untitled',\n    description: r.description || '',\n    enriched_description: r.enriched_description || '',\n    address: r.address || null,\n    added_by_name: added_by_name,\n    url: url,\n    photo_url: photo_url,\n    personal_note: personal_note,\n    distance_km: distance_km,\n    latitude: r.latitude,\n    longitude: r.longitude,\n    // FIX: Use combined_score_v2 from re-rank (was using combined_score which no longer exists)\n    relevance_score: r.combined_score_v2 || r.combined_score || 0,\n    combined_score: r.combined_score_v2 || r.combined_score || 0\n  };\n});\n\n// ---------- PERSON FILTER ----------\nif (queryData.person_name) {\n  var personName = queryData.person_name.toLowerCase();\n  enrichedResults = enrichedResults.filter(function(r) {\n    return r.added_by_name && r.added_by_name.toLowerCase().includes(personName);\n  });\n\n  if (enrichedResults.length === 0) {\n    return [{\n      json: {\n        q: userQuery,\n        results: [],\n        resultsText: 'No recommendations found from ' + queryData.person_name,\n        has_results: false,\n        searched_person: queryData.person_name,\n        query_language: queryLanguage,\n        intent_type: intentType\n      }\n    }];\n  }\n}\n\n// FIX: Do NOT re-sort. The Re-rank node already sorted by combined_score_v2\n// which factors in: base relevance + keyword match + personal notes + proximity.\n// Re-sorting here by distance was overriding the re-rank and pushing\n// products/books/links to the bottom because they have no location.\n\n// Give AI 12 candidates\nvar topResults = enrichedResults.slice(0, 12);\n\nvar resultsText = topResults.map(function(r, i) {\n  var distDisplay = (intentType === 'content_recommendation' && !r.distance_km)\n    ? ''\n    : (r.distance_km !== null ? r.distance_km + 'km' : 'No location');\n  var urlStr = r.url ? r.url : 'none';\n  var photo = r.photo_url ? 'Has photo' : 'No photo';\n  var story = r.personal_note ? 'Story: \"' + r.personal_note + '\"' : 'No story';\n  var desc = (r.description || '').substring(0, 100);\n  var distPart = distDisplay ? ' | ' + distDisplay : '';\n\n  return (i+1) + '. ' + r.title + ' | ' + desc + distPart + ' | Added by: ' + r.added_by_name + ' | ' + story + ' | URL: ' + urlStr + ' | Photo: ' + photo;\n}).join('\\n');\n\nreturn [{\n  json: {\n    q: userQuery,\n    results: topResults,\n    resultsText: resultsText,\n    total_found: results.length,\n    has_results: true,\n    user_location: userLat ? { lat: userLat, lon: userLon } : null,\n    searched_person: queryData.person_name || null,\n    query_language: queryLanguage,\n    intent_type: intentType,\n    needs_near_me: queryData.needs_near_me || false\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9856,
+        1872
+      ],
+      "id": "14171f98-4767-4087-b381-3e377d7c235b",
+      "name": "Format Results",
+      "notesInFlow": true,
+      "notes": "Processes raw database results into user-friendly format"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=LANGUAGE: ALWAYS respond in the language matching query_language. If query_language is \"th\" respond in Thai, \"ko\" in Korean, \"ja\" in Japanese, \"zh\" in Chinese, \"fr\" in French, \"es\" in Spanish, etc. Only respond in English if query_language is \"en\". This applies to the opening line, \"Why this matches\" explanations, and all conversational text. Keep titles as stored (do not translate titles).\n\nCONVERSATION HISTORY:\n{{ $('Prepare Response Context').first().json.conversation_history || 'No previous messages' }}\n\nUSER QUERY: \"{{ $json.q }}\"\nquery_language: \"{{ $json.query_language }}\"\nintent_type: \"{{ $json.intent_type }}\"\nneeds_near_me: {{ $json.needs_near_me || false }}\n\nSEARCH RESULTS:\n{{ $json.resultsText }}\n\n---\nRELEVANCE JUDGEMENT\n---\nYou are a smart friend helping someone find recommendations from their personal network.\n\nFor each result, ask yourself one question:\n\"If my friend asked me THIS question, would I genuinely recommend THIS place/thing?\"\n\nIf yes → keep it\nIf no, or if you're not sure → drop it\n\nBe honest. It's better to return 0 results than mislead someone.\nReturn your kept_titles and dropped_titles accordingly.\n\n---\nOUTPUT FORMAT\n---\n💬 Opening line (e.g., \"Found 3 romantic restaurants!\")\n\n[View on Map 🗺️] [Browse More] [Ask Follow-up 💬]\n\n🎯 TOP PICKS FOR YOU\n\n**Exact Title** — Brief intro (distance) • Added by Name\n💡 **Why this matches:** Specific detail from personal notes\n💭 \"Personal note\"\n[View →](url)\n\n---\n\n💡 MORE GREAT OPTIONS\n\n**Exact Title** — Description (distance) • Added by Name  \n💡 **Why this works:** Brief relevance\n💭 \"Personal note\"\n[View →](url)\n\n---\nEXAMPLE\n---\nQuery: \"romantic anniversary dinner\"\n\n💬 Found 2 perfect restaurants!\n\n[View on Map 🗺️] [Browse More] [Ask Follow-up 💬]\n\n🎯 TOP PICKS FOR YOU\n\n**Paris Butter** — French fine dining, Herne Bay (18.1km) • Stanley\n💡 **Why this matches:** Specifically recommended for anniversaries with tasting menu\n💭 \"可以慶祝結婚周年畫生日去，有6,8 course Menu\"\n[View →](http://parisbutter.co.nz)\n\n---\n\nRemember: Return ONLY the JSON object with response_text containing the formatted output above.",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a recommendation filtering assistant. Your job is to show ONLY relevant results that match user intent.\n\nWhen the user's query asks for a specific category (e.g. \"books\", \"restaurants\", \"cafes\"), strongly prefer items matching that category. Only keep other types if the query is broad or ambiguous (e.g. \"things for kids\", \"what to do this weekend\").\n\nCRITICAL OUTPUT RULES:\n1. Return ONLY valid JSON - no markdown backticks, no explanatory text\n2. Structure:\n{\n  \"response_text\": \"Your formatted markdown response with emojis\",\n  \"kept_titles\": [\"All titles you showed\"],\n  \"tier1_titles\": [\"Top matches\"],\n  \"tier2_titles\": [\"Good alternatives\"],\n  \"dropped_titles\": [\"Rejected titles\"],\n  \"drop_reasons\": [\"Title - Why rejected\"]\n}\n\n3. NEVER invent titles - only use what's in search results\n4. Every title in response_text MUST be in kept_titles\n5. Copy titles EXACTLY character-for-character (no modifications/translations)"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        10176,
+        1872
+      ],
+      "id": "5860fd2c-0096-49ca-af33-9b2839aeaf70",
+      "name": "Generate Response",
+      "notesInFlow": true,
+      "notes": "Creates conversational response using only actual user data"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "search123",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        8192,
+        1456
+      ],
+      "id": "9fcc8d86-278f-4b01-8b47-ccd520b22c48",
+      "name": "Webhook",
+      "webhookId": "07333b5f-984d-498b-b482-35b0ffcb3941"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge Response - WITH CATEGORIES (Updated for actual types)\n// FIX: Normalize titles to handle invisible characters (soft hyphens, zero-width spaces)\n// FIX: console.log syntax error\n\n// ------------------\n// Helpers\n// ------------------\nfunction normalizeTitle(title) {\n  return (title || '')\n    .toLowerCase()\n    .replace(/[\\u00AD\\u200B\\u200C\\u200D\\uFEFF\\u00A0]/g, '') // strip soft hyphens, zero-width chars, nbsp\n    .replace(/\\s+/g, ' ')  // normalize whitespace\n    .trim();\n}\n\n// ------------------\n// Inputs\n// ------------------\nconst formatResults = $('Format Results').first().json;\nconst queryData = $('Process Query Data').first().json;\nconst llmText = $json.text || $json.output || '';\nconst allResults = formatResults.results || [];\nconst anchorLocation = queryData.anchor_location || null;\nconst showGroupedResults = queryData.show_grouped_results || false;\n\nconsole.log('Merge Response input:', JSON.stringify({\n  resultsCount: allResults.length,\n  llmTextLength: llmText.length,\n  showGroupedResults: showGroupedResults\n}));\n\n// ------------------\n// Parse AI response (handles JSON, markdown, or mixed)\n// ------------------\nvar aiResponseText = '';\nvar keptTitles = [];\nvar droppedInfo = { titles: [], reasons: [] };\n\nfunction extractJSON(text) {\n  var jsonMatch = text.match(/\\{[\\s\\S]*\"response_text\"[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    try {\n      return JSON.parse(jsonMatch[0]);\n    } catch (e) {}\n  }\n  try {\n    return JSON.parse(text);\n  } catch (e) {\n    return null;\n  }\n}\n\n// Attempt to parse as JSON first\nvar parsed = extractJSON(llmText);\n\nif (parsed && parsed.response_text) {\n  aiResponseText = parsed.response_text;\n  keptTitles = Array.isArray(parsed.kept_titles) ? parsed.kept_titles : [];\n  droppedInfo.titles = Array.isArray(parsed.dropped_titles) ? parsed.dropped_titles : [];\n  droppedInfo.reasons = Array.isArray(parsed.drop_reasons) ? parsed.drop_reasons : [];\n  console.log('Parsed as JSON: kept=' + keptTitles.length + ', dropped=' + droppedInfo.titles.length);\n} else {\n  aiResponseText = llmText;\n  var titleMatches = llmText.match(/\\*\\*([^*]+)\\*\\*/g) || [];\n  keptTitles = titleMatches\n    .map(function(m) { return m.replace(/\\*\\*/g, '').trim(); })\n    .filter(function(title) {\n      return allResults.some(function(r) {\n        return r.title && (\n          normalizeTitle(r.title).includes(normalizeTitle(title)) ||\n          normalizeTitle(title).includes(normalizeTitle(r.title))\n        );\n      });\n    });\n\n  keptTitles = keptTitles.filter(function(v, i, a) { return a.indexOf(v) === i; });\n  console.log('Fallback to markdown parsing: extractedTitles=' + keptTitles.length);\n}\n\n// If no titles extracted AND no explicit drops = parse failure → safe fallback, keep all.\n// If AI explicitly dropped items (droppedInfo.titles.length > 0) but kept none = intentional 0 results.\n// Do NOT restore results in that case — respect the AI decision.\nif (keptTitles.length === 0 && droppedInfo.titles.length === 0) {\n  keptTitles = allResults.map(function(r) { return r.title; });\n  console.log('No titles extracted and no drops — parse failure, keeping all results as fallback');\n} else if (keptTitles.length === 0 && droppedInfo.titles.length > 0) {\n  console.log('AI explicitly dropped all results — respecting 0-match decision');\n}\n\n// ------------------\n// Extract relevance explanations from response text\n// ------------------\nvar relevanceMap = {};\nvar explanationPattern = /\\*\\*([^*]+)\\*\\*\\s*[–—-]\\s*([^(\\n💭\\[]+)/g;\nvar match;\nwhile ((match = explanationPattern.exec(aiResponseText)) !== null) {\n  var title = match[1].trim().toLowerCase();\n  var explanation = match[2].trim();\n  if (explanation.length > 5) {\n    relevanceMap[title] = explanation;\n  }\n}\n\n// ------------------\n// FIX: Filter and enrich results using normalized title matching\n// ------------------\nvar updatedResults = allResults\n  .filter(function(result) {\n    var dbTitle = normalizeTitle(result.title);\n    return keptTitles.some(function(keptTitle) {\n      var kept = normalizeTitle(keptTitle);\n      return dbTitle.includes(kept) || kept.includes(dbTitle);\n    });\n  })\n  .map(function(result) {\n    var key = normalizeTitle(result.title);\n    var explanation = null;\n    for (var explKey in relevanceMap) {\n      if (relevanceMap.hasOwnProperty(explKey)) {\n        var normKey = normalizeTitle(explKey);\n        if (key.includes(normKey) || normKey.includes(key)) {\n          explanation = relevanceMap[explKey];\n          break;\n        }\n      }\n    }\n\n    return {\n      title: result.title,\n      description: result.description,\n      enriched_description: result.enriched_description,\n      address: result.address,\n      added_by_name: result.added_by_name,\n      url: result.url,\n      photo_url: result.photo_url,\n      personal_note: result.personal_note,\n      distance_km: result.distance_km,\n      latitude: result.latitude,\n      longitude: result.longitude,\n      type: result.type,\n      language: result.language,\n      id: result.id,\n      relevance_score: result.relevance_score,\n      combined_score: result.combined_score,\n      relevance_reason: explanation || result.relevance_reason || null\n    };\n  });\n\nconsole.log('Final: ' + updatedResults.length + ' of ' + allResults.length + ' results');\n\n// When nothing matched, build suggestions from the dropped results (semantically closest).\n// For place/service queries: filter by distance (≤20km), sort nearest first.\n// For product/advice/content: distance is irrelevant — sort by relevance score instead.\nvar suggestedResults = [];\nif (updatedResults.length === 0 && droppedInfo.titles.length > 0) {\n  var intentType = queryData.intent_type || 'place_decision';\n  var isLocationBased = intentType === 'place_decision' || intentType === 'urgent_service';\n\n  if (isLocationBased) {\n    suggestedResults = allResults\n      .filter(function(r) {\n        return r.distance_km !== null && r.distance_km !== undefined && r.distance_km <= 20;\n      })\n      .sort(function(a, b) { return (a.distance_km || 999) - (b.distance_km || 999); })\n      .slice(0, 4);\n  } else {\n    // product / advice / content_recommendation — sort by relevance score\n    suggestedResults = allResults\n      .sort(function(a, b) { return (b.relevance_score || 0) - (a.relevance_score || 0); })\n      .slice(0, 4);\n  }\n  console.log('No match (' + intentType + ') — ' + suggestedResults.length + ' suggestions built from dropped results');\n}\n\n// ------------------\n// Category grouping\n// ------------------\nvar categoryMap = {\n  'place': { name: 'Places', emoji: '📍' },\n  'advice': { name: 'Advice', emoji: '💡' },\n  'service': { name: 'Services', emoji: '🔧' },\n  'product': { name: 'Products', emoji: '🛍️' }\n};\n\nvar categories = [];\n\nif (showGroupedResults) {\n  var categoryGroups = {};\n\n  updatedResults.forEach(function(result) {\n    var type = (result.type || 'other').toLowerCase();\n    var category = categoryMap[type] || { name: 'Other', emoji: '📌' };\n    var categoryName = category.name;\n\n    if (!categoryGroups[categoryName]) {\n      categoryGroups[categoryName] = {\n        name: categoryName,\n        emoji: category.emoji,\n        items: [],\n        total_count: 0\n      };\n    }\n\n    categoryGroups[categoryName].items.push(result.title);\n    categoryGroups[categoryName].total_count++;\n  });\n\n  categories = Object.values(categoryGroups);\n}\n\n// ------------------\n// Output\n// ------------------\nreturn [{\n  json: {\n    text: aiResponseText,\n    results: updatedResults,\n    categories: categories,\n    is_grouped_display: showGroupedResults,\n    q: formatResults.q,\n    intent_type: queryData.intent_type,\n    query_language: queryData.query_language,\n    anchor_location: anchorLocation,\n    has_results: updatedResults.length > 0,\n    original_count: allResults.length,\n    filtered_count: updatedResults.length,\n    suggested_results: suggestedResults,\n    _debug: {\n      kept_titles: keptTitles,\n      dropped_titles: droppedInfo.titles,\n      drop_reasons: droppedInfo.reasons,\n      parse_method: parsed ? 'json' : 'markdown_fallback'\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10480,
+        1872
+      ],
+      "id": "d69c2b51-0a6d-4d7e-b3dc-9b32ebbaf48c",
+      "name": "Merge Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Re-rank by Intent - v5 FINAL\n// Fixes:\n// 1. Distance filter: items without lat/lon are KEPT (not killed)\n// 2. Weight redistribution: items without location/notes not unfairly penalized\n// 3. Keyword matching: uses expanded_terms + item keywords + enriched_description\n//    (fixes cross-language gap: Chinese description vs English query)\n// 4. Removed blanket place-type filter for content_recommendation\n\n// ---------- helpers ----------\nfunction hasText(s) {\n  return (s || '').trim().length > 0;\n}\n\nfunction keywordOverlapScore(queryTerms, text) {\n  // queryTerms = array of search terms (from expanded_terms + original query)\n  // text = combined searchable text from item\n  const t = (text || '').toLowerCase();\n  if (!t || queryTerms.length === 0) return 0;\n  let hit = 0;\n  for (const tok of queryTerms) {\n    if (tok.length >= 3 && t.includes(tok)) hit++;\n  }\n  return Math.min(1, hit / Math.min(5, queryTerms.length));\n}\n\nfunction distanceKm(lat1, lon1, lat2, lon2) {\n  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;\n  const R = 6371;\n  const dLat = (lat2 - lat1) * Math.PI / 180;\n  const dLon = (lon2 - lon1) * Math.PI / 180;\n  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +\n    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *\n    Math.sin(dLon / 2) * Math.sin(dLon / 2);\n  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));\n}\n\n// ---------- inputs ----------\nconst webhook = $('Webhook').first().json.body || {};\nconst userQuery = webhook.query || '';\n\nconst queryData = $('Process Query Data').first().json || {};\nconst intentType = queryData.intent_type || 'place_decision';\n\nconst mergedData = $('Merge Anchor Path').first().json || {};\nconst anchor = mergedData.anchor_location || queryData.anchor_location || {};\n\nconst hasAnchor = anchor.lat && anchor.lon;\n\n// ---------- Build search terms from expanded_terms + raw query ----------\n// This fixes cross-language matching: Chinese description won't match \"shampoo\"\n// but the item's keywords field WILL, and expanded_terms like \"hair care\" WILL\n// match the enriched_description\nconst rawTokens = (userQuery || '').toLowerCase().split(/[\\s,.;!?]+/).filter(Boolean);\nconst expandedTerms = (queryData.expanded_terms || []).map(function(t) { return t.toLowerCase(); });\nconst allTermsSet = {};\nrawTokens.forEach(function(t) { allTermsSet[t] = true; });\nexpandedTerms.forEach(function(t) {\n  // expanded_terms can be multi-word like \"hair care\" — split them too\n  t.split(/\\s+/).forEach(function(w) { allTermsSet[w] = true; });\n});\nconst searchTerms = Object.keys(allTermsSet);\n\n// ---------- normalize ----------\nlet results = items.map(function(i) { return i.json; });\n\n// ── Odin Trust Layer: Privacy filter ────────────────────────\n// Allowed: own items, direct friends (non-private), FOF (friends-visibility, anonymised)\n// The RPC already gates at DB level; this is a defence-in-depth layer in n8n.\nconst webhook_body = $('Webhook').first().json.body || {};\nconst selfUserId = webhook_body.user_id || null;\nconst allowedUserIds = new Set(webhook_body.allowed_user_ids || []);\nconst friendIds = new Set(webhook_body.friend_ids || []);\n\nresults = results.filter(function(r) {\n  const owner = r.added_by || null;\n  // FOF items: RPC returns them with trust_level='extended_circle' and added_by=null\n  if (!owner && r.trust_level === 'extended_circle') return true;\n  // Private items: only owner can see them\n  if (r.visibility === 'private' && owner !== selfUserId) return false;\n  // Direct friends: allowed if in allowedUserIds\n  if (allowedUserIds.size > 0 && owner && allowedUserIds.has(owner)) return true;\n  // FOF with owner still set: allow if trust_level says extended_circle\n  if (r.trust_level === 'extended_circle') return true;\n  // Unknown owner with no trust signal: only keep if in allowedUserIds\n  if (allowedUserIds.size > 0 && owner && !allowedUserIds.has(owner)) return false;\n  return true;\n});\n\n// Anonymise FOF items: clear identity fields so AI never sees them\nresults = results.map(function(r) {\n  if (r.trust_level === 'extended_circle') {\n    r = Object.assign({}, r);\n    r.added_by      = null;\n    r.added_by_name = 'Someone in your circle';\n    r.personal_note = null;\n    return r;\n  }\n  return r;\n});\n\n// Strip personal_note from items not owned by searcher or direct friends\nresults = results.map(function(r) {\n  const owner = r.added_by || null;\n  const isFriend = owner && friendIds.has(owner);\n  const isOwn    = owner && owner === selfUserId;\n  if (!isFriend && !isOwn) {\n    r = Object.assign({}, r);\n    r.personal_note = null;  // never leak notes to non-friends\n  }\n  return r;\n});\n// ── End Privacy Filter ───────────────────────────────────────\n\n\n// No type filter for content_recommendation.\n// Hybrid search already scored relevance — trust it.\n\n// ---------- distance thresholds ----------\nconst MAX_DISTANCE_BY_INTENT = {\n  advice_synthesis: 180,\n  place_decision: 30,\n  urgent_service: 15,\n  recall: 50,\n  content_recommendation: 999\n};\n\nconst MAX_KM = MAX_DISTANCE_BY_INTENT[intentType] || 50;\n\n// Detect special occasion queries\nconst isSpecialOccasion = userQuery.toLowerCase().match(/romantic|anniversary|birthday|celebration|date night|special occasion|propose|engagement/);\n\n// ---------- scoring ----------\nresults = results.map(function(r) {\n  // Build rich searchable text: title + description + note + enriched + keywords\n  var keywordsText = '';\n  if (Array.isArray(r.keywords)) {\n    keywordsText = r.keywords.join(' ');\n  } else if (typeof r.keywords === 'string') {\n    keywordsText = r.keywords;\n  }\n  var text = (r.title || '') + ' ' + (r.description || '') + ' ' +\n    (r.personal_note || '') + ' ' + (r.enriched_description || '') + ' ' + keywordsText;\n\n  var base = Number(r.combined_score || r.relevance_score || 0);\n  var kw = keywordOverlapScore(searchTerms, text);\n  var hasNote = hasText(r.personal_note);\n\n  // Calculate distance only if we have anchor AND item has location\n  var dkm = null;\n  if (hasAnchor && r.latitude && r.longitude) {\n    dkm = distanceKm(anchor.lat, anchor.lon, r.latitude, r.longitude);\n  }\n\n  // Distance filter: only for non-content, non-person queries\n  // Only filter items that HAVE a location but are TOO FAR\n  // Items WITHOUT location (products, links, online) → KEEP\n  if (intentType !== 'content_recommendation' && !queryData.person_name) {\n    if (dkm !== null && dkm > MAX_KM) {\n      return null;\n    }\n  }\n\n  // Calculate proximity (0 for items without location)\n  var proximity = dkm !== null ? Math.max(0, 1 - dkm / MAX_KM) : 0;\n\n  // ---------- Base weights ----------\n  var baseWeight = 0.55;\n  var keywordWeight = 0.20;\n  var noteWeight = 0.15;\n  var proximityWeight = 0.10;\n\n  if (intentType === 'content_recommendation') {\n    proximityWeight = 0.0;\n    keywordWeight = 0.35;\n  } else if (isSpecialOccasion) {\n    proximityWeight = 0.05;\n    keywordWeight = 0.25;\n  }\n\n  // Redistribute unused weights back to base\n  if (dkm === null) {\n    baseWeight += proximityWeight;\n    proximityWeight = 0;\n  }\n  if (!hasNote) {\n    baseWeight += noteWeight * 0.5;\n    noteWeight *= 0.5;\n  }\n\n  var score =\n    baseWeight * base +\n    keywordWeight * kw +\n    noteWeight * (hasNote ? 1 : 0) +\n    proximityWeight * proximity;\n\n  // Distance tier for \"near me\" queries\n  var distanceTier = null;\n  if (queryData.needs_near_me && dkm !== null) {\n    if (dkm <= 5) distanceTier = 'nearby';\n    else if (dkm <= 15) distanceTier = 'reachable';\n    else distanceTier = 'far';\n  }\n\n  return {\n    title: r.title,\n    type: r.type,\n    description: r.description,\n    personal_note: r.personal_note,\n    enriched_description: r.enriched_description,\n    keywords: r.keywords,\n    address: r.address,\n    latitude: r.latitude,\n    longitude: r.longitude,\n    URL: r.URL,\n    photo_url: r.photo_url,\n    added_by_name: r.added_by_name,\n    language: r.language,\n    id: r.id,\n    saves_count: r.saves_count,\n    metadata: r.metadata,\n    combined_score_v2: score,\n    _distance_km: dkm,\n    _distance_tier: distanceTier,\n    _keyword_score: kw,\n    _base_score: base\n  };\n\n}).filter(Boolean);\n\n// ---------- sort + cap ----------\nresults.sort(function(a, b) { return b.combined_score_v2 - a.combined_score_v2; });\n\nvar CAP = intentType === 'urgent_service' ? 6 : intentType === 'recall' ? 5 : 8;\n\nreturn results.slice(0, CAP).map(function(r) { return { json: r }; });"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9696,
+        1872
+      ],
+      "id": "e4bbbd16-00bf-4aa3-9e37-dcf0bef93391",
+      "name": "Re-rank by Intent"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/functions/v1/resolve-anchor-location",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"location_name\": \"={{ $json.anchor_location.location_name }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        8960,
+        1712
+      ],
+      "id": "98055bbe-33a4-4335-84b6-97bc8e247285",
+      "name": "Resolve Anchor Location Request",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        },
+        "httpHeaderAuth": {
+          "id": "1CO2mVTsbAAE9Zln",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5388af94-5ea7-4da3-9d60-d2ed6835fb04",
+              "leftValue": "={{$json.anchor_location.needs_geocode.toBoolean()}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        8832,
+        1872
+      ],
+      "id": "fbf2a812-5815-41a7-abdb-d44e241f36fa",
+      "name": "Needs Geocode ?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// Merge Anchor Path\n// Purpose: Combine geocoded OR user location\n// ============================================\n\nconst queryData = $('Process Query Data').first().json;\nconst anchor = queryData.anchor_location;\n\n// Get all inputs (2 paths merge here)\nconst inputs = $input.all();\n\n// Find geocoding result (if exists)\nconst geocodeResult = inputs.find(i => \n  i.json.latitude && \n  i.json.longitude && \n  i.json.source\n);\n\nif (geocodeResult) {\n  // Path 1: Geocoded location\n  anchor.lat = geocodeResult.json.latitude;\n  anchor.lon = geocodeResult.json.longitude;\n  anchor.resolved_name = geocodeResult.json.resolved_name || anchor.location_name;\n  console.log(`✅ Geocoded: ${anchor.location_name} → ${anchor.lat}, ${anchor.lon}`);\n  \n} else if (!anchor.needs_geocode) {\n  // Path 2: User location (already set in Process Query Data)\n  console.log(`✅ Using user location: ${anchor.lat}, ${anchor.lon}`);\n  \n} else {\n  // Path 3: Geocoding failed - fallback to user location\n  const webhook = $('Webhook').first().json.body;\n  anchor.lat = webhook.user_latitude || null;\n  anchor.lon = webhook.user_longitude || null;\n  anchor.type = 'fallback';\n  console.log(`⚠️ Geocoding failed, using fallback: ${anchor.lat}, ${anchor.lon}`);\n}\n\n// Extract search text for embedding\nconst queryExpansion = $('Query Expansion AI').first().json;\nlet searchText;\n\ntry {\n  const parsed = typeof queryExpansion.text === 'string' \n    ? JSON.parse(queryExpansion.text.replace(/```json\\n?|```\\n?/g, '').trim())\n    : queryExpansion;\n  searchText = parsed.search_text || parsed.text || queryExpansion.text;\n} catch (e) {\n  searchText = queryExpansion.text || queryExpansion.search_text;\n}\n\n// Output for embedding generation\nreturn [{\n  json: {\n    ...queryData,\n    anchor_location: anchor,\n    text: searchText\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        9088,
+        1872
+      ],
+      "id": "e1c6d6d9-25f0-4b35-9b41-df04f705dada",
+      "name": "Merge Anchor Path"
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $json.body || {};\nconst userQuery = webhook.query || '';\nconst userId = webhook.user_id || '4c81734b-63a1-44fb-9c54-ed14760e16e7';\nconst isVoiceRequest = webhook.is_voice || false;\n\nlet sessionId;\n\nif (isVoiceRequest) {\n  sessionId = `voice_${userId}_${Date.now()}`;\n} else {\n  sessionId = webhook.session_id || `session_${userId}_${new Date().toISOString().split('T')[0]}`;\n}\n\nconst conversationEntry = {\n  user_id: userId,\n  session_id: sessionId,\n  role: 'user',\n  message: userQuery,\n  metadata: {\n    user_latitude: webhook.user_latitude,\n    user_longitude: webhook.user_longitude,\n    is_voice: isVoiceRequest,\n    timestamp: new Date().toISOString()\n  }\n};\n\nreturn [{\n  json: {\n    ...webhook,\n    session_id: sessionId,\n    conversation_entry: conversationEntry\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8416,
+        1456
+      ],
+      "id": "50f4bf48-f9fb-499d-949f-eb38d5faf372",
+      "name": "Prepare Session"
+    },
+    {
+      "parameters": {
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "=*"
+            },
+            {
+              "name": "session_id",
+              "value": "=eq.{{ $json.session_id }}"
+            },
+            {
+              "name": "order",
+              "value": "created_at.desc"
+            },
+            {
+              "name": "limit",
+              "value": "5"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        8864,
+        1456
+      ],
+      "id": "b4a9b90e-bfa8-4215-89f6-945626780373",
+      "name": "Fetch Conversation History",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Save Assistant Response to Memory\nconst mergeData = $json;\nconst sessionData = $('Prepare Session').first().json;\nconst sessionId = sessionData.session_id;\nconst userId = $('Webhook').first().json.body.user_id || '4c81734b-63a1-44fb-9c54-ed14760e16e7';\n\n// Create storage object (flat structure for HTTP node)\nconst storageData = {\n  user_id: userId,\n  session_id: sessionId,\n  role: 'assistant',\n  message: mergeData.text || '',\n  metadata: {\n    results_count: mergeData.filtered_count || 0,\n    intent_type: mergeData.intent_type,\n    query_language: mergeData.query_language,\n    timestamp: new Date().toISOString()\n  }\n};\n\n// Return BOTH: storage data AND original response\nreturn [{\n  json: {\n    // For HTTP storage node\n    ...storageData,\n    // For final response (prefixed to avoid conflicts)\n    _response: mergeData\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10656,
+        1872
+      ],
+      "id": "833d324e-97e6-41cb-a7cf-c0c69a9b4875",
+      "name": "Save Assistant Response to Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mergeResponse = $('Merge Response').first().json;\nconst webhook = $('Webhook').first().json.body;\nconst isVoiceRequest = webhook.is_voice || false;\n\nif (isVoiceRequest) {\n  // VOICE-OPTIMIZED RESPONSE\n  const results = mergeResponse.results || [];\n  let voiceText = '';\n  let mapsUrl = null;\n  \n  if (results.length === 0) {\n    voiceText = \"I didn't find anything matching that.\";\n    \n  } else if (results.length === 1) {\n    const r = results[0];\n    voiceText = `I found ${r.title}. `;\n    \n    // Add \"Added by\" info\n    if (r.added_by_name) {\n      voiceText += `Added by ${r.added_by_name}. `;\n    }\n    \n    if (r.distance_km) {\n      if (r.distance_km < 1) {\n        voiceText += `It's ${Math.round(r.distance_km * 1000)} meters away. `;\n      } else {\n        voiceText += `It's ${r.distance_km.toFixed(1)} kilometers away. `;\n      }\n    }\n    \n    // Generate Google Maps link for single result\n    if (r.latitude && r.longitude) {\n      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${r.latitude},${r.longitude}`;\n    } else if (r.address) {\n      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`;\n    }\n    \n  } else {\n    // Multiple results\n    const top = results[0];\n    const cleanTitle = top.title.split(' - ')[0];\n    \n    voiceText = `I found ${results.length} options. Top pick is ${cleanTitle}`;\n    \n    // Add \"Added by\" for top result\n    if (top.added_by_name) {\n      voiceText += `, added by ${top.added_by_name}`;\n    }\n    \n    if (top.distance_km) {\n      voiceText += `, ${top.distance_km.toFixed(1)} kilometers away`;\n    }\n    \n    voiceText += '.';\n    \n    // Generate Google Maps link for top result\n    if (top.latitude && top.longitude) {\n      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${top.latitude},${top.longitude}`;\n    } else if (top.address) {\n      mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(top.address)}`;\n    }\n  }\n  \n  return [{\n    json: {\n      voice_text: voiceText,\n      maps_url: mapsUrl,\n      results: results.slice(0, 3),\n      has_results: results.length > 0\n    }\n  }];\n  \n} else {\n  // WEB INTERFACE - Keep original\n  return [{\n    json: mergeResponse\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10656,
+        1696
+      ],
+      "id": "4639a73c-75d8-4630-994e-71b22f84b19c",
+      "name": "Clean Response for Frontend"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "session_id",
+              "value": "={{ $json.session_id }}"
+            },
+            {
+              "name": "role",
+              "value": "={{ $json.role }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ $json.metadata }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        10816,
+        1872
+      ],
+      "id": "e96d8f60-e33e-47da-a02a-d4cfd21007ed",
+      "name": "Store Assistant Response",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hedywkwmgkvojujvczqr.supabase.co/rest/v1/conversations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "={{ $json.conversation_entry.user_id }}"
+            },
+            {
+              "name": "session_id",
+              "value": "={{ $json.conversation_entry.session_id }}"
+            },
+            {
+              "name": "role",
+              "value": "={{ $json.conversation_entry.role }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.conversation_entry.message }}"
+            },
+            {
+              "name": "metadata",
+              "value": "={{ $json.conversation_entry.metadata }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        8640,
+        1456
+      ],
+      "id": "ecfaa797-f66b-407e-9b15-e43f81d6ea55",
+      "name": "Store User Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7wWc27Eaxmxi7FC2",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✅ NEW NODE: Prepare Response Context\n// Purpose: Format conversation history for Generate Response node\n\nconst formatResults = $('Format Results').first().json;\nconst conversationHistory = $('Fetch Conversation History').all();\n\n// Format conversation history (excluding current message)\nlet historyText = 'No previous messages';\n\nif (conversationHistory.length > 0) {\n  historyText = conversationHistory\n    .map(item => `${item.json.role}: ${item.json.message}`)\n    .reverse()\n    .join('\\n');\n}\n\nreturn [{\n  json: {\n    ...formatResults,\n    conversation_history: historyText\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        10016,
+        1872
+      ],
+      "id": "008fac2d-89e8-48d2-bb1c-626fd2df0316",
+      "name": "Prepare Response Context",
+      "notesInFlow": true,
+      "notes": "Adds conversation history to response generation context"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        8416,
+        2048
+      ],
+      "id": "8d93c628-0498-4575-bd83-464b62c463e7",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "PmtTvVHUKnfMSOVP",
+          "name": "Anthropic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "cachedResultName": "Claude Haiku 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 2000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        10176,
+        2048
+      ],
+      "id": "65c45b1d-68c0-4d20-9d0e-193514253db5",
+      "name": "Anthropic Chat Model1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "PmtTvVHUKnfMSOVP",
+          "name": "Anthropic account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        10816,
+        1696
+      ],
+      "id": "b42a879c-754e-44b8-8369-5884126bd717",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Query Expansion AI": {
+      "main": [
+        [
+          {
+            "node": "Process Query Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Query Data": {
+      "main": [
+        [
+          {
+            "node": "Needs Geocode ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Geocode ?": {
+      "main": [
+        [
+          {
+            "node": "Resolve Anchor Location Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Anchor Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolve Anchor Location Request": {
+      "main": [
+        [
+          {
+            "node": "Merge Anchor Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Anchor Path": {
+      "main": [
+        [
+          {
+            "node": "Generate Search Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Search Embedding": {
+      "main": [
+        [
+          {
+            "node": "Hybrid Database Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hybrid Database Search": {
+      "main": [
+        [
+          {
+            "node": "Re-rank by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Re-rank by Intent": {
+      "main": [
+        [
+          {
+            "node": "Format Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Results": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response Context": {
+      "main": [
+        [
+          {
+            "node": "Generate Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Response": {
+      "main": [
+        [
+          {
+            "node": "Merge Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Session": {
+      "main": [
+        [
+          {
+            "node": "Store User Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Conversation History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Conversation History": {
+      "main": [
+        [
+          {
+            "node": "Query Expansion AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Response": {
+      "main": [
+        [
+          {
+            "node": "Clean Response for Frontend",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Save Assistant Response to Memory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Response for Frontend": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Assistant Response to Memory": {
+      "main": [
+        [
+          {
+            "node": "Store Assistant Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Query Expansion AI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "ce12e3b8-f8a0-4495-82b7-e429d57eb8d9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "912377b85bb7b8601567b7eac75891920e6a3ebc38db810460689020425b8aa6"
+  },
+  "id": "gBlSkPdKtOgb884U",
+  "tags": []
+}
