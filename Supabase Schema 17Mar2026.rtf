@@ -1,0 +1,233 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 -- WARNING: This schema is for context only and is not meant to be run.\
+-- Table order and constraints may not be valid for execution.\
+\
+CREATE TABLE public.capture_tokens (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  user_id uuid,\
+  token_hash text NOT NULL,\
+  created_at timestamp with time zone DEFAULT now(),\
+  last_used_at timestamp with time zone,\
+  revoked boolean DEFAULT false,\
+  CONSTRAINT capture_tokens_pkey PRIMARY KEY (id),\
+  CONSTRAINT capture_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)\
+);\
+CREATE TABLE public.categories (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  family_id uuid NOT NULL,\
+  name text NOT NULL,\
+  emoji text DEFAULT '\uc0\u55357 \u56525 '::text,\
+  created_at timestamp without time zone DEFAULT now(),\
+  CONSTRAINT categories_pkey PRIMARY KEY (id)\
+);\
+CREATE TABLE public.conversations (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  user_id uuid NOT NULL,\
+  session_id text NOT NULL,\
+  role text NOT NULL CHECK (role = ANY (ARRAY['user'::text, 'assistant'::text])),\
+  message text NOT NULL,\
+  metadata jsonb DEFAULT '\{\}'::jsonb,\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT conversations_pkey PRIMARY KEY (id)\
+);\
+CREATE TABLE public.duplicates (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  original_item_id uuid NOT NULL,\
+  duplicate_item_id uuid NOT NULL,\
+  linked_by uuid NOT NULL,\
+  created_at timestamp without time zone DEFAULT now(),\
+  CONSTRAINT duplicates_pkey PRIMARY KEY (id),\
+  CONSTRAINT duplicates_duplicate_fkey FOREIGN KEY (duplicate_item_id) REFERENCES public.knowledge_items(id),\
+  CONSTRAINT duplicates_linked_by_fkey FOREIGN KEY (linked_by) REFERENCES public.profiles(id),\
+  CONSTRAINT duplicates_original_fkey FOREIGN KEY (original_item_id) REFERENCES public.knowledge_items(id)\
+);\
+CREATE TABLE public.endorsements (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  user_id uuid NOT NULL,\
+  item_id uuid NOT NULL,\
+  created_at timestamp with time zone DEFAULT now(),\
+  visibility text DEFAULT 'friends'::text CHECK (visibility = ANY (ARRAY['private'::text, 'friends'::text])),\
+  CONSTRAINT endorsements_pkey PRIMARY KEY (id),\
+  CONSTRAINT endorsements_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.knowledge_items(id),\
+  CONSTRAINT endorsements_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)\
+);\
+CREATE TABLE public.family_invites (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  family_id uuid NOT NULL,\
+  inviter_id uuid NOT NULL,\
+  invitee_email text NOT NULL,\
+  role text DEFAULT 'member'::text,\
+  token uuid NOT NULL DEFAULT gen_random_uuid(),\
+  expires_at timestamp with time zone NOT NULL DEFAULT (now() + '7 days'::interval),\
+  accepted_at timestamp with time zone,\
+  revoked boolean DEFAULT false,\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT family_invites_pkey PRIMARY KEY (id)\
+);\
+CREATE TABLE public.friendships (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  requester_id uuid NOT NULL,\
+  receiver_id uuid NOT NULL,\
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'blocked'::text])),\
+  created_at timestamp with time zone DEFAULT now(),\
+  updated_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT friendships_pkey PRIMARY KEY (id),\
+  CONSTRAINT friendships_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES public.profiles(id),\
+  CONSTRAINT friendships_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES public.profiles(id)\
+);\
+CREATE TABLE public.invitations (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  token text NOT NULL UNIQUE,\
+  inviter_id uuid NOT NULL,\
+  invitee_email text,\
+  used boolean NOT NULL DEFAULT false,\
+  created_at timestamp with time zone NOT NULL DEFAULT now(),\
+  used_at timestamp with time zone,\
+  CONSTRAINT invitations_pkey PRIMARY KEY (id),\
+  CONSTRAINT invitations_inviter_id_fkey FOREIGN KEY (inviter_id) REFERENCES public.profiles(id)\
+);\
+CREATE TABLE public.item_notes (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  item_id uuid NOT NULL,\
+  user_id uuid NOT NULL,\
+  user_name text NOT NULL,\
+  note_text text NOT NULL CHECK (char_length(note_text) >= 1 AND char_length(note_text) <= 500),\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT item_notes_pkey PRIMARY KEY (id),\
+  CONSTRAINT item_notes_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.knowledge_items(id),\
+  CONSTRAINT item_notes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)\
+);\
+CREATE TABLE public.knowledge_categories (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  name text NOT NULL,\
+  emoji text DEFAULT '\uc0\u55357 \u56481 '::text,\
+  type text NOT NULL,\
+  created_at timestamp without time zone DEFAULT now(),\
+  CONSTRAINT knowledge_categories_pkey PRIMARY KEY (id)\
+);\
+CREATE TABLE public.knowledge_items (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  type text,\
+  title text NOT NULL,\
+  description text,\
+  PersonalNote text,\
+  language text DEFAULT 'en'::text,\
+  address text,\
+  latitude numeric CHECK (latitude IS NULL OR latitude >= '-90'::integer::numeric AND latitude <= 90::numeric),\
+  longitude numeric CHECK (longitude IS NULL OR longitude >= '-180'::integer::numeric AND longitude <= 180::numeric),\
+  URL jsonb DEFAULT '[]'::jsonb,\
+  metadata jsonb DEFAULT '\{\}'::jsonb,\
+  embedding USER-DEFINED,\
+  added_by uuid,\
+  family_id uuid NOT NULL,\
+  network_layer integer DEFAULT 1,\
+  category_id uuid,\
+  created_at timestamp without time zone DEFAULT now(),\
+  updated_at timestamp without time zone DEFAULT now(),\
+  location_data jsonb,\
+  content text,\
+  enriched_description text,\
+  ts tsvector DEFAULT (((setweight(to_tsvector('simple'::regconfig, COALESCE(title, ''::text)), 'A'::"char") || setweight(to_tsvector('simple'::regconfig, COALESCE(description, ''::text)), 'B'::"char")) || setweight(to_tsvector('simple'::regconfig, COALESCE(enriched_description, ''::text)), 'C'::"char")) || setweight(to_tsvector('simple'::regconfig, COALESCE(content, ''::text)), 'D'::"char")),\
+  keywords ARRAY,\
+  photo_url text,\
+  user_latitude numeric,\
+  user_longitude numeric,\
+  saves_count integer DEFAULT 1,\
+  latlng USER-DEFINED,\
+  added_by_name text,\
+  personal_note text,\
+  visibility text DEFAULT 'friends'::text CHECK (visibility = ANY (ARRAY['private'::text, 'friends'::text])),\
+  feed_card_summary text,\
+  CONSTRAINT knowledge_items_pkey PRIMARY KEY (id),\
+  CONSTRAINT knowledge_items_added_by_fkey FOREIGN KEY (added_by) REFERENCES public.profiles(id),\
+  CONSTRAINT knowledge_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.knowledge_categories(id)\
+);\
+CREATE TABLE public.location_anchor_cache (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  location_name text NOT NULL UNIQUE,\
+  resolved_name text,\
+  latitude double precision NOT NULL,\
+  longitude double precision NOT NULL,\
+  confidence double precision DEFAULT 0.9,\
+  source text DEFAULT 'geocoder'::text,\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT location_anchor_cache_pkey PRIMARY KEY (id)\
+);\
+CREATE TABLE public.notifications (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  user_id uuid NOT NULL,\
+  type text NOT NULL CHECK (type = ANY (ARRAY['endorsement'::text, 'note'::text, 'friend_request'::text, 'friend_accepted'::text])),\
+  item_id uuid,\
+  actor_id uuid,\
+  actor_name text,\
+  message text NOT NULL,\
+  read boolean DEFAULT false,\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),\
+  CONSTRAINT notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.profiles(id),\
+  CONSTRAINT notifications_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.knowledge_items(id),\
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)\
+);\
+CREATE TABLE public.places (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  family_id uuid NOT NULL,\
+  name text NOT NULL,\
+  address text,\
+  latitude numeric CHECK (latitude IS NULL OR latitude >= '-90'::integer::numeric AND latitude <= 90::numeric),\
+  longitude numeric CHECK (longitude IS NULL OR longitude >= '-180'::integer::numeric AND longitude <= 180::numeric),\
+  url text,\
+  notes text,\
+  category_id uuid,\
+  added_by uuid,\
+  created_at timestamp without time zone DEFAULT now(),\
+  updated_at timestamp without time zone DEFAULT now(),\
+  CONSTRAINT places_pkey PRIMARY KEY (id),\
+  CONSTRAINT places_added_by_fkey FOREIGN KEY (added_by) REFERENCES public.profiles(id),\
+  CONSTRAINT places_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id)\
+);\
+CREATE TABLE public.profiles (\
+  id uuid NOT NULL,\
+  email text NOT NULL UNIQUE,\
+  name text,\
+  family_id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  role text DEFAULT 'member'::text,\
+  created_at timestamp without time zone DEFAULT now(),\
+  preferred_language text DEFAULT 'en'::text,\
+  display_name text,\
+  avatar_url text,\
+  timezone text DEFAULT 'Pacific/Auckland'::text,\
+  locale text DEFAULT 'en-NZ'::text,\
+  settings jsonb DEFAULT '\{\}'::jsonb,\
+  onboarding_completed_at timestamp with time zone,\
+  last_active_at timestamp with time zone,\
+  bio text,\
+  updated_at timestamp with time zone DEFAULT now(),\
+  notifs_cleared_at timestamp with time zone,\
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),\
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)\
+);\
+CREATE TABLE public.spatial_ref_sys (\
+  srid integer NOT NULL CHECK (srid > 0 AND srid <= 998999),\
+  auth_name character varying,\
+  auth_srid integer,\
+  srtext character varying,\
+  proj4text character varying,\
+  CONSTRAINT spatial_ref_sys_pkey PRIMARY KEY (srid)\
+);\
+CREATE TABLE public.trust_connections (\
+  id uuid NOT NULL DEFAULT gen_random_uuid(),\
+  from_user uuid NOT NULL,\
+  to_user uuid NOT NULL,\
+  connection_type USER-DEFINED NOT NULL DEFAULT 'friend'::connection_type,\
+  permission_level USER-DEFINED NOT NULL DEFAULT 'read'::permission_level,\
+  created_at timestamp with time zone DEFAULT now(),\
+  CONSTRAINT trust_connections_pkey PRIMARY KEY (id),\
+  CONSTRAINT trust_connections_from_user_fkey FOREIGN KEY (from_user) REFERENCES public.profiles(id),\
+  CONSTRAINT trust_connections_to_user_fkey FOREIGN KEY (to_user) REFERENCES public.profiles(id)\
+);}

@@ -4344,11 +4344,15 @@
             return result;
         };
     }
-    // Catch-up: if discoveries already loaded
+    // Catch-up: fire at 1.5s and again at 3.5s to cover slow mobile connections
     setTimeout(function() {
         updateKnowledgeBaseCount();
         updateProfileBoxCounts();
-    }, 1200);
+    }, 1500);
+    setTimeout(function() {
+        updateKnowledgeBaseCount();
+        updateProfileBoxCounts();
+    }, 3500);
 
     // ── Override goToEndorsedItem so home and profile cards slide up a drawer
     //    instead of navigating away to the Discover page ──

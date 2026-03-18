@@ -336,7 +336,10 @@ async function handleGoogleLogin() {
         const urlParams = new URLSearchParams(window.location.search);
         const inviteToken = urlParams.get('token');
         if (inviteToken) {
+            // Save to BOTH storages — sessionStorage can be wiped by Google OAuth
+            // redirect (new tab, domain handoff). localStorage survives the round-trip.
             sessionStorage.setItem('odin_invite_token', inviteToken);
+            localStorage.setItem('odin_invite_token', inviteToken);
         }
 
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
@@ -6126,6 +6129,70 @@ function copyInviteLink() {
 let _onbInviteToken = null;
 let _onbInviterData = null; // { id, display_name }
 
+// ── Silent invite processing for returning users ──
+// Called when a user who already completed onboarding opens an invite link.
+// Looks up the token, sends a friend request to the inviter, marks token used.
+// No UI shown — happens invisibly in the background.
+async function _processInviteTokenSilently(token) {
+    if (!currentUser || !token) return;
+    try {
+        const { data: inv, error } = await supabaseClient
+            .from('invitations')
+            .select('inviter_id, used')
+            .eq('token', token)
+            .eq('used', false)
+            .single();
+
+        if (error || !inv) {
+            // Token invalid or already used — clear storage
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Don't friend yourself
+        if (inv.inviter_id === currentUser.id) {
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Check not already friends
+        const alreadyFriends = friendsCache.some(f => f.out_user_id === inv.inviter_id);
+        if (alreadyFriends) {
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Send pending friend request: current user → inviter
+        const { error: friendErr } = await supabaseClient
+            .from('friendships')
+            .insert({ requester_id: currentUser.id, receiver_id: inv.inviter_id, status: 'pending' });
+
+        if (!friendErr) {
+            // Notify the inviter
+            const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: inv.inviter_id,
+                p_actor_id:    currentUser.id,
+                p_message:     `${senderName} accepted your invite and wants to connect on Odin.`
+            });
+
+            // Mark token used
+            await supabaseClient
+                .from('invitations')
+                .update({ used: true, used_at: new Date().toISOString() })
+                .eq('token', token);
+        }
+
+        sessionStorage.removeItem('odin_invite_token');
+        localStorage.removeItem('odin_invite_token');
+    } catch (err) {
+        console.warn('Silent invite processing failed (non-critical):', err);
+    }
+}
+
 async function checkOnboardingBanner() {
     // ── Legacy banner: always hide (replaced by new flow) ──
     const legacyBanner = document.getElementById('onboardingBanner');
@@ -6133,10 +6200,19 @@ async function checkOnboardingBanner() {
 
     // ── New flow: check onboarding_completed_at in profiles ──
     if (!currentProfile) return;
-    if (currentProfile.onboarding_completed_at) return; // returning user, skip
 
-    // Read invite token from sessionStorage (stored before OAuth redirect)
-    _onbInviteToken = sessionStorage.getItem('odin_invite_token');
+    // Read invite token — sessionStorage first, fall back to localStorage
+    // (Google OAuth redirect can wipe sessionStorage on some browsers/devices)
+    _onbInviteToken = sessionStorage.getItem('odin_invite_token')
+                   || localStorage.getItem('odin_invite_token') || null;
+
+    // Returning user: skip onboarding UI but still process a pending invite token
+    if (currentProfile.onboarding_completed_at) {
+        if (_onbInviteToken) {
+            await _processInviteTokenSilently(_onbInviteToken);
+        }
+        return;
+    }
 
     // Populate step 1 user name
     const nameEl = document.getElementById('onbUserName');
@@ -6174,9 +6250,10 @@ async function checkOnboardingBanner() {
                     if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
                 }
             } else {
-                // Token invalid or already used — clear it
+                // Token invalid or already used — clear it from both storages
                 _onbInviteToken = null;
                 sessionStorage.removeItem('odin_invite_token');
+                localStorage.removeItem('odin_invite_token');
             }
         } catch (err) {
             console.warn('Invite token lookup failed:', err);
@@ -6247,6 +6324,7 @@ async function onbAcceptInvite() {
                     .update({ used: true, used_at: new Date().toISOString() })
                     .eq('token', _onbInviteToken);
                 sessionStorage.removeItem('odin_invite_token');
+                localStorage.removeItem('odin_invite_token');
             }
 
             if (btn) btn.textContent = 'Request sent ✓';
