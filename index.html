@@ -4295,54 +4295,64 @@
     });
 
     // ── Knowledge Base count ──
-    // KB = unique items visible to user (queried directly from Supabase):
-    //   1. Items the user added themselves
-    //   2. Items added by friends (visibility = 'Friends' or 'Public')
-    //   3. Items saved (endorsed) by friends (save-inheritance)
-    // All deduped by item ID.
+    // Mirrors the visibility rules in loadDiscoveries exactly:
+    //   1. Own items (any visibility — private items only visible to self)
+    //   2. Direct friends' items WHERE visibility = 'friends'
+    //   3. Items saved by direct friends WHERE endorsement.visibility = 'friends'
+    //      AND the underlying knowledge_item.visibility = 'friends'
+    //      (save-inheritance: friend curated it, original adder stays anonymous)
+    // All deduped by item ID. NO friends-of-friends attribution.
     async function updateKnowledgeBaseCount() {
         var kbEl = document.getElementById('profileKnowledgeBase');
         if (!kbEl) return;
+        if (typeof supabaseClient === 'undefined' || !currentUser) return;
 
-        // Use allDiscoveries if already loaded (avoids extra round-trips)
-        if (typeof allDiscoveries !== 'undefined' && Array.isArray(allDiscoveries) && allDiscoveries.length > 0) {
-            var ids = new Set(allDiscoveries.map(function(d) { return d.id; }));
-            kbEl.textContent = ids.size;
-            return;
-        }
-
-        // Otherwise query Supabase directly
         try {
-            if (typeof supabaseClient === 'undefined' || !currentUser) return;
-
-            // Get friend IDs
+            // Get friend IDs from cache (already loaded during profile init)
             var friendIds = (typeof friendsCache !== 'undefined')
                 ? friendsCache.map(function(f) { return f.out_user_id; }).filter(Boolean)
                 : [];
 
             var uniqueIds = new Set();
 
-            // 1. Items added by the user
+            // ── 1. Own items (private + friends visibility) ──
             var ownRes = await supabaseClient
                 .from('knowledge_items')
                 .select('id')
                 .eq('added_by', currentUser.id);
             (ownRes.data || []).forEach(function(r) { uniqueIds.add(r.id); });
 
-            // 2. Items added by friends (any visibility they can see)
             if (friendIds.length > 0) {
+                // ── 2. Friends' items set to 'friends' visibility ──
                 var friendAddRes = await supabaseClient
                     .from('knowledge_items')
                     .select('id')
-                    .in('added_by', friendIds);
+                    .in('added_by', friendIds)
+                    .eq('visibility', 'friends');
                 (friendAddRes.data || []).forEach(function(r) { uniqueIds.add(r.id); });
 
-                // 3. Items endorsed/saved by friends (save-inheritance)
+                // ── 3. Save-inheritance: items saved by friends ──
+                // Get all item_ids that friends saved with 'friends' visibility
                 var friendSaveRes = await supabaseClient
                     .from('endorsements')
                     .select('item_id')
-                    .in('user_id', friendIds);
-                (friendSaveRes.data || []).forEach(function(r) { uniqueIds.add(r.item_id); });
+                    .in('user_id', friendIds)
+                    .eq('visibility', 'friends');
+
+                var savedItemIds = (friendSaveRes.data || [])
+                    .map(function(r) { return r.item_id; })
+                    .filter(function(id) { return !uniqueIds.has(id); }); // skip already counted
+
+                // Verify each saved item has visibility = 'friends' on the item itself
+                // (the original adder's rule governs — private items don't travel)
+                if (savedItemIds.length > 0) {
+                    var inheritedRes = await supabaseClient
+                        .from('knowledge_items')
+                        .select('id')
+                        .in('id', savedItemIds)
+                        .eq('visibility', 'friends');
+                    (inheritedRes.data || []).forEach(function(r) { uniqueIds.add(r.id); });
+                }
             }
 
             kbEl.textContent = uniqueIds.size;
