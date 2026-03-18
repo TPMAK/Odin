@@ -8851,9 +8851,65 @@ body.map-view-open .content {
     flex: 1 1 auto;
 }
 
+/* Map topbar: back button + title + filter */
+.dmap-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 8px;
+    background: #FAF6EE;
+    border-bottom: 1px solid #EAE0D2;
+    flex-shrink: 0;
+    z-index: 25;
+}
+.dmap-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #7B2D45;
+    padding: 4px 8px 4px 2px;
+}
+.dmap-back-btn:hover { color: #5A1F30; }
+.dmap-topbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2A1E14;
+}
+.dmap-topbar-filter-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #7B2D45;
+    padding: 4px 2px 4px 8px;
+}
+.dmap-topbar-filter-btn:hover { color: #5A1F30; }
+.dmap-topbar-filter-badge {
+    position: absolute;
+    top: 0;
+    right: -2px;
+    background: #7B2D45;
+    color: #fff;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .discover-map-screen {
     position: fixed;
-    top: 64px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;

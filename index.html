@@ -1544,6 +1544,18 @@
 
             <!-- ══ MAP VIEW ══ -->
             <div id="discoverMapView" class="discover-map-screen" style="display:none;">
+                <!-- Back to Discovery button -->
+                <div class="dmap-topbar">
+                    <button class="dmap-back-btn" onclick="switchDiscoverView('collections')" aria-label="Back to Discovery">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        Discovery
+                    </button>
+                    <span class="dmap-topbar-title">Map</span>
+                    <button class="dmap-topbar-filter-btn" onclick="openFilterModal()" aria-label="Filter">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                        <span class="dmap-topbar-filter-badge" id="dmapFilterBadge" style="display:none;">0</span>
+                    </button>
+                </div>
                 <div class="dmap-inner">
 
                     <!-- Desktop: side panel -->

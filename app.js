@@ -2722,15 +2722,16 @@ function switchDiscoverView(view) {
 }
 
 function setMapScreenHeight() {
-    var header  = document.querySelector('.header');
-    var tabBar  = document.querySelector('.bottom-tab-bar');
-    var headerH = header ? header.offsetHeight : 56;
-    var tabH    = tabBar ? tabBar.offsetHeight  : 65;
+    var tabBar   = document.querySelector('.bottom-tab-bar');
+    var topbar   = document.querySelector('.dmap-topbar');
+    var topbarH  = topbar ? topbar.offsetHeight : 45;
+    var tabH     = tabBar ? tabBar.offsetHeight : 65;
 
     // iOS Safari: use visualViewport.height for the actual visible area
     // (window.innerHeight can include the address bar)
     var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    var h = vh - headerH - tabH;
+    // Map inner height = full viewport minus the topbar and bottom tab bar
+    var h = vh - topbarH - tabH;
     if (h < 100) h = vh * 0.6; // fallback
 
     // Set explicit pixel height on EVERY element in the chain.
@@ -2743,10 +2744,9 @@ function setMapScreenHeight() {
     var area           = document.querySelector('.dmap-area');
     var mapEl          = document.getElementById('discoverMap');
 
-    var contentH = vh - headerH;   // .content sits below the header
-    if (contentEl)      contentEl.style.height      = contentH + 'px';
+    if (contentEl)      contentEl.style.height      = vh + 'px';
     if (discoverModeEl) discoverModeEl.style.height = h + 'px';
-    if (mapView)        mapView.style.height        = h + 'px';
+    if (mapView)        mapView.style.height        = vh + 'px';
     if (inner)          inner.style.height          = h + 'px';
     if (area)           area.style.height           = h + 'px';
     if (mapEl)          mapEl.style.height          = h + 'px';
@@ -2950,6 +2950,10 @@ function setMode(mode) {
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
 
+    // Show header only on Home page, hide on all other pages
+    var headerEl = document.querySelector('.header');
+    if (headerEl) headerEl.style.display = (mode === 'home') ? '' : 'none';
+
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
     // Show language button only on profile page
@@ -3117,18 +3121,31 @@ function updateFilterState() {
 
     const count = filters.categories.length + filters.users.length + filters.distances.length + (filters.endorsed ? 1 : 0);
     const badge = document.getElementById('filterBadge');
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    // Sync map topbar filter badge
+    const mapBadge = document.getElementById('dmapFilterBadge');
+    if (mapBadge) {
+        if (count > 0) {
+            mapBadge.textContent = count;
+            mapBadge.style.display = 'flex';
+        } else {
+            mapBadge.style.display = 'none';
+        }
     }
 }
 
 function clearFilters() {
     filters = { categories: [], users: [], distances: [], endorsed: false, searchText: '' };
     document.querySelectorAll('.filter-option input').forEach(cb => cb.checked = false);
-    document.getElementById('discoverSearch').value = '';
+    var dsEl = document.getElementById('discoverSearch');
+    if (dsEl) dsEl.value = '';
     updateFilterState();
     // Reset inline UI
     document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
@@ -3140,11 +3157,33 @@ function clearFilters() {
     if (ch)  ch.style.display  = '';
     if (cg)  cg.style.display  = '';
     if (ais) ais.style.display = 'none';
+    // If in map view, re-render map with all data
+    if (discoverViewMode === 'map') {
+        closeFilterModal();
+        filterAndRender();
+        discoverMapInitialized = false;
+        if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+        userLocMarker = null;
+        setTimeout(function() {
+            setMapScreenHeight();
+            initDiscoverMap();
+        }, 100);
+    }
 }
 
 function applyFilters() {
     closeFilterModal();
     filterAndRender();
+    // If we're in map view, re-init the map with the newly filtered data
+    if (discoverViewMode === 'map') {
+        discoverMapInitialized = false;
+        if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+        userLocMarker = null;
+        setTimeout(function() {
+            setMapScreenHeight();
+            initDiscoverMap();
+        }, 100);
+    }
 }
 
 function handleSearchInput() {
