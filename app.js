@@ -3520,6 +3520,42 @@ async function loadDiscoveries() {
             return item;
         });
 
+        // ── Tier 2b: Save-inheritance — items saved by direct friends ──
+        // Friends saved items from their own circle; we see them anonymously.
+        // Requires SECURITY DEFINER RPC because endorsements table is RLS-protected.
+        if (friendsCache.length > 0) {
+            try {
+                const { data: savedRows, error: savedErr } = await supabaseClient.rpc(
+                    'get_friend_saved_item_ids',
+                    { p_user_id: currentUser.id }
+                );
+                if (savedErr) {
+                    console.warn('Save-inheritance RPC error (non-critical):', savedErr.message);
+                } else if (savedRows && savedRows.length > 0) {
+                    const seenIds = new Set(data.map(i => i.id));
+                    const inheritedIds = savedRows
+                        .map(r => r.item_id)
+                        .filter(id => !seenIds.has(id));
+
+                    if (inheritedIds.length > 0) {
+                        // Fetch full item details — use anon key like Tier 1/2 above
+                        const inheritedResp = await fetch(
+                            `${SUPABASE_URL}/rest/v1/knowledge_items?select=*&id=in.(${inheritedIds.join(',')})&order=created_at.desc`,
+                            { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+                        );
+                        const inheritedData = await inheritedResp.json();
+                        if (Array.isArray(inheritedData) && inheritedData.length > 0) {
+                            // Anonymise — strip original adder identity (save-inheritance rule)
+                            const anonymised = inheritedData.map(item => anonymiseForExtendedCircle(item));
+                            data = [...data, ...anonymised];
+                        }
+                    }
+                }
+            } catch (savedErr) {
+                console.warn('Save-inheritance fetch failed (non-critical):', savedErr);
+            }
+        }
+
         // ── Tier 3: Extended Circle (real friend-of-friend via trust_connections) ──
         // Uses the get_extended_circle_item_ids RPC which does a proper 2-hop join
         // on trust_connections: my friends → their friends → their 'friends'-visibility items.
