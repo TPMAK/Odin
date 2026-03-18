@@ -4178,13 +4178,23 @@
         var d = document.getElementById(id);
         return d ? d.querySelector('.profile-drawer-sheet') : null;
     }
+    // Lock background scroll without breaking iOS touch scroll inside drawer
+    function _lockScroll() {
+        var content = document.querySelector('.content');
+        if (content) content.style.overflow = 'hidden';
+    }
+    function _unlockScroll() {
+        var content = document.querySelector('.content');
+        if (content) content.style.overflow = '';
+    }
+
     function openCircleDrawer() {
         var d = document.getElementById('circleDrawer');
         if (!d) return;
         d.classList.add('is-open');
         var sheet = _drawerSheet('circleDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
-        document.body.style.overflow = 'hidden';
+        _lockScroll();
         // Focus search input after slide animation completes
         setTimeout(function() {
             var inp = document.getElementById('friendSearchInput');
@@ -4197,7 +4207,7 @@
         d.classList.remove('is-open');
         var sheet = _drawerSheet('circleDrawer');
         if (sheet) sheet.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+        _unlockScroll();
     }
     function openMySavesDrawer() {
         var d = document.getElementById('mySavesDrawer');
@@ -4205,7 +4215,7 @@
         d.classList.add('is-open');
         var sheet = _drawerSheet('mySavesDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
-        document.body.style.overflow = 'hidden';
+        _lockScroll();
         syncMySavesDrawer();
     }
     function closeMySavesDrawer() {
@@ -4214,7 +4224,7 @@
         d.classList.remove('is-open');
         var sheet = _drawerSheet('mySavesDrawer');
         if (sheet) sheet.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+        _unlockScroll();
     }
     // Sync the hidden myEndorsementsList content into the drawer
     function syncMySavesDrawer() {
@@ -4240,7 +4250,7 @@
         d.classList.add('is-open');
         var sheet = _drawerSheet('langDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
-        document.body.style.overflow = 'hidden';
+        _lockScroll();
         // Highlight current lang
         var cur = (typeof preferredLanguage !== 'undefined') ? preferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
         d.querySelectorAll('.lang-drawer-item').forEach(function(btn) {
@@ -4253,7 +4263,7 @@
         d.classList.remove('is-open');
         var sheet = _drawerSheet('langDrawer');
         if (sheet) sheet.setAttribute('aria-hidden', 'true');
-        document.body.style.overflow = '';
+        _unlockScroll();
     }
     // Sync the profile settings label whenever language changes
     function syncProfileLangLabel() {
@@ -4285,19 +4295,60 @@
     });
 
     // ── Knowledge Base count ──
-    // KB = unique items visible to user:
-    //   own adds + friends' adds (Friends vis) + friends' saves (save inheritance)
-    // Deduped. We approximate with: allDiscoveries length (already filtered by visibility).
-    function updateKnowledgeBaseCount() {
+    // KB = unique items visible to user (queried directly from Supabase):
+    //   1. Items the user added themselves
+    //   2. Items added by friends (visibility = 'Friends' or 'Public')
+    //   3. Items saved (endorsed) by friends (save-inheritance)
+    // All deduped by item ID.
+    async function updateKnowledgeBaseCount() {
         var kbEl = document.getElementById('profileKnowledgeBase');
         if (!kbEl) return;
-        var count = 0;
-        if (typeof allDiscoveries !== 'undefined' && Array.isArray(allDiscoveries)) {
-            // Use a Set of unique item IDs from the visible pool
+
+        // Use allDiscoveries if already loaded (avoids extra round-trips)
+        if (typeof allDiscoveries !== 'undefined' && Array.isArray(allDiscoveries) && allDiscoveries.length > 0) {
             var ids = new Set(allDiscoveries.map(function(d) { return d.id; }));
-            count = ids.size;
+            kbEl.textContent = ids.size;
+            return;
         }
-        kbEl.textContent = count;
+
+        // Otherwise query Supabase directly
+        try {
+            if (typeof supabaseClient === 'undefined' || !currentUser) return;
+
+            // Get friend IDs
+            var friendIds = (typeof friendsCache !== 'undefined')
+                ? friendsCache.map(function(f) { return f.out_user_id; }).filter(Boolean)
+                : [];
+
+            var uniqueIds = new Set();
+
+            // 1. Items added by the user
+            var ownRes = await supabaseClient
+                .from('knowledge_items')
+                .select('id')
+                .eq('added_by', currentUser.id);
+            (ownRes.data || []).forEach(function(r) { uniqueIds.add(r.id); });
+
+            // 2. Items added by friends (any visibility they can see)
+            if (friendIds.length > 0) {
+                var friendAddRes = await supabaseClient
+                    .from('knowledge_items')
+                    .select('id')
+                    .in('added_by', friendIds);
+                (friendAddRes.data || []).forEach(function(r) { uniqueIds.add(r.id); });
+
+                // 3. Items endorsed/saved by friends (save-inheritance)
+                var friendSaveRes = await supabaseClient
+                    .from('endorsements')
+                    .select('item_id')
+                    .in('user_id', friendIds);
+                (friendSaveRes.data || []).forEach(function(r) { uniqueIds.add(r.item_id); });
+            }
+
+            kbEl.textContent = uniqueIds.size;
+        } catch(e) {
+            console.error('KB count error:', e);
+        }
     }
 
     // ── Box count badges ──

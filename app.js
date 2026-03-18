@@ -2953,6 +2953,8 @@ function setMode(mode) {
     // Show header only on Home page, hide on all other pages
     var headerEl = document.querySelector('.header');
     if (headerEl) headerEl.style.display = (mode === 'home') ? '' : 'none';
+    // Toggle body class so non-home pages get safe-area top padding
+    document.body.classList.toggle('no-header', mode !== 'home');
 
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
