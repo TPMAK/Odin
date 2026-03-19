@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=49">
+    <link rel="stylesheet" href="styles.css?v=51">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -60,11 +60,14 @@
             background: var(--dark);
             display: flex;
             flex-direction: column;
-            justify-content: center;
-            padding: 0 72px;
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
+        /* Scrollbar hidden but functional */
+        #loginScreen .ls-left::-webkit-scrollbar { display: none; }
+        #loginScreen .ls-left { -ms-overflow-style: none; scrollbar-width: none; }
         #loginScreen .ls-left::before {
             content: '';
             position: absolute; inset: 0;
@@ -79,35 +82,117 @@
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
             pointer-events: none; opacity: 0.45;
         }
+        /* ── Section 1: hook — full viewport height ── */
+        #loginScreen .ls-section1 {
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 80px;
+            position: relative;
+        }
         #loginScreen .ls-left-inner {
             position: relative; z-index: 2;
-            max-width: 540px;
+            max-width: 560px;
+        }
+        /* ── Scroll hint — redesigned as vertical pulse ── */
+        #loginScreen .ls-scroll-hint {
+            position: absolute;
+            bottom: 44px;
+            left: 0; right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            z-index: 3;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        #loginScreen .ls-scroll-hint span {
+            font-size: 11px;
+            color: rgba(221,208,184,0.4);
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        #loginScreen .ls-scroll-hint:hover span {
+            color: rgba(221,208,184,0.7);
+        }
+        /* Vertical line that pulses downward */
+        #loginScreen .ls-scroll-line {
+            width: 1px;
+            height: 32px;
+            background: linear-gradient(to bottom, rgba(221,208,184,0.4), transparent);
+            position: relative;
+            overflow: hidden;
+        }
+        #loginScreen .ls-scroll-line::after {
+            content: '';
+            position: absolute;
+            top: -100%;
+            left: 0; right: 0;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent, rgba(123,45,69,0.9), transparent);
+            animation: ls-drip 2.2s ease-in-out infinite;
+        }
+        @keyframes ls-drip {
+            0%   { top: -100%; opacity: 0; }
+            20%  { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        /* ── Section 2: detail — below fold ── */
+        #loginScreen .ls-section2 {
+            padding: 72px 80px 100px;
+            position: relative; z-index: 2;
+            max-width: 560px;
+        }
+        /* Section 2 label */
+        #loginScreen .ls-s2-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(123,45,69,0.8);
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #loginScreen .ls-s2-label::after {
+            content: '';
+            flex: 1;
+            max-width: 40px;
+            height: 1px;
+            background: rgba(123,45,69,0.4);
         }
         #loginScreen .ls-logo {
             font-family: 'Inter', sans-serif;
-            font-weight: 900; font-size: 28px;
-            letter-spacing: -0.06em; line-height: 1;
-            margin-bottom: 48px;
+            font-weight: 900; font-size: 46px;
+            letter-spacing: -0.07em; line-height: 1;
+            margin-bottom: 36px;
         }
         #loginScreen .ls-logo .lsv { color: var(--wb); }
         #loginScreen .ls-logo .lso { color: var(--mason); }
         #loginScreen .ls-headline-area {
-            min-height: 210px;
-            margin-bottom: 24px;
+            height: 210px;
+            margin-bottom: 20px;
             position: relative;
+            overflow: hidden;
         }
         #loginScreen .ls-headline {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: clamp(36px, 3.5vw, 54px);
+            font-size: 52px;
             font-weight: 400;
             color: #fff;
-            line-height: 1.18;
-            letter-spacing: -0.01em;
+            line-height: 1.12;
+            letter-spacing: -0.025em;
+            max-width: 560px;
             position: absolute;
             top: 0; left: 0; right: 0;
             opacity: 0;
-            transform: translateY(12px);
-            transition: opacity 0.6s ease, transform 0.6s ease;
+            transform: translateY(14px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
         }
         #loginScreen .ls-headline.visible {
             opacity: 1;
@@ -116,41 +201,38 @@
         #loginScreen .ls-headline em { font-style: italic; color: var(--wb); }
         #loginScreen .ls-dots {
             display: flex; gap: 6px; align-items: center;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
         }
         #loginScreen .ls-dot {
-            width: 5px; height: 5px; border-radius: 50%;
-            background: rgba(221,208,184,0.18);
+            width: 6px; height: 6px; border-radius: 50%;
+            background: rgba(221,208,184,0.5);
             cursor: pointer; transition: all 0.35s;
             border: none; padding: 0;
+            opacity: 0.5;
         }
         #loginScreen .ls-dot.active {
             background: var(--wb);
-            width: 18px; border-radius: 3px;
+            width: 14px; border-radius: 3px;
+            opacity: 1;
         }
+        /* Section 1 sub — short hook line only */
         #loginScreen .ls-sub {
-            font-size: 16px;
+            font-size: 18px;
             color: rgba(221,208,184,0.72);
-            line-height: 1.8; font-weight: 400;
+            line-height: 1.55; font-weight: 400;
             max-width: 440px;
-            margin-bottom: 40px;
+            margin-top: 0;
+            margin-bottom: 0;
         }
-        #loginScreen .ls-trust {
-            display: inline-flex; align-items: center; gap: 9px;
-            padding: 9px 16px;
-            background: rgba(123,45,69,0.18);
-            border: 1px solid rgba(123,45,69,0.45);
-            border-radius: 20px;
+        #loginScreen .ls-explain {
+            font-size: 18px;
+            color: rgba(221,208,184,0.88);
+            line-height: 1.6; font-weight: 400;
+            max-width: 460px;
+            margin: 0 0 40px 0;
         }
-        #loginScreen .ls-trust-dot {
-            width: 7px; height: 7px; border-radius: 50%;
-            background: var(--wb);
-            box-shadow: 0 0 6px rgba(123,45,69,0.9);
-        }
-        #loginScreen .ls-trust-text {
-            font-size: 12px; color: rgba(221,208,184,0.85);
-            font-weight: 500; letter-spacing: 0.03em;
-        }
+        /* trust badge gone */
+        #loginScreen .ls-trust { display: none; }
         #loginScreen .ls-right {
             width: 420px;
             flex-shrink: 0;
@@ -254,46 +336,53 @@
         /* ── Pilot badge (social proof) ── */
         #loginScreen .ls-pilot-badge {
             display: inline-flex; align-items: center; gap: 7px;
-            padding: 5px 12px;
-            background: rgba(123,45,69,0.12);
-            border: 1px solid rgba(123,45,69,0.3);
+            padding: 5px 13px;
+            background: rgba(123,45,69,0.14);
+            border: 1px solid rgba(123,45,69,0.38);
             border-radius: 20px;
-            margin-bottom: 36px;
+            margin-bottom: 32px;
         }
         #loginScreen .ls-pilot-dot {
             width: 6px; height: 6px; border-radius: 50%;
-            background: #7B9B65; /* green — live/active */
-            box-shadow: 0 0 5px rgba(123,155,101,0.8);
+            background: #7B9B65;
+            box-shadow: 0 0 6px rgba(123,155,101,0.9);
             flex-shrink: 0;
         }
         #loginScreen .ls-pilot-text {
-            font-size: 11px; color: rgba(221,208,184,0.7);
-            font-weight: 500; letter-spacing: 0.04em;
+            font-size: 11px; color: rgba(221,208,184,0.82);
+            font-weight: 600; letter-spacing: 0.06em;
         }
         /* ── Feature bullets ── */
         #loginScreen .ls-features {
-            margin-top: 32px;
-            display: flex; flex-direction: column; gap: 11px;
+            margin-top: 0;
+            display: flex; flex-direction: column; gap: 0;
         }
         #loginScreen .ls-feature-row {
-            display: flex; align-items: baseline; gap: 10px;
+            display: flex; align-items: flex-start; gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(221,208,184,0.06);
         }
-        #loginScreen .ls-feature-row::before {
-            content: '';
-            display: block;
-            width: 3px; height: 3px;
-            border-radius: 50%;
-            background: var(--wb);
-            flex-shrink: 0;
-            margin-top: 7px;
+        #loginScreen .ls-feature-row:first-child { border-top: 1px solid rgba(221,208,184,0.06); }
+        #loginScreen .ls-feature-num {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 13px;
+            color: var(--wb);
             opacity: 0.7;
+            flex-shrink: 0;
+            width: 18px;
+            padding-top: 2px;
+            font-style: italic;
         }
         #loginScreen .ls-feature-text {
-            font-size: 13px; color: rgba(221,208,184,0.5);
-            line-height: 1.5; font-weight: 300;
+            font-size: 14px; color: rgba(221,208,184,0.65);
+            line-height: 1.6; font-weight: 300;
         }
         #loginScreen .ls-feature-text b {
-            color: rgba(221,208,184,0.72); font-weight: 500;
+            display: block;
+            font-size: 15px;
+            color: rgba(221,208,184,0.92); font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
         }
         /* ── Onboarding hint on auth card ── */
         #loginScreen .ls-onboard-hint {
@@ -305,28 +394,52 @@
             font-size: 12px; color: var(--muted);
             line-height: 1.6;
         }
-        /* ── MOBILE: full dark screen + bottom sheet ── */
+        /* ── MOBILE: full dark screen, one section, fixed CTA bar ── */
         @media (max-width: 780px) {
             #loginScreen { overflow: hidden; }
             #loginScreen .ls-layout { height: 100dvh; }
 
-            /* vertically centre the inner content */
+            /* Left panel fills screen, no scroll on mobile */
             #loginScreen .ls-left {
+                overflow: hidden;
+            }
+
+            /* Section 1 centred, padded above CTA bar */
+            #loginScreen .ls-section1 {
                 justify-content: center;
-                padding: 0 32px 150px;
+                padding: 0 24px 160px;
+                min-height: 100dvh;
             }
             #loginScreen .ls-left-inner { max-width: 100%; }
 
-            /* tighter spacing throughout */
-            #loginScreen .ls-pilot-badge { margin-bottom: 20px; }
-            #loginScreen .ls-logo { font-size: 24px; margin-bottom: 24px; }
-            #loginScreen .ls-headline-area { min-height: 155px; margin-bottom: 16px; }
-            #loginScreen .ls-headline { font-size: clamp(32px, 8vw, 40px); }
-            #loginScreen .ls-dots { margin-bottom: 20px; }
-            #loginScreen .ls-sub { font-size: 15px; margin-bottom: 20px; }
-            #loginScreen .ls-trust { margin-bottom: 0; }
+            /* Hide section 2 entirely on mobile */
+            #loginScreen .ls-section2 { display: none; }
 
-            /* hide feature bullets — too much for one screen */
+            /* Hide scroll hint on mobile */
+            #loginScreen .ls-scroll-hint { display: none; }
+
+            /* Sizing */
+            #loginScreen .ls-pilot-badge { margin-bottom: 16px; }
+            #loginScreen .ls-logo { font-size: 32px; margin-bottom: 20px; }
+            #loginScreen .ls-headline-area { height: 130px; margin-bottom: 16px; }
+            #loginScreen .ls-headline {
+                font-size: 34px;
+                line-height: 1.25;
+                letter-spacing: -0.02em;
+                font-weight: 400;
+                max-width: 100%;
+            }
+            #loginScreen .ls-dots { margin-bottom: 20px; }
+
+            /* Single sub-line — short, no explain, no bullets */
+            #loginScreen .ls-sub {
+                font-size: 16px;
+                line-height: 1.55;
+                color: rgba(221,208,184,0.70);
+                max-width: 95%;
+                margin-bottom: 0;
+            }
+            #loginScreen .ls-explain { display: none; }
             #loginScreen .ls-features { display: none; }
 
             #loginScreen .ls-right { display: none; }
@@ -406,6 +519,182 @@
             margin: 14px auto 28px;
         }
         .ls-sheet-inner { max-width: 340px; margin: 0 auto; }
+
+        /* ── Learn More button (mobile only) ── */
+        .ls-learn-more-btn {
+            display: none;
+        }
+        @media (max-width: 780px) {
+            .ls-learn-more-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                margin-top: 22px;
+                background: none;
+                border: none;
+                padding: 0;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+            }
+            .ls-learn-more-btn:active { opacity: 0.6; }
+            /* Label row */
+            .ls-learn-more-btn .lm-label {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                font-size: 13px;
+                font-weight: 500;
+                color: rgba(221,208,184,0.45);
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+            }
+            /* Drip line — same as desktop scroll hint */
+            .ls-learn-more-btn .lm-line {
+                width: 1px;
+                height: 28px;
+                background: linear-gradient(to bottom, rgba(221,208,184,0.35), transparent);
+                position: relative;
+                overflow: hidden;
+                margin-left: 1px;
+            }
+            .ls-learn-more-btn .lm-line::after {
+                content: '';
+                position: absolute;
+                top: -100%;
+                left: 0; right: 0;
+                height: 100%;
+                background: linear-gradient(to bottom, transparent, rgba(123,45,69,0.9), transparent);
+                animation: ls-drip 2.2s ease-in-out infinite;
+            }
+        }
+
+        /* ── Back to top button (desktop Section 2) ── */
+        .ls-back-top {
+            display: none;
+        }
+        @media (min-width: 781px) {
+            .ls-back-top {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                margin-top: 40px;
+                background: none;
+                border: none;
+                padding: 0;
+                cursor: pointer;
+                font-family: 'Inter', sans-serif;
+                font-size: 12px;
+                font-weight: 500;
+                color: rgba(221,208,184,0.35);
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+                transition: color 0.2s;
+            }
+            .ls-back-top:hover { color: rgba(221,208,184,0.65); }
+            .ls-back-top svg { transition: transform 0.2s; }
+            .ls-back-top:hover svg { transform: translateY(-2px); }
+        }
+
+        /* ── Learn More dark bottom sheet ── */
+        #lsLearnSheet {
+            display: none;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #221510;
+            border-radius: 24px 24px 0 0;
+            border-top: 1px solid rgba(221,208,184,0.1);
+            padding: 0 28px 52px;
+            transform: translateY(105%);
+            transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+            z-index: 1205;
+            max-height: 82dvh;
+            overflow-y: auto;
+        }
+        @media (max-width: 780px) {
+            #lsLearnSheet { display: block; }
+        }
+        #lsLearnSheet.open { transform: translateY(0); }
+        #lsLearnSheet .ls-drag-handle {
+            background: rgba(221,208,184,0.15);
+        }
+        /* Section label inside sheet */
+        #lsLearnSheet .ls-s2-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(123,45,69,0.9);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #lsLearnSheet .ls-s2-label::after {
+            content: '';
+            flex: 1;
+            max-width: 40px;
+            height: 1px;
+            background: rgba(123,45,69,0.4);
+        }
+        #lsLearnSheet .ls-explain {
+            font-size: 17px;
+            color: rgba(221,208,184,0.88);
+            line-height: 1.6;
+            font-weight: 400;
+            margin: 0 0 28px 0;
+        }
+        #lsLearnSheet .ls-feature-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 18px 0;
+            border-bottom: 1px solid rgba(221,208,184,0.06);
+        }
+        #lsLearnSheet .ls-feature-row:first-of-type {
+            border-top: 1px solid rgba(221,208,184,0.06);
+        }
+        #lsLearnSheet .ls-feature-num {
+            font-family: 'DM Serif Display', Georgia, serif;
+            font-size: 13px;
+            color: var(--wb);
+            opacity: 0.7;
+            flex-shrink: 0;
+            width: 18px;
+            padding-top: 2px;
+            font-style: italic;
+        }
+        #lsLearnSheet .ls-feature-text {
+            font-size: 14px;
+            color: rgba(221,208,184,0.60);
+            line-height: 1.6;
+            font-weight: 300;
+        }
+        #lsLearnSheet .ls-feature-text b {
+            display: block;
+            font-size: 15px;
+            color: rgba(221,208,184,0.92);
+            font-weight: 500;
+            margin-bottom: 4px;
+            letter-spacing: -0.01em;
+        }
+        /* CTA at bottom of learn sheet */
+        #lsLearnSheet .ls-learn-cta {
+            margin-top: 32px;
+            width: 100%;
+            background: var(--wb);
+            color: var(--bg);
+            border: none;
+            border-radius: 14px;
+            padding: 17px;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(123,45,69,0.45);
+            transition: opacity 0.15s;
+        }
+        #lsLearnSheet .ls-learn-cta:active { opacity: 0.85; }
 
 /* ── AUTH MODAL ── */
         #authModal {
@@ -615,49 +904,92 @@
 
             <!-- LEFT - brand story -->
             <div class="ls-left">
-                <div class="ls-left-inner">
 
-                    <div class="ls-pilot-badge">
-                        <div class="ls-pilot-dot"></div>
-                        <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
+                <!-- ── Section 1: hook — one viewport, minimal ── -->
+                <div class="ls-section1">
+                    <div class="ls-left-inner">
+
+                        <div class="ls-pilot-badge">
+                            <div class="ls-pilot-dot"></div>
+                            <span class="ls-pilot-text">INVITE-ONLY PILOT</span>
+                        </div>
+
+                        <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
+
+                        <div class="ls-headline-area">
+                            <div class="ls-headline visible" id="lsh0">Trust <em>people,</em><br>not algorithms.</div>
+                            <div class="ls-headline" id="lsh1">Ask your friends —<br><em>without asking</em><br>your friends.</div>
+                            <div class="ls-headline" id="lsh2">The finds they'd text you about —<br><em>all in one place.</em></div>
+                            <div class="ls-headline" id="lsh3">Some answers live in your circle,<br><em>not the internet.</em></div>
+                            <div class="ls-headline" id="lsh4">Never lose a great find —<br><em>your circle</em> remembers.</div>
+                        </div>
+
+                        <div class="ls-dots">
+                            <button class="ls-dot active"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                            <button class="ls-dot"></button>
+                        </div>
+
+                        <p class="ls-sub">Places, products, and little finds from your circle — saved and searchable.</p>
+
+                        <!-- Learn more — mobile only -->
+                        <button class="ls-learn-more-btn" onclick="lsOpenLearnMore()">
+                            <span class="lm-label">
+                                Learn more
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                    <path d="M5 1v8M1 5l4 4 4-4" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
+                            <div class="lm-line"></div>
+                        </button>
+
                     </div>
 
-                    <div class="ls-logo"><span class="lsv">O</span><span class="lso">din</span></div>
-
-                    <div class="ls-headline-area">
-                        <div class="ls-headline visible" id="lsh0">Ask your friends —<br><em>without asking</em><br>your friends.</div>
-                        <div class="ls-headline" id="lsh1">Your circle knows<br>more than <em>Google.</em></div>
-                        <div class="ls-headline" id="lsh2">The finds they'd<br>text you about —<br><em>all in one place.</em></div>
-                        <div class="ls-headline" id="lsh3">Be the <em>algorithm</em><br>for the people<br>you love.</div>
+                    <!-- Scroll hint — desktop only -->
+                    <div class="ls-scroll-hint" id="lsScrollHint" onclick="document.querySelector('#loginScreen .ls-left').scrollTo({top: document.querySelector('.ls-section2').offsetTop, behavior:'smooth'})">
+                        <span>Learn more</span>
+                        <div class="ls-scroll-line"></div>
                     </div>
+                </div>
 
-                    <div class="ls-dots">
-                        <button class="ls-dot active" onclick="lsSetH(0)"></button>
-                        <button class="ls-dot" onclick="lsSetH(1)"></button>
-                        <button class="ls-dot" onclick="lsSetH(2)"></button>
-                        <button class="ls-dot" onclick="lsSetH(3)"></button>
-                    </div>
+                <!-- ── Section 2: detail — below fold, desktop only ── -->
+                <div class="ls-section2">
 
-                    <p class="ls-sub">The places they go, the things they use, the finds they'd text you about — all in one place, waiting when you need it.</p>
+                    <div class="ls-s2-label">How it works</div>
 
-                    <div class="ls-trust">
-                        <div class="ls-trust-dot"></div>
-                        <span class="ls-trust-text">Private by default — only friends you approve can see your saves.</span>
-                    </div>
+                    <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
 
                     <div class="ls-features">
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Search naturally.</b> "Good coffee near work" — not just keywords.</span>
+                            <span class="ls-feature-num">01</span>
+                            <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>Save anything.</b> Places, products, books — your circle's real recommendations.</span>
+                            <span class="ls-feature-num">02</span>
+                            <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
                         </div>
                         <div class="ls-feature-row">
-                            <span class="ls-feature-text"><b>No strangers.</b> Your saves are invisible outside friends you approve.</span>
+                            <span class="ls-feature-num">03</span>
+                            <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+                        </div>
+                        <div class="ls-feature-row">
+                            <span class="ls-feature-num">04</span>
+                            <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
                         </div>
                     </div>
 
+                    <!-- Back to top — desktop -->
+                    <button class="ls-back-top" onclick="document.querySelector('#loginScreen .ls-left').scrollTo({top:0, behavior:'smooth'})">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M6 11V1M1 6l5-5 5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Back to top
+                    </button>
+
                 </div>
+
             </div>
 
             <!-- RIGHT - auth panel -->
@@ -704,7 +1036,35 @@
         </div>
 
         <!-- ── Sheet backdrop ── -->
-        <div class="ls-sheet-backdrop" id="lsBackdrop" onclick="lsCloseSheet()"></div>
+        <div class="ls-sheet-backdrop" id="lsBackdrop" onclick="lsCloseSheet(); lsCloseLearnMore();"></div>
+
+        <!-- ── Bottom sheet — Learn More (dark, mobile only) ── -->
+        <div id="lsLearnSheet">
+            <div class="ls-drag-handle"></div>
+
+            <div class="ls-s2-label">How it works</div>
+
+            <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
+
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">01</span>
+                <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">02</span>
+                <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">03</span>
+                <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+            </div>
+            <div class="ls-feature-row">
+                <span class="ls-feature-num">04</span>
+                <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
+            </div>
+
+            <button class="ls-learn-cta" onclick="lsCloseLearnMore(); lsOpenSheet('signup');">Get Started — it's free</button>
+        </div>
 
         <!-- ── Bottom sheet — auth ── -->
         <div class="ls-sheet" id="lsSheet">
@@ -833,13 +1193,8 @@
                 <span class="odin-wordmark"><span class="odin-o">O</span><span class="odin-din">din</span></span>
             </div>
             <div class="header-right">
-                <!-- Discover / Map toggle (discover screen only) -->
-                <div class="header-mode-pills" id="headerDiscoverPills" style="display:none;">
-                    <button class="hdr-pill active" id="hdrPillDiscover" onclick="switchDiscoverView('collections')">Discover</button>
-                    <button class="hdr-pill" id="hdrPillMap" onclick="switchDiscoverView('map')">Map</button>
-                </div>
-                <!-- Language picker button -->
-                <div class="header-lang-wrap" id="headerLangWrap">
+                <!-- Language picker button — shown only on profile page -->
+                <div class="header-lang-wrap" id="headerLangWrap" style="display:none;">
                     <button class="header-lang-btn" id="headerLangBtn" onclick="toggleLangPicker(event)" aria-label="Language">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="17" height="17">
                             <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
@@ -851,7 +1206,8 @@
                         <div class="lang-picker-header">Display language</div>
                         <div class="lang-picker-list">
                             <button class="lang-picker-item" data-lang="en"  onclick="setPreferredLanguage('en')">🇬🇧 English</button>
-                            <button class="lang-picker-item" data-lang="zh"  onclick="setPreferredLanguage('zh')">🇨🇳 中文</button>
+                            <button class="lang-picker-item" data-lang="zh-TW" onclick="setPreferredLanguage('zh-TW')">🇹🇼 繁體中文</button>
+                            <button class="lang-picker-item" data-lang="zh-CN" onclick="setPreferredLanguage('zh-CN')">🇨🇳 简体中文</button>
                             <button class="lang-picker-item" data-lang="ja"  onclick="setPreferredLanguage('ja')">🇯🇵 日本語</button>
                             <button class="lang-picker-item" data-lang="ko"  onclick="setPreferredLanguage('ko')">🇰🇷 한국어</button>
                             <button class="lang-picker-item" data-lang="es"  onclick="setPreferredLanguage('es')">🇪🇸 Español</button>
@@ -885,8 +1241,8 @@
             <div id="launcherHome" style="display:block;">
                 <div class="launcher-page">
                     <div class="launcher-greeting">
-                        <h1 id="launcherGreetingLine">Good morning, <span id="launcherGreetingName" class="launcher-name"></span></h1>
-                        <p id="launcherSubGreeting" class="launcher-sub-greeting"></p>
+                        <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
+                        <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
                     </div>
 
                     <!-- Main action tiles -->
@@ -966,8 +1322,8 @@
             <div class="home-page">
                 <!-- Greeting -->
                 <div class="home-greeting">
-                    <h1 id="homeGreeting">Good morning</h1>
-                    <p id="homeSubtitle" class="home-subtitle"></p>
+                    <h1 id="homeGreeting" class="page-heading">Good morning</h1>
+                    <p id="homeSubtitle" class="page-subtitle home-subtitle"></p>
                 </div>
 
                 <!-- Breathing Search Bar -->
@@ -984,40 +1340,8 @@
                     <button class="home-loc-pill" id="homeLocPill" onclick="toggleHomeLocation()"></button>
                 </div>
 
-                <!-- Welcome modal overlay — shown once on first login -->
-                <div id="onboardingBanner" class="onb-modal-overlay" style="display:none;" onclick="handleOnbOverlayClick(event)">
-                    <div class="onb-modal-card">
-
-                        <button class="onb-close" onclick="dismissOnboarding()" aria-label="Close">✕</button>
-
-                        <div class="onb-modal-title">Welcome to <span class="onb-brand">Odin</span></div>
-                        <p class="onb-modal-subtitle">Find what your people actually love — instantly.</p>
-
-                        <p class="onb-modal-body">Your friends save the places, experiences, and hidden gems worth knowing. You search, and they surface — no algorithms, no strangers.</p>
-
-                        <div class="onb-search-hint">
-                            <svg class="onb-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                            <span class="onb-search-label">Try it now — search <em>"good coffee"</em></span>
-                            <span class="onb-search-arrow">→</span>
-                        </div>
-                        <p class="onb-founding-note">We've pre-loaded discoveries from founding members — so there's already something to find.</p>
-
-                        <div class="onb-divider"></div>
-
-                        <p class="onb-save-body"><strong>Found something worth saving? Add it</strong> — so the people you care about can find it too.</p>
-
-                        <div class="onb-privacy">
-                            <svg class="onb-privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                            Everything you add is private by default — only your trusted friends can see it.
-                        </div>
-
-                        <div class="onb-modal-actions">
-                            <button class="onb-btn-primary" onclick="dismissOnboarding()">Let's explore</button>
-                            <button class="onb-btn-secondary" onclick="goToFindFriends()">Add friends</button>
-                        </div>
-
-                    </div>
-                </div>
+                <!-- Legacy banner kept as hidden shell (referenced in old code) -->
+                <div id="onboardingBanner" style="display:none;"></div>
 
                 <!-- Quick suggestion chips — 4 random, time-based -->
                 <div class="home-chips-row" id="homeChipsRow"></div>
@@ -1090,29 +1414,27 @@
 
         <!-- SEARCH MODE -->
         <div id="searchMode" class="hidden">
-            <div class="search-header">
-                <button class="search-back-btn" onclick="goBack()" aria-label="Go back">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-                <span class="search-header-title"></span>
-                <div style="width:32px;"></div>
-            </div>
 
             <div class="chat-container" id="chatContainer">
-                <div class="welcome">
+                <div class="welcome" id="searchWelcome">
                     <div class="search-greeting">
-                        <h1 id="searchGreeting"></h1>
-                        <p id="searchGreetingSub"></p>
+                        <h1 id="searchGreeting" class="page-heading"></h1>
+                        <p id="searchGreetingSub" class="page-subtitle"></p>
                     </div>
-                    <div class="suggestions">
-                        <span class="suggestion-chip" onclick="sendMessage('Good coffee shop for working')">Good coffee shop for working</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Good Italian restaurant')">Good Italian restaurant</span>
-                        <span class="suggestion-chip" onclick="sendMessage('where is the place we went for sushi near Mission Bay last time')">where is the place we went for sushi near Mission Bay last time</span>
-                        <span class="suggestion-chip" onclick="sendMessage('同啲小朋友去邊度好？')">同啲小朋友去邊度好？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('上次Sunny講過食船麵嗰間嘢喺邊？')">上次Sunny講過食船麵嗰間嘢喺邊？</span>
-                        <span class="suggestion-chip" onclick="sendMessage('Stanley話係Queenstown邊度買生日蛋糕？')">Stanley話係Queenstown邊度買生日蛋糕？</span>
+                    <!-- Recent searches: compact horizontal pill row -->
+                    <div id="recentSearchesSection" style="display:none; margin-bottom:20px;">
+                        <div class="recent-searches-header">
+                            <span class="suggestions-label" style="margin-bottom:0;">Recent</span>
+                            <button class="recent-clear-all-btn" onclick="clearAllRecentSearches()">Clear all</button>
+                        </div>
+                        <div class="recent-searches-row-wrap">
+                            <div class="recent-searches-row" id="recentSearchesRow"></div>
+                        </div>
                     </div>
-                    </div>
+
+                    <!-- Suggestion chips: time-based, bilingual, rendered by JS -->
+                    <p class="suggestions-label" id="suggestionsLabel">Try asking</p>
+                    <div class="suggestions" id="searchSuggestions"></div>
                 </div>
             </div>
         </div>
@@ -1123,49 +1445,47 @@
             <!-- ══ COLLECTIONS VIEW ══ -->
             <div id="discoverCollections" class="discover-collections-screen">
 
-                <!-- Pinned search bar — sits directly below the sticky header, never scrolls -->
-                <div class="dc-search-pinned">
-                    <div class="dc-search-row">
-                        <div class="dc-search-bar">
-                            <svg class="dc-search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" id="discoverSearch" placeholder="Search your circle..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter'){event.preventDefault(); handleSearchInput();}"/>
-                        </div>
-                        <button class="dc-filter-btn" onclick="openFilterModal()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-                            <span class="filter-badge" id="filterBadge" style="display:none;">0</span>
-                        </button>
-                    </div>
-                    <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
-                        <div class="recently-viewed-header">Recently viewed</div>
-                        <div class="recently-viewed-row" id="recentlyViewedRow"></div>
-                    </div>
-                    <div class="active-filters-bar" id="activeFiltersBar"></div>
-                </div>
-
                 <!-- Scrollable content -->
                 <div class="discover-scroll-wrap">
+                    <!-- Heading sits at the very top -->
                     <div class="discover-header">
-                        <h1 class="dc-heading">Discover</h1>
-                        <p class="dc-subheading">Curated finds from your circle</p>
+                        <div class="discover-title-row">
+                            <h1 class="page-heading dc-heading" id="dcGreeting">Discover</h1>
+                            <button class="dc-map-toggle-btn" id="dcMapToggleBtn" onclick="switchDiscoverView('map')" title="View as map">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+                                Map
+                            </button>
+                        </div>
+                        <p class="page-subtitle dc-subheading" id="dcSubheading">Curated finds from your circle</p>
                     </div>
 
-                    <!-- Category filter chips -->
-                    <div class="dc-chips-row" id="dcChipsRow">
-                        <button class="dc-chip active" data-cat="all"     onclick="setDiscoverChip(this,'all')">All <span class="dc-chip-count" id="dcCountAll"></span></button>
-                        <button class="dc-chip"        data-cat="place"   onclick="setDiscoverChip(this,'place')">Places <span class="dc-chip-count" id="dcCountPlace"></span></button>
-                        <button class="dc-chip"        data-cat="product" onclick="setDiscoverChip(this,'product')">Products <span class="dc-chip-count" id="dcCountProduct"></span></button>
-                        <button class="dc-chip"        data-cat="service" onclick="setDiscoverChip(this,'service')">Services <span class="dc-chip-count" id="dcCountService"></span></button>
-                        <button class="dc-chip"        data-cat="advice"  onclick="setDiscoverChip(this,'advice')">Advice <span class="dc-chip-count" id="dcCountAdvice"></span></button>
-                        <button class="dc-chip dc-chip-map" onclick="switchDiscoverView('map')">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-                            Map
-                        </button>
+                    <!-- Filter bar — below heading, secondary role -->
+                    <div class="dc-search-pinned dc-search-inline">
+                        <div class="dc-search-row">
+                            <div class="dc-search-bar">
+                                <svg class="dc-search-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                                <input type="text" id="discoverSearch" placeholder="Filter by keyword..." oninput="handleSearchInput()" onkeypress="if(event.key==='Enter'){event.preventDefault(); handleSearchInput();}"/>
+                            </div>
+                            <button class="dc-filter-btn" onclick="openFilterModal()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                                <span class="filter-badge" id="filterBadge" style="display:none;">0</span>
+                            </button>
+                        </div>
+                        <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
+                            <div class="recently-viewed-header">Recently viewed</div>
+                            <div class="recently-viewed-row" id="recentlyViewedRow"></div>
+                        </div>
+                        <div class="active-filters-bar" id="activeFiltersBar"></div>
                     </div>
 
-                    <!-- Friends filter bubbles -->
-                    <div class="dc-friends-row" id="dcFriendsRow" style="display:none;"></div>
+                    <!-- Smart section tabs -->
+                    <div class="dc-section-tabs" id="dcSectionTabs">
+                        <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
+                        <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
+                        <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
+                    </div>
 
-                    <!-- Distance quick pills (shown when location is available) -->
+                    <!-- Distance quick pills (shown when location is available, for nearby section) -->
                     <div class="dc-distance-row" id="dcDistanceRow" style="display:none;">
                         <span class="dc-dist-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1175,21 +1495,42 @@
                         <button class="dc-dist-pill" data-dist="10" onclick="toggleDistancePill(this,10)">< 10 km</button>
                     </div>
 
-                    <!-- Collection cards grouped by friend / category -->
-                    <div class="dc-section-header" id="dcCircleHeader">
-                        <h2 class="dc-section-title">From your circle</h2>
-                        <div class="dc-group-toggle">
-                            <button class="dc-group-btn active" id="dcGroupFriend" onclick="setCollectionGrouping('friend')">By Friend</button>
-                            <button class="dc-group-btn" id="dcGroupCat" onclick="setCollectionGrouping('category')">By Type</button>
-                        </div>
+                    <!-- Collection cards -->
+                    <div class="dc-section-header" id="dcCircleHeader" style="display:none;">
+                        <h2 class="dc-section-title" id="dcCircleTitle">Trending this week</h2>
                     </div>
                     <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
+
+                    <!-- Empty state — shown when user has no circle data yet -->
+                    <div id="dcEmptyState" style="display:none;">
+                        <div class="dc-empty-wrap">
+                            <div class="dc-empty-icon">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C4A882" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                            </div>
+                            <h3 class="dc-empty-title">Nothing here yet</h3>
+                            <p class="dc-empty-body">Be the first in your circle to save something — or invite a friend so their saves show up here.</p>
+                            <div class="dc-empty-actions">
+                                <button class="dc-empty-btn dc-empty-btn-primary" onclick="setMode('input')">Add your first save</button>
+                                <button class="dc-empty-btn dc-empty-btn-secondary" onclick="setMode('profile')">Invite friends</button>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- All items flat grid (shown when a collection is selected) -->
                     <div id="dcAllItemsSection" style="display:none;">
                         <div class="dc-section-header" style="margin-top:20px;">
                             <h2 class="dc-section-title" id="dcAllItemsTitle">All items</h2>
-                            <button class="dc-back-btn" onclick="showAllCollections(); resetDiscoverChips();">← Back</button>
+                            <div class="dc-sort-wrap">
+                                <select class="dc-sort-select" id="dcSortSelect" onchange="applyDiscoverSort(this.value)">
+                                    <option value="saves">Most saved</option>
+                                    <option value="recent">Most recent</option>
+                                    <option value="nearest">Nearest first</option>
+                                    <option value="az">A – Z</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dc-back-row">
+                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -1203,6 +1544,18 @@
 
             <!-- ══ MAP VIEW ══ -->
             <div id="discoverMapView" class="discover-map-screen" style="display:none;">
+                <!-- Back to Discovery button -->
+                <div class="dmap-topbar">
+                    <button class="dmap-back-btn" onclick="switchDiscoverView('collections')" aria-label="Back to Discovery">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        Discovery
+                    </button>
+                    <span class="dmap-topbar-title">Map</span>
+                    <button class="dmap-topbar-filter-btn" onclick="openFilterModal()" aria-label="Filter">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="18" height="18"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+                        <span class="dmap-topbar-filter-badge" id="dmapFilterBadge" style="display:none;">0</span>
+                    </button>
+                </div>
                 <div class="dmap-inner">
 
                     <!-- Desktop: side panel -->
@@ -1268,40 +1621,94 @@
         <!-- PROFILE MODE -->
         <div id="profileMode" class="hidden">
             <div class="profile-container">
-                <!-- View Mode (default) -->
+
+                <!-- ── Identity Card ── -->
                 <div id="profileViewMode">
-                    <div class="profile-header-section">
-                        <div class="profile-avatar-large" id="profileAvatarLarge">
-                            <span id="profileAvatarLargeInitial">?</span>
+                    <div class="profile-card-v2">
+                        <div class="pcv2-avatar-wrap">
+                            <div class="profile-avatar-large" id="profileAvatarLarge">
+                                <span id="profileAvatarLargeInitial">?</span>
+                            </div>
                         </div>
-                        <h2 class="profile-name" id="profileDisplayName" style="color:#7B2D45;">Loading...</h2>
-                        <p class="profile-email" id="profileEmail"></p>
-                        <p class="profile-bio" id="profileBioDisplay"></p>
+                        <div class="pcv2-identity">
+                            <h2 class="profile-name" id="profileDisplayName">Loading...</h2>
+                            <p class="profile-bio" id="profileBioDisplay"></p>
+                        </div>
+                        <button class="pcv2-edit-btn" onclick="toggleProfileEdit(true)" aria-label="Edit profile">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
                     </div>
 
-                    <div class="profile-stats">
-                        <div class="profile-stat">
+                    <!-- ── Stats Row ── -->
+                    <div class="profile-stats-row">
+                        <div class="profile-stat-col">
+                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
+                            <div class="profile-stat-label">Added</div>
+                        </div>
+                        <div class="pstat-divider"></div>
+                        <div class="profile-stat-col">
                             <div class="profile-stat-number" id="profileEndorsementCount">0</div>
                             <div class="profile-stat-label">Saved</div>
                         </div>
-                        <div class="profile-stat">
+                        <div class="pstat-divider"></div>
+                        <div class="profile-stat-col">
                             <div class="profile-stat-number" id="profilePeopleCount">0</div>
-                            <div class="profile-stat-label">People</div>
+                            <div class="profile-stat-label">Friends</div>
                         </div>
-                        <div class="profile-stat">
-                            <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
-                            <div class="profile-stat-label">Items</div>
+                        <div class="pstat-divider"></div>
+                        <div class="profile-stat-col pstat-kb">
+                            <div class="profile-stat-number" id="profileKnowledgeBase">0</div>
+                            <div class="profile-stat-label">Knowledge Base</div>
                         </div>
                     </div>
 
-                    <button class="profile-edit-link" onclick="toggleProfileEdit(true)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        Edit Profile
-                    </button>
+                    <!-- ── 2 Action Boxes ── -->
+                    <div class="profile-boxes-row">
+                        <div class="profile-box" onclick="openMySavesDrawer()">
+                            <div class="pbox-visuals" id="profileBoxSavesThumbs">
+                                <div class="pbox-icon-placeholder">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                            </div>
+                            <div class="pbox-label-row">
+                                <span class="pbox-label">My Saves</span>
+                                <span class="pbox-count" id="pboxSavesCount"></span>
+                            </div>
+                        </div>
+                        <div class="profile-box" onclick="openCircleDrawer()">
+                            <div class="pbox-visuals" id="profileBoxCircleAvatars">
+                                <div class="pbox-icon-placeholder">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
+                            </div>
+                            <div class="pbox-label-row">
+                                <span class="pbox-label">Your Circle</span>
+                                <span class="pbox-count" id="pboxCircleCount"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── Settings Rows ── -->
+                    <div class="profile-settings-list">
+                        <!-- Translation language -->
+                        <button class="profile-settings-row" onclick="openLangDrawer()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <span>Translate results to</span>
+                            <span class="profile-settings-value" id="profileLangValue">EN</span>
+                        </button>
+                        <button class="profile-settings-row" onclick="handleLogout()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span>Sign Out</span>
+                        </button>
+                        <button class="profile-settings-row profile-settings-row--danger" onclick="confirmDeleteAccount()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            <span>Delete Account</span>
+                        </button>
+                    </div>
 
                 </div>
 
-                <!-- Edit Mode (hidden by default) -->
+                <!-- ── Edit Mode (hidden by default) ── -->
                 <div id="profileEditMode" style="display:none;">
                     <div class="profile-edit-header">
                         <h3>Edit Profile</h3>
@@ -1321,7 +1728,7 @@
                     </form>
                 </div>
 
-                <!-- Notifications -->
+                <!-- ── Notifications (triggered from bell icon) ── -->
                 <div id="notificationsList" class="profile-notif-section" style="display:none;">
                     <div class="profile-section-divider"></div>
                     <div class="home-section-header">
@@ -1331,73 +1738,11 @@
                     <div id="notifItems" class="notif-list"></div>
                 </div>
 
-                <!-- My Saves -->
-                <div class="profile-section-divider"></div>
-                <div class="home-section-header">
-                    <h2>My Saves</h2>
-                </div>
-                <div class="profile-saves-wrap">
-                    <button class="ps-scroll-arrow ps-scroll-left" id="psSaveLeft" onclick="scrollProfileSaves(-1)" style="display:none;" aria-label="Scroll left">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <div id="myEndorsementsList" class="my-endorsements-list-horizontal">
-                        <p class="my-endorsements-empty">No saves yet. React to discoveries you like!</p>
-                    </div>
-                    <button class="ps-scroll-arrow ps-scroll-right" id="psSaveRight" onclick="scrollProfileSaves(1)" aria-label="Scroll right">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div>
-
-                <!-- Your Circle -->
-                <div class="profile-section-divider"></div>
-                <div class="home-section-header" style="margin-bottom:4px;">
-                    <h2>Your Circle</h2>
-                </div>
-
-                <div class="friends-search-container">
-                    <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search by name or email..." onkeyup="handleFriendSearchInput(event)">
-                    <div id="friendSearchResults" class="friend-search-results" style="display:none;"></div>
-                </div>
-
-                <!-- Pending Requests -->
-                <div id="pendingRequestsContainer" style="display:none;">
-                    <div class="tier-label">
-                        <h3>Requests</h3>
-                        <span class="tier-badge pending">Pending</span>
-                    </div>
-                    <div id="pendingRequestsList" class="friend-requests-list"></div>
-                </div>
-
-                <!-- Friends -->
-                <div id="friendsListContainer" style="display:none;">
-                    <div class="tier-label">
-                        <h3>Friends</h3>
-                        <span class="tier-badge outer" id="friendsCountBadge">0</span>
-                    </div>
-                    <div class="tier-desc">People you trust. Their recommendations appear in your search results.</div>
-                    <div id="friendsList" class="friends-list"></div>
-                </div>
-
-                <div id="friendsEmptyState" class="friends-empty-state">
-                    <div class="friends-empty-icon">🤝</div>
-                    <p>Your circle is empty</p>
-                    <p class="friends-empty-hint">Search by name or email above to connect with friends and family!</p>
-                </div>
-
-                <!-- Invite Button -->
-                <button class="invite-btn" onclick="document.getElementById('friendSearchInput').focus();">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Invite a friend
-                </button>
-
-                <button class="logout-btn" onclick="handleLogout()">Sign Out</button>
-
-                <!-- Danger zone -->
-                <div class="danger-zone" id="dangerZone">
-                    <div class="danger-zone-label">Danger Zone</div>
-                    <p class="danger-zone-desc">Permanently delete your account, all your saves, and remove yourself from all circles. This cannot be undone.</p>
-                    <button class="delete-account-btn" onclick="confirmDeleteAccount()">Delete my account</button>
-                </div>
+                <!-- ── Hidden anchors kept for JS compatibility ── -->
+                <div id="profileSavesSection" style="display:none;"></div>
+                <div id="profileCircleSection" style="display:none;"></div>
+                <!-- Hidden saves list kept for JS that populates it -->
+                <div id="myEndorsementsList" style="display:none;"></div>
 
                 <!-- Delete confirmation dialog -->
                 <div class="delete-confirm-overlay" id="deleteConfirmOverlay" style="display:none;">
@@ -1414,6 +1759,151 @@
                     </div>
                 </div>
 
+                <!-- keep email el for JS that sets it -->
+                <p id="profileEmail" style="display:none;"></p>
+
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             MY SAVES SLIDE-UP DRAWER
+        ══════════════════════════════════════════ -->
+        <div id="mySavesDrawer" class="profile-drawer">
+            <div class="profile-drawer-backdrop" onclick="closeMySavesDrawer()"></div>
+            <div class="profile-drawer-sheet" aria-hidden="true">
+                <div class="profile-drawer-handle"></div>
+                <div class="profile-drawer-header">
+                    <h2 class="profile-drawer-title">My Saves</h2>
+                    <button class="profile-drawer-close" onclick="closeMySavesDrawer()" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="profile-drawer-body">
+                    <div class="profile-saves-wrap">
+                        <button class="ps-scroll-arrow ps-scroll-left" id="psSaveLeft" onclick="scrollProfileSaves(-1)" style="display:none;" aria-label="Scroll left">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <div id="mySavesDrawerList" class="my-endorsements-list-horizontal">
+                            <p class="my-endorsements-empty">No saves yet. Save finds from your circle!</p>
+                        </div>
+                        <button class="ps-scroll-arrow ps-scroll-right" id="psSaveRight" onclick="scrollProfileSaves(1)" aria-label="Scroll right">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             YOUR CIRCLE SLIDE-UP DRAWER
+        ══════════════════════════════════════════ -->
+        <div id="circleDrawer" class="profile-drawer">
+            <div class="profile-drawer-backdrop" onclick="closeCircleDrawer()"></div>
+            <div class="profile-drawer-sheet" aria-hidden="true">
+                <div class="profile-drawer-handle"></div>
+                <div class="profile-drawer-header">
+                    <h2 class="profile-drawer-title">Your Circle</h2>
+                    <button class="profile-drawer-close" onclick="closeCircleDrawer()" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="profile-drawer-body">
+
+                    <!-- Invite via Link -->
+                    <div class="invite-link-section" id="inviteLinkSection">
+                        <div class="invite-link-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <span>Invite someone to Odin</span>
+                        </div>
+                        <p class="invite-link-body">Generate a personal invite link. When they sign up through it, you'll get a friend request automatically.</p>
+                        <button class="invite-link-btn" id="inviteLinkBtn" onclick="generateInviteLink()">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Generate invite link
+                        </button>
+                        <div class="invite-link-result" id="inviteLinkResult" style="display:none;">
+                            <div class="invite-link-box">
+                                <span class="invite-link-url" id="inviteLinkUrl"></span>
+                                <button class="invite-link-copy" id="inviteLinkCopy" onclick="copyInviteLink()">Copy</button>
+                            </div>
+                            <p class="invite-link-hint">Send this link via WhatsApp, iMessage, or email. Works once — expires after use.</p>
+                        </div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="friends-search-container">
+                        <input type="text" id="friendSearchInput" class="friends-search-input" placeholder="Search by name / email..." onkeyup="handleFriendSearchInput(event)">
+                        <div id="friendSearchResults" class="friend-search-results" style="display:none;"></div>
+                    </div>
+
+                    <!-- Pending Requests -->
+                    <div id="pendingRequestsContainer" style="display:none;">
+                        <div class="tier-label">
+                            <h3>Requests</h3>
+                            <span class="tier-badge pending">Pending</span>
+                        </div>
+                        <div id="pendingRequestsList" class="friend-requests-list"></div>
+                    </div>
+
+                    <!-- Sent Requests -->
+                    <div id="sentRequestsContainer" style="display:none;">
+                        <div class="tier-label">
+                            <h3>Sent</h3>
+                            <span class="tier-badge pending">Pending</span>
+                        </div>
+                        <div id="sentRequestsList" class="friend-requests-list"></div>
+                    </div>
+
+                    <!-- Friends List -->
+                    <div id="friendsListContainer" style="display:none;">
+                        <div class="tier-label">
+                            <h3>Friends</h3>
+                            <span class="tier-badge outer" id="friendsCountBadge">0</span>
+                        </div>
+                        <div class="tier-desc">People you trust. Their recommendations appear in your search results.</div>
+                        <div id="friendsList" class="friends-list"></div>
+                    </div>
+
+                    <div id="friendsEmptyState" class="friends-empty-state">
+                        <div class="friends-empty-icon">🤝</div>
+                        <p>Your circle is empty</p>
+                        <p class="friends-empty-hint">Search by name or email above to connect with friends and family!</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             LANGUAGE PICKER SLIDE-UP DRAWER
+        ══════════════════════════════════════════ -->
+        <div id="langDrawer" class="profile-drawer">
+            <div class="profile-drawer-backdrop" onclick="closeLangDrawer()"></div>
+            <div class="profile-drawer-sheet" aria-hidden="true">
+                <div class="profile-drawer-handle"></div>
+                <div class="profile-drawer-header">
+                    <h2 class="profile-drawer-title">Translate results to</h2>
+                    <button class="profile-drawer-close" onclick="closeLangDrawer()" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="profile-drawer-body">
+                    <p class="lang-drawer-desc">Choose the language Odin uses when translating item descriptions in search results.</p>
+                    <div class="lang-drawer-list" id="langDrawerList">
+                        <button class="lang-drawer-item" data-lang="en"   onclick="setPreferredLanguage('en');  closeLangDrawer()">🇬🇧 English</button>
+                        <button class="lang-drawer-item" data-lang="zh-TW" onclick="setPreferredLanguage('zh-TW'); closeLangDrawer()">🇹🇼 繁體中文</button>
+                        <button class="lang-drawer-item" data-lang="zh-CN" onclick="setPreferredLanguage('zh-CN'); closeLangDrawer()">🇨🇳 简体中文</button>
+                        <button class="lang-drawer-item" data-lang="ja"   onclick="setPreferredLanguage('ja');  closeLangDrawer()">🇯🇵 日本語</button>
+                        <button class="lang-drawer-item" data-lang="ko"   onclick="setPreferredLanguage('ko');  closeLangDrawer()">🇰🇷 한국어</button>
+                        <button class="lang-drawer-item" data-lang="es"   onclick="setPreferredLanguage('es');  closeLangDrawer()">🇪🇸 Español</button>
+                        <button class="lang-drawer-item" data-lang="fr"   onclick="setPreferredLanguage('fr');  closeLangDrawer()">🇫🇷 Français</button>
+                        <button class="lang-drawer-item" data-lang="ar"   onclick="setPreferredLanguage('ar');  closeLangDrawer()">🇸🇦 العربية</button>
+                        <button class="lang-drawer-item" data-lang="hi"   onclick="setPreferredLanguage('hi');  closeLangDrawer()">🇮🇳 हिन्दी</button>
+                        <button class="lang-drawer-item" data-lang="pt"   onclick="setPreferredLanguage('pt');  closeLangDrawer()">🇧🇷 Português</button>
+                        <button class="lang-drawer-item" data-lang="de"   onclick="setPreferredLanguage('de');  closeLangDrawer()">🇩🇪 Deutsch</button>
+                        <button class="lang-drawer-item" data-lang="id"   onclick="setPreferredLanguage('id');  closeLangDrawer()">🇮🇩 Bahasa</button>
+                        <button class="lang-drawer-item" data-lang="th"   onclick="setPreferredLanguage('th');  closeLangDrawer()">🇹🇭 ภาษาไทย</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1433,8 +1923,8 @@
             <div class="input-form-container">
                 <div class="capture-form-header">
                     <div>
-                        <h2>Add Discovery</h2>
-                        <p>Save a recommendation from a friend</p>
+                        <h2 class="page-heading">Add Discovery</h2>
+                        <p class="page-subtitle" id="addSubtitle">Anything worth knowing — save it for yourself and your circle</p>
                     </div>
                     <button type="button" class="clear-form-btn" onclick="clearCaptureForm()" title="Clear form">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.85"/></svg>
@@ -1481,119 +1971,109 @@
                 </div>
 
                 <form id="addForm" onsubmit="submitDiscovery(event)">
-                    <!-- Essential info section -->
-                    <div class="form-section">
-                        <div class="form-section-label">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            What's the discovery?
-                        </div>
-                        <div class="form-group">
-                            <label>Title *</label>
-                            <input type="text" id="title" placeholder="e.g., Tony's Coffee" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Category</label>
-                            <div class="category-pills" id="categoryPills">
-                                <button type="button" class="category-pill active" data-value="place" onclick="selectCategory(this)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                    Place
-                                </button>
-                                <button type="button" class="category-pill" data-value="product" onclick="selectCategory(this)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
-                                    Product
-                                </button>
-                                <button type="button" class="category-pill" data-value="service" onclick="selectCategory(this)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                                    Service
-                                </button>
-                                <button type="button" class="category-pill" data-value="advice" onclick="selectCategory(this)">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                    Advice
-                                </button>
-                            </div>
-                            <select id="category" style="display:none;">
-                                <option value="place">Place</option>
-                                <option value="product">Product</option>
-                                <option value="service">Service</option>
-                                <option value="advice">Advice</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Description *</label>
-                            <textarea id="description" placeholder="Great flat whites, cozy atmosphere" required></textarea>
-                        </div>
+
+                    <!-- 1. TITLE -->
+                    <div class="form-group form-group-title">
+                        <input type="text" id="title" class="title-input-large" placeholder="What's the name?" required>
                     </div>
 
-                    <!-- Your thoughts section -->
-                    <div class="form-section">
-                        <div class="form-section-label">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                            Your thoughts
+                    <!-- 2. CATEGORY -->
+                    <div class="form-group form-group-category">
+                        <div class="category-pills" id="categoryPills">
+                            <button type="button" class="category-pill active" data-value="place" onclick="selectCategory(this)">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Place
+                            </button>
+                            <button type="button" class="category-pill" data-value="product" onclick="selectCategory(this)">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                Product
+                            </button>
+                            <button type="button" class="category-pill" data-value="service" onclick="selectCategory(this)">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                                Service
+                            </button>
+                            <button type="button" class="category-pill" data-value="advice" onclick="selectCategory(this)">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                Advice
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label>Personal Note (optional)</label>
-                            <textarea id="personalNote" placeholder="Why you love it, a memory, or a tip for others..." style="min-height: 70px;"></textarea>
-                        </div>
+                        <select id="category" style="display:none;">
+                            <option value="place">Place</option>
+                            <option value="product">Product</option>
+                            <option value="service">Service</option>
+                            <option value="advice">Advice</option>
+                        </select>
                     </div>
 
-                    <!-- Details section -->
-                    <div class="form-section">
-                        <div class="form-section-label">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                            Details
+                    <!-- 3. YOUR TAKE (merged description + personal note) -->
+                    <div class="form-group form-group-take">
+                        <label class="field-label-inline">Your take</label>
+                        <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
+                        <!-- Hidden description mirrors personalNote value on submit -->
+                        <input type="hidden" id="description">
+                    </div>
+
+                    <!-- 4. ADDRESS — prominent, not buried -->
+                    <div class="form-group address-group" style="position: relative;">
+                        <label class="field-label-inline">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
+                        </label>
+                        <div class="address-input-row">
+                            <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
+                            <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label>Added by</label>
-                            <input type="text" id="addedBy" placeholder="Friend's name" disabled>
-                            <small style="color: #6b7280; font-size: 12px;">Auto-filled from your profile</small>
+                        <div id="addressDropdown" class="address-dropdown hidden"></div>
+                        <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
+                        <input type="hidden" id="userLat" value="">
+                        <input type="hidden" id="userLng" value="">
+                    </div>
+
+                    <!-- 5. PHOTO — compact -->
+                    <div class="form-group form-group-photo">
+                        <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
+                        <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <span>Add a photo</span>
                         </div>
-                        <div class="form-group" style="position: relative;">
-                            <label>Address (optional)</label>
-                            <div class="address-input-row">
-                                <input type="text" id="address" placeholder="Shop name, place or address" autocomplete="off">
-                                <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Detect my location">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <input type="file" id="photo" accept="image/*" style="display: none;">
+                        <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
+                            <img id="previewImg" />
+                            <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
+                            <div class="photo-preview-actions">
+                                <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Replace
+                                </button>
+                                <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Remove
                                 </button>
                             </div>
-                            <div id="addressDropdown" class="address-dropdown hidden"></div>
-                            <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
-                            <input type="hidden" id="userLat" value="">
-                            <input type="hidden" id="userLng" value="">
                         </div>
-                        <div class="form-group">
-                            <label>Photo (optional)</label>
-                            <div class="photo-upload-zone" id="photoUploadZone" onclick="document.getElementById('photo').click()">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                <span>Tap to add a photo</span>
-                            </div>
-                            <input type="file" id="photo" accept="image/*" style="display: none;">
-                            <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
-                                <img id="previewImg" />
-                                <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
-                                <div class="photo-preview-actions">
-                                    <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                        Replace
-                                    </button>
-                                    <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
-                            <input type="hidden" id="ogImageUrl" value="">
-                        </div>
+                        <input type="hidden" id="ogImageUrl" value="">
                     </div>
 
-                    <!-- Privacy Toggle -->
-                    <div class="form-group" style="margin-top: 8px;">
-                        <div class="privacy-toggle-row" onclick="togglePrivacy('privateToggle')">
-                            <span class="privacy-toggle-text" id="privateToggleText">Private — only visible to me</span>
-                            <div class="privacy-toggle-track" id="privateToggleTrack">
-                                <div class="privacy-toggle-knob"></div>
-                            </div>
+                    <!-- Hidden Added By (auto-filled, not shown) -->
+                    <input type="hidden" id="addedBy" value="">
+
+                    <!-- Visibility 2-way Selector -->
+                    <div class="form-group visibility-group" style="margin-top: 4px;">
+                        <label class="field-label-inline">Who can see this</label>
+                        <div class="vis-selector" id="visSelector">
+                            <button type="button" class="vis-option active" data-value="private" onclick="selectVisibility(this)">
+                                <span class="vis-label">Only me</span>
+                            </button>
+                            <button type="button" class="vis-option" data-value="friends" onclick="selectVisibility(this)">
+                                <span class="vis-label">Friends</span>
+                            </button>
                         </div>
-                        <input type="hidden" id="privateToggle" value="false">
+                        <p class="vis-hint" id="visHint">Saved privately — only you can see this. Change to Friends when you're ready to share.</p>
+                        <!-- private=true by default -->
+                        <input type="hidden" id="privateToggle" value="true">
+                        <input type="hidden" id="visibilityValue" value="private">
                     </div>
 
                     <button type="submit" class="submit-btn" id="submitBtn">
@@ -1624,12 +2104,13 @@
             </button>
             <div class="search-input-inner">
                 <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" id="messageInput" placeholder="Ask anything..." onkeypress="if(event.key==='Enter') sendMessage()">
+                <div class="search-animated-placeholder" id="searchAnimPlaceholder"></div>
+                <input type="text" id="messageInput" placeholder="" onkeypress="if(event.key==='Enter') sendMessage()" onfocus="stopSearchPlaceholder()" onblur="startSearchPlaceholder()">
                 <button id="sendButton" onclick="sendMessage()" aria-label="Send">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
             </div>
-            <button class="search-loc-btn active" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location on" aria-label="Toggle location">
+            <button class="search-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location off" aria-label="Toggle location">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             </button>
         </div>
@@ -1748,6 +2229,92 @@
         <img id="lightboxImg" src="" alt="">
     </div>
 
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- ONBOARDING FLOW — 4-step full-screen overlay          -->
+    <!-- MUST live here at mainApp root level — NOT inside     -->
+    <!-- #homePage or any tab panel, because those panels use  -->
+    <!-- display:none/.hidden and will suppress a fixed child. -->
+    <!-- Triggered when profiles.onboarding_completed_at=null  -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div id="onboardingOverlay" style="display:none;">
+
+        <!-- Step 1: Welcome -->
+        <div id="onbStep1" class="onb-screen">
+            <div class="onb-screen-inner">
+                <div class="onb-logo-mark">
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="18" fill="#7B2D45"/><text x="18" y="24" text-anchor="middle" font-family="DM Serif Display, serif" font-size="20" fill="#FAF6EE">O</text></svg>
+                </div>
+                <h1 class="onb-heading">Welcome to <span class="onb-brand">Odin</span>, <span id="onbUserName">friend</span>.</h1>
+                <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle.</p>
+                <button class="onb-btn-primary" onclick="onbGoStep(2)">Let's go →</button>
+                <div class="onb-dots">
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Connect with inviter -->
+        <div id="onbStep2" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-invite-avatar" id="onbInviterAvatar">
+                    <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
+                </div>
+                <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
+                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge Base grows the moment you connect.</p>
+                <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
+                <button class="onb-btn-skip" onclick="onbGoStep(3)">Skip for now</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Add first item -->
+        <div id="onbStep3" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </div>
+                <h1 class="onb-heading">What's one thing you'd recommend to a friend?</h1>
+                <p class="onb-body">A café, a dentist, a product — anything worth sharing. Adding it takes 30 seconds.</p>
+                <button class="onb-btn-primary" onclick="onbGoAdd()">Add it →</button>
+                <button class="onb-btn-skip" onclick="onbGoStep(4)">Skip for now</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                    <span class="onb-dot"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Search / WOW moment -->
+        <div id="onbStep4" class="onb-screen" style="display:none;">
+            <div class="onb-screen-inner">
+                <div class="onb-icon-circle">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                </div>
+                <h1 class="onb-heading">Now try searching for something.</h1>
+                <p class="onb-body">Ask it like you'd ask a friend.<br><br>Try <em>"best coffee nearby"</em> or <em>"dentist I can trust"</em>.</p>
+                <button class="onb-btn-primary" onclick="onbGoSearch()">Search now →</button>
+                <button class="onb-btn-skip" onclick="onbComplete()">Explore later</button>
+                <div class="onb-dots">
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot"></span>
+                    <span class="onb-dot onb-dot-active"></span>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- end onboardingOverlay -->
+
     </div><!-- end mainApp -->
 
     <script src="app.js?v=44"></script>
@@ -1772,41 +2339,448 @@
         return 'home';
     }
 
+    // ══════════════════════════════════════════════════════════
+    // ── GLOBAL ROTATING PHRASES CONFIG ──
+    // ══════════════════════════════════════════════════════════
+    var ODIN_PHRASES = {
+        home: [
+            'Everything here, a real person vouched for.',
+            'Your circle knows things Google doesn\'t.',
+            'No ads. No algorithms. Just people you trust.',
+            'The best tips are hiding in your friends list.',
+            'Noise is everywhere. This isn\'t it.',
+            'Real people. Real places. Real takes.',
+            'Your feed, curated by people who actually care.',
+            'Every item here has a human behind it.',
+            'The internet is loud. Your circle isn\'t.',
+            'What your people know, now you know too.',
+        ],
+        discover: [
+            'See what your world is excited about.',
+            'Trending here means trusted people saved it.',
+            'Explore what your circle has built together.',
+            'Every item here passed the friend test.',
+            'The bigger your circle, the richer this gets.',
+            'Real places. Real takes. Real people.',
+            'Trending doesn\'t mean viral. It means trusted.',
+            'Your Knowledge Base, all in one place.',
+            'Discover more by knowing more people.',
+            'What\'s popular here actually means something.',
+        ],
+        search: [
+            'Search like you\'d text a friend.',
+            'Every result here was put here by a real person.',
+            'No sponsored results. No fake reviews.',
+            'The answer you need has already been saved.',
+            'Trusted knowledge, one search away.',
+            'Ask it like you\'d ask someone who knows.',
+            'Your friends already know. Just ask.',
+            'The best search engine is a trusted circle.',
+            'No SEO. No ads. Just real answers.',
+            'Someone in your circle already knows this.',
+        ],
+        add: [
+            'Your knowledge is someone else\'s answer.',
+            'Add it once. Your whole circle benefits.',
+            'Be the friend with the best recommendations.',
+            'What you add becomes someone\'s trusted source.',
+            'Someone in your circle needs exactly what you know.',
+            'The best gift you can give is what you already know.',
+            'Every add makes your circle smarter.',
+            'You know something worth saving. Add it.',
+            'Your take matters more than any review site.',
+            'Knowledge shared is knowledge multiplied.',
+        ],
+        profile: [
+            'Your Knowledge Base grows with every connection.',
+            'More friends. Less noise. More signal.',
+            'Everything here, earned through trust.',
+            'Your circle is your most valuable asset.',
+            'The more you give, the more your circle grows.',
+            'Your Knowledge Base is yours. Build it well.',
+            'Three friends today. A hundred trusted items tomorrow.',
+            'Every person you add expands what you know.',
+            'Small circle. High trust. That\'s the point.',
+            'Quality of connections over quantity of content.',
+        ],
+    };
+
+    // Shared rotate util — fades out, swaps text, fades in
+    var _phraseTimers = {};
+    function _startPhraseRotation(subtitleId, phraseKey, intervalMs) {
+        var el = document.getElementById(subtitleId);
+        if (!el) return;
+        var pool = ODIN_PHRASES[phraseKey] || [];
+        var idx  = Math.floor(Math.random() * pool.length);
+        el.textContent = pool[idx];
+        if (_phraseTimers[subtitleId]) clearInterval(_phraseTimers[subtitleId]);
+        _phraseTimers[subtitleId] = setInterval(function() {
+            var el2 = document.getElementById(subtitleId);
+            if (!el2) return;
+            el2.classList.add('page-subtitle-fade');
+            setTimeout(function() {
+                idx = (idx + 1) % pool.length;
+                el2.textContent = pool[idx];
+                el2.classList.remove('page-subtitle-fade');
+            }, 350);
+        }, intervalMs || 6000);
+    }
+
+    function _timeGreeting() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 12) return 'Good morning';
+        if (h >= 12 && h < 18) return 'Good afternoon';
+        return 'Good evening';
+    }
+
+    function _firstName() {
+        return (typeof currentProfile !== 'undefined' && currentProfile)
+            ? (currentProfile.display_name || '').split(' ')[0] : '';
+    }
+
     // ── Search page greeting ──
     function updateSearchGreeting() {
-        var h1 = document.getElementById('searchGreeting');
+        var h1  = document.getElementById('searchGreeting');
         var sub = document.getElementById('searchGreetingSub');
         if (!h1 || !sub) return;
-        var hour = new Date().getHours();
-        var name = (typeof currentProfile !== 'undefined' && currentProfile)
-            ? (currentProfile.display_name || '').split(' ')[0] : '';
-
-        // Greeting
-        var greeting = 'Good evening';
-        if (hour < 12)       greeting = 'Good morning';
-        else if (hour < 17)  greeting = 'Good afternoon';
+        var name = _firstName();
+        var greeting = _timeGreeting();
         if (name) {
-            h1.innerHTML = greeting + ', <span style="color:#7B2D45;">' + name + '</span>';
+            h1.innerHTML = greeting + ', <span class="highlight">' + name + '</span>';
         } else {
             h1.textContent = greeting;
         }
+        _startPhraseRotation('searchGreetingSub', 'search', 7000);
 
-        // Time-based search prompt
-        var prompts = {
-            morning:   ['What are you hunting for today?', 'Start your day with a great find.', 'What can your friends help you discover?'],
-            lunch:     ['Hungry? Ask your friends.', 'What are you in the mood for?', 'What would you like to find today?'],
-            afternoon: ['What are you looking for?', 'Your friends might know just the thing.', 'What can we help you find?'],
-            evening:   ['What are you after tonight?', 'Let your friends guide you.', 'What sounds good right now?'],
-        };
-        var pool = hour < 12 ? prompts.morning : hour < 14 ? prompts.lunch : hour < 18 ? prompts.afternoon : prompts.evening;
-        sub.textContent = pool[Math.floor(Math.random() * pool.length)];
-
-        // Hide suggestion chips in Focus mode
-        var chipsEl = document.querySelector('#chatContainer .suggestions');
+        // Always show suggestion chips on search page welcome state
+        var chipsEl = document.getElementById('searchSuggestions');
         if (chipsEl) {
-            chipsEl.style.display = (getHomeStyle() === 'launcher') ? 'none' : '';
+            chipsEl.style.display = '';
+            renderSearchChips();
         }
+        renderRecentSearches();
     }
+
+    // ══════════════════════════════════════════════
+    // ── TIME-BASED BILINGUAL SUGGESTION CHIPS ──
+    // ══════════════════════════════════════════════
+    // Each pool has en[] and zh[] — 3 picked from each, queries match chip language
+    var _SEARCH_CHIP_POOLS = {
+        morning: {
+            en: [
+                { q: 'Good coffee nearby',                       label: '☕ Good coffee nearby' },
+                { q: 'Best breakfast my friends like',           label: '🍳 Best breakfast spot' },
+                { q: 'Quiet café with wifi',                     label: '💻 Quiet café with wifi' },
+                { q: 'Good bakery nearby',                       label: '🥐 Good bakery nearby' },
+                { q: 'Where to get a flat white?',               label: '☕ Where to get a flat white?' },
+                { q: 'Healthy breakfast spots',                  label: '🥗 Healthy breakfast spots' },
+            ],
+            zh: [
+                { q: '附近邊度有好咖啡？',                        label: '☕ 附近咖啡推薦' },
+                { q: '朋友推介嘅早餐店係邊度？',                  label: '🍳 朋友推介早餐' },
+                { q: '有冇靜靜嘅café可以做嘢？',                  label: '💻 靜靜做嘢咖啡廳' },
+                { q: '附近有咩麵包店推薦？',                      label: '🥐 附近麵包店' },
+                { q: '邊度有好flat white？',                     label: '☕ 好flat white推薦' },
+                { q: '健康早餐去邊好？',                          label: '🥗 健康早餐推薦' },
+            ],
+        },
+        lunch: {
+            en: [
+                { q: 'Good ramen my friends recommend',          label: '🍜 Good ramen nearby' },
+                { q: 'Quick lunch nearby',                       label: '🥡 Quick lunch nearby' },
+                { q: 'Best poke bowl in the area',               label: '🍱 Best poke bowl' },
+                { q: 'Healthy lunch spots',                      label: '🥗 Healthy lunch spots' },
+                { q: 'Best sushi for lunch',                     label: '🍣 Best sushi for lunch' },
+                { q: 'Where did my friends go for dim sum?',     label: '🥟 Dim sum nearby' },
+            ],
+            zh: [
+                { q: '朋友推介嘅拉麵係邊間？',                    label: '🍜 朋友推介拉麵' },
+                { q: '附近有咩快lunch？',                         label: '🥡 附近快lunch' },
+                { q: '附近有好poke bowl嗎？',                     label: '🍱 附近poke bowl' },
+                { q: '有咩健康午餐選擇？',                        label: '🥗 健康午餐選擇' },
+                { q: '午市壽司邊度好？',                          label: '🍣 午市壽司推薦' },
+                { q: '朋友去邊度飲茶？',                          label: '🥟 朋友飲茶推薦' },
+            ],
+        },
+        afternoon: {
+            en: [
+                { q: 'Café with good matcha or coffee',          label: '🍵 Good matcha or coffee' },
+                { q: 'Cosy place to read or work',               label: '📖 Cosy place to work' },
+                { q: 'Best afternoon tea my friends saved',      label: '🫖 Best afternoon tea' },
+                { q: 'Good snack spots nearby',                  label: '🧁 Good snack spots' },
+                { q: 'Somewhere nice to sit outside',            label: '🌤 Nice outdoor seating' },
+                { q: 'What dessert places did my friends save?', label: '🍰 Dessert places nearby' },
+            ],
+            zh: [
+                { q: '邊度有好抹茶或咖啡？',                      label: '🍵 下午茶咖啡廳' },
+                { q: '有冇舒服嘅地方坐低做嘢或睇書？',             label: '📖 舒適café坐低' },
+                { q: '朋友收藏咗咩下午茶？',                      label: '🫖 下午茶推薦' },
+                { q: '附近有咩小食推薦？',                        label: '🧁 附近小食推薦' },
+                { q: '有冇靚嘅戶外坐位？',                        label: '🌤 戶外坐位推薦' },
+                { q: '朋友收藏咗咩甜品店？',                      label: '🍰 朋友收藏甜品店' },
+            ],
+        },
+        evening: {
+            en: [
+                { q: 'Good dinner spot for tonight',             label: '🍽 Good dinner tonight' },
+                { q: 'Bar my friends recommend',                 label: '🍸 Bar my friends like' },
+                { q: 'Best Italian restaurant nearby',           label: '🍝 Italian restaurant nearby' },
+                { q: 'Rooftop bar or outdoor seating',           label: '🌃 Rooftop bar nearby' },
+                { q: 'Date night restaurant my friends love',    label: '🕯 Date night restaurant' },
+                { q: 'Where to get good cocktails?',             label: '🍹 Good cocktails nearby' },
+            ],
+            zh: [
+                { q: '今晚食乜好？',                              label: '🍽 今晚食乜好?' },
+                { q: '朋友推介嘅酒吧係邊間？',                    label: '🍸 朋友推介酒吧' },
+                { q: '附近有冇好嘅意大利餐廳？',                  label: '🍝 附近意大利餐廳' },
+                { q: '附近有冇天台或戶外酒吧？',                  label: '🌃 天台/戶外酒吧' },
+                { q: '朋友推介嘅約會餐廳係邊間？',                label: '🕯 約會餐廳推薦' },
+                { q: '邊度有好cocktail？',                        label: '🍹 邊度有好cocktail?' },
+            ],
+        },
+        latenight: {
+            en: [
+                { q: 'Late night food open now',                 label: '🌙 Late night food' },
+                { q: 'Best 24hr eats my friends know',           label: '🕛 24hr food nearby' },
+                { q: 'Night cap bar nearby',                     label: '🥃 Night cap bar' },
+                { q: 'Any supper spots my friends saved?',       label: '🍜 Supper spots nearby' },
+            ],
+            zh: [
+                { q: '夜晚食宵夜邊度好？',                        label: '🌙 宵夜推薦' },
+                { q: '朋友知唔知24小時食店？',                    label: '🕛 24小時食店推介' },
+                { q: '附近有冇夜酒吧？',                          label: '🥃 附近夜酒吧' },
+                { q: '朋友有冇收藏宵夜地方？',                    label: '🍜 朋友宵夜推薦' },
+            ],
+        },
+    };
+
+    function _getChipPool() {
+        var h = new Date().getHours();
+        if (h >= 5  && h < 11) return _SEARCH_CHIP_POOLS.morning;
+        if (h >= 11 && h < 14) return _SEARCH_CHIP_POOLS.lunch;
+        if (h >= 14 && h < 18) return _SEARCH_CHIP_POOLS.afternoon;
+        if (h >= 18 && h < 23) return _SEARCH_CHIP_POOLS.evening;
+        return _SEARCH_CHIP_POOLS.latenight;
+    }
+
+    function _shufflePick(arr, n) {
+        var copy = arr.slice();
+        for (var i = copy.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = copy[i]; copy[i] = copy[j]; copy[j] = tmp;
+        }
+        return copy.slice(0, Math.min(n, copy.length));
+    }
+
+    function renderSearchChips() {
+        var container = document.getElementById('searchSuggestions');
+        if (!container) return;
+        container.innerHTML = '';
+        var pool = _getChipPool();
+        // 3 English + 3 Chinese, randomly picked, interleaved for visual variety
+        var enPicks = _shufflePick(pool.en, 3);
+        var zhPicks = _shufflePick(pool.zh, 3);
+        // Interleave: en, zh, en, zh, en, zh
+        var chips = [];
+        for (var i = 0; i < 3; i++) {
+            if (enPicks[i]) chips.push(enPicks[i]);
+            if (zhPicks[i]) chips.push(zhPicks[i]);
+        }
+        chips.forEach(function(item) {
+            var span = document.createElement('span');
+            span.className = 'suggestion-chip';
+            // Strip leading emoji + space from label
+            var cleanLabel = item.label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '');
+            span.textContent = cleanLabel;
+            span.onclick = (function(q) { return function() { sendMessage(q); }; })(item.q);
+            container.appendChild(span);
+        });
+    }
+
+    // ══════════════════════════════════════════════
+    // ── ANIMATED SEARCH INPUT PLACEHOLDER ──
+    // ══════════════════════════════════════════════
+    var _searchPlaceholderTimer = null;
+    var _searchPlaceholderIdx   = 0;
+
+    var _SEARCH_PLACEHOLDER_POOL = [
+        // English — natural language prompts
+        'Try "good ramen my friends like"',
+        'Ask "where did Sunny eat last week?"',
+        'Try "quiet café with wifi nearby"',
+        'Ask "best birthday cake spot in the area"',
+        'Try "cocktail bar for tonight"',
+        'Ask "Italian place my circle recommends"',
+        'Try "where to bring kids for lunch"',
+        'Ask "drawing method I saved last month"',
+        // Traditional Chinese
+        '問「附近邊度食好？」',
+        '試試「朋友推介嘅咖啡廳」',
+        '問「上次Sunny講嘅餐廳係邊度？」',
+        '試試「晚上飲嘢去邊好？」',
+        '問「我收藏咗咩好嘢食？」',
+        '試試「附近有冇靚甜品店？」',
+    ];
+
+    function _showSearchPlaceholder(text) {
+        var el = document.getElementById('searchAnimPlaceholder');
+        if (!el) return;
+        el.classList.remove('anim-fade-in', 'anim-fade-out');
+        void el.offsetWidth;
+        el.textContent = text;
+        el.classList.add('anim-fade-in');
+    }
+
+    function startSearchPlaceholder() {
+        var input = document.getElementById('messageInput');
+        var el    = document.getElementById('searchAnimPlaceholder');
+        if (!el) return;
+        // Don't start if user already typed something
+        if (input && input.value.trim()) { el.style.display = 'none'; return; }
+        el.style.display = '';
+
+        if (_searchPlaceholderTimer) { clearInterval(_searchPlaceholderTimer); _searchPlaceholderTimer = null; }
+        _showSearchPlaceholder(_SEARCH_PLACEHOLDER_POOL[_searchPlaceholderIdx % _SEARCH_PLACEHOLDER_POOL.length]);
+
+        _searchPlaceholderTimer = setInterval(function() {
+            var inp = document.getElementById('messageInput');
+            if (inp && inp.value.trim()) return;
+            var el2 = document.getElementById('searchAnimPlaceholder');
+            if (!el2) return;
+            el2.classList.remove('anim-fade-in');
+            el2.classList.add('anim-fade-out');
+            setTimeout(function() {
+                _searchPlaceholderIdx = (_searchPlaceholderIdx + 1) % _SEARCH_PLACEHOLDER_POOL.length;
+                _showSearchPlaceholder(_SEARCH_PLACEHOLDER_POOL[_searchPlaceholderIdx]);
+            }, 420);
+        }, 4500);
+    }
+
+    function stopSearchPlaceholder() {
+        if (_searchPlaceholderTimer) { clearInterval(_searchPlaceholderTimer); _searchPlaceholderTimer = null; }
+        var el = document.getElementById('searchAnimPlaceholder');
+        if (el) el.style.display = 'none';
+    }
+
+    // ══════════════════════════════════════════════
+    // ── RECENT SEARCHES (localStorage, max 5) ──
+    // ══════════════════════════════════════════════
+    var _RECENT_KEY = 'odin_recent_searches';
+    var _RECENT_MAX = 5;
+
+    function getRecentSearches() {
+        try {
+            var raw = JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]');
+            // Sanitise: keep only plain non-empty strings
+            return raw.filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
+        } catch(e) { return []; }
+    }
+
+    // One-time cleanup: remove any stale [object Object] entries saved by old code
+    (function() {
+        try {
+            var raw = JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]');
+            var clean = raw.filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
+            if (clean.length !== raw.length) localStorage.setItem(_RECENT_KEY, JSON.stringify(clean));
+        } catch(e) {}
+    })();
+
+    function saveRecentSearch(query) {
+        if (!query || query.trim().length < 2) return;
+        var list = getRecentSearches().filter(function(q) { return q !== query; });
+        list.unshift(query);
+        if (list.length > _RECENT_MAX) list = list.slice(0, _RECENT_MAX);
+        try { localStorage.setItem(_RECENT_KEY, JSON.stringify(list)); } catch(e) {}
+    }
+
+    function deleteRecentSearch(query) {
+        var list = getRecentSearches().filter(function(q) { return q !== query; });
+        try { localStorage.setItem(_RECENT_KEY, JSON.stringify(list)); } catch(e) {}
+        renderRecentSearches();
+    }
+
+    function clearAllRecentSearches() {
+        try { localStorage.removeItem(_RECENT_KEY); } catch(e) {}
+        renderRecentSearches();
+    }
+
+    function renderRecentSearches() {
+        var section = document.getElementById('recentSearchesSection');
+        var row     = document.getElementById('recentSearchesRow');
+        if (!section || !row) return;
+        // Filter out any stale [object Object] entries
+        var list = getRecentSearches().filter(function(q) { return typeof q === 'string' && q.trim().length > 1; });
+        if (!list.length) { section.style.display = 'none'; return; }
+        section.style.display = '';
+        row.innerHTML = '';
+        list.forEach(function(q) {
+            var pill = document.createElement('div');
+            pill.className = 'recent-search-pill';
+
+            var textSpan = document.createElement('span');
+            textSpan.className = 'recent-search-pill-text';
+            textSpan.textContent = q;
+
+            var del = document.createElement('button');
+            del.className = 'recent-pill-delete';
+            del.innerHTML = '&times;';
+            del.title = 'Remove';
+            del.setAttribute('aria-label', 'Remove');
+
+            (function(query) {
+                del.onclick = function(e) { e.stopPropagation(); deleteRecentSearch(query); };
+                pill.onclick = function() { sendMessage(query); };
+            })(q);
+
+            pill.appendChild(textSpan);
+            pill.appendChild(del);
+            row.appendChild(pill);
+        });
+    }
+
+    // ── Keyboard visibility: hide bottom tab bar when iPhone keyboard opens ──
+    (function() {
+        var tabBar = null;
+        function getTabBar() { return tabBar || (tabBar = document.querySelector('.bottom-tab-bar')); }
+
+        // Use visualViewport API (most reliable on iOS Safari)
+        if (window.visualViewport) {
+            var _lastVH = window.visualViewport.height;
+            window.visualViewport.addEventListener('resize', function() {
+                var vvh = window.visualViewport.height;
+                var windowH = window.innerHeight;
+                // If viewport shrinks by more than 120px, keyboard is likely open
+                var keyboardOpen = (windowH - vvh) > 120;
+                document.body.classList.toggle('keyboard-open', keyboardOpen);
+                _lastVH = vvh;
+            });
+        } else {
+            // Fallback: watch window resize
+            var _initH = window.innerHeight;
+            window.addEventListener('resize', function() {
+                var diff = _initH - window.innerHeight;
+                document.body.classList.toggle('keyboard-open', diff > 120);
+            });
+        }
+
+        // Also handle input focus/blur on messageInput for safety
+        document.addEventListener('focusin', function(e) {
+            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+                document.body.classList.add('keyboard-open');
+            }
+        });
+        document.addEventListener('focusout', function(e) {
+            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+                // Small delay to let the keyboard fully dismiss
+                setTimeout(function() {
+                    if (document.activeElement !== document.getElementById('messageInput') &&
+                        document.activeElement !== document.getElementById('homeSearchInput')) {
+                        document.body.classList.remove('keyboard-open');
+                    }
+                }, 150);
+            }
+        });
+    })();
 
     // Patch setMode to track history + trigger search greeting
     (function() {
@@ -1821,7 +2795,12 @@
             }
             _navIgnoreNext = false;
             _origSetMode(mode);
-            if (mode === 'search') updateSearchGreeting();
+            if (mode === 'search') {
+                updateSearchGreeting();
+                // Small delay so the input is visible before starting animation
+                setTimeout(startSearchPlaceholder, 80);
+            }
+            if (mode !== 'search') stopSearchPlaceholder();
             if (mode !== 'home') stopPlaceholderCycle();
         };
     })();
@@ -1870,6 +2849,52 @@
         if (backdrop) backdrop.classList.remove('open');
     }
 
+    // ===== Learn More dark sheet =====
+    function lsOpenLearnMore() {
+        var sheet    = document.getElementById('lsLearnSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        if (!sheet) return;
+        lsCloseSheet(); // ensure auth sheet is closed first
+        sheet.classList.add('open');
+        backdrop.classList.add('open');
+    }
+    function lsCloseLearnMore() {
+        var sheet    = document.getElementById('lsLearnSheet');
+        var backdrop = document.getElementById('lsBackdrop');
+        if (sheet)    sheet.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+    }
+    // Swipe-down to dismiss Learn More sheet
+    (function() {
+        var sheet = document.getElementById('lsLearnSheet');
+        if (!sheet) return;
+        var startY = 0, currentY = 0, dragging = false;
+        sheet.addEventListener('touchstart', function(e) {
+            if (sheet.scrollTop > 0) return;
+            startY = e.touches[0].clientY;
+            dragging = true;
+            sheet.style.transition = 'none';
+        }, { passive: true });
+        sheet.addEventListener('touchmove', function(e) {
+            if (!dragging) return;
+            currentY = e.touches[0].clientY;
+            var delta = currentY - startY;
+            if (delta > 0) sheet.style.transform = 'translateY(' + delta + 'px)';
+        }, { passive: true });
+        sheet.addEventListener('touchend', function() {
+            if (!dragging) return;
+            dragging = false;
+            sheet.style.transition = '';
+            var delta = currentY - startY;
+            if (delta > 100) {
+                sheet.style.transform = '';
+                lsCloseLearnMore();
+            } else {
+                sheet.style.transform = '';
+            }
+        });
+    })();
+
     // Swipe-down to dismiss the sheet
     (function() {
         var sheet = document.getElementById('lsSheet');
@@ -1903,9 +2928,41 @@
 
     // ===== LANDING PAGE — Rotating headlines =====
     (function() {
-        var lsIds  = ['lsh0','lsh1','lsh2','lsh3'];
-        var lsCur  = 0;
-        var lsTimer;
+        var lsIds      = ['lsh0','lsh1','lsh2','lsh3','lsh4'];
+        // Mobile reads slightly slower — give each slide a touch more time
+        var lsIsMobile  = window.matchMedia('(max-width: 780px)').matches;
+        var lsDurations = lsIsMobile
+            ? [5000, 4500, 4500, 4500, 4500]   // mobile: 5s + 4.5s × 4
+            : [5000, 4000, 4000, 4000, 4000];   // desktop: 5s + 4s × 4
+        var lsCur      = 0;
+        var lsTimer;          // auto-advance timeout
+        var lsResumeTimer;    // resume-after-touch timeout
+        var lsPaused   = false;
+
+        function lsScheduleNext() {
+            clearTimeout(lsTimer);
+            if (lsPaused) return;
+            lsTimer = setTimeout(function() {
+                lsSetH((lsCur + 1) % lsIds.length, false);
+            }, lsDurations[lsCur]);
+        }
+
+        function lsPause() {
+            lsPaused = true;
+            clearTimeout(lsTimer);
+            clearTimeout(lsResumeTimer);
+        }
+
+        function lsResume() {
+            lsPaused = false;
+            lsScheduleNext();
+        }
+
+        function lsResumeAfterDelay() {
+            clearTimeout(lsResumeTimer);
+            lsResumeTimer = setTimeout(lsResume, 10000);
+        }
+
         window.lsSetH = function(n, restart) {
             if (restart === undefined) restart = true;
             document.getElementById(lsIds[lsCur]).classList.remove('visible');
@@ -1914,12 +2971,63 @@
             lsCur = n;
             document.getElementById(lsIds[lsCur]).classList.add('visible');
             if (dots[lsCur]) dots[lsCur].classList.add('active');
-            if (restart) {
-                clearInterval(lsTimer);
-                lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
-            }
+            lsScheduleNext();
         };
-        lsTimer = setInterval(function(){ lsSetH((lsCur + 1) % lsIds.length, false); }, 7000);
+
+        // ── Touch: pause on press, swipe to navigate, resume 10s after last touch ──
+        var lsTouchStartX = 0;
+        var lsTouchStartY = 0;
+        var lsHeadlineArea = document.querySelector('#loginScreen .ls-headline-area') ||
+                             document.getElementById('loginScreen');
+
+        if (lsHeadlineArea) {
+            lsHeadlineArea.addEventListener('touchstart', function(e) {
+                lsTouchStartX = e.touches[0].clientX;
+                lsTouchStartY = e.touches[0].clientY;
+                lsPause();
+            }, { passive: true });
+
+            lsHeadlineArea.addEventListener('touchend', function(e) {
+                var dx = e.changedTouches[0].clientX - lsTouchStartX;
+                var dy = e.changedTouches[0].clientY - lsTouchStartY;
+                // Only count as a horizontal swipe if it's clearly horizontal
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    if (dx < 0) {
+                        // swipe left → next slide
+                        lsSetH((lsCur + 1) % lsIds.length, false);
+                    } else {
+                        // swipe right → previous slide
+                        lsSetH((lsCur - 1 + lsIds.length) % lsIds.length, false);
+                    }
+                    lsPause(); // keep paused after swipe; resume timer below
+                }
+                lsResumeAfterDelay();
+            }, { passive: true });
+        }
+
+        // Dot clicks also reset the resume timer
+        document.querySelectorAll('.ls-dot').forEach(function(dot, i) {
+            dot.addEventListener('click', function() {
+                lsPause();
+                lsSetH(i, false);
+                lsResumeAfterDelay();
+            });
+        });
+
+        // Kick off from slide 0
+        lsScheduleNext();
+    })();
+
+    // ===== SCROLL HINT — fade out after user scrolls =====
+    (function() {
+        var lsLeft = document.querySelector('#loginScreen .ls-left');
+        var hint   = document.getElementById('lsScrollHint');
+        if (!lsLeft || !hint) return;
+        lsLeft.addEventListener('scroll', function() {
+            var scrolled = lsLeft.scrollTop > 40;
+            hint.style.opacity = scrolled ? '0' : '';
+            hint.style.pointerEvents = scrolled ? 'none' : '';
+        }, { passive: true });
     })();
 
     // ===== AUTH MODAL (landing page) =====
@@ -2107,8 +3215,13 @@
         }
 
         var gi = Math.floor(Math.random() * greetings.length);
-        lineEl.innerHTML = greetings[gi] + '<span id="launcherGreetingName" class="launcher-name">' + safeName + '</span>';
-        if (subEl) subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
+        lineEl.innerHTML = greetings[gi] + '<span id="launcherGreetingName" class="launcher-name highlight">' + safeName + '</span>';
+        // Use ODIN_PHRASES home pool for subtitle (branding nudges)
+        if (subEl && typeof _startPhraseRotation === 'function') {
+            _startPhraseRotation('launcherSubGreeting', 'home', 7000);
+        } else if (subEl) {
+            subEl.textContent = subs[Math.floor(Math.random() * subs.length)];
+        }
     }
 
     function updateStyleToggleUI() {
@@ -2130,37 +3243,27 @@
 
     // ===== HOME PAGE ENHANCEMENTS =====
 
-    // ── 1. Greeting with user name (already correct, kept as-is) ──
+    // ── 1. Home greeting with name ──
     function updateHomeGreeting() {
-        const el = document.getElementById('homeGreeting');
+        var el = document.getElementById('homeGreeting');
         if (!el) return;
-        const hour = new Date().getHours();
-        let greeting = 'Good evening';
-        if (hour < 12) greeting = 'Good morning';
-        else if (hour < 17) greeting = 'Good afternoon';
-        const name = (typeof currentProfile !== 'undefined' && currentProfile)
-            ? (currentProfile.display_name || '').split(' ')[0]
-            : '';
+        var name = _firstName();
+        var greeting = _timeGreeting();
         if (name) {
-            el.innerHTML = greeting + ', <span style="color:#7B2D45;">' + name + '</span>';
+            el.innerHTML = greeting + ', <span class="highlight">' + name + '</span>';
         } else {
             el.textContent = greeting;
         }
     }
 
-    // ── 1b. Time-of-day subtitle ──
+    // ── 1b. Home subtitle — rotating phrases ──
     function updateHomeSubtitle() {
-        var el = document.getElementById('homeSubtitle');
-        if (!el) return;
-        var hour = new Date().getHours();
-        if (hour >= 6 && hour < 11)        el.textContent = 'Looking for a breakfast spot?';
-        else if (hour >= 11 && hour < 14)  el.textContent = 'Looking for a lunch spot?';
-        else if (hour >= 14 && hour < 18)  el.textContent = 'Looking for a coffee break?';
-        else                               el.textContent = 'Looking for dinner ideas?';
+        _startPhraseRotation('homeSubtitle', 'home', 7000);
     }
 
     // ── 2. Location-aware subtitle line — ON by default ──
-    var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') !== 'false';
+    // Default OFF — only turns on if user explicitly enables it (saved as 'true')
+    var _homeLocationEnabled = localStorage.getItem('homeLocationEnabled') === 'true';
     var _homeSuburb = null; // cached suburb name
 
     // Location icon — filled pin (on) / outline pin (off)
@@ -2378,6 +3481,114 @@
         });
     }
 
+    // ── Smart section tabs ──
+    var currentDiscoverSection = 'trending';
+
+    function setDiscoverSection(el, section) {
+        currentDiscoverSection = section;
+        document.querySelectorAll('.dc-stab').forEach(function(b) { b.classList.remove('active'); });
+        el.classList.add('active');
+
+        var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
+        var items = [];
+        var titleEl = document.getElementById('dcCircleTitle');
+
+        if (section === 'trending') {
+            // Most saved — sort by saves_count desc (real Supabase field)
+            var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            var recent = allD.filter(function(d) {
+                if (!d.created_at) return true;
+                return new Date(d.created_at) >= oneWeekAgo;
+            });
+            var pool = recent.length >= 3 ? recent : allD;
+            items = pool.slice().sort(function(a, b) {
+                return ((b.saves_count || 0) - (a.saves_count || 0));
+            });
+            if (titleEl) titleEl.textContent = 'Trending this week';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
+        } else if (section === 'nearby') {
+            // Location-aware — filter to items with latitude/longitude (Supabase field names)
+            items = allD.filter(function(d) { return d.latitude && d.longitude; });
+            if (titleEl) titleEl.textContent = 'Popular nearby';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'flex';
+        } else if (section === 'new') {
+            // Latest additions from circle — sort by created_at desc
+            items = allD.slice().sort(function(a, b) {
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+            });
+            if (titleEl) titleEl.textContent = 'New from your circle';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
+        }
+
+        // Show empty state if no data at all, otherwise proceed
+        var emptyEl = document.getElementById('dcEmptyState');
+        var tabsEl  = document.getElementById('dcSectionTabs');
+        if (allD.length === 0) {
+            if (emptyEl) emptyEl.style.display = '';
+            if (tabsEl)  tabsEl.style.display  = 'none';
+            var circleHeader = document.getElementById('dcCircleHeader');
+            if (circleHeader) circleHeader.style.display = 'none';
+            return;
+        } else {
+            if (emptyEl) emptyEl.style.display = 'none';
+            if (tabsEl)  tabsEl.style.display  = '';
+        }
+
+        // Set default sort per section
+        var sortEl = document.getElementById('dcSortSelect');
+        if (sortEl) {
+            if (section === 'trending') sortEl.value = 'saves';
+            else if (section === 'nearby') sortEl.value = 'nearest';
+            else if (section === 'new') sortEl.value = 'recent';
+        }
+
+        var circleHeader = document.getElementById('dcCircleHeader');
+        if (circleHeader) circleHeader.style.display = 'flex';
+
+        openCollection(titleEl ? titleEl.textContent : section, items);
+    }
+
+    // ── Discover heading + rotating subtitle ──
+    var _dcHeadings = [
+        'See what\'s trending',
+        'What\'s your circle into?',
+        'Discover',
+        'Find something new',
+        'Your circle knows best',
+    ];
+
+    function initDiscoverGreeting() {
+        var greetEl = document.getElementById('dcGreeting');
+        if (!greetEl) return;
+        // Pick heading based on time of day
+        var h = new Date().getHours();
+        var hi = (h >= 5 && h < 12) ? 0 : (h >= 12 && h < 17) ? 1 : (h >= 17 && h < 21) ? 2 : 3;
+        greetEl.textContent = _dcHeadings[hi] || _dcHeadings[0];
+        // Subtitle uses the ODIN_PHRASES discover pool
+        _startPhraseRotation('dcSubheading', 'discover', 7000);
+    }
+
+    // ── Sort control ──
+    function applyDiscoverSort(sortVal) {
+        if (!filteredDiscoveries) return;
+        var sorted = filteredDiscoveries.slice();
+        if (sortVal === 'saves') {
+            sorted.sort(function(a, b) { return (b.saves_count || 0) - (a.saves_count || 0); });
+        } else if (sortVal === 'recent') {
+            sorted.sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+        } else if (sortVal === 'nearest') {
+            sorted.sort(function(a, b) { return (a.distance_km || 9999) - (b.distance_km || 9999); });
+        } else if (sortVal === 'az') {
+            sorted.sort(function(a, b) { return (a.title || '').localeCompare(b.title || ''); });
+        }
+        filteredDiscoveries = sorted;
+        displayedCount = 0;
+        renderGrid();
+    }
+
     // ── 4b. Animated search bar placeholder ──
     var _placeholderTimer = null;
     var _placeholderIdx   = 0;
@@ -2512,6 +3723,82 @@
     }
 
     // ── 5. Friend feed — what people in your circle saved recently ──
+    // ── Per-login feed freshness ──────────────────────────────────────────────
+    // Each new login gets a unique session seed (timestamp-based).
+    // The seed is written once on first access within a session and cleared on
+    // logout via localStorage.clear(). Within the same session the seed stays
+    // constant so navigating home doesn't re-shuffle the feed mid-session.
+    var _FEED_SESSION_KEY = 'odin_feed_session_seed';
+
+    function _getFeedSeed() {
+        // Generate a fresh seed on every call so the feed order changes on every home visit
+        var seed = (Date.now() % 999983) + Math.floor(Math.random() * 16000);
+        return seed;
+    }
+
+    // LCG pseudo-random — works purely with safe integers, no imul needed
+    function _seededRand(seed) {
+        var s = seed % 999983 || 1;
+        return function() {
+            s = (s * 16807 + 0) % 2147483647;
+            return (s - 1) / 2147483646;
+        };
+    }
+
+    // Fisher-Yates shuffle using seeded rand
+    function _seededShuffle(arr, rand) {
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(rand() * (i + 1));
+            var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        }
+        return arr;
+    }
+
+    // _buildPulseCard: same card as regular but pinned at the front of the feed.
+    // No visible badge — the freshness is felt through order, not labelling.
+    function _buildPulseCard(item, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng) {
+        var media = item.photo_url
+            ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
+            : '<div class="hf-card-placeholder">' + SVG_PLACE + '</div>';
+
+        var distChip = '';
+        if (userLat && userLng && item.latitude && item.longitude) {
+            var R = 6371, dLat = (item.latitude - userLat) * Math.PI / 180;
+            var dLon = (item.longitude - userLng) * Math.PI / 180;
+            var a = Math.sin(dLat/2)*Math.sin(dLat/2)
+                + Math.cos(userLat*Math.PI/180)*Math.cos(item.latitude*Math.PI/180)
+                  *Math.sin(dLon/2)*Math.sin(dLon/2);
+            var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distChip = '<span class="hf-card-dist">' + SVG_PIN + (km < 1 ? Math.round(km*1000)+'m' : km.toFixed(1)+'km') + '</span>';
+        }
+
+        var categoryLabel = escapeHtml((item.type||'Place').charAt(0).toUpperCase()+(item.type||'Place').slice(1));
+        var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
+
+        var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
+        var totalSavers = 1 + (enc ? enc.count : 0);
+        var savedLabel = totalSavers === 1 ? '1 friend saved' : totalSavers + ' friends saved';
+        var allNames = [item.added_by_name || 'F'];
+        if (enc && enc.names) enc.names.forEach(function(n){ if(n) allNames.push(n); });
+        var avatarsHtml = allNames.slice(0,3).map(function(n,i){
+            return '<div class="hf-card-avatar" style="z-index:'+(3-i)+';margin-left:'+(i===0?'0':'-7px')+'">'
+                + escapeHtml(n).charAt(0).toUpperCase()+'</div>';
+        }).join('');
+
+        var summaryHtml = item.feed_card_summary
+            ? '<div class="hf-card-summary">\u201c'+escapeHtml(item.feed_card_summary)+'\u201d</div>' : '';
+
+        return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
+            + '<div class="hf-card-media-wrap">' + media + '</div>'
+            + '<div class="hf-card-body">'
+            + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
+            + summaryHtml
+            + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
+            + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
+            + '<span class="hf-card-name">'+savedLabel+'</span></div>'
+            + '</div></div>';
+    }
+
     async function loadFriendFeed() {
         var feedSection      = document.getElementById('homeFeedSection');
         var emptySection     = document.getElementById('homeEmptyFriends');
@@ -2535,13 +3822,14 @@
 
         try {
             var friendIds = friends.map(function(f) { return f.out_user_id; });
+            // Fetch more items so we have enough for pulse selection + shuffle pool
             var { data: items, error } = await supabaseClient
                 .from('knowledge_items')
                 .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary, latitude, longitude')
                 .in('added_by', friendIds)
                 .neq('visibility', 'private')   // never show friends' private items
                 .order('created_at', { ascending: false })
-                .limit(12);
+                .limit(24);
 
             if (error) {
                 console.error('Friend feed query error:', JSON.stringify(error));
@@ -2570,72 +3858,24 @@
             var SVG_TAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>';
             var SVG_PLACE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
 
-            var cardsHtml = items.map(function(item) {
+            // ── Per-login shuffle: fully random order every visit ──────────
+            var seed = _getFeedSeed();
+            var orderedItems = items.slice();
+            _seededShuffle(orderedItems, _seededRand(seed));
 
-                // ── Media ──
-                var media = item.photo_url
-                    ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                    : '<div class="hf-card-placeholder">' + SVG_PLACE + '</div>';
-
-                // ── Distance chip — Haversine from lat/lng ──
-                var distChip = '';
-                if (userLat && userLng && item.latitude && item.longitude) {
-                    var R = 6371;
-                    var dLat = (item.latitude - userLat) * Math.PI / 180;
-                    var dLon = (item.longitude - userLng) * Math.PI / 180;
-                    var a = Math.sin(dLat/2) * Math.sin(dLat/2)
-                        + Math.cos(userLat * Math.PI/180) * Math.cos(item.latitude * Math.PI/180)
-                        * Math.sin(dLon/2) * Math.sin(dLon/2);
-                    var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                    var dLabel = km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
-                    distChip = '<span class="hf-card-dist">' + SVG_PIN + dLabel + '</span>';
-                }
-
-                // ── Category chip ──
-                var categoryLabel = escapeHtml((item.type || 'Place').charAt(0).toUpperCase() + (item.type || 'Place').slice(1));
-                var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
-
-                // ── Saved-by: count-based label ──
-                var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
-                var totalSavers = 1 + (enc ? enc.count : 0);
-                var savedLabel = totalSavers === 1
-                    ? '1 friend saved'
-                    : totalSavers + ' friends saved';
-
-                // Stacked initials avatars
-                var allNames = [item.added_by_name || 'F'];
-                if (enc && enc.names) enc.names.forEach(function(n) { if (n) allNames.push(n); });
-                var avatarsHtml = allNames.slice(0, 3).map(function(n, i) {
-                    return '<div class="hf-card-avatar" style="z-index:' + (3-i) + ';margin-left:' + (i===0?'0':'-7px') + '">'
-                        + escapeHtml(n).charAt(0).toUpperCase() + '</div>';
-                }).join('');
-
-                var savedByHtml = '<div class="hf-card-by">'
-                    + '<div class="hf-card-avatars">' + avatarsHtml + '</div>'
-                    + '<span class="hf-card-name">' + savedLabel + '</span>'
-                    + '</div>';
-
-                // ── Summary ──
-                var summaryHtml = item.feed_card_summary
-                    ? '<div class="hf-card-summary">\u201c' + escapeHtml(item.feed_card_summary) + '\u201d</div>'
-                    : '';
-
-                // ── Chips row ──
-                var chipsRowHtml = '<div class="hf-card-chips-row">'
-                    + catChip
-                    + (distChip || '')
-                    + '</div>';
-
-                return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
-                    + '<div class="hf-card-media-wrap">' + media + '</div>'
-                    + '<div class="hf-card-body">'
-                    + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
-                    + summaryHtml
-                    + chipsRowHtml
-                    + savedByHtml
-                    + '</div>'
-                    + '</div>';
+            // Cap to 8 and build all cards with _buildPulseCard (same look, no badge)
+            var displayItems = orderedItems.slice(0, 8);
+            var cardsHtml = displayItems.map(function(item) {
+                return _buildPulseCard(item, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng);
             }).join('');
+
+            // "Show more" button — visible only when there are more than 8 items
+            var showMoreBtn = items.length > 8
+                ? '<button class="circle-feed-show-more" onclick="setMode(\'discover\')">'
+                  + 'Show more'
+                  + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+                  + '</button>'
+                : '';
 
             // Populate original feedHome section (hidden but keep in sync)
             if (feedSection) feedSection.style.display = 'block';
@@ -2645,6 +3885,16 @@
             // Populate launcher circle feed (always visible on home)
             if (launcherFeed) launcherFeed.style.display = 'block';
             if (launcherScroll) launcherScroll.innerHTML = cardsHtml;
+
+            // Inject Show more button after the scroll container in launcher feed
+            var existingShowMore = document.getElementById('launcherCircleFeedShowMore');
+            if (existingShowMore) existingShowMore.remove();
+            if (showMoreBtn && launcherFeed) {
+                var smEl = document.createElement('div');
+                smEl.id = 'launcherCircleFeedShowMore';
+                smEl.innerHTML = showMoreBtn;
+                launcherFeed.appendChild(smEl);
+            }
 
         } catch (err) {
             console.error('Friend feed error:', err);
@@ -2774,6 +4024,14 @@
         localStorage.removeItem(_RECENT_KEY);
         var section = document.getElementById('homeRecentSection');
         if (section) section.style.display = 'none';
+        // Also hide the launcher "Continue exploring" section
+        var launcherSection = document.getElementById('launcherRecentSection');
+        if (launcherSection) launcherSection.style.display = 'none';
+        // Clear the card contents too
+        var launcherScroll = document.getElementById('launcherRecentScroll');
+        if (launcherScroll) launcherScroll.innerHTML = '';
+        var homeScroll = document.getElementById('homeRecentScroll');
+        if (homeScroll) homeScroll.innerHTML = '';
         showToast('Recently viewed cleared');
     }
 
@@ -2785,10 +4043,19 @@
 
         var items = _getRecentlyViewed();
 
+        // Safe emoji getter in case app.js hasn't loaded yet
+        var _getEmoji = function(type) {
+            if (typeof getCategoryEmoji === 'function') return getCategoryEmoji(type);
+            var map = { place: '📍', product: '🛍️', service: '🔧', advice: '💡' };
+            return map[type] || '📍';
+        };
+
         var cardsHtml = items.length === 0 ? null : items.map(function(item) {
+            var emoji = _getEmoji(item.type);
+            // Show emoji placeholder immediately; replace with image if available and loads
             var media = item.photo_url
-                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                : '<div class="hr-card-emoji">' + getCategoryEmoji(item.type) + '</div>';
+                ? '<img class="hr-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';this.insertAdjacentHTML(\'afterend\',\'<div class=hr-card-emoji>' + emoji + '</div>\')">'
+                : '<div class="hr-card-emoji">' + emoji + '</div>';
             return '<div class="hr-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
                 + media
                 + '<div class="hr-card-body">'
@@ -2904,24 +4171,187 @@
         }
     })();
 
-    // ===== PROFILE PAGE ENHANCEMENTS =====
+    // ===== PROFILE PAGE ENHANCEMENTS V2 =====
 
-    // Update People count + Friends badge after friends load
+    // ── Drawer helpers ──
+    function _drawerSheet(id) {
+        var d = document.getElementById(id);
+        return d ? d.querySelector('.profile-drawer-sheet') : null;
+    }
+    // Lock background scroll without breaking iOS touch scroll inside drawer
+    function _lockScroll() {
+        var content = document.querySelector('.content');
+        if (content) content.style.overflow = 'hidden';
+    }
+    function _unlockScroll() {
+        var content = document.querySelector('.content');
+        if (content) content.style.overflow = '';
+    }
+
+    function openCircleDrawer() {
+        var d = document.getElementById('circleDrawer');
+        if (!d) return;
+        d.classList.add('is-open');
+        var sheet = _drawerSheet('circleDrawer');
+        if (sheet) sheet.removeAttribute('aria-hidden');
+        _lockScroll();
+        // Focus search input after slide animation completes
+        setTimeout(function() {
+            var inp = document.getElementById('friendSearchInput');
+            if (inp) inp.focus();
+        }, 340);
+    }
+    function closeCircleDrawer() {
+        var d = document.getElementById('circleDrawer');
+        if (!d) return;
+        d.classList.remove('is-open');
+        var sheet = _drawerSheet('circleDrawer');
+        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        _unlockScroll();
+    }
+    function openMySavesDrawer() {
+        var d = document.getElementById('mySavesDrawer');
+        if (!d) return;
+        d.classList.add('is-open');
+        var sheet = _drawerSheet('mySavesDrawer');
+        if (sheet) sheet.removeAttribute('aria-hidden');
+        _lockScroll();
+        syncMySavesDrawer();
+    }
+    function closeMySavesDrawer() {
+        var d = document.getElementById('mySavesDrawer');
+        if (!d) return;
+        d.classList.remove('is-open');
+        var sheet = _drawerSheet('mySavesDrawer');
+        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        _unlockScroll();
+    }
+    // Sync the hidden myEndorsementsList content into the drawer
+    function syncMySavesDrawer() {
+        var src = document.getElementById('myEndorsementsList');
+        var dst = document.getElementById('mySavesDrawerList');
+        if (!src || !dst) return;
+        dst.innerHTML = src.innerHTML;
+        // Re-bind any onclick events on cloned nodes
+        dst.querySelectorAll('[onclick]').forEach(function(el) {
+            var fn = el.getAttribute('onclick');
+            el.removeAttribute('onclick');
+            el.addEventListener('click', function() { eval(fn); });
+        });
+    }
+    // ── Language drawer ──
+    var _langLabels = {
+        'en':'EN','zh-TW':'繁中','zh-CN':'简中','ja':'日本語','ko':'한국어',
+        'es':'ES','fr':'FR','ar':'AR','hi':'HI','pt':'PT','de':'DE','id':'ID','th':'TH'
+    };
+    function openLangDrawer() {
+        var d = document.getElementById('langDrawer');
+        if (!d) return;
+        d.classList.add('is-open');
+        var sheet = _drawerSheet('langDrawer');
+        if (sheet) sheet.removeAttribute('aria-hidden');
+        _lockScroll();
+        // Highlight current lang
+        var cur = (typeof preferredLanguage !== 'undefined') ? preferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
+        d.querySelectorAll('.lang-drawer-item').forEach(function(btn) {
+            btn.classList.toggle('is-active', btn.dataset.lang === cur);
+        });
+    }
+    function closeLangDrawer() {
+        var d = document.getElementById('langDrawer');
+        if (!d) return;
+        d.classList.remove('is-open');
+        var sheet = _drawerSheet('langDrawer');
+        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        _unlockScroll();
+    }
+    // Sync the profile settings label whenever language changes
+    function syncProfileLangLabel() {
+        var cur = (typeof preferredLanguage !== 'undefined') ? preferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
+        var el = document.getElementById('profileLangValue');
+        if (el) el.textContent = _langLabels[cur] || cur.toUpperCase();
+        // Also keep old header label in sync (hidden but still used by app.js)
+        var hdr = document.getElementById('headerLangLabel');
+        if (hdr) hdr.textContent = _langLabels[cur] || cur.toUpperCase();
+    }
+    // Patch setPreferredLanguage to sync our label after it runs
+    if (typeof setPreferredLanguage === 'function') {
+        var _origSetLang = setPreferredLanguage;
+        setPreferredLanguage = function(lang) {
+            _origSetLang(lang);
+            syncProfileLangLabel();
+        };
+    }
+    // Initialise label on load
+    syncProfileLangLabel();
+
+    // Close all drawers on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCircleDrawer();
+            closeMySavesDrawer();
+            closeLangDrawer();
+        }
+    });
+
+    // ── Knowledge Base count ──
+    // Uses the get_kb_count SECURITY DEFINER RPC which runs server-side
+    // and bypasses RLS correctly. Counts:
+    //   1. Own items (any visibility)
+    //   2. Direct friends' items (visibility = 'friends')
+    //   3. Save-inherited items (friend saved it, item visibility = 'friends')
+    // All deduped. Single round-trip.
+    async function updateKnowledgeBaseCount() {
+        var kbEl = document.getElementById('profileKnowledgeBase');
+        if (!kbEl) return;
+        if (typeof supabaseClient === 'undefined' || !currentUser) return;
+
+        try {
+            var { data, error } = await supabaseClient.rpc('get_kb_count', {
+                p_user_id: currentUser.id
+            });
+            if (error) {
+                console.error('KB count RPC error:', error);
+                return;
+            }
+            kbEl.textContent = (data != null) ? data : 0;
+        } catch(e) {
+            console.error('KB count error:', e);
+        }
+    }
+
+    // ── Box count badges ──
+    function updateProfileBoxCounts() {
+        // My Saves count — read from the stat number already set correctly by app.js
+        var savesEl = document.getElementById('pboxSavesCount');
+        if (savesEl) {
+            var statEl = document.getElementById('profileEndorsementCount');
+            var n = statEl ? parseInt(statEl.textContent, 10) : 0;
+            savesEl.textContent = n > 0 ? n + ' save' + (n !== 1 ? 's' : '') : '';
+        }
+        // Circle count
+        var circleEl = document.getElementById('pboxCircleCount');
+        if (circleEl) {
+            var count = (typeof friendsCache !== 'undefined') ? friendsCache.length : 0;
+            circleEl.textContent = count > 0 ? count + ' friend' + (count !== 1 ? 's' : '') : '';
+        }
+    }
+
+    // ── Update People/Friends count + badge after friends load ──
     if (typeof updateFriendsDisplay === 'function') {
         var _origUpdateFriendsDisplay = updateFriendsDisplay;
         updateFriendsDisplay = function() {
             _origUpdateFriendsDisplay();
-            // Update "People" stat on profile
             var count = (typeof friendsCache !== 'undefined') ? friendsCache.length : 0;
             var el = document.getElementById('profilePeopleCount');
             if (el) el.textContent = count;
-            // Update friends badge count
             var badge = document.getElementById('friendsCountBadge');
             if (badge) badge.textContent = count;
+            updateProfileBoxCounts();
         };
     }
 
-    // Patch loadProfilePage to update People stat + style toggle
+    // ── Patch loadProfilePage ──
     if (typeof loadProfilePage === 'function') {
         var _origLoadProfilePage = loadProfilePage;
         loadProfilePage = async function() {
@@ -2931,20 +4361,43 @@
             if (el) el.textContent = count;
             var badge = document.getElementById('friendsCountBadge');
             if (badge) badge.textContent = count;
-            // Sync the home style toggle pills
             updateStyleToggleUI();
+            updateKnowledgeBaseCount();
+            updateProfileBoxCounts();
         };
     }
 
-    // ── Override goToEndorsedItem so home-screen cards slide up a drawer
+    // ── Update KB when discoveries load ──
+    if (typeof loadDiscoveries === 'function') {
+        var _origLoadDiscoveries = loadDiscoveries;
+        loadDiscoveries = async function() {
+            var result = await _origLoadDiscoveries();
+            updateKnowledgeBaseCount();
+            return result;
+        };
+    }
+    // Catch-up: fire at 1.5s and again at 3.5s to cover slow mobile connections
+    setTimeout(function() {
+        updateKnowledgeBaseCount();
+        updateProfileBoxCounts();
+    }, 1500);
+    setTimeout(function() {
+        updateKnowledgeBaseCount();
+        updateProfileBoxCounts();
+    }, 3500);
+
+    // ── Override goToEndorsedItem so home and profile cards slide up a drawer
     //    instead of navigating away to the Discover page ──
     if (typeof goToEndorsedItem === 'function') {
         var _origGoToEndorsedItem = goToEndorsedItem;
         goToEndorsedItem = function(itemId) {
-            // If we're currently on the home page, open the drawer in-place
-            var homePage = document.getElementById('homePage');
-            var onHome = homePage && !homePage.classList.contains('hidden');
-            if (onHome && typeof openItemDrawer === 'function') {
+            // Open the drawer in-place when on home OR profile page
+            var homePage    = document.getElementById('homePage');
+            var profileMode = document.getElementById('profileMode');
+            var onHome    = homePage    && !homePage.classList.contains('hidden');
+            var onProfile = profileMode && !profileMode.classList.contains('hidden');
+
+            if ((onHome || onProfile) && typeof openItemDrawer === 'function') {
                 // Try allDiscoveries first (already loaded), then fetch from Supabase
                 var item = (typeof allDiscoveries !== 'undefined')
                     ? allDiscoveries.find(function(d) { return d.id === itemId; })
@@ -2952,7 +4405,7 @@
                 if (item) {
                     openItemDrawer(item);
                 } else {
-                    // Item not in local cache — fetch it then open
+                    // Item not in local cache — fetch it then open drawer
                     supabaseClient
                         .from('knowledge_items')
                         .select('*')
@@ -2964,7 +4417,7 @@
                         });
                 }
             } else {
-                // Not on home — use original behaviour (go to Discover)
+                // Not on home or profile — use original behaviour (go to Discover)
                 _origGoToEndorsedItem(itemId);
             }
         };

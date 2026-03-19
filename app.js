@@ -64,6 +64,7 @@ async function showMainApp() {
     endorsementsCache = {};
     friendsCache = [];
     pendingFriendRequests = [];
+    outgoingFriendRequests = new Set();
     blockedUsersCache = [];
     isFirstMessage = true;
     sessionMessages = [];
@@ -122,7 +123,7 @@ async function showMainApp() {
 
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
-    loadPendingFriendRequests();
+    await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
 
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
@@ -146,6 +147,7 @@ async function handleLogout() {
         currentProfile = null;
         friendsCache = [];
         pendingFriendRequests = [];
+        outgoingFriendRequests = new Set();
         blockedUsersCache = [];
         // Privacy: wipe ALL client state on logout.
         // localStorage is a shared unprotected store — clear it completely
@@ -228,6 +230,7 @@ async function executeDeleteAccount() {
         currentProfile = null;
         friendsCache = [];
         pendingFriendRequests = [];
+        outgoingFriendRequests = new Set();
         blockedUsersCache = [];
         localStorage.clear();
 
@@ -325,6 +328,19 @@ async function handleGoogleLogin() {
         const btn = document.getElementById('googleAuthBtn');
         setButtonLoading(btn, 'Connecting...');
         clearAuthMessage();
+
+        // ── Preserve invite token across OAuth redirect ──
+        // Google OAuth strips all URL params on redirect back.
+        // Save the token to sessionStorage NOW so we can read it
+        // after the redirect completes in checkOnboardingBanner().
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteToken = urlParams.get('token');
+        if (inviteToken) {
+            // Save to BOTH storages — sessionStorage can be wiped by Google OAuth
+            // redirect (new tab, domain handoff). localStorage survives the round-trip.
+            sessionStorage.setItem('odin_invite_token', inviteToken);
+            localStorage.setItem('odin_invite_token', inviteToken);
+        }
 
         const { data, error } = await supabaseClient.auth.signInWithOAuth({
             provider: 'google',
@@ -552,9 +568,11 @@ checkAuth();
 let currentProfile = null;
 
 // ===== FRIENDS NETWORK =====
-let friendsCache = [];           // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
-let pendingFriendRequests = [];  // Array: { out_id, out_requester_id, out_requester_name, ... }
-let blockedUsersCache = [];      // Array: { out_blocked_user_id, out_display_name }
+let friendsCache = [];              // Array: { out_friendship_id, out_user_id, out_email, out_display_name, out_avatar_url }
+let pendingFriendRequests = [];     // Array: { out_id, out_requester_id, out_requester_name, ... } — INCOMING only
+let outgoingFriendRequests = new Set(); // Set of receiver UUIDs you've sent requests to this session
+let outgoingPendingRequests = [];       // Array: { out_id, out_receiver_id, out_receiver_name, out_avatar_url, out_created_at }
+let blockedUsersCache = [];         // Array: { out_blocked_user_id, out_display_name }
 
 async function loadUserProfile() {
     if (!currentUser) return;
@@ -657,6 +675,10 @@ async function loadProfilePage() {
     const nameEl = document.getElementById('profileDisplayName');
     nameEl.textContent = name;
     nameEl.style.color = '#7B2D45';
+
+    // Update the profile page-level heading with the user's name
+    var profilePageNameEl = document.getElementById('profilePageName');
+    if (profilePageNameEl) profilePageNameEl.textContent = name || 'Your Profile';
     document.getElementById('profileEmail').textContent = currentUser.email || '';
     document.getElementById('profileNameInput').value = name;
     document.getElementById('profileBioInput').value = currentProfile.bio || '';
@@ -684,6 +706,13 @@ async function loadProfilePage() {
             .select('*', { count: 'exact', head: true })
             .eq('user_id', currentUser.id);
         document.getElementById('profileEndorsementCount').textContent = endorsementCount || 0;
+
+        const { count: friendsCount } = await supabaseClient
+            .from('friendships')
+            .select('*', { count: 'exact', head: true })
+            .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+            .eq('status', 'accepted');
+        document.getElementById('profilePeopleCount').textContent = friendsCount || 0;
     } catch (err) {
         console.error('Error loading profile stats:', err);
     }
@@ -691,9 +720,52 @@ async function loadProfilePage() {
     // Load endorsed items
     await loadMyEndorsements();
 
-    // Load friends network display
-    await loadPendingFriendRequests();
+    // Load friends network display (incoming + outgoing pending, then render)
+    await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
     updateFriendsDisplay();
+
+    // Populate Airbnb-style profile boxes
+    populateProfileBoxes();
+}
+
+function populateProfileBoxes() {
+    if (!currentUser) return;
+
+    // Box 1: My Saves — pull thumbnails from the already-rendered cards
+    const savesBox = document.getElementById('profileBoxSavesThumbs');
+    if (savesBox) {
+        const cards = document.querySelectorAll('#myEndorsementsList .my-endorse-card');
+        if (cards.length > 0) {
+            const thumbs = Array.from(cards).slice(0, 3).map((card, i) => {
+                const img = card.querySelector('img');
+                const emoji = card.querySelector('.my-endorse-placeholder');
+                if (img) {
+                    return `<div class="pbox-thumb" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}"><img src="${img.src}" alt=""></div>`;
+                } else if (emoji) {
+                    return `<div class="pbox-thumb pbox-thumb-emoji" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}">${emoji.textContent}</div>`;
+                }
+                return '';
+            }).filter(Boolean).join('');
+            if (thumbs) savesBox.innerHTML = thumbs;
+        }
+    }
+
+    // Box 2: Your Circle — avatars from friendsCache
+    const circleBox = document.getElementById('profileBoxCircleAvatars');
+    if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
+        const shown = friendsCache.slice(0, 3);
+        const transforms = [
+            'translate(-22px, 0)',
+            'translate(4px, -8px)',
+            'translate(24px, 6px)'
+        ];
+        circleBox.innerHTML = shown.map((f, i) => {
+            const name = f.out_display_name || f.out_email || '?';
+            const initial = name.charAt(0).toUpperCase();
+            const col = strColour(name);
+            return `<div class="pbox-avatar" style="background:${col};transform:${transforms[i]};z-index:${i+1}">${initial}</div>`;
+        }).join('');
+    }
 }
 
 async function loadMyEndorsements() {
@@ -701,45 +773,65 @@ async function loadMyEndorsements() {
     if (!container || !currentUser) return;
 
     try {
-        // Get saved/bookmarked items from Supabase (unified endorsements)
-        const { data, error } = await supabaseClient
-            .from('endorsements')
-            .select('item_id, created_at')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+        // Run both queries in parallel: items I endorsed + items I added
+        const [endorseRes, addedRes] = await Promise.all([
+            supabaseClient
+                .from('endorsements')
+                .select('item_id, created_at')
+                .eq('user_id', currentUser.id)
+                .order('created_at', { ascending: false }),
+            supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, added_by_name, type, created_at')
+                .eq('added_by', currentUser.id)
+                .order('created_at', { ascending: false })
+        ]);
 
-        const endorsedIds = (data || []).map(e => e.item_id);
+        const endorsedIds = ((endorseRes.data || []).map(e => e.item_id));
+        const addedItems  = addedRes.data || [];
 
-        if (endorsedIds.length === 0) {
+        // Merge: endorsed IDs union added IDs (deduped), items I added go first if not already endorsed
+        const addedIds = addedItems.map(i => i.id);
+        const allIds = [...new Set([...endorsedIds, ...addedIds])];
+
+        if (allIds.length === 0) {
             container.innerHTML = '<p class="my-endorsements-empty">No saves yet. Bookmark discoveries you like!</p>';
             return;
         }
 
-        // Fetch the actual items
-        const { data: items } = await supabaseClient
-            .from('knowledge_items')
-            .select('id, title, photo_url, added_by_name, type')
-            .in('id', endorsedIds);
+        // Fetch full items for endorsed ones we don't already have from addedRes
+        const missingIds = endorsedIds.filter(id => !addedIds.includes(id));
+        let fetchedItems = [...addedItems];
+        if (missingIds.length > 0) {
+            const { data: more } = await supabaseClient
+                .from('knowledge_items')
+                .select('id, title, photo_url, added_by_name, type, created_at')
+                .in('id', missingIds);
+            if (more) fetchedItems = [...fetchedItems, ...more];
+        }
 
-        if (!items || items.length === 0) {
+        if (fetchedItems.length === 0) {
             container.innerHTML = '<p class="my-endorsements-empty">No saves yet.</p>';
             return;
         }
 
-        // Maintain order from endorsements (most recent first)
+        // Build map and sort by allIds order (endorsements most recent first, then adds)
         const itemMap = {};
-        items.forEach(i => { itemMap[i.id] = i; });
-        const sorted = endorsedIds.map(id => itemMap[id]).filter(Boolean);
+        fetchedItems.forEach(i => { itemMap[i.id] = i; });
+        const sorted = allIds.map(id => itemMap[id]).filter(Boolean);
 
         container.innerHTML = sorted.map(item => {
+            const _emoji = getCategoryEmoji(item.type);
+            const isMyAdd = item.added_by_name && addedIds.includes(item.id);
             const photo = item.photo_url
-                ? `<img src="${escapeHtml(item.photo_url)}">`
-                : `<span class="my-endorse-placeholder">${getCategoryEmoji(item.type)}</span>`;
+                ? `<img src="${escapeHtml(item.photo_url)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'my-endorse-placeholder\\'>${_emoji}</span>')">`
+                : `<span class="my-endorse-placeholder">${_emoji}</span>`;
             return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
             </div>`;
         }).join('');
+
         // Update scroll arrows after render
         updateProfileSavesArrows();
         container.removeEventListener('scroll', updateProfileSavesArrows);
@@ -999,26 +1091,39 @@ function buildEndorseSection(itemId) {
         }
     });
 
-    let namesText = '';
     const friendCount = friendNames.length;
+
+    // Build stacked avatar initials (up to 3)
+    let avatarsHtml = '';
     if (friendCount > 0) {
-        const displayNames = friendNames.slice(0, 3);
-        if (friendCount <= 3) {
-            namesText = displayNames.join(', ') + ' saved this';
+        const avatarNames = friendNames.slice(0, 3);
+        avatarsHtml = `<div class="endorse-avatars">${avatarNames.map(n => `<div class="endorse-avatar-chip">${n.charAt(0).toUpperCase()}</div>`).join('')}</div>`;
+    }
+
+    // Build "Saved by X and N others" sentence
+    let savedByText = '';
+    if (friendCount > 0) {
+        const first = friendNames[0];
+        if (friendCount === 1) {
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong>`;
+        } else if (friendCount === 2) {
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and <strong>${escapeHtml(friendNames[1])}</strong>`;
         } else {
-            namesText = displayNames.join(', ') + ` and ${friendCount - 3} others saved this`;
+            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and ${friendCount - 1} others`;
         }
     }
 
     return `<div class="drawer-reactions">
-        <div class="drawer-bookmark-row">
-            <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
-                <svg class="bookmark-icon-lg" width="22" height="22" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
-                ${friendCount > 0 ? `<span class="drawer-bookmark-count">${friendCount}</span>` : ''}
-            </button>
+        <div class="drawer-save-row">
+            ${avatarsHtml}
+            <div class="drawer-save-right">
+                ${savedByText ? `<div class="endorse-names">${savedByText}</div>` : ''}
+                <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
+                    <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
+                </button>
+            </div>
         </div>
-        ${namesText ? `<div class="endorse-names">${escapeHtml(namesText)}</div>` : ''}
     </div>`;
 }
 
@@ -1058,9 +1163,11 @@ async function loadFriends() {
 async function loadPendingFriendRequests() {
     if (!currentUser) return;
     try {
-        const { data, error } = await supabaseClient.rpc('get_pending_friend_requests', {
-            p_user_id: currentUser.id
-        });
+        // Uses SECURITY DEFINER RPC so profiles join works even with restrictive RLS
+        const { data, error } = await supabaseClient.rpc(
+            'get_pending_friend_requests_with_profiles',
+            { p_user_id: currentUser.id }
+        );
         if (error) {
             console.error('Error loading pending requests:', error);
             pendingFriendRequests = [];
@@ -1070,6 +1177,28 @@ async function loadPendingFriendRequests() {
     } catch (err) {
         console.error('Error in loadPendingFriendRequests:', err);
         pendingFriendRequests = [];
+    }
+}
+
+async function loadOutgoingFriendRequests() {
+    if (!currentUser) return;
+    try {
+        // Uses SECURITY DEFINER RPC so profiles join works even with restrictive RLS
+        const { data, error } = await supabaseClient.rpc(
+            'get_outgoing_friend_requests_with_profiles',
+            { p_user_id: currentUser.id }
+        );
+        if (error) {
+            console.error('Error loading outgoing friend requests:', error);
+            outgoingFriendRequests = new Set();
+            outgoingPendingRequests = [];
+            return;
+        }
+        outgoingPendingRequests = data || [];
+        outgoingFriendRequests = new Set((data || []).map(r => r.out_receiver_id));
+    } catch (err) {
+        console.error('Error in loadOutgoingFriendRequests:', err);
+        outgoingPendingRequests = [];
     }
 }
 
@@ -1167,7 +1296,9 @@ async function handleFriendSearchInput(event) {
             for (const profile of results) {
                 const initial = (profile.out_display_name || '?').charAt(0).toUpperCase();
                 const alreadyFriend = isFriend(profile.out_id);
-                const isPending = pendingFriendRequests.some(r => r.out_requester_id === profile.out_id);
+                // isPending if: I sent to them (outgoing) OR they sent to me (incoming/pending)
+                const isPending = outgoingFriendRequests.has(profile.out_id)
+                               || pendingFriendRequests.some(r => r.out_requester_id === profile.out_id);
 
                 let statusHtml = '';
                 if (alreadyFriend) {
@@ -1175,7 +1306,7 @@ async function handleFriendSearchInput(event) {
                 } else if (isPending) {
                     statusHtml = '<span class="search-result-status pending">Pending</span>';
                 } else {
-                    statusHtml = `<div class="search-result-action"><button class="add-friend-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', this)">Add Friend</button></div>`;
+                    statusHtml = `<div class="search-result-action"><button class="add-friend-btn" onclick="event.stopPropagation(); handleSendFriendRequest('${profile.out_id}', '${escapeHtml(profile.out_display_name || '')}', this)">Add Friend</button></div>`;
                 }
 
                 html += `<div class="search-result-item">
@@ -1193,40 +1324,83 @@ async function handleFriendSearchInput(event) {
     }, 300);
 }
 
-async function handleSendFriendRequest(receiverId, btn) {
+async function handleSendFriendRequest(receiverId, receiverName, btn) {
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
     try {
-        const { data, error } = await supabaseClient.rpc('send_friend_request', {
-            p_receiver_id: receiverId
-        });
-        if (error) {
-            console.error('Error sending friend request:', error);
-            if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
+        // Check if they already sent us a request — if so, auto-accept it instead of creating a duplicate
+        const incomingRequest = pendingFriendRequests.find(r => r.out_requester_id === receiverId);
+        if (incomingRequest) {
+            await handleAcceptFriendRequest(incomingRequest.out_id);
+            if (btn) { btn.textContent = 'Friends!'; btn.classList.add('sent'); }
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            // Check if this was auto-accepted (Founding Members)
-            if (receiverId === ODIN_HQ_USER_ID) {
-                if (btn) { btn.textContent = 'Added!'; btn.classList.add('sent'); }
-                showToast('Founding Members added! Their discoveries are now visible.');
-                await loadFriends();
-                await loadPendingRequests();
-                renderFriendsUI();
+
+        // Direct insert
+        const { data: insertData, error } = await supabaseClient
+            .from('friendships')
+            .insert({
+                requester_id: currentUser.id,
+                receiver_id: receiverId,
+                status: 'pending'
+            })
+            .select('id')
+            .single();
+
+        if (error) {
+            console.error('Error sending friend request:', error);
+            // Duplicate key — a row already exists (edge case: they sent request in another session)
+            if (error.code === '23505') {
+                // Reload pending to pick up their request and show correct state
+                await loadPendingFriendRequests();
+                const nowIncoming = pendingFriendRequests.find(r => r.out_requester_id === receiverId);
+                if (nowIncoming) {
+                    await handleAcceptFriendRequest(nowIncoming.out_id);
+                    if (btn) { btn.textContent = 'Friends!'; btn.classList.add('sent'); }
+                } else {
+                    if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
+                    outgoingFriendRequests.add(receiverId);
+                    updateFriendsDisplay();
+                }
             } else {
-                if (btn) { btn.textContent = 'Sent!'; btn.classList.add('sent'); }
-                showToast('Friend request sent!');
+                if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
             }
-            // Clear search bar and hide results after a short delay
-            setTimeout(() => {
-                const searchInput = document.getElementById('friendSearchInput');
-                const resultsDiv = document.getElementById('friendSearchResults');
-                if (searchInput) searchInput.value = '';
-                if (resultsDiv) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; }
-            }, 800);
-        } else {
-            const msg = data?.[0]?.out_message || 'Could not send request';
-            if (btn) { btn.disabled = false; btn.textContent = msg; }
+            return;
         }
+
+        // Track outgoing locally so "Pending" shows immediately in search and friends list
+        outgoingFriendRequests.add(receiverId);
+        outgoingPendingRequests.push({
+            out_id:            insertData?.id || null,
+            out_receiver_id:   receiverId,
+            out_receiver_name: receiverName || 'Someone',
+            out_avatar_url:    null,
+            out_created_at:    new Date().toISOString()
+        });
+        updateFriendsDisplay();
+
+        // Notify receiver via SECURITY DEFINER RPC (bypasses RLS on notifications table)
+        const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+        try {
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: receiverId,
+                p_actor_id:    currentUser.id,
+                p_message:     `${senderName} sent you a friend request`
+            });
+        } catch (notifErr) {
+            console.warn('Could not send friend request notification:', notifErr);
+        }
+
+        if (btn) { btn.textContent = 'Pending'; btn.classList.add('sent'); }
+        showToast('Friend request sent!');
+
+        // Clear search bar and hide results after a short delay
+        setTimeout(() => {
+            const searchInput = document.getElementById('friendSearchInput');
+            const resultsDiv = document.getElementById('friendSearchResults');
+            if (searchInput) searchInput.value = '';
+            if (resultsDiv) { resultsDiv.innerHTML = ''; resultsDiv.style.display = 'none'; }
+        }, 800);
+
     } catch (err) {
         console.error('Error in handleSendFriendRequest:', err);
         if (btn) { btn.disabled = false; btn.textContent = 'Add Friend'; }
@@ -1235,23 +1409,47 @@ async function handleSendFriendRequest(receiverId, btn) {
 
 async function handleAcceptFriendRequest(friendshipId) {
     try {
-        const { data, error } = await supabaseClient.rpc('accept_friend_request', {
-            p_friendship_id: friendshipId
-        });
+        // Direct update — set status to accepted
+        const { error } = await supabaseClient
+            .from('friendships')
+            .update({ status: 'accepted', updated_at: new Date().toISOString() })
+            .eq('id', friendshipId)
+            .eq('receiver_id', currentUser.id); // safety: only receiver can accept
+
         if (error) {
             console.error('Error accepting friend request:', error);
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            await loadFriends();
-            await loadPendingFriendRequests();
-            updateFriendsDisplay();
-            checkUnreadNotifications();
-            // Milestone: first friend accepted
-            if (!localStorage.getItem('milestone_first_friend')) {
-                localStorage.setItem('milestone_first_friend', 'true');
-                setTimeout(() => showToast('You can now see each other\'s personal stories!'), 300);
-            }
+
+        // Notify the requester that their request was accepted
+        const accepterName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+
+        // Look up requester_id from the friendship row we just updated
+        const { data: friendship } = await supabaseClient
+            .from('friendships')
+            .select('requester_id')
+            .eq('id', friendshipId)
+            .single();
+
+        if (friendship?.requester_id) {
+            await supabaseClient
+                .from('notifications')
+                .insert({
+                    user_id:  friendship.requester_id,
+                    actor_id: currentUser.id,
+                    type:     'friend_accepted',
+                    message:  `${accepterName} accepted your friend request`
+                });
+        }
+
+        await loadFriends();
+        await loadPendingFriendRequests();
+        updateFriendsDisplay();
+        checkUnreadNotifications();
+        // Milestone: first friend accepted
+        if (!localStorage.getItem('milestone_first_friend')) {
+            localStorage.setItem('milestone_first_friend', 'true');
+            setTimeout(() => showToast('You can now see each other\'s personal stories!'), 300);
         }
     } catch (err) {
         console.error('Error in handleAcceptFriendRequest:', err);
@@ -1260,51 +1458,112 @@ async function handleAcceptFriendRequest(friendshipId) {
 
 async function handleRejectFriendRequest(friendshipId) {
     try {
-        const { data, error } = await supabaseClient.rpc('reject_friend_request', {
-            p_friendship_id: friendshipId
-        });
+        // Direct delete — remove the pending row entirely
+        const { error } = await supabaseClient
+            .from('friendships')
+            .delete()
+            .eq('id', friendshipId)
+            .eq('receiver_id', currentUser.id); // safety: only receiver can reject
+
         if (error) {
             console.error('Error rejecting friend request:', error);
             return;
         }
-        if (data && data.length > 0 && data[0].out_success) {
-            await loadPendingFriendRequests();
-            updateFriendsDisplay();
-        }
+
+        await loadPendingFriendRequests();
+        updateFriendsDisplay();
     } catch (err) {
         console.error('Error in handleRejectFriendRequest:', err);
     }
 }
 
+async function handleCancelFriendRequest(friendshipId) {
+    const card = document.querySelector(`[data-cancel-id="${friendshipId}"]`);
+    if (card) { card.style.opacity = '0.5'; card.style.pointerEvents = 'none'; }
+    try {
+        // RPC atomically deletes the friendship AND the receiver's notification
+        const { error } = await supabaseClient.rpc('cancel_friend_request', {
+            p_friendship_id: friendshipId
+        });
+
+        if (error) {
+            console.error('Error cancelling friend request:', error);
+            if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+            showToast('Could not cancel request. Try again.');
+            return;
+        }
+
+        // Remove from local state immediately — no refetch needed
+        outgoingPendingRequests = outgoingPendingRequests.filter(r => r.out_id !== friendshipId);
+        outgoingFriendRequests = new Set(outgoingPendingRequests.map(r => r.out_receiver_id));
+        updateFriendsDisplay();
+        showToast('Request cancelled');
+    } catch (err) {
+        console.error('Error in handleCancelFriendRequest:', err);
+        if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+    }
+}
+
 function updateFriendsDisplay() {
     const requestsContainer = document.getElementById('pendingRequestsContainer');
+    const sentContainer = document.getElementById('sentRequestsContainer');
     const friendsContainer = document.getElementById('friendsListContainer');
     const emptyState = document.getElementById('friendsEmptyState');
     if (!requestsContainer || !friendsContainer) return;
 
     const hasPending = pendingFriendRequests.length > 0;
+    const hasSent = outgoingPendingRequests.length > 0;
     const hasFriends = friendsCache.length > 0;
 
     requestsContainer.style.display = hasPending ? 'block' : 'none';
+    if (sentContainer) sentContainer.style.display = hasSent ? 'block' : 'none';
     friendsContainer.style.display = hasFriends ? 'block' : 'none';
-    if (emptyState) emptyState.style.display = (!hasPending && !hasFriends) ? 'block' : 'none';
+    if (emptyState) emptyState.style.display = (!hasPending && !hasSent && !hasFriends) ? 'block' : 'none';
 
-    // Render pending requests
+    // Render pending requests (incoming)
     if (hasPending) {
         const list = document.getElementById('pendingRequestsList');
         if (list) {
             list.innerHTML = pendingFriendRequests.map(req => {
                 const initial = (req.out_requester_name || '?').charAt(0).toUpperCase();
                 const timeAgo = getTimeAgo(req.out_created_at);
+                const emailLine = req.out_email
+                    ? `<div class="friend-request-email">${escapeHtml(req.out_email)}</div>`
+                    : '';
                 return `<div class="friend-request-card">
                     <div class="friend-request-avatar">${initial}</div>
                     <div class="friend-request-info">
                         <div class="friend-request-name">${escapeHtml(req.out_requester_name || 'Unknown')}</div>
+                        ${emailLine}
                         <div class="friend-request-time">${timeAgo}</div>
                     </div>
                     <div class="friend-request-actions">
                         <button class="accept-btn" onclick="handleAcceptFriendRequest('${req.out_id}')">Accept</button>
                         <button class="reject-btn" onclick="handleRejectFriendRequest('${req.out_id}')">Reject</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+    }
+
+    // Render sent (outgoing pending) requests
+    if (hasSent) {
+        const sentList = document.getElementById('sentRequestsList');
+        if (sentList) {
+            sentList.innerHTML = outgoingPendingRequests.map(req => {
+                const initial = (req.out_receiver_name || '?').charAt(0).toUpperCase();
+                const emailLine = req.out_email
+                    ? `<div class="friend-request-email">${escapeHtml(req.out_email)}</div>`
+                    : '';
+                return `<div class="friend-request-card" data-cancel-id="${req.out_id}">
+                    <div class="friend-request-avatar">${initial}</div>
+                    <div class="friend-request-info">
+                        <div class="friend-request-name">${escapeHtml(req.out_receiver_name || 'Unknown')}</div>
+                        ${emailLine}
+                        <div class="friend-request-time">Request sent · awaiting response</div>
+                    </div>
+                    <div class="friend-request-actions">
+                        <button class="reject-btn" onclick="handleCancelFriendRequest('${req.out_id}')">Cancel</button>
                     </div>
                 </div>`;
             }).join('');
@@ -1543,7 +1802,17 @@ async function loadNotesForItem(itemId) {
     }
 }
 
-function renderNotesSection(itemId, notes) {
+function renderNotesSection(itemId, notes, trustLevel) {
+    // Extended circle: comments are hidden — identity must not travel more than one hop
+    if (trustLevel === TRUST.EXTENDED) {
+        return `<div class="community-notes community-notes--hidden" id="communityNotes">
+            <div class="extended-circle-notice">
+                💬 Comments are only visible between direct friends.
+                <br><span class="extended-circle-notice-sub">Add this place to connect with the people who saved it.</span>
+            </div>
+        </div>`;
+    }
+
     const notesList = notes.map(n => {
         const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
         const timeAgo = getTimeAgo(n.out_created_at);
@@ -1563,14 +1832,31 @@ function renderNotesSection(itemId, notes) {
         </div>`;
     }).join('');
 
+    const commentCount = notes.length;
+    const commentLabel = commentCount > 0 ? `Comments · ${commentCount}` : 'Comments';
+
     return `<div class="community-notes" id="communityNotes">
-        <div class="community-notes-label">Comments</div>
-        <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet. Be the first!</div>'}</div>
-        <div class="note-input-wrap">
-            <textarea class="note-input" id="noteInput" placeholder="Leave a comment..." maxlength="500" rows="2"></textarea>
-            <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
+        <button class="community-notes-toggle" onclick="toggleCommentsSection(this)" aria-expanded="false">
+            <span class="community-notes-label">${commentLabel}</span>
+            <svg class="comments-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="community-notes-body" id="communityNotesBody" style="display:none;">
+            <div class="notes-list" id="notesList">${notesList || '<div class="notes-empty">No comments yet — be the first.</div>'}</div>
+            <div class="note-input-wrap">
+                <textarea class="note-input" id="noteInput" placeholder="Add a comment..." maxlength="500" rows="2"></textarea>
+                <button class="note-submit-btn" onclick="submitNote('${itemId}')">Post</button>
+            </div>
         </div>
     </div>`;
+}
+
+function toggleCommentsSection(btn) {
+    const body = document.getElementById('communityNotesBody');
+    if (!body) return;
+    const isOpen = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', !isOpen);
+    body.style.display = isOpen ? 'none' : 'block';
+    btn.classList.toggle('expanded', !isOpen);
 }
 
 async function submitNote(itemId) {
@@ -1728,9 +2014,13 @@ async function checkUnreadNotifications() {
 function startNotifPolling() {
     // Check immediately
     checkUnreadNotifications();
-    // Then poll every 30 seconds
+    Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
+    // Then poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
     if (notifPollInterval) clearInterval(notifPollInterval);
-    notifPollInterval = setInterval(checkUnreadNotifications, 30000);
+    notifPollInterval = setInterval(() => {
+        checkUnreadNotifications();
+        Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
+    }, 30000);
 }
 
 function stopNotifPolling() {
@@ -1758,7 +2048,12 @@ async function loadNotifications() {
         }
 
         // Filter out notifications created before the last "Clear all"
-        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        // Use localStorage first (fast), fall back to DB-persisted timestamp (cross-device)
+        const localClearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
+        const dbClearedAt = currentProfile?.notifs_cleared_at
+            ? new Date(currentProfile.notifs_cleared_at).getTime().toString()
+            : null;
+        const clearedAt = localClearedAt || dbClearedAt;
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
@@ -1768,8 +2063,18 @@ async function loadNotifications() {
         if (filtered.length === 0) {
             section.style.display = 'none';
             container.innerHTML = '';
+            // User has seen the notifications panel — mark as viewed so badge clears
+            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+            const badge = document.getElementById('notifBadge');
+            if (badge) badge.style.display = 'none';
             return;
         }
+
+        // User is now viewing notifications — update clearedAt so badge resets after this view
+        // The badge will only reappear for notifications created AFTER this timestamp
+        localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
 
         section.style.display = 'block';
         container.innerHTML = filtered.map(n => {
@@ -1848,6 +2153,15 @@ async function clearAllNotifications() {
     try {
         await supabaseClient.from('notifications').delete().eq('user_id', currentUser.id);
     } catch (e) { console.error('Error clearing notifications:', e); }
+
+    // Persist cleared timestamp to profile so it survives across devices/sessions
+    try {
+        await supabaseClient.from('profiles')
+            .update({ notifs_cleared_at: new Date().toISOString() })
+            .eq('id', currentUser.id);
+        // Keep currentProfile in sync so loadNotifications() can use it without refetch
+        if (currentProfile) currentProfile.notifs_cleared_at = new Date().toISOString();
+    } catch (e) { console.error('Error persisting notifs_cleared_at:', e); }
 
     setTimeout(() => {
         if (container) container.innerHTML = '';
@@ -1945,9 +2259,10 @@ function renderRecentlyViewed() {
         }
         section.style.display = 'block';
         row.innerHTML = viewed.map(v => {
+            const emoji = getCategoryEmoji(v.type);
             const photo = v.photo_url
-                ? `<img src="${escapeHtml(v.photo_url)}" alt="">`
-                : `<span class="rv-placeholder">${getCategoryEmoji(v.type)}</span>`;
+                ? `<img src="${escapeHtml(v.photo_url)}" alt="" onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'rv-placeholder\\'>${emoji}</span>'">`
+                : `<span class="rv-placeholder">${emoji}</span>`;
             return `<div class="rv-item" title="${escapeHtml(v.title)}">
                 <div class="rv-thumb-wrap">
                     <div class="rv-thumb" onclick="openRecentlyViewed('${v.id}')">${photo}</div>
@@ -2003,7 +2318,7 @@ const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-acc
 let userPreferredLanguage = 'en';
 
 const LANG_LABELS = {
-    en: 'EN', zh: '中文', ja: '日本語', ko: '한국어',
+    en: 'EN', 'zh-TW': '繁中', 'zh-CN': '简中', ja: '日本語', ko: '한국어',
     es: 'ES', fr: 'FR', ar: 'AR', hi: 'HI',
     pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
 };
@@ -2018,7 +2333,14 @@ async function initUserLanguage() {
         return;
     }
     // 2. Autodetect from browser
-    const browserLang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    const rawBrowserLang = (navigator.language || 'en').toLowerCase();
+    // Map browser zh variants to our split keys
+    let browserLang;
+    if (rawBrowserLang.startsWith('zh')) {
+        browserLang = (rawBrowserLang.includes('tw') || rawBrowserLang.includes('hk') || rawBrowserLang.includes('mo')) ? 'zh-TW' : 'zh-CN';
+    } else {
+        browserLang = rawBrowserLang.split('-')[0];
+    }
     const detected = LANG_LABELS[browserLang] ? browserLang : 'en';
     userPreferredLanguage = detected;
     _applyLangLabel(detected);
@@ -2246,6 +2568,53 @@ async function toggleDrawerLang(btn) {
     }
 }
 
+// ── Translate button on inline result cards (top picks + compact cards) ──
+async function toggleCardTranslate(btn, idx) {
+    const r = currentResults[idx];
+    if (!r) return;
+    const state = btn.dataset.state;
+    const card  = btn.closest('.top-pick-card, .compact-card');
+
+    if (state === 'original') {
+        btn.textContent = 'Translating...';
+        btn.disabled = true;
+        try {
+            const targetLang = userPreferredLanguage || r._queryLanguage || 'zh-TW';
+            const translated = await translateItem(r, targetLang);
+
+            // Top-pick: update the reason text span
+            const reasonSpan = card && card.querySelector('.top-pick-reason-text');
+            if (reasonSpan && (translated.personal_note || translated.description)) {
+                if (!reasonSpan.dataset.original) reasonSpan.dataset.original = reasonSpan.textContent;
+                reasonSpan.textContent = (translated.personal_note || translated.description).substring(0, 100) + ((translated.personal_note || translated.description).length > 100 ? '...' : '');
+            }
+
+            // Compact: update snippet div
+            const snippetEl = card && card.querySelector('.compact-snippet');
+            if (snippetEl && (translated.personal_note || translated.description)) {
+                if (!snippetEl.dataset.original) snippetEl.dataset.original = snippetEl.textContent;
+                snippetEl.textContent = (translated.personal_note || translated.description).substring(0, 60) + ((translated.personal_note || translated.description).length > 60 ? '...' : '');
+            }
+
+            btn.dataset.state = 'translated';
+            btn.textContent = 'Show original';
+            btn.disabled = false;
+        } catch(e) {
+            btn.textContent = 'Translate 🌐';
+            btn.dataset.state = 'original';
+            btn.disabled = false;
+        }
+    } else {
+        // Restore originals
+        const reasonSpan = card && card.querySelector('.top-pick-reason-text');
+        if (reasonSpan && reasonSpan.dataset.original) reasonSpan.textContent = reasonSpan.dataset.original;
+        const snippetEl = card && card.querySelector('.compact-snippet');
+        if (snippetEl && snippetEl.dataset.original) snippetEl.textContent = snippetEl.dataset.original;
+        btn.dataset.state = 'original';
+        btn.textContent = 'Translate 🌐';
+    }
+}
+
 // Initialize app
 initApp();
 initLocation();
@@ -2263,6 +2632,9 @@ function showHome() {
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
     document.getElementById('inputArea').classList.add('hidden');
+    // Language button only shows on profile page — always hide it on home
+    var langWrap = document.getElementById('headerLangWrap');
+    if (langWrap) langWrap.style.display = 'none';
     updateTabBar('home');
 }
 
@@ -2279,11 +2651,19 @@ var discoverViewMode = 'collections';
 var discoverMapInitialized = false;
 
 function syncToggleButtons(view) {
-    // Sync header pill buttons
-    var discBtns = [document.getElementById('hdrPillDiscover')];
-    var mapBtns  = [document.getElementById('hdrPillMap')];
-    discBtns.forEach(function(b){ if (b) b.classList.toggle('active', view === 'collections'); });
-    mapBtns.forEach(function(b){  if (b) b.classList.toggle('active', view === 'map'); });
+    // Sync the inline Map toggle button in the Discover headline row
+    var mapBtn = document.getElementById('dcMapToggleBtn');
+    if (mapBtn) {
+        if (view === 'map') {
+            mapBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> List';
+            mapBtn.onclick = function() { switchDiscoverView('collections'); };
+            mapBtn.classList.add('active');
+        } else {
+            mapBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg> Map';
+            mapBtn.onclick = function() { switchDiscoverView('map'); };
+            mapBtn.classList.remove('active');
+        }
+    }
 }
 
 function switchDiscoverView(view) {
@@ -2342,15 +2722,16 @@ function switchDiscoverView(view) {
 }
 
 function setMapScreenHeight() {
-    var header  = document.querySelector('.header');
-    var tabBar  = document.querySelector('.bottom-tab-bar');
-    var headerH = header ? header.offsetHeight : 56;
-    var tabH    = tabBar ? tabBar.offsetHeight  : 65;
+    var tabBar   = document.querySelector('.bottom-tab-bar');
+    var topbar   = document.querySelector('.dmap-topbar');
+    var topbarH  = topbar ? topbar.offsetHeight : 45;
+    var tabH     = tabBar ? tabBar.offsetHeight : 65;
 
     // iOS Safari: use visualViewport.height for the actual visible area
     // (window.innerHeight can include the address bar)
     var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    var h = vh - headerH - tabH;
+    // Map inner height = full viewport minus the topbar and bottom tab bar
+    var h = vh - topbarH - tabH;
     if (h < 100) h = vh * 0.6; // fallback
 
     // Set explicit pixel height on EVERY element in the chain.
@@ -2363,10 +2744,9 @@ function setMapScreenHeight() {
     var area           = document.querySelector('.dmap-area');
     var mapEl          = document.getElementById('discoverMap');
 
-    var contentH = vh - headerH;   // .content sits below the header
-    if (contentEl)      contentEl.style.height      = contentH + 'px';
+    if (contentEl)      contentEl.style.height      = vh + 'px';
     if (discoverModeEl) discoverModeEl.style.height = h + 'px';
-    if (mapView)        mapView.style.height        = h + 'px';
+    if (mapView)        mapView.style.height        = vh + 'px';
     if (inner)          inner.style.height          = h + 'px';
     if (area)           area.style.height           = h + 'px';
     if (mapEl)          mapEl.style.height          = h + 'px';
@@ -2407,6 +2787,15 @@ function strColour(str) {
 var CATEGORY_EMOJI = { place:'🍽️', product:'📦', service:'🔧', advice:'💡', book:'📚', experience:'✨' };
 
 function buildCollectionCards() {
+    // If the new section tabs are present, delegate to the active section instead
+    var activeTab = document.querySelector('.dc-stab.active');
+    if (activeTab) {
+        if (typeof setDiscoverSection === 'function') {
+            setDiscoverSection(activeTab, activeTab.dataset.section || 'trending');
+        }
+        return;
+    }
+
     var grid = document.getElementById('dcCollectionsGrid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -2424,10 +2813,15 @@ function buildCollectionCards() {
     }
     var groups = {};
     allDiscoveries.forEach(function(item) {
-        var raw = collectionGrouping === 'friend'
-            ? (item.added_by_name || 'Unknown')
-            : (item.category || item.type || 'Other');
-        var key = collectionGrouping === 'friend' ? raw : normaliseKey(raw);
+        var key;
+        if (item._trust_level === TRUST.EXTENDED) {
+            // Extended circle items always go into their own group regardless of grouping mode
+            key = 'Extended Circle';
+        } else if (collectionGrouping === 'friend') {
+            key = item.added_by_name || 'Unknown';
+        } else {
+            key = normaliseKey(item.category || item.type || 'Other');
+        }
         if (!groups[key]) groups[key] = [];
         groups[key].push(item);
     });
@@ -2445,19 +2839,24 @@ function buildCollectionCards() {
             ? '<img class="dc-coll-img" src="' + escapeHtml(coverItem.photo_url) + '" alt="' + escapeHtml(groupName) + '" loading="lazy">'
             : '<div class="dc-coll-placeholder">' + (CATEGORY_EMOJI[groupName.toLowerCase()] || '📍') + '</div>';
 
-        // Avatars (for friend grouping show category colours; for category grouping show contributor initials)
-        var avatarSet = {};
-        items.forEach(function(it) {
-            var avKey = collectionGrouping === 'friend'
-                ? (it.category || it.type || 'other')
-                : (it.added_by_name || '?');
-            avatarSet[avKey] = true;
-        });
-        var avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
-            var init = k.charAt(0).toUpperCase();
-            var col  = strColour(k);
-            return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
-        }).join('');
+        // Avatars — extended circle group gets a fixed blue anonymous avatar
+        var avHtml;
+        if (groupName === 'Extended Circle') {
+            avHtml = '<div class="dc-coll-av dc-coll-av--extended">🔵</div>';
+        } else {
+            var avatarSet = {};
+            items.forEach(function(it) {
+                var avKey = collectionGrouping === 'friend'
+                    ? (it.category || it.type || 'other')
+                    : (it.added_by_name || '?');
+                avatarSet[avKey] = true;
+            });
+            avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
+                var init = k.charAt(0).toUpperCase();
+                var col  = strColour(k);
+                return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
+            }).join('');
+        }
 
         var label = items.length + ' ' + (items.length === 1 ? 'item' : 'items');
 
@@ -2551,8 +2950,17 @@ function setMode(mode) {
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
 
+    // Show header only on Home page, hide on all other pages
+    var headerEl = document.querySelector('.header');
+    if (headerEl) headerEl.style.display = (mode === 'home') ? '' : 'none';
+    // Toggle body class so non-home pages get safe-area top padding
+    document.body.classList.toggle('no-header', mode !== 'home');
+
     // Show/hide the Discover|Map pill in header
     showDiscoverPill(mode === 'discover');
+    // Show language button only on profile page
+    var langWrap = document.getElementById('headerLangWrap');
+    if (langWrap) langWrap.style.display = (mode === 'profile') ? '' : 'none';
     // Clean up map state when leaving Discover
     if (mode !== 'discover') {
         document.body.classList.remove('map-view-open');
@@ -2583,6 +2991,7 @@ function setMode(mode) {
         // Always start on Collections sub-view when entering Discover
         switchDiscoverView('collections');
         loadDiscoveries();
+        if (typeof initDiscoverGreeting === 'function') initDiscoverGreeting();
     } else if (mode === 'saved') {
         if (savedEl) savedEl.classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -2590,10 +2999,12 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+        if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         loadProfilePage();
+        if (typeof _startPhraseRotation === 'function') _startPhraseRotation('profilePageSubtitle', 'profile', 7000);
     }
 
     updateTabBar(mode);
@@ -2712,18 +3123,31 @@ function updateFilterState() {
 
     const count = filters.categories.length + filters.users.length + filters.distances.length + (filters.endorsed ? 1 : 0);
     const badge = document.getElementById('filterBadge');
-    if (count > 0) {
-        badge.textContent = count;
-        badge.style.display = 'flex';
-    } else {
-        badge.style.display = 'none';
+    if (badge) {
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+    // Sync map topbar filter badge
+    const mapBadge = document.getElementById('dmapFilterBadge');
+    if (mapBadge) {
+        if (count > 0) {
+            mapBadge.textContent = count;
+            mapBadge.style.display = 'flex';
+        } else {
+            mapBadge.style.display = 'none';
+        }
     }
 }
 
 function clearFilters() {
     filters = { categories: [], users: [], distances: [], endorsed: false, searchText: '' };
     document.querySelectorAll('.filter-option input').forEach(cb => cb.checked = false);
-    document.getElementById('discoverSearch').value = '';
+    var dsEl = document.getElementById('discoverSearch');
+    if (dsEl) dsEl.value = '';
     updateFilterState();
     // Reset inline UI
     document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
@@ -2735,11 +3159,33 @@ function clearFilters() {
     if (ch)  ch.style.display  = '';
     if (cg)  cg.style.display  = '';
     if (ais) ais.style.display = 'none';
+    // If in map view, re-render map with all data
+    if (discoverViewMode === 'map') {
+        closeFilterModal();
+        filterAndRender();
+        discoverMapInitialized = false;
+        if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+        userLocMarker = null;
+        setTimeout(function() {
+            setMapScreenHeight();
+            initDiscoverMap();
+        }, 100);
+    }
 }
 
 function applyFilters() {
     closeFilterModal();
     filterAndRender();
+    // If we're in map view, re-init the map with the newly filtered data
+    if (discoverViewMode === 'map') {
+        discoverMapInitialized = false;
+        if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+        userLocMarker = null;
+        setTimeout(function() {
+            setMapScreenHeight();
+            initDiscoverMap();
+        }, 100);
+    }
 }
 
 function handleSearchInput() {
@@ -2784,6 +3230,9 @@ function searchFromDiscover() {
 
 // ── Discover page: friends filter bubbles ──
 
+// Sentinel value used to filter extended circle items via the friends row
+var EXTENDED_CIRCLE_FILTER_KEY = '__extended_circle__';
+
 function buildFriendsRow() {
     var row = document.getElementById('dcFriendsRow');
     if (!row) return;
@@ -2791,6 +3240,17 @@ function buildFriendsRow() {
     row.style.display = '';
 
     var html = '';
+
+    // Check if any extended circle items exist in the feed
+    var hasExtended = allDiscoveries.some(function(d) { return d._trust_level === TRUST.EXTENDED; });
+    if (hasExtended) {
+        var extActive = filters.users.includes(EXTENDED_CIRCLE_FILTER_KEY);
+        html += '<button class="dc-friend-bubble dc-friend-bubble--extended' + (extActive ? ' active' : '') + '" onclick="toggleFriendFilter(\'' + EXTENDED_CIRCLE_FILTER_KEY + '\')">'
+            + '<div class="dc-friend-initial dc-friend-initial--extended">🔵</div>'
+            + '<span class="dc-friend-name">Circle</span>'
+            + '</button>';
+    }
+
     friendsCache.forEach(function(f) {
         var name = f.out_display_name || 'Unknown';
         var firstName = name.split(' ')[0];
@@ -2912,7 +3372,16 @@ function updateDiscoverCounts() {
 function filterAndRender() {
     filteredDiscoveries = allDiscoveries.filter(item => {
         if (filters.categories.length > 0 && !filters.categories.includes(item.type)) return false;
-        if (filters.users.length > 0 && !filters.users.includes(item.added_by_name)) return false;
+        if (filters.users.length > 0) {
+            const wantsExtended = filters.users.includes(EXTENDED_CIRCLE_FILTER_KEY);
+            const isExtended = item._trust_level === TRUST.EXTENDED;
+            // Extended circle filter: if sentinel selected, match FOF items
+            // Named friend filters: match by added_by_name (excludes FOF items since they have no name)
+            const namedFilters = filters.users.filter(u => u !== EXTENDED_CIRCLE_FILTER_KEY);
+            const matchesNamed = namedFilters.length > 0 && namedFilters.includes(item.added_by_name);
+            const matchesExtended = wantsExtended && isExtended;
+            if (!matchesNamed && !matchesExtended) return false;
+        }
         if (filters.distances.length > 0 && userLocation.available) {
             if (!item.distance_km) return false;
             const maxDist = Math.max(...filters.distances);
@@ -2942,7 +3411,10 @@ function updateActiveFiltersBar() {
     const bar = document.getElementById('activeFiltersBar');
     let html = '';
     filters.categories.forEach(cat => html += `<span class="active-filter-chip">${cat} <span class="active-filter-remove" onclick="removeActiveFilter('category', '${cat}')">×</span></span>`);
-    filters.users.forEach(user => html += `<span class="active-filter-chip">${escapeHtml(user)} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`);
+    filters.users.forEach(user => {
+        const label = user === EXTENDED_CIRCLE_FILTER_KEY ? '🔵 Extended Circle' : escapeHtml(user);
+        html += `<span class="active-filter-chip">${label} <span class="active-filter-remove" onclick="removeActiveFilter('user', '${escapeHtml(user)}')">×</span></span>`;
+    });
     if (filters.endorsed) html += `<span class="active-filter-chip">My Saves <span class="active-filter-remove" onclick="removeActiveFilter('endorsed', '')">×</span></span>`;
     filters.distances.forEach(dist => html += `<span class="active-filter-chip">&lt; ${dist}km <span class="active-filter-remove" onclick="removeActiveFilter('distance', '${dist}')">×</span></span>`);
     bar.innerHTML = html;
@@ -2986,6 +3458,34 @@ function removeActiveFilter(type, value) {
         if (ais) ais.style.display = 'none';
         if (bb)  bb.style.display  = '';
     }
+}
+
+// ── Odin Trust Layers ────────────────────────────────────────
+// Trust level constants used throughout the app
+const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
+
+// Anonymise an extended-circle item so identity never travels more than one hop.
+// Keeps: title, photo_url, address, latitude, longitude, description,
+//        type, category, feed_card_summary, save_count, created_at, id
+// Strips: added_by, added_by_name, personal_note / metadata notes, comments
+// viaFriendName: the direct friend who saved the item (Save Inheritance only).
+//   For true FOF (trust_connections path) this is null — no name shown.
+function anonymiseForExtendedCircle(item, viaFriendName) {
+    return Object.assign({}, item, {
+        _trust_level: TRUST.EXTENDED,
+        added_by:      null,
+        added_by_name: 'Someone in your circle',
+        // _via_friend_name: name of the direct friend whose save surfaced this item.
+        // Used to render "Via [Name]" on feed card and result card.
+        _via_friend_name: viaFriendName || null,
+        // Wipe any personal note stored in metadata or top-level field
+        personal_note: null,
+        metadata: item.metadata
+            ? (() => { try { const m = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; delete m.personal_note; return m; } catch(e) { return {}; } })()
+            : null,
+        // Comments are hidden — flagged so the drawer can suppress them
+        _hide_comments: true,
+    });
 }
 
 async function loadDiscoveries() {
@@ -3120,11 +3620,12 @@ async function loadDiscoveries() {
         // Hide discoveries from blocked users (apply to all tiers)
         if (blockedUsersCache.length > 0) {
             const blockedIds = new Set(blockedUsersCache.map(b => b.out_blocked_user_id));
-            data = data.filter(item => !item.added_by || !blockedIds.has(item.added_by));
+            // For extended circle items, added_by is already null — they pass through safely
+            combined = combined.filter(item => !item.added_by || !blockedIds.has(item.added_by));
         }
 
         if (userLocation.available) {
-            data = data.map(item => {
+            combined = combined.map(item => {
                 if (item.latitude && item.longitude) {
                     item.distance_km = calculateDistance(userLocation.latitude, userLocation.longitude, item.latitude, item.longitude);
                 }
@@ -3132,8 +3633,8 @@ async function loadDiscoveries() {
             });
         }
 
-        allDiscoveries = data;
-        await loadEndorsementsForItems(data);
+        allDiscoveries = combined;
+        await loadEndorsementsForItems(combined);
         populateFilters();
         filterAndRender();
         renderRecentlyViewed();
@@ -3144,7 +3645,7 @@ async function loadDiscoveries() {
         // Refresh map panel list if map is already open
         if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error loading discoveries:', error);
     }
 }
 
@@ -3223,7 +3724,7 @@ function createCard(item, index) {
     // ── Title + distance ──
     const titleLine = `<div class="discovery-card-title">${escapeHtml(item.title)}${distText ? `<span class="fc-dist"> · ${distText}</span>` : ''}</div>`;
 
-    // ── Attribution + snippet block — 4 scenarios ──
+    // ── Attribution + snippet — 4 scenarios ──
     let attributionHtml = '';
     let snippetHtml = '';
 
@@ -3327,6 +3828,378 @@ function buildMapPanelList() {
         item.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
         list.appendChild(item);
     });
+}
+
+function buildMapCardStrip() {
+    var strip = document.getElementById('dmapCardsStrip');
+    if (!strip) return;
+    var located = (filteredDiscoveries || allDiscoveries || []).filter(function(d){ return d.latitude && d.longitude; });
+    strip.innerHTML = '';
+    located.forEach(function(d, i) {
+        var col = catColour(d.category || d.type);
+        var isExtCard = d._trust_level === TRUST.EXTENDED;
+        var avInit = isExtCard ? '🔵' : (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol  = isExtCard ? '#3b82f6' : strColour(d.added_by_name || '?');
+        var avStyle = isExtCard ? 'background:' + avCol + ';font-size:12px;' : 'background:' + avCol + ';';
+        var byText = isExtCard
+            ? '<strong>Extended circle</strong>'
+            : 'by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>';
+        var totalSaves = isExtCard ? ((endorsementsCache[d.id] || {}).count || 0) : (d.endorsement_count || 1);
+        var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
+        var card = document.createElement('div');
+        card.className = 'dmap-card';
+        card.id = 'dmc-' + i;
+        card.innerHTML =
+            '<div class="dmc-header">' +
+                '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="dmc-dist">' + distText + '</div>' +
+            '</div>' +
+            '<div class="dmc-by">' +
+                '<div class="dmc-avatar" style="' + avStyle + '">' + avInit + '</div>' +
+                '<div class="dmc-by-text">' + byText + '</div>' +
+            '</div>' +
+            '<div class="dmc-odin-row">' +
+                '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                totalSaves + ' save' + (totalSaves !== 1 ? 's' : '') +
+            '</div>';
+        card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
+        strip.appendChild(card);
+    });
+}
+
+function focusMapItem(idx) {
+    // Activate card strip
+    document.querySelectorAll('.dmap-card').forEach(function(c){ c.classList.remove('active-card'); });
+    var card = document.getElementById('dmc-' + idx);
+    if (card) { card.classList.add('active-card'); card.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }); }
+    // Activate panel item
+    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+    var pItem = document.getElementById('dpi-' + idx);
+    if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
+    // Pan map to exact center, then open popup (autoPan disabled on popup so it won't fight setView)
+    var m = dmapMarkers[idx];
+    if (m && discoverMap) {
+        discoverMap.setView([m.lat, m.lng], 16, { animate: true });
+        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
+    }
+}
+
+// Opens the full detail drawer from a map popup "View" button
+function openMapItemDrawer(idx) {
+    var m = dmapMarkers[idx];
+    if (m && m.data) openItemDrawer(m.data);
+}
+
+function filterMapList(query) {
+    var q = query.toLowerCase().trim();
+    var count = 0;
+
+    dmapMarkers.forEach(function(m, idx) {
+        var title = (m.data.title || '').toLowerCase();
+        var cat   = (m.data.category || m.data.type || '').toLowerCase();
+        var by    = (m.data.added_by_name || '').toLowerCase();
+        var match = !q || title.includes(q) || cat.includes(q) || by.includes(q);
+
+        // Show/hide panel item
+        var pi = document.getElementById('dpi-' + idx);
+        if (pi) pi.style.display = match ? '' : 'none';
+
+        // Show/hide card strip card
+        var card = document.getElementById('dmc-' + idx);
+        if (card) card.style.display = match ? '' : 'none';
+
+        // Show/hide map marker
+        if (discoverMap) {
+            if (match) {
+                if (!discoverMap.hasLayer(m.marker)) m.marker.addTo(discoverMap);
+                count++;
+            } else {
+                if (discoverMap.hasLayer(m.marker)) discoverMap.removeLayer(m.marker);
+            }
+        }
+    });
+
+    // Update count label
+    var countEl = document.getElementById('dmapPanelCount');
+    if (countEl) countEl.textContent = (q ? count : dmapMarkers.length) + ' place' + ((q ? count : dmapMarkers.length) !== 1 ? 's' : '') + (q ? ' found' : ' nearby');
+}
+
+// Rebuild panel list and card strip sorted by distance from (lat, lng).
+// Called after async geolocation resolves so the lists update in place.
+function rebuildMapListsSorted(userLat, userLng) {
+    if (!dmapMarkers || dmapMarkers.length === 0) return;
+    // Re-sort dmapMarkers by distance
+    dmapMarkers.forEach(function(m) {
+        m.dist = calculateDistance(userLat, userLng, m.lat, m.lng);
+        m.data.distance_km = m.dist;
+    });
+    dmapMarkers.sort(function(a, b) { return a.dist - b.dist; });
+
+    var list  = document.getElementById('dmapPanelList');
+    var strip = document.getElementById('dmapCardsStrip');
+    var countEl = document.getElementById('dmapPanelCount');
+    if (list)  list.innerHTML  = '';
+    if (strip) strip.innerHTML = '';
+
+    dmapMarkers.forEach(function(m, idx) {
+        var d = m.data;
+        var col = catColour(d.category || d.type);
+        var distText = m.dist < 1 ? Math.round(m.dist * 1000) + 'm' : m.dist.toFixed(1) + 'km';
+
+        // Rebind click with new index
+        m.marker.off('click');
+        (function(i){ m.marker.on('click', function(){ focusMapItem(i); }); })(idx);
+
+        if (list) {
+            var pi = document.createElement('div');
+            pi.className = 'dmap-panel-item';
+            pi.id = 'dpi-' + idx;
+            pi.innerHTML =
+                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmap-pi-info">' +
+                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
+                '</div>' +
+                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + distText + '</div></div>';
+            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(pi);
+        }
+        if (strip) {
+            var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+            var avCol  = strColour(d.added_by_name || '?');
+            var card = document.createElement('div');
+            card.className = 'dmap-card';
+            card.id = 'dmc-' + idx;
+            card.innerHTML =
+                '<div class="dmc-header">' +
+                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmc-dist">' + distText + '</div>' +
+                '</div>' +
+                '<div class="dmc-by">' +
+                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<div class="dmc-odin-row">' +
+                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
+                '</div>';
+            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
+            strip.appendChild(card);
+        }
+    });
+    if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
+}
+
+function initDiscoverMap() {
+    var mapEl = document.getElementById('discoverMap');
+    if (!mapEl) return;
+    if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
+    // Belt-and-suspenders: clear any stale Leaflet marker on the container.
+    if (mapEl._leaflet_id !== undefined) {
+        mapEl._leaflet_id = undefined;
+        mapEl.innerHTML = '';
+    }
+
+    // Apply height before Leaflet reads container size
+    setMapScreenHeight();
+
+    var source = (filteredDiscoveries && filteredDiscoveries.length > 0) ? filteredDiscoveries : allDiscoveries;
+    // Pre-filter AND pre-parse so indices are consistent everywhere
+    var located = (source || []).reduce(function(acc, d) {
+        var lat = parseFloat(d.latitude);
+        var lng = parseFloat(d.longitude);
+        // Skip null-island (0,0) — result of failed geocoding
+        if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) acc.push({ data: d, lat: lat, lng: lng });
+        return acc;
+    }, []);
+
+    // Compute distances and sort closest-first if user location is available
+    if (userLocation.available) {
+        located.forEach(function(entry) {
+            entry.dist = calculateDistance(userLocation.latitude, userLocation.longitude, entry.lat, entry.lng);
+            entry.data.distance_km = entry.dist;
+        });
+        located.sort(function(a, b) { return a.dist - b.dist; });
+    }
+
+    try {
+        discoverMap = L.map('discoverMap', { zoomControl: false });
+    } catch(e) {
+        return;
+    }
+
+    // CartoDB Positron — clean minimal tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(discoverMap);
+
+    // User location dot
+    if (userLocation.available) {
+        userLocMarker = L.circleMarker([userLocation.latitude, userLocation.longitude], {
+            radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
+        }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
+    }
+
+    var bounds = [];
+    dmapMarkers = [];
+
+    // Clear panel + strip before rebuilding inline
+    var _list  = document.getElementById('dmapPanelList');
+    var _strip = document.getElementById('dmapCardsStrip');
+    if (_list)  _list.innerHTML  = '';
+    if (_strip) _strip.innerHTML = '';
+
+    // Build markers — index matches located[] exactly (no skips)
+    located.forEach(function(entry, idx) {
+        var d   = entry.data;
+        var lat = entry.lat;
+        var lng = entry.lng;
+        bounds.push([lat, lng]);
+
+        var col        = catColour(d.category || d.type);
+        var catInitial = (d.category || 'P').charAt(0).toUpperCase();
+        var avInit     = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol      = strColour(d.added_by_name || '?');
+        var distText   = d.distance_km
+            ? (d.distance_km < 1 ? Math.round(d.distance_km * 1000) + 'm' : d.distance_km.toFixed(1) + 'km')
+            : '';
+
+        var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
+        var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
+
+        var popHtml =
+            '<div class="odin-pop">' +
+                '<div class="odin-pop-cat">' +
+                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
+                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
+                '</div>' +
+                '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
+                '<div class="odin-pop-by">' +
+                    '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
+            '</div>';
+
+        var marker = L.marker([lat, lng], { icon: icon })
+            .addTo(discoverMap)
+            .bindPopup(popHtml, { maxWidth: 240, autoPan: false });
+
+        // Desktop: hover opens popup preview; Click: pan + highlight only (popup opens via Leaflet default)
+        (function(i){
+            marker.on('mouseover', function(){ this.openPopup(); });
+            marker.on('click', function(){ focusMapItem(i); });
+        })(idx);
+        dmapMarkers.push({ lat: lat, lng: lng, marker: marker, data: d });
+
+        // ── Build panel item inline (same loop = guaranteed index match) ──
+        var list  = document.getElementById('dmapPanelList');
+        if (list) {
+            var pi = document.createElement('div');
+            pi.className = 'dmap-panel-item';
+            pi.id = 'dpi-' + idx;
+            pi.innerHTML =
+                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
+                '<div class="dmap-pi-info">' +
+                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
+                '</div>' +
+                '<div class="dmap-pi-right">' +
+                    '<div class="dmap-pi-dist">' + distText + '</div>' +
+                '</div>';
+            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(pi);
+        }
+
+        // ── Build card strip item inline ──
+        var strip = document.getElementById('dmapCardsStrip');
+        if (strip) {
+            var card = document.createElement('div');
+            card.className = 'dmap-card';
+            card.id = 'dmc-' + idx;
+            card.innerHTML =
+                '<div class="dmc-header">' +
+                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
+                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
+                    '<div class="dmc-dist">' + distText + '</div>' +
+                '</div>' +
+                '<div class="dmc-by">' +
+                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<div class="dmc-odin-row">' +
+                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
+                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
+                '</div>';
+            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
+            strip.appendChild(card);
+        }
+    });
+
+    // Update panel count
+    var countEl = document.getElementById('dmapPanelCount');
+    if (countEl) countEl.textContent = located.length + ' place' + (located.length !== 1 ? 's' : '') + ' nearby';
+
+    // Update panel count
+    // ── Centre on user location; fall back to fitBounds ──
+    function centreOnUser(lat, lng) {
+        discoverMap.setView([lat, lng], 14, { animate: false });
+        // Add / update the blue "you are here" dot
+        if (userLocMarker) {
+            userLocMarker.setLatLng([lat, lng]);
+        } else {
+            userLocMarker = L.circleMarker([lat, lng], {
+                radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
+            }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
+        }
+    }
+
+    // Always set an initial view so Leaflet renders tiles immediately.
+    if (userLocation.available) {
+        centreOnUser(userLocation.latitude, userLocation.longitude);
+    } else if (bounds.length > 0) {
+        discoverMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        // Sanity check — if still too zoomed out (bad coords pulled bounds wide), reset to Auckland
+        if (discoverMap.getZoom() < 9) {
+            discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
+        }
+    } else {
+        discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
+    }
+
+    if (userLocation.available) {
+        // Already handled above — nothing more to do
+    } else if (navigator.geolocation) {
+        // Request GPS; re-centre when we get it
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                userLocation.latitude  = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                centreOnUser(userLocation.latitude, userLocation.longitude);
+                // Re-sort panel + card lists by distance now that we have location
+                rebuildMapListsSorted(userLocation.latitude, userLocation.longitude);
+            },
+            function() {
+                // GPS denied/failed — keep whatever view is already set
+            },
+            { timeout: 6000, enableHighAccuracy: true }
+        );
+    }
+
+    // Force Leaflet to redraw after layout settles
+    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 150);
+    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 500);
+}
+
+function showDrawer(index) {
+    const item = filteredDiscoveries[index] || currentResults[index];
+    if (!item) return;
+    openItemDrawer(item);
 }
 
 function openItemDrawer(item) {
@@ -3481,11 +4354,7 @@ function openItemDrawer(item) {
         html += '</div></div>';
     }
 
-    // === FOOTER: saved-by + Ask CTA (above Save button) ===
-    // Scenario 1 (own): "Saved by You"
-    // Scenario 2 (friend + note): "Saved by [Name] [avatar]"
-    // Scenario 3 (friend + no note): "Saved by [Name] [avatar]" + "Ask [Name] about this"
-    // Scenario 4 (Save Inheritance): "Via [Name] [avatar]"
+    // === FOOTER: saved-by attribution + Ask CTA + Save button ===
     if (item.id) {
         const friendName    = item.added_by_name ? escapeHtml(item.added_by_name) : 'Friend';
         const viaName       = item._via_friend_name ? escapeHtml(item._via_friend_name) : null;
@@ -3505,7 +4374,6 @@ function openItemDrawer(item) {
         footerHtml += '</div>';
 
         // "Ask [Name] about this" — only for Scenario 3 (direct friend, no personal note)
-        // Never shown for Save Inheritance (anonymous source) or own saves
         let askCtaHtml = '';
         if (isDirectFriend && !note && item.added_by_name) {
             const encodedName = encodeURIComponent(item.added_by_name);
@@ -3527,14 +4395,19 @@ function openItemDrawer(item) {
     document.getElementById('drawerBackdrop').classList.add('active');
     document.getElementById('detailDrawer').classList.add('open');
 
-    // Load community notes asynchronously
+    // Load community notes asynchronously (extended circle sees locked message)
     if (item.id) {
-        loadNotesForItem(item.id).then(notes => {
+        if (isExtendedCircle) {
             const container = document.getElementById('communityNotesContainer');
-            if (container) {
-                container.innerHTML = renderNotesSection(item.id, notes);
-            }
-        });
+            if (container) container.innerHTML = renderNotesSection(item.id, [], TRUST.EXTENDED);
+        } else {
+            loadNotesForItem(item.id).then(notes => {
+                const container = document.getElementById('communityNotesContainer');
+                if (container) {
+                    container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
+                }
+            });
+        }
     }
 }
 
@@ -3542,17 +4415,6 @@ function showSearchDrawer(index) {
     const item = currentResults[index];
     if (!item) return;
     openItemDrawer(item);
-}
-
-// ── Ask Friend about this ─────────────────────────────────
-// Placeholder for Stage 2 in-app messaging / Odin chat.
-// For now: opens the device's default SMS/messaging app with a pre-filled
-// message. Low friction, works immediately with no backend needed.
-function openAskFriendChat(encodedFriendName, itemTitle) {
-    const friendName = decodeURIComponent(encodedFriendName);
-    const msg = encodeURIComponent(`Hey ${friendName}, I saw you saved "${itemTitle}" on Odin — what's it like?`);
-    // Opens SMS on mobile. On desktop this is a no-op, which is fine for MVP.
-    window.open(`sms:?body=${msg}`, '_blank');
 }
 
 let currentDrawerItem = null; // Track the item currently open in drawer
@@ -3616,10 +4478,21 @@ function enterEditMode() {
         <label class="edit-label">URL</label>
         <input class="edit-input" id="editUrl" value="${escapeHtml(url)}">
 
-        <div class="privacy-toggle-row" style="margin-top: 8px;" onclick="togglePrivacy('editPrivateToggle')">
-            <span class="privacy-toggle-text ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleText">Private — only visible to me</span>
-            <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
-                <div class="privacy-toggle-knob"></div>
+        <div class="visibility-group" style="margin-top: 8px;">
+            <div class="visibility-label-row">
+                <span class="visibility-section-label">VISIBILITY</span>
+            </div>
+            <div class="privacy-toggle-row" onclick="togglePrivacy('editPrivateToggle')">
+                <div class="visibility-status">
+                    <span class="visibility-icon" id="editPrivateToggleIcon">${item.visibility === 'private' ? '🔒' : '👥'}</span>
+                    <div class="visibility-info">
+                        <span class="visibility-title" id="editPrivateToggleTitle">${item.visibility === 'private' ? 'Only you' : 'Friends'}</span>
+                        <span class="visibility-desc" id="editPrivateToggleDesc">${item.visibility === 'private' ? 'Hidden from everyone else' : 'Your connections can see this'}</span>
+                    </div>
+                </div>
+                <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
+                    <div class="privacy-toggle-knob"></div>
+                </div>
             </div>
         </div>
         <input type="hidden" id="editPrivateToggle" value="${item.visibility === 'private' ? 'true' : 'false'}">
@@ -3749,9 +4622,20 @@ async function saveItemEdit(itemId) {
 async function confirmDeleteItem(itemId) {
     const confirmEl = document.getElementById(`deleteItemConfirm_${itemId}`);
     const warningEl = document.getElementById(`deleteItemWarning_${itemId}`);
-    if (!confirmEl || !warningEl) return;
 
+    // If the confirm panel elements aren't in the DOM (e.g. not in edit mode),
+    // fall back to a simple native confirm dialog
+    if (!confirmEl || !warningEl) {
+        const proceed = window.confirm('Are you sure you want to permanently delete this item? This cannot be undone.');
+        if (proceed) executeDeleteItem(itemId);
+        return;
+    }
+
+    // Show the inline confirmation panel
     confirmEl.classList.remove('hidden');
+
+    // Scroll the confirm section into view so users can see it on small screens
+    confirmEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     // Count how many OTHER users have saved (endorsed) this item
     try {
@@ -3763,12 +4647,12 @@ async function confirmDeleteItem(itemId) {
 
         const count = (!error && data) ? data.length : 0;
         if (count > 0) {
-            warningEl.textContent = `${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} saved this. Deleting will remove it for everyone.`;
+            warningEl.textContent = `⚠️ ${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} also saved this. Deleting will remove it for everyone.`;
         } else {
-            warningEl.textContent = 'No one else has saved this. It will be permanently deleted.';
+            warningEl.textContent = '🗑️ No one else has saved this. It will be permanently deleted.';
         }
     } catch (e) {
-        warningEl.textContent = 'This will permanently delete the item for everyone.';
+        warningEl.textContent = '⚠️ This will permanently delete the item for everyone.';
     }
 }
 
@@ -3795,6 +4679,24 @@ async function executeDeleteItem(itemId) {
         closeDrawer();
         showToast('Item deleted.');
 
+        // Clean up from "Continue Exploring" (recently viewed)
+        removeRecentlyViewed(itemId);
+
+        // Clean up from home saves list (DOM)
+        const homeSaveRow = document.querySelector('#homeSavesList .hsl-row[onclick*="' + itemId + '"]');
+        if (homeSaveRow) {
+            homeSaveRow.remove();
+            const list = document.getElementById('homeSavesList');
+            if (list && !list.querySelector('.hsl-row')) {
+                const section = document.getElementById('homeSavesSection');
+                if (section) section.style.display = 'none';
+            }
+        }
+
+        // Clean up from profile My Saves (DOM)
+        const profileSaveCard = document.querySelector('#myEndorsementsList .my-endorse-card[onclick*="' + itemId + '"]');
+        if (profileSaveCard) profileSaveCard.remove();
+
         // Refresh discover view if open
         filterAndRender();
     } catch (err) {
@@ -3817,9 +4719,10 @@ function startEditNote(noteId, itemId, currentText) {
 
 function cancelEditNote(noteId, itemId) {
     // Reload notes to restore original
+    const trustLevel = currentDrawerItem?._trust_level || TRUST.FRIENDS;
     loadNotesForItem(itemId).then(notes => {
         const container = document.getElementById('communityNotesContainer');
-        if (container) container.innerHTML = renderNotesSection(itemId, notes);
+        if (container) container.innerHTML = renderNotesSection(itemId, notes, trustLevel);
     });
 }
 
@@ -3839,8 +4742,9 @@ async function saveEditNote(noteId, itemId) {
         if (error) throw error;
 
         const notes = await loadNotesForItem(itemId);
+        const trustLevel = currentDrawerItem?._trust_level || TRUST.FRIENDS;
         const container = document.getElementById('communityNotesContainer');
-        if (container) container.innerHTML = renderNotesSection(itemId, notes);
+        if (container) container.innerHTML = renderNotesSection(itemId, notes, trustLevel);
         showToast('Comment updated!');
     } catch (err) {
         console.error('Error editing note:', err);
@@ -3908,15 +4812,20 @@ function sendMessage(text) {
     // Reset translation cache for new search
     translationCache = {};
 
+    // Save to recent searches history
+    if (typeof saveRecentSearch === 'function') saveRecentSearch(query);
+
     if (isFirstMessage) {
         const welcomeEl = document.querySelector('#chatContainer .welcome');
         if (welcomeEl) welcomeEl.style.display = 'none';
         isFirstMessage = false;
+        // Stop animated placeholder when user sends first message
+        if (typeof stopSearchPlaceholder === 'function') stopSearchPlaceholder();
     }
 
     const container = document.getElementById('chatContainer');
     container.innerHTML += `<div class="message message-user"><div class="message-bubble">${escapeHtml(query)}</div></div>`;
-    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><span class="search-status-text">Searching...</span><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+    container.innerHTML += `<div class="message message-assistant" id="typing"><div class="typing-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div><span class="search-status-text">Searching...</span></div></div>`;
     container.scrollTop = container.scrollHeight;
     startSearchMessages();
     input.value = '';
@@ -3927,11 +4836,26 @@ function sendMessage(text) {
         timestamp: Date.now()
     });
 
+    // Build the set of user IDs whose items are allowed in search results:
+    //   - the current user (own items, all visibility)
+    //   - direct friends (friends-visibility items)
+    // Extended circle items are anonymised after results return — we include
+    // their IDs in a separate list so n8n can optionally surface them too,
+    // but NEVER include private items from non-friends.
+    const directFriendIds = friendsCache.map(f => f.out_user_id).filter(Boolean);
+    const allowedUserIds   = currentUser
+        ? [currentUser.id, ...directFriendIds]
+        : [];
+
     const body = {
         query,
         session_id: currentSessionId,
         conversation_history: sessionMessages,
-        user_id: currentUser ? currentUser.id : null
+        user_id: currentUser ? currentUser.id : null,
+        // Visibility filter context sent to n8n so the semantic search
+        // only runs against the corpus this user is allowed to see.
+        allowed_user_ids: allowedUserIds,   // search ONLY these users' items
+        friend_ids: directFriendIds,        // subset: direct friends (for note visibility)
     };
     if (userLocation.available) {
         body.user_latitude = userLocation.latitude;
@@ -3957,40 +4881,65 @@ function sendMessage(text) {
             // Tag each result with the query language for translation toggle
             currentResults.forEach(r => { r._queryLanguage = queryLanguage; });
 
-            // Match and enrich search results from allDiscoveries (friends + self only)
+            // ── Odin Trust Layer: search result filtering ─────────
+            // Build lookup sets for fast membership checks
+            const selfId       = currentUser ? currentUser.id : null;
+            const friendIdSet  = new Set(friendsCache.map(f => f.out_user_id).filter(Boolean));
+            const allowedIdSet = new Set(selfId ? [selfId, ...friendIdSet] : [...friendIdSet]);
+
+            // Match and enrich search results from allDiscoveries
             currentResults.forEach(r => {
-                // Find match by id first, then fall back to title
                 const match = (r.id && allDiscoveries.find(d => d.id === r.id))
                     || allDiscoveries.find(d => d.title === r.title);
                 if (match) {
                     // Preserve search-specific fields before merging
                     const relevance_reason = r.relevance_reason;
-                    const distance_km = r.distance_km || match.distance_km;
-                    const _queryLanguage = r._queryLanguage;
-                    const combined_score = r.combined_score;
-                    const relevance_score = r.relevance_score;
-                    // Merge full Supabase data (adds added_by, personal_note, photo_url etc.)
+                    const distance_km      = r.distance_km || match.distance_km;
+                    const _queryLanguage   = r._queryLanguage;
+                    const combined_score   = r.combined_score;
+                    const relevance_score  = r.relevance_score;
                     Object.assign(r, match);
                     r.relevance_reason = relevance_reason;
                     if (distance_km) r.distance_km = distance_km;
-                    r._queryLanguage = _queryLanguage;
-                    r.combined_score = combined_score;
-                    r.relevance_score = relevance_score;
+                    r._queryLanguage   = _queryLanguage;
+                    r.combined_score   = combined_score;
+                    r.relevance_score  = relevance_score;
                 }
             });
 
-            // Layer 1: friends + self results (full access including personal notes)
-            const friendResults = currentResults.filter(r =>
-                r.id && allDiscoveries.find(d => d.id === r.id)
+            // ── Hard privacy filter ───────────────────────────────
+            // Allowed: own items, direct friends' non-private, FOF 'friends'-visibility items
+            // FOF items come back from RPC with trust_level='extended_circle' + added_by=null
+            const fofIdSet = new Set(
+                allDiscoveries
+                    .filter(d => d._trust_level === TRUST.EXTENDED)
+                    .map(d => d.id)
             );
+            currentResults = currentResults.filter(r => {
+                if (!r.id) return false;
+                // RPC-anonymised FOF: added_by is null, trust_level is extended_circle
+                if (!r.added_by && r.trust_level === 'extended_circle') return true;
+                const owner = r.added_by;
+                if (!owner) return allDiscoveries.some(d => d.id === r.id);
+                // Private items: only visible to the owner
+                if (r.visibility === TRUST.PRIVATE && owner !== selfId) return false;
+                // Direct friends: allowed if not private
+                if (allowedIdSet.has(owner)) return true;
+                // FOF: allowed if RPC tagged it as extended_circle
+                if (r.trust_level === 'extended_circle') return true;
+                // FOF from feed cache
+                if (fofIdSet.has(r.id)) return true;
+                return false;
+            });
 
-            // Layer 2: everyone else in DB (teaser only — no personal notes shown)
-            const otherResults = currentResults.filter(r =>
-                r.id && !allDiscoveries.find(d => d.id === r.id)
-            ).map(r => ({ ...r, _isOutsideNetwork: true }));
-
-            // Main results = friends only
-            currentResults = friendResults;
+            // ── Anonymise extended circle items ──────────────────
+            // Sets _trust_level, clears identity fields, hides comments
+            currentResults = currentResults.map(r => {
+                if (r.trust_level === 'extended_circle' || r._trust_level === TRUST.EXTENDED) {
+                    return anonymiseForExtendedCircle(r);
+                }
+                return r;
+            });
 
             // Relevance check — trust results if score meets threshold
             const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
@@ -4014,19 +4963,20 @@ function sendMessage(text) {
             };
 
             const buildTopPick = (r, idx) => {
-                const photo = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
-                const rawNote = getPersonalNote(r);
+                const isExt    = r._trust_level === TRUST.EXTENDED;
+                const photo    = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}" onerror="this.outerHTML='<span style=\\'font-size:32px;color:#d1d5db\\'>📍</span>'">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
+                const rawNote  = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
                 // Extended circle: description only (no personal notes, no friend attribution)
                 const snippet      = isExt
-                    ? (r.feed_card_summary || r.description || r.relevance_reason || '')
+                    ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
                 const snippetLabel = isExt
-                    ? 'What\'s this about'
-                    : (canSeeNote ? 'THE WORD' : 'What\'s this about');
+                    ? '💡 Why this matches'
+                    : (canSeeNote ? '💭 Friend says' : '💡 Why this matches');
                 const byLine = isExt
-                    ? (r._via_friend_name ? `<span class="meta-tag meta-added-by">Via ${escapeHtml(r._via_friend_name)}</span>` : '<span class="meta-tag meta-added-by">Your circle</span>')
+                    ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
 
                 return `
@@ -4037,32 +4987,34 @@ function sendMessage(text) {
                             <div class="top-pick-title">${escapeHtml(r.title)}</div>
                             <div class="top-pick-meta">
                                 ${distText ? `<span class="meta-tag meta-distance">📍 ${distText}</span>` : ''}
-                                ${r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : ''}
+                                ${byLine}
                             </div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
                                     <div class="top-pick-reason-label">${snippetLabel}</div>
-                                    ${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}
+                                    <span class="top-pick-reason-text" data-original="${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}">${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}</span>
                                 </div>
                             ` : ''}
+                            <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                         </div>
                     </div>
                 `;
             };
 
             const buildCompactCard = (r, idx) => {
-                const photo = r.photo_url
-                    ? `<img src="${escapeHtml(r.photo_url)}">`
+                const isExt  = r._trust_level === TRUST.EXTENDED;
+                const photo  = r.photo_url
+                    ? `<img src="${escapeHtml(r.photo_url)}" onerror="this.outerHTML='<span class=\\'compact-photo-placeholder\\'>📍</span>'">`
                     : '<span class="compact-photo-placeholder">📍</span>';
-                const rawNote = getPersonalNote(r);
+                const rawNote    = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by);
                 const distText   = formatDistance(r.distance_km);
                 const snippet    = isExt
-                    ? (r.feed_card_summary || r.description || r.relevance_reason || '')
+                    ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
-                const snippetIcon = '';
+                const snippetIcon = (!isExt && canSeeNote) ? '💭' : '';
                 const byLine = isExt
-                    ? (r._via_friend_name ? `<span style="font-size:11px;">Via ${escapeHtml(r._via_friend_name)}</span>` : '<span style="font-size:11px;">Your circle</span>')
+                    ? '<span class="extended-circle-badge" style="font-size:11px;">🔵 Extended circle</span>'
                     : (r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : '');
 
                 return `
@@ -4071,9 +5023,10 @@ function sendMessage(text) {
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         <div class="compact-meta">
                             ${distText ? `<span>📍 ${distText}</span>` : ''}
-                            ${r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : ''}
+                            ${byLine}
                         </div>
-                        ${snippet ? `<div class="compact-snippet">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                     </div>
                 `;
             };
@@ -4346,11 +5299,13 @@ function startNewSession() {
     document.getElementById('messageInput').value = '';
     // Refresh search greeting after session reset
     if (typeof updateSearchGreeting === 'function') updateSearchGreeting();
-    // Hide suggestion chips in Focus mode
-    if (typeof getHomeStyle === 'function' && getHomeStyle() === 'launcher') {
-        var chipsEl = container.querySelector('.suggestions');
-        if (chipsEl) chipsEl.style.display = 'none';
-    }
+    // Always restore suggestion chips when starting a new session
+    var chipsEl = document.getElementById('searchSuggestions');
+    if (chipsEl) chipsEl.style.display = '';
+    // Restart animated placeholder
+    if (typeof startSearchPlaceholder === 'function') setTimeout(startSearchPlaceholder, 80);
+    // Refresh recent searches display
+    if (typeof renderRecentSearches === 'function') renderRecentSearches();
     console.log('New session started:', currentSessionId);
 }
 
@@ -4387,13 +5342,88 @@ function toggleSearchSheet() {
 }
 
 function togglePrivacy(inputId) {
-    const input = document.getElementById(inputId);
-    const track = document.getElementById(inputId + 'Track');
-    const text = document.getElementById(inputId + 'Text');
-    const isActive = input.value === 'true';
-    input.value = isActive ? 'false' : 'true';
-    track.classList.toggle('active', !isActive);
-    text.classList.toggle('active', !isActive);
+    const input  = document.getElementById(inputId);
+    const track  = document.getElementById(inputId + 'Track');
+    const icon   = document.getElementById(inputId + 'Icon');
+    const title  = document.getElementById(inputId + 'Title');
+    const desc   = document.getElementById(inputId + 'Desc');
+
+    // Toggle: track.active = Friends ON, track no-active = private
+    const isShared = input.value === 'false';   // currently shared with friends?
+    const goPrivate = isShared;                 // flip to private
+
+    input.value = goPrivate ? 'true' : 'false';
+    track.classList.toggle('active', !goPrivate); // active = Friends ON
+
+    // Update visibility status labels
+    if (icon)  icon.textContent  = goPrivate ? '🔒' : '👥';
+    if (title) title.textContent = goPrivate ? 'Only you' : 'Friends';
+    if (desc)  desc.textContent  = goPrivate ? 'Hidden from everyone else' : 'Your connections can see this';
+}
+
+// ===== CAPTURE: VISIBILITY SELECTOR =====
+function selectVisibility(el) {
+    document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    const val = el.dataset.value; // 'private' | 'friends'
+    const hidden   = document.getElementById('privateToggle');
+    const visField = document.getElementById('visibilityValue');
+    const hint     = document.getElementById('visHint');
+    if (hidden)   hidden.value   = val === 'private' ? 'true' : 'false';
+    if (visField) visField.value = val;
+    if (hint) {
+        if (val === 'private') {
+            hint.textContent = 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.';
+            hint.classList.remove('vis-hint--friends');
+        } else {
+            hint.innerHTML = '✦ Your friends can save this — and their circle will see it was saved, but not who added it. Your knowledge travels further, anonymously.';
+            hint.classList.add('vis-hint--friends');
+        }
+    }
+}
+
+// ===== CAPTURE: ROTATING PLACEHOLDER =====
+const TAKE_PLACEHOLDERS = {
+    place: [
+        'Best tonkotsu in town — ask for the spicy option, go after 7pm',
+        'Hidden gem — order the daily special, park on the side street',
+        'Worth the drive — take a friend, skip the mains, just do dessert',
+        'Go on a weekday morning, half the crowd and twice the vibe',
+    ],
+    product: [
+        'Been using this for 6 months — worth every cent, way better than the Amazon version',
+        'Game changer — replaced three other things I used to buy separately',
+        'Bought it twice already. The second one was for my mum.',
+        'Sounds gimmicky but actually works — give it two weeks',
+    ],
+    service: [
+        'Fixed my back in 3 sessions — ask for the deep tissue, not the relaxation',
+        'Best in town, book 2 weeks out or you won\'t get in',
+        'Ask for Michelle specifically — she actually listens',
+        'Don\'t go on price alone, this one is actually worth paying for',
+    ],
+    advice: [
+        'Changed how I think about mornings — chapter 3 is the one, read it twice',
+        'Sent this to five people already. Everyone came back saying thank you.',
+        'Skip the intro, start at chapter 2 — trust me',
+        'One idea from this paid for itself ten times over',
+    ],
+};
+let _takePlaceholderTimer = null;
+let _takePlaceholderIdx = {};
+
+function startTakePlaceholder(category) {
+    if (_takePlaceholderTimer) clearInterval(_takePlaceholderTimer);
+    const textarea = document.getElementById('personalNote');
+    if (!textarea) return;
+    const pool = TAKE_PLACEHOLDERS[category] || TAKE_PLACEHOLDERS.place;
+    if (!_takePlaceholderIdx[category]) _takePlaceholderIdx[category] = 0;
+    textarea.placeholder = pool[_takePlaceholderIdx[category] % pool.length];
+    _takePlaceholderTimer = setInterval(() => {
+        if (document.activeElement === textarea) return; // don't rotate while typing
+        _takePlaceholderIdx[category] = ((_takePlaceholderIdx[category] || 0) + 1) % pool.length;
+        textarea.placeholder = pool[_takePlaceholderIdx[category]];
+    }, 5000);
 }
 
 // ===== CAPTURE: CLEAR FORM =====
@@ -4414,6 +5444,9 @@ function clearCaptureForm() {
     const defaultPill = document.querySelector('.category-pill[data-value="place"]');
     if (defaultPill) defaultPill.classList.add('active');
     document.getElementById('category').value = 'place';
+    // Reset address label hint
+    const addressLabel = document.getElementById('addressLabel');
+    if (addressLabel) addressLabel.textContent = '— recommended for places';
     // Reset photo
     document.getElementById('photoPreview').style.display = 'none';
     const uploadZone = document.getElementById('photoUploadZone');
@@ -4421,6 +5454,19 @@ function clearCaptureForm() {
     // Show URL hint
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
+    // Reset visibility selector to private (default)
+    document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
+    const defaultVis = document.querySelector('.vis-option[data-value="private"]');
+    if (defaultVis) defaultVis.classList.add('active');
+    const privInput = document.getElementById('privateToggle');
+    const visField  = document.getElementById('visibilityValue');
+    if (privInput) privInput.value = 'true';
+    if (visField)  visField.value  = 'private';
+    // Reset address field visibility
+    const addressGroup = document.querySelector('.address-group');
+    if (addressGroup) addressGroup.style.display = '';
+    // Reset Your Take rotating placeholder to Place default
+    startTakePlaceholder('place');
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -4529,28 +5575,48 @@ function prefillCaptureLocation() {
             dd.classList.remove('hidden');
         }
 
-        // Bias results toward user's current location if we have it
+        // Auckland bounding box (fallback when no GPS)
+        // SW: -37.05, 174.55 — NE: -36.65, 175.00
+        const AKL_VIEWBOX = '174.55,-36.65,175.00,-37.05';
+
+        // Prefer user's GPS if available, else default to Auckland
         const lat = document.getElementById('userLat')?.value;
         const lng = document.getElementById('userLng')?.value;
         let viewboxParam = '';
         if (lat && lng) {
-            const delta = 0.05; // ~5km radius bias
+            const delta = 0.15; // ~15km radius bias around user
             viewboxParam = `&viewbox=${+lng - delta},${+lat + delta},${+lng + delta},${+lat - delta}&bounded=0`;
+        } else {
+            // Default bias: Auckland viewbox, not bounded so suburb names still work
+            viewboxParam = `&viewbox=${AKL_VIEWBOX}&bounded=0`;
         }
 
         try {
             const res = await fetch(
-                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=5${viewboxParam}`,
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&addressdetails=1&limit=8&countrycodes=nz${viewboxParam}`,
                 { headers: { 'Accept-Language': 'en' } }
             );
             const results = await res.json();
-            showDropdown(results);
+
+            // Sort: Auckland/NZ results first, then everything else
+            results.sort((a, b) => {
+                const aIsAkl = (a.display_name || '').toLowerCase().includes('auckland');
+                const bIsAkl = (b.display_name || '').toLowerCase().includes('auckland');
+                if (aIsAkl && !bIsAkl) return -1;
+                if (!aIsAkl && bIsAkl) return 1;
+                return 0;
+            });
+
+            showDropdown(results.slice(0, 5));
         } catch (e) {
             hideDropdown();
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // Start rotating placeholder for default category (place)
+        startTakePlaceholder('place');
+
         const addressInput = document.getElementById('address');
         if (!addressInput) return;
 
@@ -4597,7 +5663,8 @@ async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
 
     const titleField = document.getElementById('title');
-    const descField = document.getElementById('description');
+    // personalNote is now the single user-facing field (merged with description)
+    const descField = document.getElementById('personalNote');
     const ogLoading = document.getElementById('ogLoading');
     const ogCard = document.getElementById('ogPreviewCard');
     const heroHint = document.getElementById('urlHeroHint');
@@ -4801,26 +5868,70 @@ async function submitDiscovery(e) {
         return;
     }
 
+    // Validate "Your take" — required but no asterisk shown
+    const takeVal = document.getElementById('personalNote').value.trim();
+    if (!takeVal) {
+        const textarea = document.getElementById('personalNote');
+        textarea.focus();
+        textarea.style.borderColor = '#7B2D45';
+        textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) {
+            formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Tell your circle why it\'s worth it — even one line helps.</p>';
+        }
+        setTimeout(() => {
+            textarea.style.borderColor = '';
+            textarea.style.boxShadow = '';
+        }, 2500);
+        document.getElementById('submitBtn').disabled = false;
+        return;
+    }
+    // Clear any validation state
+    const formMsg = document.getElementById('formMessage');
+    if (formMsg) formMsg.innerHTML = '';
+
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
 
-    // Read photo BEFORE showing success (needs to happen synchronously)
+    // Read + compress photo BEFORE showing success
     let photoBase64 = null;
     const photoFile = document.getElementById('photo').files[0];
     if (photoFile) {
         photoBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // Resize to max 1200px on longest side
+                    const MAX = 1200;
+                    let w = img.width, h = img.height;
+                    if (w > MAX || h > MAX) {
+                        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                        else        { w = Math.round(w * MAX / h); h = MAX; }
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    // Export as JPEG at 82% quality — well under Supabase's limit
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                    resolve(dataUrl.split(',')[1]);
+                };
+                img.src = e.target.result;
+            };
             reader.readAsDataURL(photoFile);
         });
     }
 
-    const isPrivate = document.getElementById('privateToggle').value === 'true';
+    const visibilityVal = document.getElementById('visibilityValue')?.value || 'private';
+    const isPrivate = visibilityVal === 'private';
+
+    // personalNote is now the single user-facing field (merged with description)
+    const yourTake = document.getElementById('personalNote').value.trim();
 
     const payload = {
         title: document.getElementById('title').value.trim(),
-        description: document.getElementById('description').value.trim(),
-        personalNote: document.getElementById('personalNote').value.trim() || null,
+        description: yourTake,        // feeds AI Enhance enrichment
+        personalNote: yourTake || null, // feeds embedding + social display
         type: document.getElementById('category').value,
         addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
         address: document.getElementById('address').value.trim() || null,
@@ -4832,8 +5943,17 @@ async function submitDiscovery(e) {
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: isPrivate ? 'private' : 'friends'
+        visibility: visibilityVal
     };
+
+    // Post-save nudge: if note is thin, show a gentle prompt in the overlay
+    const isThinNote = takeVal.length < 30;
+    const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
+    if (overlayBody) {
+        overlayBody.innerHTML = isThinNote
+            ? 'Saved! <span style="display:block;font-size:12px;color:#9CA3AF;margin-top:4px;">Next time, add one more detail — your circle will love you for it.</span>'
+            : 'Your discovery has been added';
+    }
 
     // Show instant "Saved!" overlay immediately
     const overlay = document.getElementById('saveSuccessOverlay');
@@ -4876,7 +5996,30 @@ async function submitDiscovery(e) {
 function selectCategory(el) {
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
     el.classList.add('active');
-    document.getElementById('category').value = el.dataset.value;
+    const val = el.dataset.value;
+    document.getElementById('category').value = val;
+
+    // Category-aware rotating placeholders
+    startTakePlaceholder(val);
+
+    // Show/hide address field based on category
+    const addressGroup = document.querySelector('.address-group');
+    if (addressGroup) {
+        if (val === 'place') {
+            addressGroup.style.display = '';
+        } else {
+            addressGroup.style.display = 'none';
+            // Clear address when hidden
+            const addrInput = document.getElementById('address');
+            if (addrInput) addrInput.value = '';
+        }
+    }
+
+    // Update address label hint based on category
+    const addressLabel = document.getElementById('addressLabel');
+    if (addressLabel) {
+        addressLabel.textContent = '— recommended for places';
+    }
 }
 
 document.getElementById('photo').addEventListener('change', function(e) {
@@ -5072,48 +6215,361 @@ async function autoFriendOdinHQ() {
     }
 }
 
-function checkOnboardingBanner() {
-    const banner = document.getElementById('onboardingBanner');
-    if (!banner) return;
+// ══════════════════════════════════════════════════════════
+// INVITE LINK SYSTEM
+// Profile tab → "Generate invite link" → share via WhatsApp/iMessage
+// When new user signs up via link → friend request sent to inviter
+// March 2026
+// ══════════════════════════════════════════════════════════
 
-    // Don't show if already dismissed
-    if (localStorage.getItem('onboarding_welcome_dismissed')) {
-        banner.style.display = 'none';
+async function generateInviteLink() {
+    if (!currentUser) return;
+
+    const btn = document.getElementById('inviteLinkBtn');
+    const result = document.getElementById('inviteLinkResult');
+    const urlEl = document.getElementById('inviteLinkUrl');
+    if (btn) { btn.disabled = true; btn.textContent = 'Generating...'; }
+
+    try {
+        // Generate a random token — 12 chars, URL-safe
+        const token = Array.from(crypto.getRandomValues(new Uint8Array(9)))
+            .map(b => b.toString(36).padStart(2, '0'))
+            .join('')
+            .slice(0, 12);
+
+        // Save to Supabase invitations table
+        const { error } = await supabaseClient
+            .from('invitations')
+            .insert({
+                token: token,
+                inviter_id: currentUser.id
+            });
+
+        if (error) throw error;
+
+        // Build the shareable URL
+        const baseUrl = window.location.href.split('?')[0].split('#')[0];
+        const inviteUrl = `${baseUrl}?token=${token}`;
+
+        // Display it
+        if (urlEl) urlEl.textContent = inviteUrl;
+        if (result) result.style.display = 'block';
+        if (btn) { btn.textContent = 'Generate new link'; btn.disabled = false; }
+
+    } catch (err) {
+        console.error('Failed to generate invite link:', err);
+        if (btn) { btn.textContent = 'Try again'; btn.disabled = false; }
+    }
+}
+
+function copyInviteLink() {
+    const urlEl = document.getElementById('inviteLinkUrl');
+    const copyBtn = document.getElementById('inviteLinkCopy');
+    if (!urlEl) return;
+
+    const url = urlEl.textContent.trim();
+    navigator.clipboard.writeText(url).then(() => {
+        if (copyBtn) {
+            copyBtn.textContent = 'Copied!';
+            copyBtn.style.background = '#2A6B3C';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.style.background = '';
+            }, 2000);
+        }
+    }).catch(() => {
+        // Fallback for older browsers / non-HTTPS
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (copyBtn) {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        }
+    });
+}
+
+// ══════════════════════════════════════════════════════════
+// ONBOARDING FLOW — 4-step, fires once on first login
+// Trigger: profiles.onboarding_completed_at === null
+// March 2026
+// ══════════════════════════════════════════════════════════
+
+// Stores the invite token read from the URL (survives OAuth redirect via sessionStorage)
+let _onbInviteToken = null;
+let _onbInviterData = null; // { id, display_name }
+
+// ── Silent invite processing for returning users ──
+// Called when a user who already completed onboarding opens an invite link.
+// Looks up the token, sends a friend request to the inviter, marks token used.
+// No UI shown — happens invisibly in the background.
+async function _processInviteTokenSilently(token) {
+    if (!currentUser || !token) return;
+    try {
+        const { data: inv, error } = await supabaseClient
+            .from('invitations')
+            .select('inviter_id, used')
+            .eq('token', token)
+            .eq('used', false)
+            .single();
+
+        if (error || !inv) {
+            // Token invalid or already used — clear storage
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Don't friend yourself
+        if (inv.inviter_id === currentUser.id) {
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Check not already friends
+        const alreadyFriends = friendsCache.some(f => f.out_user_id === inv.inviter_id);
+        if (alreadyFriends) {
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Send pending friend request: current user → inviter
+        const { error: friendErr } = await supabaseClient
+            .from('friendships')
+            .insert({ requester_id: currentUser.id, receiver_id: inv.inviter_id, status: 'pending' });
+
+        if (!friendErr) {
+            // Notify the inviter
+            const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: inv.inviter_id,
+                p_actor_id:    currentUser.id,
+                p_message:     `${senderName} accepted your invite and wants to connect on Odin.`
+            });
+
+            // Mark token used
+            await supabaseClient
+                .from('invitations')
+                .update({ used: true, used_at: new Date().toISOString() })
+                .eq('token', token);
+        }
+
+        sessionStorage.removeItem('odin_invite_token');
+        localStorage.removeItem('odin_invite_token');
+    } catch (err) {
+        console.warn('Silent invite processing failed (non-critical):', err);
+    }
+}
+
+async function checkOnboardingBanner() {
+    // ── Legacy banner: always hide (replaced by new flow) ──
+    const legacyBanner = document.getElementById('onboardingBanner');
+    if (legacyBanner) legacyBanner.style.display = 'none';
+
+    // ── New flow: check onboarding_completed_at in profiles ──
+    if (!currentProfile) return;
+
+    // Read invite token — sessionStorage first, fall back to localStorage
+    // (Google OAuth redirect can wipe sessionStorage on some browsers/devices)
+    _onbInviteToken = sessionStorage.getItem('odin_invite_token')
+                   || localStorage.getItem('odin_invite_token') || null;
+
+    // Returning user: skip onboarding UI but still process a pending invite token
+    if (currentProfile.onboarding_completed_at) {
+        if (_onbInviteToken) {
+            await _processInviteTokenSilently(_onbInviteToken);
+        }
         return;
     }
 
-    // Show if user has no friends (excluding Odin HQ) and no endorsements
-    const realFriends = friendsCache.filter(f => f.out_user_id !== ODIN_HQ_USER_ID);
-    const hasNoRealFriends = realFriends.length === 0;
-    const hasNoEndorsements = Object.values(endorsementsCache || {}).every(e => !e.userEndorsed);
-
-    if (hasNoRealFriends && hasNoEndorsements) {
-        banner.style.display = 'flex';
-    } else {
-        banner.style.display = 'none';
+    // Populate step 1 user name
+    const nameEl = document.getElementById('onbUserName');
+    if (nameEl) {
+        const firstName = (currentProfile.display_name || '').split(' ')[0] || 'friend';
+        nameEl.textContent = firstName;
     }
+
+    // If we have a token, look up the inviter before showing step 2
+    if (_onbInviteToken) {
+        try {
+            const { data: inv, error } = await supabaseClient
+                .from('invitations')
+                .select('inviter_id, used')
+                .eq('token', _onbInviteToken)
+                .eq('used', false)
+                .single();
+
+            if (!error && inv) {
+                // Fetch inviter's display name
+                const { data: inviter } = await supabaseClient
+                    .from('profiles')
+                    .select('id, display_name')
+                    .eq('id', inv.inviter_id)
+                    .single();
+
+                if (inviter) {
+                    _onbInviterData = inviter;
+                    // Populate step 2 UI
+                    const nameSpan = document.getElementById('onbInviterName');
+                    const initialSpan = document.getElementById('onbInviterInitial');
+                    const connectBtn = document.getElementById('onbConnectBtn');
+                    if (nameSpan) nameSpan.textContent = inviter.display_name || 'Someone';
+                    if (initialSpan) initialSpan.textContent = (inviter.display_name || '?')[0].toUpperCase();
+                    if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+                }
+            } else {
+                // Token invalid or already used — clear it from both storages
+                _onbInviteToken = null;
+                sessionStorage.removeItem('odin_invite_token');
+                localStorage.removeItem('odin_invite_token');
+            }
+        } catch (err) {
+            console.warn('Invite token lookup failed:', err);
+            _onbInviteToken = null;
+        }
+    }
+
+    // Show the overlay and start at step 1
+    onbGoStep(1);
 }
 
-function dismissOnboarding() {
+function onbGoStep(step) {
+    const overlay = document.getElementById('onboardingOverlay');
+    if (!overlay) return;
+
+    // If no inviter data, skip step 2 automatically
+    if (step === 2 && !_onbInviterData) {
+        onbGoStep(3);
+        return;
+    }
+
+    overlay.style.display = 'flex';
+
+    // Hide all steps, show the requested one
+    [1,2,3,4].forEach(n => {
+        const el = document.getElementById(`onbStep${n}`);
+        if (el) el.style.display = n === step ? 'flex' : 'none';
+    });
+}
+
+async function onbAcceptInvite() {
+    if (!_onbInviterData || !currentUser) {
+        onbGoStep(3);
+        return;
+    }
+
+    const btn = document.getElementById('onbConnectBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending request...'; }
+
+    try {
+        // Send a PENDING friend request to the inviter.
+        // Status = 'pending' so the inviter sees it in their Requests tab
+        // and gets a notification — matching the normal friendship flow.
+        // new user = requester, inviter = receiver
+        const { error: friendErr } = await supabaseClient
+            .from('friendships')
+            .insert({
+                requester_id: currentUser.id,
+                receiver_id: _onbInviterData.id,
+                status: 'pending'
+            });
+
+        if (!friendErr) {
+            // Notify the inviter via the existing secure RPC
+            const newUserName = currentProfile?.display_name ||
+                                currentUser?.user_metadata?.full_name ||
+                                currentUser?.email?.split('@')[0] || 'Someone';
+            await supabaseClient.rpc('notify_friend_request', {
+                p_receiver_id: _onbInviterData.id,
+                p_actor_id:    currentUser.id,
+                p_message:     `${newUserName} accepted your invite and wants to connect on Odin.`
+            });
+
+            // Mark invite token as used
+            if (_onbInviteToken) {
+                await supabaseClient
+                    .from('invitations')
+                    .update({ used: true, used_at: new Date().toISOString() })
+                    .eq('token', _onbInviteToken);
+                sessionStorage.removeItem('odin_invite_token');
+                localStorage.removeItem('odin_invite_token');
+            }
+
+            if (btn) btn.textContent = 'Request sent ✓';
+        } else {
+            console.warn('Friend request insert failed:', friendErr);
+            if (btn) btn.textContent = 'Could not send — skip';
+        }
+    } catch (err) {
+        console.warn('Auto-connect on invite failed:', err);
+        if (btn) btn.textContent = 'Could not send — skip';
+    }
+
+    // Short pause so user sees the confirmation, then move on
+    setTimeout(() => onbGoStep(3), 1000);
+}
+
+function onbGoAdd() {
+    // Mode name is 'input' (not 'add') — matches setMode() in app
+    onbComplete();
+    setTimeout(() => setMode('input'), 300);
+}
+
+function onbGoSearch() {
+    // Mode name is 'search', input element is 'messageInput'
+    onbComplete();
+    setTimeout(() => {
+        setMode('search');
+        const searchInput = document.getElementById('messageInput');
+        if (searchInput) searchInput.focus();
+    }, 300);
+}
+
+async function onbComplete() {
+    // Hide overlay
+    const overlay = document.getElementById('onboardingOverlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.style.opacity = '';
+            overlay.style.transition = '';
+        }, 300);
+    }
+
+    // Persist completion to Supabase — fires once, never again
+    if (currentUser) {
+        try {
+            await supabaseClient
+                .from('profiles')
+                .update({ onboarding_completed_at: new Date().toISOString() })
+                .eq('id', currentUser.id);
+            // Update local cache so we don't re-trigger
+            if (currentProfile) currentProfile.onboarding_completed_at = new Date().toISOString();
+        } catch (err) {
+            console.warn('Could not save onboarding completion:', err);
+        }
+    }
+
+    // Also set localStorage as quick-check fallback
     localStorage.setItem('onboarding_welcome_dismissed', 'true');
-    const banner = document.getElementById('onboardingBanner');
-    if (banner) {
-        banner.style.opacity = '0';
-        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = ''; }, 300);
-    }
 }
 
-function handleOnbOverlayClick(e) {
-    // Dismiss when clicking the backdrop (not the card itself)
-    if (e.target === document.getElementById('onboardingBanner')) {
-        dismissOnboarding();
-    }
-}
+// Legacy stubs — kept so any old HTML onclick references don't break
+function dismissOnboarding() { onbComplete(); }
+function handleOnbOverlayClick(e) {}
 
 function goToFindFriends() {
-    dismissOnboarding();
+    onbComplete();
     setMode('profile');
-    // Scroll to and focus the friend search input after a short delay
     setTimeout(() => {
         const input = document.getElementById('friendSearchInput');
         if (input) {
