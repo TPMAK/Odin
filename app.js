@@ -3671,18 +3671,28 @@ function renderGrid() {
 
 function createCard(item, index) {
     const card = document.createElement('div');
-    card.className = 'discovery-card';
+    card.className = 'hf-card dc-grid-card';
     card.onclick = () => showDrawer(index);
 
-    const photo = item.photo_url
-        ? `<img src="${escapeHtml(item.photo_url)}">`
-        : '<span class="discovery-card-photo-placeholder"></span>';
+    // ── Photo / placeholder ──
+    const mediaSVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>';
+    const mediaHtml = item.photo_url
+        ? `<img class="hf-card-img" src="${escapeHtml(item.photo_url)}" alt="" loading="lazy">`
+        : `<div class="hf-card-placeholder">${mediaSVG}</div>`;
 
+    // ── Distance chip ──
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
+    const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
 
-    // Resolve personal note from all possible storage locations
+    // ── Category chip ──
+    const catLabel = item.category
+        ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
+        : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
+    const catChip = catLabel ? `<span class="hf-card-cat">${escapeHtml(catLabel)}</span>` : '';
+
+    // ── Resolve personal note ──
     let note = null;
     if (item.PersonalNote) note = item.PersonalNote;
     else if (item.personal_note) note = item.personal_note;
@@ -3693,87 +3703,71 @@ function createCard(item, index) {
         } catch (e) {}
     }
 
-    const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
-    const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d' : `${daysAgo}d`;
-
     // ── Odin Trust Layer ──
     const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
     const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
     const isOwner           = currentUser && item.added_by === currentUser.id;
 
-    // ── Circle save count (friends only, never global) ──
-    const cachedEndorse = endorsementsCache[item.id] || { count: 0, names: [], ids: [] };
-    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
-    if (currentUser) friendIds.add(currentUser.id);
-    const circleSaveCount = (cachedEndorse.ids || []).filter(id => friendIds.has(id)).length;
-    const savesLabel = circleSaveCount > 0
-        ? `${circleSaveCount} friend${circleSaveCount !== 1 ? 's' : ''} saved`
-        : '';
-
-    // ── Bottom row: category chip + save count ──
-    const catChip = item.category
-        ? `<span class="fc-category-chip">${escapeHtml(item.category)}</span>`
-        : '';
-    const savesChip = savesLabel
-        ? `<span class="fc-saves-chip">${escapeHtml(savesLabel)}</span>`
-        : '';
-    const bottomRow = (catChip || savesChip)
-        ? `<div class="fc-bottom-row">${catChip}${savesChip}</div>`
-        : '';
-
-    // ── Title + distance ──
-    const titleLine = `<div class="discovery-card-title">${escapeHtml(item.title)}${distText ? `<span class="fc-dist"> · ${distText}</span>` : ''}</div>`;
-
-    // ── Attribution + snippet — 4 scenarios ──
-    let attributionHtml = '';
+    // ── Snippet — 4 scenarios ──
     let snippetHtml = '';
+    if (isSaveInheritance) {
+        const summary = item.feed_card_summary || item.description || '';
+        if (summary) snippetHtml = `<div class="hf-card-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '…' : ''}</div>`;
+    } else if (isOwner && note) {
+        snippetHtml = `<div class="hf-card-summary dc-snippet-quoted">&ldquo;${escapeHtml(note.substring(0, 70))}${note.length > 70 ? '…' : ''}&rdquo;</div>`;
+    } else if (!isExtendedCircle && note) {
+        snippetHtml = `<div class="hf-card-summary dc-snippet-quoted">&ldquo;${escapeHtml(note.substring(0, 70))}${note.length > 70 ? '…' : ''}&rdquo;</div>`;
+    } else {
+        const summary = item.feed_card_summary || item.description || '';
+        if (summary) snippetHtml = `<div class="hf-card-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '…' : ''}</div>`;
+    }
+
+    // ── Bottom "by" row — avatars + label ──
+    // Determine who/what to show
+    let byLabel = '';
+    let avatarNames = [];
 
     if (isSaveInheritance) {
-        // Scenario 4: Save Inheritance — source anonymous, via friend known
-        const summary = item.feed_card_summary || item.description || '';
-        snippetHtml = summary
-            ? `<div class="fc-snippet fc-snippet-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '...' : ''}</div>`
-            : '';
-        attributionHtml = `<div class="fc-via"><span class="fc-via-dot">&#9679;</span> Via ${escapeHtml(item._via_friend_name)}</div>`;
-
-    } else if (!isExtendedCircle && isOwner) {
-        // Scenario 1: Own save — show personal note snippet quoted
-        if (note) {
-            const preview = note.substring(0, 70) + (note.length > 70 ? '...' : '');
-            snippetHtml = `<div class="fc-snippet fc-snippet-quoted">&ldquo;${escapeHtml(preview)}&rdquo;</div>`;
-        }
-
-    } else if (!isExtendedCircle && note) {
-        // Scenario 2: Direct friend with personal note
-        attributionHtml = `<div class="fc-attribution">Saved by ${escapeHtml(item.added_by_name || 'Friend')} · ${dateText}</div>`;
-        const preview = note.substring(0, 70) + (note.length > 70 ? '...' : '');
-        snippetHtml = `<div class="fc-snippet fc-snippet-quoted">&ldquo;${escapeHtml(preview)}&rdquo;</div>`;
-
+        byLabel = `Via ${escapeHtml(item._via_friend_name)}`;
+        avatarNames = [item._via_friend_name || '?'];
+    } else if (isOwner) {
+        byLabel = 'Saved by you';
+        avatarNames = [currentProfile?.display_name || 'You'];
     } else if (!isExtendedCircle) {
-        // Scenario 3: Direct friend, no personal note — use feed_card_summary
-        attributionHtml = `<div class="fc-attribution">Saved by ${escapeHtml(item.added_by_name || 'Friend')} · ${dateText}</div>`;
-        const summary = item.feed_card_summary || item.description || '';
-        if (summary) {
-            snippetHtml = `<div class="fc-snippet fc-snippet-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '...' : ''}</div>`;
-        }
-
+        // Direct friend — show friend's name + circle save count
+        const cachedEndorse = endorsementsCache[item.id] || { count: 0, names: [], ids: [] };
+        const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
+        if (currentUser) friendIdSet.add(currentUser.id);
+        const circleCount = (cachedEndorse.ids || []).filter(id => friendIdSet.has(id)).length;
+        const saverName = item.added_by_name || 'Friend';
+        avatarNames = [saverName];
+        if (cachedEndorse.names) cachedEndorse.names.slice(0, 2).forEach(n => { if (n && n !== saverName) avatarNames.push(n); });
+        byLabel = circleCount > 1
+            ? `${circleCount} friends saved`
+            : `${escapeHtml(saverName)} saved`;
     } else {
-        // Extended circle without a via name (FOF path — no name available)
-        const summary = item.feed_card_summary || item.description || '';
-        if (summary) {
-            snippetHtml = `<div class="fc-snippet fc-snippet-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '...' : ''}</div>`;
-        }
+        byLabel = 'Someone in your circle';
+        avatarNames = ['?'];
     }
+
+    const avatarsHtml = avatarNames.slice(0, 3).map((n, i) => {
+        const init = (n || '?').charAt(0).toUpperCase();
+        const col  = strColour(n || '?');
+        return `<div class="hf-card-avatar" style="z-index:${3 - i};margin-left:${i === 0 ? '0' : '-7px'};background:${col};">${init}</div>`;
+    }).join('');
 
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
     card.innerHTML = `
-        <div class="discovery-card-photo">${photo}${endorseBtn}</div>
-        <div class="discovery-card-content">
-            ${titleLine}
-            ${attributionHtml}
+        <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
+        <div class="hf-card-body">
+            <div class="hf-card-title">${escapeHtml(item.title)}</div>
             ${snippetHtml}
-            ${bottomRow}
+            <div class="hf-card-chips-row">${catChip}${distChip}</div>
+            <div class="hf-card-by">
+                <div class="hf-card-avatars">${avatarsHtml}</div>
+                <span class="hf-card-name">${byLabel}</span>
+            </div>
         </div>
     `;
     return card;
@@ -4246,8 +4240,10 @@ function openItemDrawer(item) {
     // Circle trust signal — shown below address for non-owner items
     if (isSaveInheritance) {
         html += `<div class="drawer-circle-signal"><span class="rc-via-dot">&#9679;</span> Via ${escapeHtml(item._via_friend_name)}</div>`;
-    } else if (isDirectFriend) {
+    } else if (isExtendedCircle) {
         html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Someone in your circle</div>`;
+    } else if (isDirectFriend) {
+        html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Saved by ${escapeHtml(item.added_by_name || 'a friend')}</div>`;
     }
 
     // === Extract personal note ===
@@ -4361,15 +4357,21 @@ function openItemDrawer(item) {
         const friendInitial = item.added_by_name ? item.added_by_name.charAt(0).toUpperCase() : '?';
         const viaInitial    = item._via_friend_name ? item._via_friend_name.charAt(0).toUpperCase() : '?';
 
+        // Build avatar circle helper
+        const makeAvatar = (initial, name) => {
+            const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
+            return `<span class="drawer-saver-avatar" style="background:${col};">${initial}</span>`;
+        };
+
         let footerHtml = '<div class="drawer-footer-attribution">';
         if (isOwner) {
-            footerHtml += `<span class="drawer-saved-by">Saved by You</span>`;
+            const myName = currentProfile?.display_name || 'You';
+            const myInit = myName.charAt(0).toUpperCase();
+            footerHtml += `${makeAvatar(myInit, myName)}<span class="drawer-saved-by">Saved by you</span>`;
         } else if (isSaveInheritance && viaName) {
-            footerHtml += `<span class="drawer-saved-by">Via ${viaName}</span>
-                <span class="drawer-saver-avatar">${viaInitial}</span>`;
+            footerHtml += `${makeAvatar(viaInitial, viaName)}<span class="drawer-saved-by">Via ${viaName}</span>`;
         } else if (isDirectFriend) {
-            footerHtml += `<span class="drawer-saved-by">Saved by ${friendName}</span>
-                <span class="drawer-saver-avatar">${friendInitial}</span>`;
+            footerHtml += `${makeAvatar(friendInitial, friendName)}<span class="drawer-saved-by">Saved by ${friendName}</span>`;
         }
         footerHtml += '</div>';
 
