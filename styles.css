@@ -9707,3 +9707,178 @@ body.map-view-open .content {
     margin: 0;
     line-height: 1.4;
 }
+
+/* ============================================================
+   ODIN FEED CARD — v2 (19 Mar 2026)
+   ============================================================ */
+
+/* Distance inline with title */
+.fc-dist {
+    font-size: 11px;
+    color: #9A8A7A;
+    font-weight: 400;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Attribution line: "Saved by X · Xd" */
+.fc-attribution {
+    font-size: 12px;
+    color: #7A6A5A;
+    margin: 2px 0 4px;
+    line-height: 1.4;
+}
+
+/* Via line: Save Inheritance signal */
+.fc-via {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: #7A6A5A;
+    margin: 2px 0 4px;
+}
+.fc-via-dot {
+    color: #A0682A;
+    font-size: 10px;
+    line-height: 1;
+}
+
+/* Snippet area */
+.fc-snippet {
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 3px 0 6px;
+}
+.fc-snippet-quoted {
+    font-style: italic;
+    color: #4A3828;
+}
+.fc-snippet-summary {
+    color: #6B6B6B;
+    font-style: normal;
+}
+
+/* Bottom row: category chip + saves chip */
+.fc-bottom-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+.fc-category-chip {
+    font-size: 11px;
+    color: #7A6A5A;
+    background: #F0E8DC;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-weight: 500;
+}
+.fc-saves-chip {
+    font-size: 11px;
+    color: #9A8A7A;
+    padding: 2px 0;
+}
+
+/* ============================================================
+   ODIN RESULT CARD (DRAWER) — v2 (19 Mar 2026)
+   ============================================================ */
+
+/* Circle trust signal row */
+.drawer-circle-signal {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #7A6A5A;
+    margin: 6px 0 10px;
+}
+.rc-via-dot {
+    color: #A0682A;
+    font-size: 11px;
+}
+.rc-circle-dot {
+    color: #7B2D45;
+    font-size: 11px;
+}
+
+/* Quote attribution "— [Name]" under THE WORD */
+.drawer-quote-attribution {
+    font-size: 12px;
+    color: #9A8A7A;
+    margin-top: 4px;
+    font-style: normal;
+}
+
+/* "What's this about" summary block */
+.drawer-summary-block {
+    margin: 10px 0;
+    padding: 10px 12px;
+    background: #F7F3EE;
+    border-radius: 8px;
+}
+.drawer-summary-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9A8A7A;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.drawer-summary-text {
+    font-size: 13px;
+    color: #4A3828;
+    line-height: 1.55;
+}
+
+/* Footer attribution */
+.drawer-footer-attribution {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 6px;
+    padding-top: 10px;
+    border-top: 1px solid #EDE6DC;
+}
+.drawer-saved-by {
+    font-size: 12px;
+    color: #7A6A5A;
+    flex: 1;
+}
+.drawer-saver-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #D4C4B0;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* "Ask [Name] about this" CTA — Scenario 3 only */
+.drawer-ask-btn {
+    display: block;
+    width: 100%;
+    margin: 10px 0 4px;
+    padding: 11px 16px;
+    background: transparent;
+    border: 1.5px solid #A0682A;
+    border-radius: 10px;
+    color: #A0682A;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.15s, color 0.15s;
+    box-sizing: border-box;
+}
+.drawer-ask-btn:hover {
+    background: #A0682A;
+    color: #FAF6EE;
+}
+
+/* Hide legacy duplicate address line in drawer */
+.drawer-address-line-legacy {
+    display: none;
+}
