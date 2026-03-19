@@ -3731,20 +3731,20 @@ function createCard(item, index) {
         byLabel = `Via ${escapeHtml(item._via_friend_name)}`;
         avatarNames = [item._via_friend_name || '?'];
     } else if (isOwner) {
-        byLabel = 'Saved by you';
+        byLabel = 'Added by you';
         avatarNames = [currentProfile?.display_name || 'You'];
     } else if (!isExtendedCircle) {
-        // Direct friend — show friend's name + circle save count
+        // Direct friend — show adder's name + circle endorsement count
         const cachedEndorse = endorsementsCache[item.id] || { count: 0, names: [], ids: [] };
         const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
         if (currentUser) friendIdSet.add(currentUser.id);
         const circleCount = (cachedEndorse.ids || []).filter(id => friendIdSet.has(id)).length;
-        const saverName = item.added_by_name || 'Friend';
-        avatarNames = [saverName];
-        if (cachedEndorse.names) cachedEndorse.names.slice(0, 2).forEach(n => { if (n && n !== saverName) avatarNames.push(n); });
+        const adderName = item.added_by_name || 'Friend';
+        avatarNames = [adderName];
+        if (cachedEndorse.names) cachedEndorse.names.slice(0, 2).forEach(n => { if (n && n !== adderName) avatarNames.push(n); });
         byLabel = circleCount > 1
             ? `${circleCount} friends saved`
-            : `${escapeHtml(saverName)} saved`;
+            : `Added by ${escapeHtml(adderName)}`;
     } else {
         byLabel = 'Someone in your circle';
         avatarNames = ['?'];
@@ -4243,7 +4243,7 @@ function openItemDrawer(item) {
     } else if (isExtendedCircle) {
         html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Someone in your circle</div>`;
     } else if (isDirectFriend) {
-        html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Saved by ${escapeHtml(item.added_by_name || 'a friend')}</div>`;
+        html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Added by ${escapeHtml(item.added_by_name || 'a friend')}</div>`;
     }
 
     // === Extract personal note ===
@@ -4367,11 +4367,12 @@ function openItemDrawer(item) {
         if (isOwner) {
             const myName = currentProfile?.display_name || 'You';
             const myInit = myName.charAt(0).toUpperCase();
-            footerHtml += `${makeAvatar(myInit, myName)}<span class="drawer-saved-by">Saved by you</span>`;
+            footerHtml += `${makeAvatar(myInit, myName)}<span class="drawer-saved-by">Added by you</span>`;
         } else if (isSaveInheritance && viaName) {
+            // Via = the friend who saved/endorsed it (adder is anonymous)
             footerHtml += `${makeAvatar(viaInitial, viaName)}<span class="drawer-saved-by">Via ${viaName}</span>`;
         } else if (isDirectFriend) {
-            footerHtml += `${makeAvatar(friendInitial, friendName)}<span class="drawer-saved-by">Saved by ${friendName}</span>`;
+            footerHtml += `${makeAvatar(friendInitial, friendName)}<span class="drawer-saved-by">Added by ${friendName}</span>`;
         }
         footerHtml += '</div>';
 
