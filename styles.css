@@ -8179,3 +8179,395 @@ body.map-view-open .content {
 #launcherRecentSection .home-recent-scroll::after {
     display: none;
 }
+<<<<<<< Updated upstream
+=======
+
+/* ── Circle feed "Show more" button ── */
+.circle-feed-show-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 11px 20px;
+    background: transparent;
+    border: 1.5px solid var(--border, #EAE0D2);
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted, #9A8A7A);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.circle-feed-show-more:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+    background: rgba(123,45,69,0.04);
+}
+.circle-feed-show-more svg {
+    flex-shrink: 0;
+}
+
+/* ── Odin Trust Layers: Extended Circle styles ── */
+
+/* Card badge for extended circle items */
+.extended-circle-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Drawer: anonymous byline */
+.drawer-meta-by.extended-circle-anon {
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* Drawer: extended circle story block (soft locked state) */
+.drawer-quote-extended {
+    border-left: 2px solid rgba(59, 130, 246, 0.25);
+    background: rgba(59, 130, 246, 0.04);
+}
+
+.drawer-quote-extended .drawer-quote-text {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+/* Extended circle comments locked notice */
+.community-notes--hidden {
+    margin: 12px 0 0;
+}
+
+.extended-circle-notice {
+    font-size: 13px;
+    color: #9ca3af;
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px dashed rgba(59, 130, 246, 0.2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.extended-circle-notice-sub {
+    font-size: 12px;
+    color: #c4b5b5;
+    display: block;
+    margin-top: 4px;
+}
+
+/* ── Extended Circle: Friends row filter bubble ── */
+.dc-friend-bubble--extended .dc-friend-initial--extended {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    font-size: 14px;
+    border: 1.5px solid rgba(59, 130, 246, 0.3);
+}
+.dc-friend-bubble--extended.active .dc-friend-initial--extended {
+    background: #3b82f6;
+    border-color: #3b82f6;
+}
+
+/* ── Extended Circle: Collection card avatar ── */
+.dc-coll-av--extended {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1.5px solid rgba(59, 130, 246, 0.3);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ══════════════════════════════════════════════════════════
+   INVITE LINK SECTION — Profile tab
+   March 2026
+   ══════════════════════════════════════════════════════════ */
+.invite-link-section {
+    background: #FAF6EE;
+    border: 1.5px solid #EAE0D2;
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    margin: 0 0 18px;
+}
+.invite-link-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2A1E14;
+    margin-bottom: 6px;
+}
+.invite-link-header svg {
+    color: #7B2D45;
+    flex-shrink: 0;
+}
+.invite-link-body {
+    font-size: 13px;
+    color: #6B5744;
+    line-height: 1.5;
+    margin: 0 0 14px;
+}
+.invite-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: #7B2D45;
+    color: #FAF6EE;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+    justify-content: center;
+}
+.invite-link-btn:hover { background: #5A1F30; }
+.invite-link-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.invite-link-result {
+    margin-top: 14px;
+}
+.invite-link-box {
+    display: flex;
+    align-items: center;
+    background: #F0E8DC;
+    border-radius: 8px;
+    padding: 8px 10px;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.invite-link-url {
+    flex: 1;
+    font-size: 12px;
+    color: #2A1E14;
+    font-family: 'Inter', monospace;
+    word-break: break-all;
+    line-height: 1.4;
+}
+.invite-link-copy {
+    flex-shrink: 0;
+    background: #7B2D45;
+    color: #FAF6EE;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.invite-link-copy:hover { background: #5A1F30; }
+.invite-link-hint {
+    font-size: 11px;
+    color: #9A8A7A;
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* ══════════════════════════════════════════════════════════
+   FEED CARD v2 — March 2026
+   4 scenarios: own / friend+note / friend no-note / via
+   ══════════════════════════════════════════════════════════ */
+
+/* Distance inline in title */
+.fc-dist {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+/* Attribution line — "Saved by Aden Mak · 2d" */
+.fc-attribution {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.3;
+}
+
+/* "Via Aden Mak" — Save Inheritance signal */
+.fc-via {
+    font-size: 12px;
+    color: #2A1E14;
+    margin-top: 3px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.fc-via-dot {
+    color: #A0682A;   /* terracotta mid-range */
+    font-size: 8px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* Snippet block */
+.fc-snippet {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 5px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Quoted personal note — warm, slightly italic */
+.fc-snippet-quoted {
+    color: #4A3828;
+    font-style: italic;
+}
+
+/* AI summary / description — plain neutral */
+.fc-snippet-summary {
+    color: #6B6B6B;
+    font-style: normal;
+}
+
+/* Bottom row: category chip + saves count */
+.fc-bottom-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.fc-category-chip {
+    font-size: 11px;
+    font-weight: 500;
+    background: rgba(123, 45, 69, 0.08);
+    color: #7B2D45;
+    border-radius: 20px;
+    padding: 2px 8px;
+    text-transform: capitalize;
+}
+
+.fc-saves-chip {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESULT CARD (DRAWER) v2 — March 2026
+   ══════════════════════════════════════════════════════════ */
+
+/* Circle trust signal — "● Someone in your circle" / "● Via Aden" */
+.drawer-circle-signal {
+    font-size: 13px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+/* Terracotta dot — Save Inheritance */
+.rc-via-dot {
+    color: #A0682A;
+    font-size: 8px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* Warm dot — direct friend circle signal */
+.rc-circle-dot {
+    color: #7B2D45;
+    font-size: 8px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* THE WORD attribution line — "— Aden Mak" */
+.drawer-quote-attribution {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: normal;
+    margin-top: 6px;
+}
+
+/* "What's this about" block — neutral, no border */
+.drawer-summary-block {
+    margin-bottom: 8px;
+    padding: 0;
+}
+
+.drawer-summary-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 5px;
+}
+
+.drawer-summary-text {
+    color: #5A4A3A;
+    font-size: 15px;
+    line-height: 1.6;
+    font-style: normal;
+}
+
+/* Footer attribution row — "Saved by X [avatar]" / "Via X [avatar]" */
+.drawer-footer-attribution {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.drawer-saved-by {
+    font-size: 13px;
+    color: var(--muted);
+    flex: 1;
+}
+
+.drawer-saver-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(123, 45, 69, 0.12);
+    color: #7B2D45;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* "Ask [Name] about this" CTA — subtle, secondary */
+.drawer-ask-btn {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid #EAE0D2;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #7B2D45;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    margin-bottom: 12px;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.drawer-ask-btn:hover {
+    background: rgba(123, 45, 69, 0.05);
+    border-color: #7B2D45;
+}
+
+/* Address line moved to meta line — remove old duplicate */
+.drawer-address-line { display: none; }
+>>>>>>> Stashed changes
