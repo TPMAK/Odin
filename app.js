@@ -2988,45 +2988,12 @@ function removeActiveFilter(type, value) {
     }
 }
 
-<<<<<<< Updated upstream
-=======
-// ── Odin Trust Layers ────────────────────────────────────────
-// Trust level constants used throughout the app
-const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
-
-// Anonymise an extended-circle item so identity never travels more than one hop.
-// Keeps: title, photo_url, address, latitude, longitude, description,
-//        type, category, feed_card_summary, save_count, created_at, id
-// Strips: added_by, added_by_name, personal_note / metadata notes, comments
-// viaFriendName: the direct friend who saved the item (Save Inheritance only).
-//   For true FOF (trust_connections path) this is null — no name shown.
-function anonymiseForExtendedCircle(item, viaFriendName) {
-    return Object.assign({}, item, {
-        _trust_level: TRUST.EXTENDED,
-        added_by:      null,
-        added_by_name: 'Someone in your circle',
-        // _via_friend_name: name of the direct friend whose save surfaced this item.
-        // Used to render "Via [Name]" on feed card and result card.
-        _via_friend_name: viaFriendName || null,
-        // Wipe any personal note stored in metadata or top-level field
-        personal_note: null,
-        metadata: item.metadata
-            ? (() => { try { const m = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; delete m.personal_note; return m; } catch(e) { return {}; } })()
-            : null,
-        // Comments are hidden — flagged so the drawer can suppress them
-        _hide_comments: true,
-    });
-}
-
->>>>>>> Stashed changes
 async function loadDiscoveries() {
     try {
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 180);
 
-        // Exclude other users' private items at the server level (privacy fix)
-        // We still load our OWN private items by fetching all and filtering client-side below.
-        // The .neq filter is a best-effort server hint; client-side filter is the reliable gate.
+        // ── Tier 1 & 2: Own items + direct-friend items ──────────
         const response = await fetch(`${SUPABASE_URL}/rest/v1/knowledge_items?select=*&order=created_at.desc`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
@@ -3034,22 +3001,20 @@ async function loadDiscoveries() {
         let data = await response.json();
         data = data.filter(item => new Date(item.created_at) >= twoWeeksAgo);
 
-        // Only show items from the user's friends (and their own items)
         const friendIds = new Set(friendsCache.map(f => f.out_user_id));
         if (currentUser) friendIds.add(currentUser.id);
+
+        // Keep own items + direct-friend items only (Private + Friends tiers)
         data = data.filter(item => item.added_by && friendIds.has(item.added_by));
 
-        // Hide private discoveries — only the owner can see their own private items
+        // Hide private items — only the owner sees their own private items
         data = data.filter(item => {
-            if (item.visibility === 'private') {
+            if (item.visibility === TRUST.PRIVATE) {
                 return currentUser && item.added_by === currentUser.id;
             }
             return true; // 'friends' visibility passes through
         });
 
-<<<<<<< Updated upstream
-        // Hide discoveries from blocked users
-=======
         // Tag direct-friend items with trust level
         data = data.map(item => {
             if (!item._trust_level) {
@@ -3153,7 +3118,6 @@ async function loadDiscoveries() {
         let combined = [...data, ...extendedItems];
 
         // Hide discoveries from blocked users (apply to all tiers)
->>>>>>> Stashed changes
         if (blockedUsersCache.length > 0) {
             const blockedIds = new Set(blockedUsersCache.map(b => b.out_blocked_user_id));
             data = data.filter(item => !item.added_by || !blockedIds.has(item.added_by));
@@ -3231,27 +3195,6 @@ function createCard(item, index) {
     const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
     const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? '1d' : `${daysAgo}d`;
 
-<<<<<<< Updated upstream
-    // Privacy: only show personal note snippet to friends
-    let snippet = '';
-    let snippetHtml = '';
-    if (note && isFriend(item.added_by)) {
-        snippet = note;
-        snippetHtml = `<div class="discovery-card-snippet">💭 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
-    } else if (note && !isFriend(item.added_by)) {
-        snippetHtml = `<div class="discovery-card-snippet privacy-teaser-card">🔒 Connect to see their story</div>`;
-    } else if (item.description) {
-        snippet = item.description;
-        snippetHtml = `<div class="discovery-card-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>`;
-    }
-
-    let tagsHtml = '<div class="discovery-card-tags">';
-    if (item.visibility === 'private') tagsHtml += `<span class="private-badge">Private</span>`;
-    if (distText) tagsHtml += `<span class="discovery-tag discovery-tag-distance">📍 ${distText}</span>`;
-    if (item.added_by_name) tagsHtml += `<span class="discovery-tag discovery-tag-person">${escapeHtml(item.added_by_name)}</span>`;
-    tagsHtml += `<span class="discovery-tag discovery-tag-time">${dateText}</span>`;
-    tagsHtml += '</div>';
-=======
     // ── Odin Trust Layer ──
     const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
     const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
@@ -3320,7 +3263,6 @@ function createCard(item, index) {
             snippetHtml = `<div class="fc-snippet fc-snippet-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '...' : ''}</div>`;
         }
     }
->>>>>>> Stashed changes
 
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
@@ -3370,17 +3312,14 @@ function buildMapPanelList() {
         var item = document.createElement('div');
         item.className = 'dmap-panel-item';
         item.id = 'dpi-' + i;
-<<<<<<< Updated upstream
-=======
         var piByText = d._trust_level === TRUST.EXTENDED
             ? (d._via_friend_name ? ('Via ' + escapeHtml(d._via_friend_name)) : 'Your circle')
             : ('by ' + escapeHtml(d.added_by_name || '?'));
->>>>>>> Stashed changes
         item.innerHTML =
             '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
             '<div class="dmap-pi-info">' +
                 '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong> &middot; ' + escapeHtml(d.category || '') + '</div>' +
+                '<div class="dmap-pi-meta">' + piByText + ' &middot; ' + escapeHtml(d.category || '') + '</div>' +
             '</div>' +
             '<div class="dmap-pi-right">' +
                 '<div class="dmap-pi-dist">' + distText + '</div>' +
@@ -3390,387 +3329,17 @@ function buildMapPanelList() {
     });
 }
 
-function buildMapCardStrip() {
-    var strip = document.getElementById('dmapCardsStrip');
-    if (!strip) return;
-    var located = (filteredDiscoveries || allDiscoveries || []).filter(function(d){ return d.latitude && d.longitude; });
-    strip.innerHTML = '';
-    located.forEach(function(d, i) {
-        var col = catColour(d.category || d.type);
-        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-        var avCol  = strColour(d.added_by_name || '?');
-        var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
-        var card = document.createElement('div');
-        card.className = 'dmap-card';
-        card.id = 'dmc-' + i;
-        card.innerHTML =
-            '<div class="dmc-header">' +
-                '<div class="dmc-dot" style="background:' + col + ';"></div>' +
-                '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="dmc-dist">' + distText + '</div>' +
-            '</div>' +
-            '<div class="dmc-by">' +
-                '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-            '</div>' +
-            '<div class="dmc-odin-row">' +
-                '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) > 1 ? 's' : '') +
-            '</div>';
-        card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
-        strip.appendChild(card);
-    });
-}
-
-function focusMapItem(idx) {
-    // Activate card strip
-    document.querySelectorAll('.dmap-card').forEach(function(c){ c.classList.remove('active-card'); });
-    var card = document.getElementById('dmc-' + idx);
-    if (card) { card.classList.add('active-card'); card.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }); }
-    // Activate panel item
-    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
-    var pItem = document.getElementById('dpi-' + idx);
-    if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
-    // Pan map to exact center, then open popup (autoPan disabled on popup so it won't fight setView)
-    var m = dmapMarkers[idx];
-    if (m && discoverMap) {
-        discoverMap.setView([m.lat, m.lng], 16, { animate: true });
-        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
-    }
-}
-
-// Opens the full detail drawer from a map popup "View" button
-function openMapItemDrawer(idx) {
-    var m = dmapMarkers[idx];
-    if (m && m.data) openItemDrawer(m.data);
-}
-
-function filterMapList(query) {
-    var q = query.toLowerCase().trim();
-    var count = 0;
-
-    dmapMarkers.forEach(function(m, idx) {
-        var title = (m.data.title || '').toLowerCase();
-        var cat   = (m.data.category || m.data.type || '').toLowerCase();
-        var by    = (m.data.added_by_name || '').toLowerCase();
-        var match = !q || title.includes(q) || cat.includes(q) || by.includes(q);
-
-        // Show/hide panel item
-        var pi = document.getElementById('dpi-' + idx);
-        if (pi) pi.style.display = match ? '' : 'none';
-
-        // Show/hide card strip card
-        var card = document.getElementById('dmc-' + idx);
-        if (card) card.style.display = match ? '' : 'none';
-
-        // Show/hide map marker
-        if (discoverMap) {
-            if (match) {
-                if (!discoverMap.hasLayer(m.marker)) m.marker.addTo(discoverMap);
-                count++;
-            } else {
-                if (discoverMap.hasLayer(m.marker)) discoverMap.removeLayer(m.marker);
-            }
-        }
-    });
-
-    // Update count label
-    var countEl = document.getElementById('dmapPanelCount');
-    if (countEl) countEl.textContent = (q ? count : dmapMarkers.length) + ' place' + ((q ? count : dmapMarkers.length) !== 1 ? 's' : '') + (q ? ' found' : ' nearby');
-}
-
-// Rebuild panel list and card strip sorted by distance from (lat, lng).
-// Called after async geolocation resolves so the lists update in place.
-function rebuildMapListsSorted(userLat, userLng) {
-    if (!dmapMarkers || dmapMarkers.length === 0) return;
-    // Re-sort dmapMarkers by distance
-    dmapMarkers.forEach(function(m) {
-        m.dist = calculateDistance(userLat, userLng, m.lat, m.lng);
-        m.data.distance_km = m.dist;
-    });
-    dmapMarkers.sort(function(a, b) { return a.dist - b.dist; });
-
-    var list  = document.getElementById('dmapPanelList');
-    var strip = document.getElementById('dmapCardsStrip');
-    var countEl = document.getElementById('dmapPanelCount');
-    if (list)  list.innerHTML  = '';
-    if (strip) strip.innerHTML = '';
-
-    dmapMarkers.forEach(function(m, idx) {
-        var d = m.data;
-        var col = catColour(d.category || d.type);
-        var distText = m.dist < 1 ? Math.round(m.dist * 1000) + 'm' : m.dist.toFixed(1) + 'km';
-
-        // Rebind click with new index
-        m.marker.off('click');
-        (function(i){ m.marker.on('click', function(){ focusMapItem(i); }); })(idx);
-
-        if (list) {
-            var pi = document.createElement('div');
-            pi.className = 'dmap-panel-item';
-            pi.id = 'dpi-' + idx;
-            pi.innerHTML =
-                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
-                '<div class="dmap-pi-info">' +
-                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
-                '</div>' +
-                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + distText + '</div></div>';
-            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
-            list.appendChild(pi);
-        }
-        if (strip) {
-            var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-            var avCol  = strColour(d.added_by_name || '?');
-            var card = document.createElement('div');
-            card.className = 'dmap-card';
-            card.id = 'dmc-' + idx;
-            card.innerHTML =
-                '<div class="dmc-header">' +
-                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
-                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmc-dist">' + distText + '</div>' +
-                '</div>' +
-                '<div class="dmc-by">' +
-                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<div class="dmc-odin-row">' +
-                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
-                '</div>';
-            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
-            strip.appendChild(card);
-        }
-    });
-    if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
-}
-
-function initDiscoverMap() {
-    var mapEl = document.getElementById('discoverMap');
-    if (!mapEl) return;
-    if (discoverMap) { try { discoverMap.remove(); } catch(e) {} discoverMap = null; }
-    // Belt-and-suspenders: clear any stale Leaflet marker on the container.
-    if (mapEl._leaflet_id !== undefined) {
-        mapEl._leaflet_id = undefined;
-        mapEl.innerHTML = '';
-    }
-
-    // Apply height before Leaflet reads container size
-    setMapScreenHeight();
-
-    var source = (filteredDiscoveries && filteredDiscoveries.length > 0) ? filteredDiscoveries : allDiscoveries;
-    // Pre-filter AND pre-parse so indices are consistent everywhere
-    var located = (source || []).reduce(function(acc, d) {
-        var lat = parseFloat(d.latitude);
-        var lng = parseFloat(d.longitude);
-        // Skip null-island (0,0) — result of failed geocoding
-        if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) acc.push({ data: d, lat: lat, lng: lng });
-        return acc;
-    }, []);
-
-    // Compute distances and sort closest-first if user location is available
-    if (userLocation.available) {
-        located.forEach(function(entry) {
-            entry.dist = calculateDistance(userLocation.latitude, userLocation.longitude, entry.lat, entry.lng);
-            entry.data.distance_km = entry.dist;
-        });
-        located.sort(function(a, b) { return a.dist - b.dist; });
-    }
-
-    try {
-        discoverMap = L.map('discoverMap', { zoomControl: false });
-    } catch(e) {
-        return;
-    }
-
-    // CartoDB Positron — clean minimal tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(discoverMap);
-
-    // User location dot
-    if (userLocation.available) {
-        userLocMarker = L.circleMarker([userLocation.latitude, userLocation.longitude], {
-            radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
-        }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
-    }
-
-    var bounds = [];
-    dmapMarkers = [];
-
-    // Clear panel + strip before rebuilding inline
-    var _list  = document.getElementById('dmapPanelList');
-    var _strip = document.getElementById('dmapCardsStrip');
-    if (_list)  _list.innerHTML  = '';
-    if (_strip) _strip.innerHTML = '';
-
-    // Build markers — index matches located[] exactly (no skips)
-    located.forEach(function(entry, idx) {
-        var d   = entry.data;
-        var lat = entry.lat;
-        var lng = entry.lng;
-        bounds.push([lat, lng]);
-
-        var col        = catColour(d.category || d.type);
-        var catInitial = (d.category || 'P').charAt(0).toUpperCase();
-        var avInit     = (d.added_by_name || '?').charAt(0).toUpperCase();
-        var avCol      = strColour(d.added_by_name || '?');
-        var distText   = d.distance_km
-            ? (d.distance_km < 1 ? Math.round(d.distance_km * 1000) + 'm' : d.distance_km.toFixed(1) + 'km')
-            : '';
-
-        var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
-        var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
-
-        var popHtml =
-            '<div class="odin-pop">' +
-                '<div class="odin-pop-cat">' +
-                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
-                '</div>' +
-                '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="odin-pop-by">' +
-                    '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
-            '</div>';
-
-        var marker = L.marker([lat, lng], { icon: icon })
-            .addTo(discoverMap)
-            .bindPopup(popHtml, { maxWidth: 240, autoPan: false });
-
-        // Desktop: hover opens popup preview; Click: pan + highlight only (popup opens via Leaflet default)
-        (function(i){
-            marker.on('mouseover', function(){ this.openPopup(); });
-            marker.on('click', function(){ focusMapItem(i); });
-        })(idx);
-        dmapMarkers.push({ lat: lat, lng: lng, marker: marker, data: d });
-
-        // ── Build panel item inline (same loop = guaranteed index match) ──
-        var list  = document.getElementById('dmapPanelList');
-        if (list) {
-            var pi = document.createElement('div');
-            pi.className = 'dmap-panel-item';
-            pi.id = 'dpi-' + idx;
-            pi.innerHTML =
-                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
-                '<div class="dmap-pi-info">' +
-                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
-                '</div>' +
-                '<div class="dmap-pi-right">' +
-                    '<div class="dmap-pi-dist">' + distText + '</div>' +
-                '</div>';
-            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
-            list.appendChild(pi);
-        }
-
-        // ── Build card strip item inline ──
-        var strip = document.getElementById('dmapCardsStrip');
-        if (strip) {
-            var card = document.createElement('div');
-            card.className = 'dmap-card';
-            card.id = 'dmc-' + idx;
-            card.innerHTML =
-                '<div class="dmc-header">' +
-                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
-                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmc-dist">' + distText + '</div>' +
-                '</div>' +
-                '<div class="dmc-by">' +
-                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<div class="dmc-odin-row">' +
-                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
-                '</div>';
-            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
-            strip.appendChild(card);
-        }
-    });
-
-    // Update panel count
-    var countEl = document.getElementById('dmapPanelCount');
-    if (countEl) countEl.textContent = located.length + ' place' + (located.length !== 1 ? 's' : '') + ' nearby';
-
-    // Update panel count
-    // ── Centre on user location; fall back to fitBounds ──
-    function centreOnUser(lat, lng) {
-        discoverMap.setView([lat, lng], 14, { animate: false });
-        // Add / update the blue "you are here" dot
-        if (userLocMarker) {
-            userLocMarker.setLatLng([lat, lng]);
-        } else {
-            userLocMarker = L.circleMarker([lat, lng], {
-                radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
-            }).addTo(discoverMap).bindTooltip('You are here', { direction: 'top' });
-        }
-    }
-
-    // Always set an initial view so Leaflet renders tiles immediately.
-    if (userLocation.available) {
-        centreOnUser(userLocation.latitude, userLocation.longitude);
-    } else if (bounds.length > 0) {
-        discoverMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
-        // Sanity check — if still too zoomed out (bad coords pulled bounds wide), reset to Auckland
-        if (discoverMap.getZoom() < 9) {
-            discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
-        }
-    } else {
-        discoverMap.setView([-36.8485, 174.7633], 12, { animate: false });
-    }
-
-    if (userLocation.available) {
-        // Already handled above — nothing more to do
-    } else if (navigator.geolocation) {
-        // Request GPS; re-centre when we get it
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                userLocation.latitude  = pos.coords.latitude;
-                userLocation.longitude = pos.coords.longitude;
-                userLocation.available = true;
-                centreOnUser(userLocation.latitude, userLocation.longitude);
-                // Re-sort panel + card lists by distance now that we have location
-                rebuildMapListsSorted(userLocation.latitude, userLocation.longitude);
-            },
-            function() {
-                // GPS denied/failed — keep whatever view is already set
-            },
-            { timeout: 6000, enableHighAccuracy: true }
-        );
-    }
-
-    // Force Leaflet to redraw after layout settles
-    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 150);
-    setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 500);
-}
-
-function showDrawer(index) {
-    const item = filteredDiscoveries[index] || currentResults[index];
-    if (!item) return;
-    openItemDrawer(item);
-}
-
 function openItemDrawer(item) {
     currentDrawerItem = item; // Store reference for edit mode
     // Track recently viewed
     trackRecentlyViewed(item);
 
-<<<<<<< Updated upstream
-    const isOwner = currentUser && (item.added_by === currentUser.id);
-=======
     // ── Odin Trust Layer ──────────────────────────────────────
     const trustLevel        = item._trust_level || TRUST.FRIENDS;
     const isSaveInheritance = trustLevel === TRUST.EXTENDED && item._via_friend_name;
     const isExtendedCircle  = trustLevel === TRUST.EXTENDED;
     const isOwner           = currentUser && (item.added_by === currentUser.id);
     const isDirectFriend    = !isOwner && !isExtendedCircle && isFriend(item.added_by);
->>>>>>> Stashed changes
     let html = '';
 
     // === HERO PHOTO ===
@@ -3800,14 +3369,6 @@ function openItemDrawer(item) {
     if (subParts.length) {
         html += `<div class="drawer-meta-line">${subParts.join('<span class="drawer-meta-dot"> · </span>')}</div>`;
     }
-<<<<<<< Updated upstream
-    metaParts.push(`<span class="drawer-meta-by">${escapeHtml(item.added_by_name || 'Community Member')}</span>`);
-    const daysAgo = Math.floor((new Date() - new Date(item.created_at)) / (1000 * 60 * 60 * 24));
-    const dateText = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
-    metaParts.push(`<span class="drawer-meta-time">${dateText}</span>`);
-    html += `<div class="drawer-meta-line">${metaParts.join('<span class="drawer-meta-dot">·</span>')}</div>`;
-=======
->>>>>>> Stashed changes
 
     // Circle trust signal — shown below address for non-owner items
     if (isSaveInheritance) {
@@ -3818,45 +3379,6 @@ function openItemDrawer(item) {
 
     // === Extract personal note ===
     let note = null;
-<<<<<<< Updated upstream
-    if (item.PersonalNote) note = item.PersonalNote;
-    else if (item.personal_note) note = item.personal_note;
-    else if (item.metadata) {
-        try {
-            const meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
-            note = meta.personal_note;
-        } catch (e) {}
-    }
-
-    // === PERSONAL STORY (pull-quote style) ===
-    if (note) {
-        if (isFriend(item.added_by)) {
-            html += `<div class="drawer-quote">
-                <div class="drawer-quote-label">Personal Story</div>
-                <div class="drawer-quote-text">${escapeHtml(note)}</div>
-            </div>`;
-        } else {
-            html += `<div class="drawer-quote drawer-quote-locked">
-                <div class="drawer-quote-label">Personal Story</div>
-                <div class="drawer-quote-text">Connect with ${escapeHtml(item.added_by_name || 'them')} to see their story</div>
-            </div>`;
-        }
-    }
-
-    // === DESCRIPTION (secondary) ===
-    if (item.description) html += `<p class="drawer-desc drawer-description">${escapeHtml(item.description)}</p>`;
-
-    // === TRANSLATE BUTTON — always show when preferred language is not English ===
-    // Uses userPreferredLanguage (from profile setting or browser autodetect)
-    if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)} 🌐</button>`;
-    } else if (item._queryLanguage && item._queryLanguage !== 'en') {
-        // Fallback: still show if the search was in a non-English language
-        html += `<button class="lang-toggle-btn drawer-lang-toggle" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate 🌐</button>`;
-    }
-
-    // === QUICK ACTIONS (compact pills) ===
-=======
     if (!isExtendedCircle) {
         if (item.PersonalNote) note = item.PersonalNote;
         else if (item.personal_note) note = item.personal_note;
@@ -3931,7 +3453,6 @@ function openItemDrawer(item) {
     }
 
     // === QUICK ACTIONS (Directions + Website buttons) ===
->>>>>>> Stashed changes
     let url = null;
     if (item.URL) {
         if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
@@ -3941,17 +3462,6 @@ function openItemDrawer(item) {
     if (!url && item.website) url = item.website;
 
     if (url || item.address) {
-<<<<<<< Updated upstream
-        html += '<div class="drawer-quick-actions">';
-        if (item.address) {
-            html += `<div class="drawer-address-line"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHtml(item.address)}</div>`;
-        }
-        html += '<div class="drawer-action-pills">';
-        if (url) html += `<button class="drawer-pill" onclick="window.open('${escapeHtml(url)}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Website</button>`;
-        if (item.address) {
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
-            html += `<button class="drawer-pill" onclick="window.open('${mapsUrl}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
-=======
         const itemType = (item.type || item.category || '').toLowerCase();
         const isPlace = itemType === 'place' || (!itemType && item.address);
         html += '<div class="drawer-quick-actions"><div class="drawer-action-btns">';
@@ -3967,7 +3477,6 @@ function openItemDrawer(item) {
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}`;
                 html += `<button class="drawer-btn-secondary" onclick="window.open('${mapsUrl}', '_blank')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg> Directions</button>`;
             }
->>>>>>> Stashed changes
         }
         html += '</div></div>';
     }
@@ -4509,11 +4018,6 @@ function sendMessage(text) {
                 const rawNote = getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
-<<<<<<< Updated upstream
-                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-                const snippetLabel = canSeeNote ? '💭 Friend says' : '💡 Why this matches';
-                const needsToggle = r._queryLanguage && r._queryLanguage !== 'en';
-=======
                 // Extended circle: description only (no personal notes, no friend attribution)
                 const snippet      = isExt
                     ? (r.feed_card_summary || r.description || r.relevance_reason || '')
@@ -4524,7 +4028,6 @@ function sendMessage(text) {
                 const byLine = isExt
                     ? (r._via_friend_name ? `<span class="meta-tag meta-added-by">Via ${escapeHtml(r._via_friend_name)}</span>` : '<span class="meta-tag meta-added-by">Your circle</span>')
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
->>>>>>> Stashed changes
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
@@ -4553,11 +4056,6 @@ function sendMessage(text) {
                     : '<span class="compact-photo-placeholder">📍</span>';
                 const rawNote = getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by);
-<<<<<<< Updated upstream
-                const distText = formatDistance(r.distance_km);
-                const snippet = canSeeNote ? rawNote : (r.relevance_reason || r.description || '');
-                const snippetIcon = canSeeNote ? '💭' : '';
-=======
                 const distText   = formatDistance(r.distance_km);
                 const snippet    = isExt
                     ? (r.feed_card_summary || r.description || r.relevance_reason || '')
@@ -4566,7 +4064,6 @@ function sendMessage(text) {
                 const byLine = isExt
                     ? (r._via_friend_name ? `<span style="font-size:11px;">Via ${escapeHtml(r._via_friend_name)}</span>` : '<span style="font-size:11px;">Your circle</span>')
                     : (r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : '');
->>>>>>> Stashed changes
 
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
