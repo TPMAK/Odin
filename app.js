@@ -3999,7 +3999,13 @@ function initDiscoverMap() {
     // Apply height before Leaflet reads container size
     setMapScreenHeight();
 
-    var source = (filteredDiscoveries && filteredDiscoveries.length > 0) ? filteredDiscoveries : allDiscoveries;
+    // Use filtered data only if the user has actively applied filters; otherwise show everything
+    var hasActiveFilters = filters.categories.length > 0 || filters.users.length > 0 ||
+                           filters.distances.length > 0 || filters.endorsed ||
+                           (filters.searchText && filters.searchText.length > 0);
+    var source = (hasActiveFilters && filteredDiscoveries && filteredDiscoveries.length > 0)
+        ? filteredDiscoveries
+        : allDiscoveries;
     // Pre-filter AND pre-parse so indices are consistent everywhere
     var located = (source || []).reduce(function(acc, d) {
         var lat = parseFloat(d.latitude);
