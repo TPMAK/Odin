@@ -1479,10 +1479,13 @@
                     </div>
 
                     <!-- Smart section tabs -->
-                    <div class="dc-section-tabs" id="dcSectionTabs">
-                        <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
-                        <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
-                        <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
+                    <div class="dc-section-tabs-row">
+                        <div class="dc-section-tabs" id="dcSectionTabs">
+                            <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
+                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
+                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
+                        </div>
+                        <button class="dc-see-all-btn" onclick="showGroupItems('all','All saves'); document.getElementById('dcAllItemsTitle').textContent='All saves';">See all</button>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -3824,11 +3827,12 @@
             avatarsHtml = '<div class="hf-card-avatar" style="z-index:3;margin-left:0">?</div>';
         }
 
+        // HOME card order: Title → The Word → chips → who saved + save count
         return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
             + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
-            + wordHtml
             + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
+            + wordHtml
             + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
             + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
             + '<span class="hf-card-name">'+savedLabel+'</span></div>'
