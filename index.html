@@ -3827,7 +3827,10 @@
             avatarsHtml = '<div class="hf-card-avatar" style="z-index:3;margin-left:0">?</div>';
         }
 
-        // HOME card order: Title → The Word → chips → who saved + save count
+        // HOME card order: Title → The Word → chips → who saved + save count + translate
+        var _homeTranslateLabel = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage && userPreferredLanguage !== 'en')
+            ? 'Translate 🌐'
+            : '🌐';
         return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
             + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
@@ -3835,7 +3838,9 @@
             + wordHtml
             + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
             + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
-            + '<span class="hf-card-name">'+savedLabel+'</span></div>'
+            + '<span class="hf-card-name">'+savedLabel+'</span>'
+            + '<button class="feed-card-translate-btn" data-item-id="' + escapeHtml(item.id||'') + '" data-state="original" onclick="event.stopPropagation(); toggleFeedCardTranslate(this)">' + _homeTranslateLabel + '</button>'
+            + '</div>'
             + '</div></div>';
     }
 

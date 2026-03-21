@@ -2612,6 +2612,51 @@ async function toggleDrawerLang(btn) {
     }
 }
 
+// ── Translate button on Home + Discover feed cards ──
+async function toggleFeedCardTranslate(btn) {
+    const itemId = btn.dataset.itemId;
+    if (!itemId) return;
+    // Find item in allDiscoveries (Discover) or endorsementsCache items
+    const item = (typeof allDiscoveries !== 'undefined' && allDiscoveries.find(d => d.id === itemId))
+        || (typeof currentResults !== 'undefined' && currentResults.find(r => r.id === itemId))
+        || null;
+    if (!item) { btn.textContent = '🌐'; return; }
+
+    const state = btn.dataset.state;
+    const targetLang = userPreferredLanguage || 'en';
+    const langLabel  = (typeof LANG_LABELS !== 'undefined' && LANG_LABELS[targetLang]) || targetLang.toUpperCase();
+    const card = btn.closest('.hf-card');
+
+    if (state === 'original') {
+        btn.textContent = '...';
+        btn.disabled = true;
+        try {
+            const translated = await translateItem(item, targetLang);
+            // Show translated word (personal note / description) below existing word line
+            const wordEl = card && card.querySelector('.hf-card-word');
+            if (wordEl && (translated.personal_note || translated.description)) {
+                const prev = card.querySelector('.feed-card-translation');
+                if (prev) prev.remove();
+                const span = document.createElement('div');
+                span.className = 'feed-card-translation';
+                span.textContent = (translated.personal_note || translated.description || '').split(/\s+/).slice(0, 10).join(' ') + '…';
+                wordEl.insertAdjacentElement('afterend', span);
+            }
+            btn.dataset.state = 'translated';
+            btn.textContent = '✕ 🌐';
+        } catch (e) {
+            btn.textContent = '🌐';
+        }
+        btn.disabled = false;
+    } else {
+        // Hide translation
+        const prev = card && card.querySelector('.feed-card-translation');
+        if (prev) prev.remove();
+        btn.dataset.state = 'original';
+        btn.textContent = '🌐';
+    }
+}
+
 // ── Translate button on inline result cards (top picks + compact cards) ──
 async function toggleCardTranslate(btn, idx) {
     const r = currentResults[idx];
@@ -3812,7 +3857,10 @@ function createCard(item, index) {
 
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
-    // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves ──
+    // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
+    const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
+        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
+        : '🌐';
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
@@ -3825,6 +3873,7 @@ function createCard(item, index) {
             </div>
             <div class="hf-card-by">
                 <span class="hf-card-save-count">${saveCountLabel}</span>
+                <button class="feed-card-translate-btn" data-item-id="${escapeHtml(item.id||'')}" data-state="original" onclick="event.stopPropagation(); toggleFeedCardTranslate(this)">${_dcTranslateLabel}</button>
             </div>
         </div>
     `;
@@ -4326,17 +4375,18 @@ function openItemDrawer(item) {
     // === THE WORD / What's this about ===
     // THE WORD  = own save or direct friend with personal note (warm styled, italic, quoted)
     // What's this about = no personal note — shows feed_card_summary or description (plain, neutral)
+    // Helper: build translate button label
+    const _translateBtnLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
+        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
+        : 'Translate 🌐';
+
     if (isOwner && note) {
         // Scenario 1: own save with note
         html += `<div class="drawer-quote">
             <div class="drawer-quote-label">THE WORD</div>
             <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
         </div>`;
-        if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
-        } else if (item._queryLanguage && item._queryLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate</button>`;
-        }
+        html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
     } else if (isDirectFriend && note) {
         // Scenario 2: direct friend with personal note
@@ -4345,11 +4395,7 @@ function openItemDrawer(item) {
             <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
             <div class="drawer-quote-attribution">— ${escapeHtml(item.added_by_name || 'Friend')}</div>
         </div>`;
-        if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
-        } else if (item._queryLanguage && item._queryLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate</button>`;
-        }
+        html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
     } else if (isDirectFriend && !note) {
         // Scenario 3: direct friend, no personal note — show summary in neutral style
@@ -4360,9 +4406,7 @@ function openItemDrawer(item) {
                 <div class="drawer-summary-text drawer-story-text">${escapeHtml(summary)}</div>
             </div>`;
         }
-        if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
-        }
+        html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
     } else if (isSaveInheritance || isExtendedCircle) {
         // Scenario 4: Save Inheritance — show feed_card_summary only, no personal note
@@ -4373,6 +4417,7 @@ function openItemDrawer(item) {
                 <div class="drawer-summary-text drawer-story-text">${escapeHtml(summary)}</div>
             </div>`;
         }
+        html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
     } else if (isOwner && !note && item.description) {
         // Own save, no note — show description as fallback in neutral style
@@ -4380,9 +4425,7 @@ function openItemDrawer(item) {
             <div class="drawer-summary-label">What&rsquo;s this about</div>
             <div class="drawer-summary-text drawer-story-text">${escapeHtml(item.description)}</div>
         </div>`;
-        if (userPreferredLanguage && userPreferredLanguage !== 'en') {
-            html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">Translate to ${(LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)}</button>`;
-        }
+        html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
     }
 
     // === QUICK ACTIONS (Directions + Website buttons) ===
@@ -5029,13 +5072,21 @@ function sendMessage(text) {
                 return km < 1 ? Math.round(km * 1000) + 'm' : km.toFixed(1) + 'km';
             };
 
+            // Helper: circle save count from endorsementsCache
+            const getCircleSaveCount = (r) => {
+                const enc = endorsementsCache[r.id] || { count: 0, ids: [] };
+                const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
+                if (currentUser) friendIdSet.add(currentUser.id);
+                const n = Math.max((enc.ids || []).filter(id => friendIdSet.has(id)).length, 1);
+                return n === 1 ? '1 save in your circle' : `${n} saves in your circle`;
+            };
+
             const buildTopPick = (r, idx) => {
                 const isExt    = r._trust_level === TRUST.EXTENDED;
                 const photo    = r.photo_url ? `<img src="${escapeHtml(r.photo_url)}" onerror="this.outerHTML='<span style=\\'font-size:32px;color:#d1d5db\\'>📍</span>'">` : '<span style="font-size:32px;color:#d1d5db">📍</span>';
                 const rawNote  = isExt ? null : getPersonalNote(r);
                 const canSeeNote = rawNote && isFriend(r.added_by || r.added_by_name);
                 const distText = formatDistance(r.distance_km);
-                // Extended circle: description only (no personal notes, no friend attribution)
                 const snippet      = isExt
                     ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
@@ -5045,6 +5096,7 @@ function sendMessage(text) {
                 const byLine = isExt
                     ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
+                const saveLabel = getCircleSaveCount(r);
 
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
@@ -5062,7 +5114,10 @@ function sendMessage(text) {
                                     <span class="top-pick-reason-text" data-original="${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}">${escapeHtml(snippet).substring(0, 100)}${snippet.length > 100 ? '...' : ''}</span>
                                 </div>
                             ` : ''}
-                            <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                            <div class="top-pick-footer">
+                                <span class="result-save-count">${saveLabel}</span>
+                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -5083,6 +5138,7 @@ function sendMessage(text) {
                 const byLine = isExt
                     ? '<span class="extended-circle-badge" style="font-size:11px;">🔵 Extended circle</span>'
                     : (r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : '');
+                const saveLabel = getCircleSaveCount(r);
 
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
@@ -5093,7 +5149,10 @@ function sendMessage(text) {
                             ${byLine}
                         </div>
                         ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
-                        <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                        <div class="compact-footer">
+                            <span class="result-save-count">${saveLabel}</span>
+                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                        </div>
                     </div>
                 `;
             };

@@ -2316,6 +2316,52 @@
             display: none !important;
         }
 
+        /* ── Translate globe button on Home + Discover feed cards ── */
+        .feed-card-translate-btn {
+            display: inline-flex;
+            align-items: center;
+            margin-left: auto;
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            color: rgba(123,45,69,0.5);
+            font-size: 13px;
+            padding: 2px 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: color 0.15s, background 0.15s;
+            line-height: 1;
+        }
+        .feed-card-translate-btn:hover {
+            color: #7B2D45;
+            background: rgba(123,45,69,0.07);
+        }
+
+        /* Translated snippet shown below The Word on feed cards */
+        .feed-card-translation {
+            font-size: 11px;
+            color: var(--text-muted, #888);
+            font-style: italic;
+            margin-top: 2px;
+            line-height: 1.4;
+        }
+
+        /* ── Save count + translate footer row on result cards ── */
+        .top-pick-footer,
+        .compact-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 8px;
+            gap: 8px;
+        }
+
+        .result-save-count {
+            font-size: 10px;
+            color: var(--text-muted, #9ca3af);
+            white-space: nowrap;
+        }
+
         /* ── Translate button on inline result cards ── */
         .card-translate-btn {
             display: inline-block;
