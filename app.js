@@ -6557,14 +6557,53 @@ async function checkOnboardingBanner() {
     onbGoStep(1);
 }
 
-function onbGoStep(step) {
+async function onbGoStep(step) {
     const overlay = document.getElementById('onboardingOverlay');
     if (!overlay) return;
 
-    // If no inviter data, skip step 2 automatically
+    // Step 2: if inviter data isn't loaded yet but we have a token, look it up now.
+    // This handles the race where the user clicks "Let's go →" before the async
+    // token lookup in checkOnboardingBanner has finished.
     if (step === 2 && !_onbInviterData) {
-        onbGoStep(3);
-        return;
+        const token = _onbInviteToken
+                   || sessionStorage.getItem('odin_invite_token')
+                   || localStorage.getItem('odin_invite_token');
+        if (token) {
+            try {
+                const { data: inv, error } = await supabaseClient
+                    .from('invitations')
+                    .select('inviter_id, used')
+                    .eq('token', token)
+                    .eq('used', false)
+                    .single();
+
+                if (!error && inv && inv.inviter_id !== currentUser?.id) {
+                    const { data: inviter } = await supabaseClient
+                        .from('profiles')
+                        .select('id, display_name')
+                        .eq('id', inv.inviter_id)
+                        .single();
+
+                    if (inviter) {
+                        _onbInviterData  = inviter;
+                        _onbInviteToken  = token;
+                        const nameSpan   = document.getElementById('onbInviterName');
+                        const initSpan   = document.getElementById('onbInviterInitial');
+                        const connectBtn = document.getElementById('onbConnectBtn');
+                        if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
+                        if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
+                        if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+                    }
+                }
+            } catch (e) {
+                console.warn('onbGoStep token lookup failed:', e);
+            }
+        }
+        // If still no inviter data after the lookup, skip step 2
+        if (!_onbInviterData) {
+            onbGoStep(3);
+            return;
+        }
     }
 
     overlay.style.display = 'flex';
