@@ -3786,17 +3786,18 @@ function createCard(item, index) {
 
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
-    // ── DISCOVER card order: Title → The Word → chips → Added by + saves ──
+    // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves ──
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
             <div class="hf-card-title">${escapeHtml(item.title)}</div>
             ${wordHtml}
             <div class="hf-card-chips-row">${catChip}${distChip}</div>
-            <div class="hf-card-by">
+            <div class="hf-card-adder">
                 ${adderAvatarHtml}
                 <span class="hf-card-person-name">${adderLabel}</span>
-                <span class="hf-card-save-dot">·</span>
+            </div>
+            <div class="hf-card-by">
                 <span class="hf-card-save-count">${saveCountLabel}</span>
             </div>
         </div>

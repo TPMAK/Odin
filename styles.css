@@ -9932,16 +9932,11 @@ body.map-view-open .content {
     font-size: 11px;
 }
 
-/* ── Discover card: bottom attribution row (avatar · Added by Name · dot · N saves) ── */
-/* Reuses .hf-card-by but overrides it to be a tight inline row */
-.dc-grid-card .hf-card-by {
+/* ── Discover card: "Added by" row (above divider) ── */
+.hf-card-adder {
     display: flex;
     align-items: center;
     gap: 5px;
-    margin-top: auto;
-    padding-top: 8px;
-    border-top: 1px solid #F0EBE4;
-    flex-wrap: nowrap;
     overflow: hidden;
 }
 
@@ -9964,10 +9959,13 @@ body.map-view-open .content {
     flex-shrink: 1;
 }
 
-.hf-card-save-dot {
-    font-size: 11px;
-    color: #B0A090;
-    flex-shrink: 0;
+/* ── Discover card: saves row (below divider) ── */
+.dc-grid-card .hf-card-by {
+    display: flex;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid #F0EBE4;
 }
 
 .hf-card-save-count {
@@ -9975,7 +9973,6 @@ body.map-view-open .content {
     color: #7B2D45;
     font-weight: 500;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 /* ── Discover section tabs + "See all" wrapper ── */
