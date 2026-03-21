@@ -9983,16 +9983,18 @@ body.map-view-open .content {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 16px; /* absorbs the spacing previously on .dc-section-tabs */
 }
 
-/* Tabs scroll horizontally, See all stays pinned right */
+/* Strip the spacing from .dc-section-tabs when inside the row */
 .dc-section-tabs-row .dc-section-tabs {
     flex: 1;
+    min-width: 0;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 0;  /* remove existing tab padding inside the row */
+    -ms-overflow-style: none;
+    padding-bottom: 0;
     margin-bottom: 0;
 }
 
@@ -10002,20 +10004,22 @@ body.map-view-open .content {
 
 .dc-see-all-btn {
     flex-shrink: 0;
+    align-self: center;
     font-size: 12px;
     font-weight: 600;
     color: #7B2D45;
     background: none;
-    border: 1.5px solid rgba(123, 45, 69, 0.25);
+    border: 1.5px solid rgba(123, 45, 69, 0.3);
     border-radius: 50px;
-    padding: 5px 12px;
+    padding: 6px 13px;
     cursor: pointer;
     white-space: nowrap;
+    line-height: 1;
     transition: background 0.15s, border-color 0.15s;
 }
 
 .dc-see-all-btn:hover,
 .dc-see-all-btn:active {
     background: rgba(123, 45, 69, 0.07);
-    border-color: rgba(123, 45, 69, 0.5);
+    border-color: rgba(123, 45, 69, 0.55);
 }
