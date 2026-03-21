@@ -2567,7 +2567,7 @@ async function toggleDrawerLang(btn) {
     const langLabel = (typeof LANG_LABELS !== 'undefined' && LANG_LABELS[targetLang]) || targetLang.toUpperCase();
 
     if (state === 'original') {
-        btn.textContent = 'Translating...';
+        btn.classList.add('translate-loading');
         btn.disabled = true;
         try {
             // translateItem works for ALL drawer items — search results AND home feed cards
@@ -2603,6 +2603,7 @@ async function toggleDrawerLang(btn) {
             btn.textContent = 'Translation failed — retry';
             btn.dataset.state = 'original';
         }
+        btn.classList.remove('translate-loading');
         btn.disabled = false;
     } else {
         // Remove translation blocks — originals stay untouched
@@ -2616,7 +2617,6 @@ async function toggleDrawerLang(btn) {
 async function toggleFeedCardTranslate(btn) {
     const itemId = btn.dataset.itemId;
     if (!itemId) return;
-    // Find item in allDiscoveries (Discover) or endorsementsCache items
     const item = (typeof allDiscoveries !== 'undefined' && allDiscoveries.find(d => d.id === itemId))
         || (typeof currentResults !== 'undefined' && currentResults.find(r => r.id === itemId))
         || null;
@@ -2624,15 +2624,13 @@ async function toggleFeedCardTranslate(btn) {
 
     const state = btn.dataset.state;
     const targetLang = userPreferredLanguage || 'en';
-    const langLabel  = (typeof LANG_LABELS !== 'undefined' && LANG_LABELS[targetLang]) || targetLang.toUpperCase();
     const card = btn.closest('.hf-card');
 
     if (state === 'original') {
-        btn.textContent = '...';
+        btn.classList.add('translate-loading');
         btn.disabled = true;
         try {
             const translated = await translateItem(item, targetLang);
-            // Show translated word (personal note / description) below existing word line
             const wordEl = card && card.querySelector('.hf-card-word');
             if (wordEl && (translated.personal_note || translated.description)) {
                 const prev = card.querySelector('.feed-card-translation');
@@ -2647,9 +2645,9 @@ async function toggleFeedCardTranslate(btn) {
         } catch (e) {
             btn.textContent = '🌐';
         }
+        btn.classList.remove('translate-loading');
         btn.disabled = false;
     } else {
-        // Hide translation
         const prev = card && card.querySelector('.feed-card-translation');
         if (prev) prev.remove();
         btn.dataset.state = 'original';
@@ -2665,7 +2663,7 @@ async function toggleCardTranslate(btn, idx) {
     const card  = btn.closest('.top-pick-card, .compact-card');
 
     if (state === 'original') {
-        btn.textContent = 'Translating...';
+        btn.classList.add('translate-loading');
         btn.disabled = true;
         try {
             const targetLang = userPreferredLanguage || r._queryLanguage || 'zh-TW';
@@ -2687,12 +2685,12 @@ async function toggleCardTranslate(btn, idx) {
 
             btn.dataset.state = 'translated';
             btn.textContent = 'Show original';
-            btn.disabled = false;
         } catch(e) {
             btn.textContent = 'Translate 🌐';
             btn.dataset.state = 'original';
-            btn.disabled = false;
         }
+        btn.classList.remove('translate-loading');
+        btn.disabled = false;
     } else {
         // Restore originals
         const reasonSpan = card && card.querySelector('.top-pick-reason-text');
