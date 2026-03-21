@@ -427,6 +427,16 @@ async function handleEmailSignUp(event) {
 
     setButtonLoading(btn, 'Creating account...');
 
+    // ── Preserve invite token across email-confirm redirect ──
+    // The confirmation link takes the user away from the page; localStorage
+    // survives that round-trip so we can process the invite after they return.
+    const urlParamsSignUp = new URLSearchParams(window.location.search);
+    const inviteTokenSignUp = urlParamsSignUp.get('token');
+    if (inviteTokenSignUp) {
+        sessionStorage.setItem('odin_invite_token', inviteTokenSignUp);
+        localStorage.setItem('odin_invite_token', inviteTokenSignUp);
+    }
+
     try {
         const { data, error } = await supabaseClient.auth.signUp({
             email: email,
@@ -502,6 +512,8 @@ function regSuccessToSignIn() {
         // Brief pause then reopen on sign-in tab
         setTimeout(() => {
             // Re-render modal to sign-in state — reset inner HTML via showAuthMode
+            // NOTE: localStorage already has the invite token saved (from handleEmailSignUp),
+            // so it will survive this reload and be picked up by checkOnboardingBanner.
             location.reload(); // simplest reliable reset; auth state is unchanged
         }, 100);
     }
@@ -6452,9 +6464,43 @@ async function checkOnboardingBanner() {
     _onbInviteToken = sessionStorage.getItem('odin_invite_token')
                    || localStorage.getItem('odin_invite_token') || null;
 
-    // Returning user: skip onboarding UI but still process a pending invite token
+    // Returning user: skip onboarding UI BUT show the invite Step 2 if there's a valid token
     if (currentProfile.onboarding_completed_at) {
         if (_onbInviteToken) {
+            // Look up the inviter so we can show the connect prompt
+            try {
+                const { data: inv, error: invErr } = await supabaseClient
+                    .from('invitations')
+                    .select('inviter_id, used')
+                    .eq('token', _onbInviteToken)
+                    .eq('used', false)
+                    .single();
+
+                if (!invErr && inv && inv.inviter_id !== currentUser.id) {
+                    const { data: inviter } = await supabaseClient
+                        .from('profiles')
+                        .select('id, display_name')
+                        .eq('id', inv.inviter_id)
+                        .single();
+
+                    if (inviter) {
+                        _onbInviterData = inviter;
+                        // Populate Step 2 UI
+                        const nameSpan   = document.getElementById('onbInviterName');
+                        const initSpan   = document.getElementById('onbInviterInitial');
+                        const connectBtn = document.getElementById('onbConnectBtn');
+                        if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
+                        if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
+                        if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+                        // Show only Step 2 (skip steps 1/3/4 for returning users)
+                        onbGoStep(2);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Invite lookup for returning user failed:', e);
+            }
+            // Token invalid/used — process silently and move on
             await _processInviteTokenSilently(_onbInviteToken);
         }
         return;
@@ -6591,8 +6637,33 @@ async function onbAcceptInvite() {
         if (btn) btn.textContent = 'Could not send — skip';
     }
 
-    // Short pause so user sees the confirmation, then move on
-    setTimeout(() => onbGoStep(3), 1000);
+    // Short pause so user sees the confirmation, then move on.
+    // For returning users (onboarding already done) just close the overlay.
+    // For new users, advance to Step 3 (Add first item).
+    setTimeout(() => {
+        if (currentProfile && currentProfile.onboarding_completed_at) {
+            onbComplete(); // just close
+        } else {
+            onbGoStep(3);
+        }
+    }, 1000);
+}
+
+// Called by "Skip for now" on Step 2.
+// Returning users (onboarding already done) just close the modal.
+// New users proceed to Step 3 (Add first item).
+function onbSkipInvite() {
+    // Clear the pending token so it doesn't re-trigger
+    sessionStorage.removeItem('odin_invite_token');
+    localStorage.removeItem('odin_invite_token');
+    _onbInviteToken = null;
+    _onbInviterData = null;
+
+    if (currentProfile && currentProfile.onboarding_completed_at) {
+        onbComplete();
+    } else {
+        onbGoStep(3);
+    }
 }
 
 function onbGoAdd() {
