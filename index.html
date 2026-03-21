@@ -4252,7 +4252,7 @@
         if (sheet) sheet.removeAttribute('aria-hidden');
         _lockScroll();
         // Highlight current lang
-        var cur = (typeof preferredLanguage !== 'undefined') ? preferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
+        var cur = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage) ? userPreferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
         d.querySelectorAll('.lang-drawer-item').forEach(function(btn) {
             btn.classList.toggle('is-active', btn.dataset.lang === cur);
         });
@@ -4265,25 +4265,18 @@
         if (sheet) sheet.setAttribute('aria-hidden', 'true');
         _unlockScroll();
     }
-    // Sync the profile settings label whenever language changes
+    // Sync the profile settings label on load (app.js _applyLangLabel handles live updates)
     function syncProfileLangLabel() {
-        var cur = (typeof preferredLanguage !== 'undefined') ? preferredLanguage : (localStorage.getItem('preferredLanguage') || 'en');
+        var cur = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage)
+            ? userPreferredLanguage
+            : (localStorage.getItem('preferredLanguage') || 'en');
         var el = document.getElementById('profileLangValue');
         if (el) el.textContent = _langLabels[cur] || cur.toUpperCase();
-        // Also keep old header label in sync (hidden but still used by app.js)
         var hdr = document.getElementById('headerLangLabel');
         if (hdr) hdr.textContent = _langLabels[cur] || cur.toUpperCase();
     }
-    // Patch setPreferredLanguage to sync our label after it runs
-    if (typeof setPreferredLanguage === 'function') {
-        var _origSetLang = setPreferredLanguage;
-        setPreferredLanguage = function(lang) {
-            _origSetLang(lang);
-            syncProfileLangLabel();
-        };
-    }
-    // Initialise label on load
-    syncProfileLangLabel();
+    // Initialise label on load — wait a tick so app.js has set userPreferredLanguage first
+    setTimeout(syncProfileLangLabel, 0);
 
     // Close all drawers on Escape key
     document.addEventListener('keydown', function(e) {

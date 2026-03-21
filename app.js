@@ -2332,6 +2332,13 @@ async function initUserLanguage() {
         _applyLangLabel(saved);
         return;
     }
+    // 1b. Fallback: try localStorage (persists across reloads even before Supabase loads)
+    const lsSaved = localStorage.getItem('preferredLanguage');
+    if (lsSaved && LANG_LABELS[lsSaved]) {
+        userPreferredLanguage = lsSaved;
+        _applyLangLabel(lsSaved);
+        return;
+    }
     // 2. Autodetect from browser
     const rawBrowserLang = (navigator.language || 'en').toLowerCase();
     // Map browser zh variants to our split keys
@@ -2368,11 +2375,22 @@ async function setPreferredLanguage(lang) {
 }
 
 function _applyLangLabel(lang) {
+    const label = (LANG_LABELS[lang] || lang.toUpperCase()).substring(0, 5);
+    // Update header language button (shown on profile page header)
     const el = document.getElementById('headerLangLabel');
-    if (el) el.textContent = (LANG_LABELS[lang] || lang.toUpperCase()).substring(0, 5);
+    if (el) el.textContent = label;
+    // Update profile settings row value (the language button in profile page)
+    const profileEl = document.getElementById('profileLangValue');
+    if (profileEl) profileEl.textContent = label;
+    // Persist to localStorage so it survives page reload
+    localStorage.setItem('preferredLanguage', lang);
     // Highlight active in dropdown
     document.querySelectorAll('.lang-picker-item').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === lang);
+    });
+    // Highlight active in lang drawer
+    document.querySelectorAll('.lang-drawer-item').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.lang === lang);
     });
 }
 
