@@ -1,3 +1,17 @@
+// ===== INVITE TOKEN — save immediately on every page load =====
+// Must run BEFORE any auth check so the token survives whether the user
+// is a brand-new visitor, mid-OAuth-redirect, or an already-logged-in user
+// who opened a friend's invite link.
+(function _captureInviteToken() {
+    try {
+        const t = new URLSearchParams(window.location.search).get('token');
+        if (t) {
+            sessionStorage.setItem('odin_invite_token', t);
+            localStorage.setItem('odin_invite_token', t);
+        }
+    } catch (e) { /* storage unavailable — safe to ignore */ }
+})();
+
 // ===== SUPABASE CLIENT INITIALIZATION =====
 const SUPABASE_URL = 'https://hedywkwmgkvojujvczqr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8';
