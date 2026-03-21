@@ -81,3 +81,28 @@ BEGIN
       AND status = 'pending';         -- only pending requests can be cancelled
 END;
 $$;
+
+-- ============================================================
+-- 6. get_inviter_profile RPC
+--    Returns the display_name of an invite token's owner.
+--    SECURITY DEFINER so a brand-new user (no friends yet) can
+--    look up the inviter even though profiles RLS would normally
+--    block them. Only returns name — no sensitive data exposed.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.get_inviter_profile(p_token TEXT)
+RETURNS TABLE (inviter_id UUID, display_name TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT p.id AS inviter_id, p.display_name
+    FROM public.invitations i
+    JOIN public.profiles p ON p.id = i.inviter_id
+    WHERE i.token = p_token
+      AND i.used = false
+      AND i.inviter_id <> auth.uid();  -- never return yourself
+END;
+$$;

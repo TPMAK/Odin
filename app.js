@@ -6378,26 +6378,18 @@ let _onbInviterData = null; // { id, display_name }
 async function _processInviteTokenSilently(token) {
     if (!currentUser || !token) return;
     try {
-        const { data: inv, error } = await supabaseClient
-            .from('invitations')
-            .select('inviter_id, used')
-            .eq('token', token)
-            .eq('used', false)
-            .single();
+        // Use SECURITY DEFINER RPC — bypasses RLS so any authenticated user
+        // can look up the inviter even if they have no friends yet.
+        const inviter = await _lookupInviterProfile(token);
 
-        if (error || !inv) {
-            // Token invalid or already used — clear storage
+        if (!inviter) {
+            // Token invalid, already used, or own link — clear storage
             sessionStorage.removeItem('odin_invite_token');
             localStorage.removeItem('odin_invite_token');
             return;
         }
 
-        // Don't friend yourself
-        if (inv.inviter_id === currentUser.id) {
-            sessionStorage.removeItem('odin_invite_token');
-            localStorage.removeItem('odin_invite_token');
-            return;
-        }
+        const inv = { inviter_id: inviter.id };
 
         // Check not already friends (accepted)
         const alreadyFriends = friendsCache.some(f => f.out_user_id === inv.inviter_id);
@@ -6424,14 +6416,7 @@ async function _processInviteTokenSilently(token) {
         if (!friendErr) {
             // Notify the inviter
             const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
-
-            // Fetch inviter name for the toast message
-            const { data: inviterProfile } = await supabaseClient
-                .from('profiles')
-                .select('display_name')
-                .eq('id', inv.inviter_id)
-                .single();
-            const inviterName = inviterProfile?.display_name || 'them';
+            const inviterName = inviter.display_name || 'them';
 
             await supabaseClient.rpc('notify_friend_request', {
                 p_receiver_id: inv.inviter_id,
@@ -6465,6 +6450,34 @@ async function _processInviteTokenSilently(token) {
     }
 }
 
+// ── Invite helper: look up inviter via SECURITY DEFINER RPC ──
+// Uses get_inviter_profile() which bypasses profiles RLS so a brand-new
+// user (no friends yet) can still see the inviter's name.
+// Returns { id, display_name } or null if token invalid/used/own link.
+async function _lookupInviterProfile(token) {
+    if (!token) return null;
+    try {
+        const { data, error } = await supabaseClient
+            .rpc('get_inviter_profile', { p_token: token });
+        if (error || !data || data.length === 0) return null;
+        const row = data[0];
+        return { id: row.inviter_id, display_name: row.display_name };
+    } catch (e) {
+        console.warn('_lookupInviterProfile failed:', e);
+        return null;
+    }
+}
+
+// ── Invite helper: populate the Step 2 "X invited you" UI ──
+function _populateStep2UI(inviter) {
+    const nameSpan   = document.getElementById('onbInviterName');
+    const initSpan   = document.getElementById('onbInviterInitial');
+    const connectBtn = document.getElementById('onbConnectBtn');
+    if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
+    if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
+    if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+}
+
 async function checkOnboardingBanner() {
     // ── Legacy banner: always hide (replaced by new flow) ──
     const legacyBanner = document.getElementById('onboardingBanner');
@@ -6478,41 +6491,15 @@ async function checkOnboardingBanner() {
     _onbInviteToken = sessionStorage.getItem('odin_invite_token')
                    || localStorage.getItem('odin_invite_token') || null;
 
-    // Returning user: skip onboarding UI BUT show the invite Step 2 if there's a valid token
+    // Returning user: skip onboarding UI BUT show Step 2 if there's a valid token
     if (currentProfile.onboarding_completed_at) {
         if (_onbInviteToken) {
-            // Look up the inviter so we can show the connect prompt
-            try {
-                const { data: inv, error: invErr } = await supabaseClient
-                    .from('invitations')
-                    .select('inviter_id, used')
-                    .eq('token', _onbInviteToken)
-                    .eq('used', false)
-                    .single();
-
-                if (!invErr && inv && inv.inviter_id !== currentUser.id) {
-                    const { data: inviter } = await supabaseClient
-                        .from('profiles')
-                        .select('id, display_name')
-                        .eq('id', inv.inviter_id)
-                        .single();
-
-                    if (inviter) {
-                        _onbInviterData = inviter;
-                        // Populate Step 2 UI
-                        const nameSpan   = document.getElementById('onbInviterName');
-                        const initSpan   = document.getElementById('onbInviterInitial');
-                        const connectBtn = document.getElementById('onbConnectBtn');
-                        if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
-                        if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
-                        if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
-                        // Show only Step 2 (skip steps 1/3/4 for returning users)
-                        onbGoStep(2);
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.warn('Invite lookup for returning user failed:', e);
+            const inviter = await _lookupInviterProfile(_onbInviteToken);
+            if (inviter) {
+                _onbInviterData = inviter;
+                _populateStep2UI(inviter);
+                onbGoStep(2);
+                return;
             }
             // Token invalid/used — process silently and move on
             await _processInviteTokenSilently(_onbInviteToken);
@@ -6529,41 +6516,15 @@ async function checkOnboardingBanner() {
 
     // If we have a token, look up the inviter before showing step 2
     if (_onbInviteToken) {
-        try {
-            const { data: inv, error } = await supabaseClient
-                .from('invitations')
-                .select('inviter_id, used')
-                .eq('token', _onbInviteToken)
-                .eq('used', false)
-                .single();
-
-            if (!error && inv) {
-                // Fetch inviter's display name
-                const { data: inviter } = await supabaseClient
-                    .from('profiles')
-                    .select('id, display_name')
-                    .eq('id', inv.inviter_id)
-                    .single();
-
-                if (inviter) {
-                    _onbInviterData = inviter;
-                    // Populate step 2 UI
-                    const nameSpan = document.getElementById('onbInviterName');
-                    const initialSpan = document.getElementById('onbInviterInitial');
-                    const connectBtn = document.getElementById('onbConnectBtn');
-                    if (nameSpan) nameSpan.textContent = inviter.display_name || 'Someone';
-                    if (initialSpan) initialSpan.textContent = (inviter.display_name || '?')[0].toUpperCase();
-                    if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
-                }
-            } else {
-                // Token invalid or already used — clear it from both storages
-                _onbInviteToken = null;
-                sessionStorage.removeItem('odin_invite_token');
-                localStorage.removeItem('odin_invite_token');
-            }
-        } catch (err) {
-            console.warn('Invite token lookup failed:', err);
+        const inviter = await _lookupInviterProfile(_onbInviteToken);
+        if (inviter) {
+            _onbInviterData = inviter;
+            _populateStep2UI(inviter);
+        } else {
+            // Token invalid or already used — clear it
             _onbInviteToken = null;
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
         }
     }
 
@@ -6583,37 +6544,14 @@ async function onbGoStep(step) {
                    || sessionStorage.getItem('odin_invite_token')
                    || localStorage.getItem('odin_invite_token');
         if (token) {
-            try {
-                const { data: inv, error } = await supabaseClient
-                    .from('invitations')
-                    .select('inviter_id, used')
-                    .eq('token', token)
-                    .eq('used', false)
-                    .single();
-
-                if (!error && inv && inv.inviter_id !== currentUser?.id) {
-                    const { data: inviter } = await supabaseClient
-                        .from('profiles')
-                        .select('id, display_name')
-                        .eq('id', inv.inviter_id)
-                        .single();
-
-                    if (inviter) {
-                        _onbInviterData  = inviter;
-                        _onbInviteToken  = token;
-                        const nameSpan   = document.getElementById('onbInviterName');
-                        const initSpan   = document.getElementById('onbInviterInitial');
-                        const connectBtn = document.getElementById('onbConnectBtn');
-                        if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
-                        if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
-                        if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
-                    }
-                }
-            } catch (e) {
-                console.warn('onbGoStep token lookup failed:', e);
+            const inviter = await _lookupInviterProfile(token);
+            if (inviter) {
+                _onbInviterData = inviter;
+                _onbInviteToken = token;
+                _populateStep2UI(inviter);
             }
         }
-        // If still no inviter data after the lookup, skip step 2
+        // If still no inviter data after lookup, skip step 2
         if (!_onbInviterData) {
             onbGoStep(3);
             return;
