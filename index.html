@@ -3754,8 +3754,11 @@
         return arr;
     }
 
-    // _buildPulseCard: same card as regular but pinned at the front of the feed.
-    // No visible badge — the freshness is felt through order, not labelling.
+    // _buildPulseCard: Home feed card.
+    // Layout: [1] The Word (italic, ≤10 words) — human hook first
+    //         [2] Title
+    //         [3] Category / distance chips
+    //         [4] Named attribution ("Aden and 1 other saved this") — no adder name tag
     function _buildPulseCard(item, endorsementsCache, SVG_PIN, SVG_TAG, SVG_PLACE, userLat, userLng) {
         var media = item.photo_url
             ? '<img class="hf-card-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
@@ -3775,24 +3778,57 @@
         var categoryLabel = escapeHtml((item.type||'Place').charAt(0).toUpperCase()+(item.type||'Place').slice(1));
         var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
 
+        // ── 1. The Word — resolve personal note (check all three locations) ──
+        var rawNote = item.personal_note || item.PersonalNote || null;
+        if (!rawNote && item.metadata) {
+            try {
+                var meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata;
+                rawNote = meta && meta.personal_note ? meta.personal_note : null;
+            } catch (e) {}
+        }
+        var wordHtml = '';
+        if (rawNote) {
+            // Truncate to 10 words
+            var words = rawNote.trim().split(/\s+/);
+            var truncated = words.slice(0, 10).join(' ') + (words.length > 10 ? '\u2026' : '');
+            wordHtml = '<div class="hf-card-word"><em>' + escapeHtml(truncated) + '</em></div>';
+        }
+
+        // ── 2. Named attribution — "Aden and 1 other saved this" ──
+        // Home is about trust signals from your circle — no adder name tag, just saver names
         var enc = (typeof endorsementsCache !== 'undefined') ? endorsementsCache[item.id] : null;
-        var totalSavers = 1 + (enc ? enc.count : 0);
-        var savedLabel = totalSavers === 1 ? '1 friend saved' : totalSavers + ' friends saved';
-        var allNames = [item.added_by_name || 'F'];
-        if (enc && enc.names) enc.names.forEach(function(n){ if(n) allNames.push(n); });
-        var avatarsHtml = allNames.slice(0,3).map(function(n,i){
+        var saverNames = [];
+        if (enc && enc.names && enc.names.length > 0) {
+            enc.names.forEach(function(n){ if(n) saverNames.push(n); });
+        }
+        // If no endorsers yet, fall back to adder as the lone saver
+        if (saverNames.length === 0 && item.added_by_name) {
+            saverNames = [item.added_by_name];
+        }
+        var savedLabel;
+        if (saverNames.length === 0) {
+            savedLabel = 'Saved in your circle';
+        } else if (saverNames.length === 1) {
+            savedLabel = escapeHtml(saverNames[0]) + ' saved this';
+        } else {
+            var others = saverNames.length - 1;
+            savedLabel = escapeHtml(saverNames[0]) + ' and ' + others + ' other' + (others > 1 ? 's' : '') + ' saved this';
+        }
+
+        // Avatars — use saver names (not adder name, per brief)
+        var avatarsHtml = saverNames.slice(0,3).map(function(n,i){
             return '<div class="hf-card-avatar" style="z-index:'+(3-i)+';margin-left:'+(i===0?'0':'-7px')+'">'
                 + escapeHtml(n).charAt(0).toUpperCase()+'</div>';
         }).join('');
-
-        var summaryHtml = item.feed_card_summary
-            ? '<div class="hf-card-summary">\u201c'+escapeHtml(item.feed_card_summary)+'\u201d</div>' : '';
+        if (avatarsHtml === '') {
+            avatarsHtml = '<div class="hf-card-avatar" style="z-index:3;margin-left:0">?</div>';
+        }
 
         return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
             + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
+            + wordHtml
             + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
-            + summaryHtml
             + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
             + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
             + '<span class="hf-card-name">'+savedLabel+'</span></div>'
@@ -3825,7 +3861,7 @@
             // Fetch more items so we have enough for pulse selection + shuffle pool
             var { data: items, error } = await supabaseClient
                 .from('knowledge_items')
-                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary, latitude, longitude')
+                .select('id, title, photo_url, type, added_by, added_by_name, created_at, visibility, feed_card_summary, personal_note, metadata, latitude, longitude')
                 .in('added_by', friendIds)
                 .neq('visibility', 'private')   // never show friends' private items
                 .order('created_at', { ascending: false })

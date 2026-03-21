@@ -3726,66 +3726,74 @@ function createCard(item, index) {
     const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
     const isOwner           = currentUser && item.added_by === currentUser.id;
 
-    // ── Snippet — 4 scenarios ──
-    let snippetHtml = '';
-    if (isSaveInheritance) {
-        const summary = item.feed_card_summary || item.description || '';
-        if (summary) snippetHtml = `<div class="hf-card-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '…' : ''}</div>`;
-    } else if (isOwner && note) {
-        snippetHtml = `<div class="hf-card-summary dc-snippet-quoted">&ldquo;${escapeHtml(note.substring(0, 70))}${note.length > 70 ? '…' : ''}&rdquo;</div>`;
-    } else if (!isExtendedCircle && note) {
-        snippetHtml = `<div class="hf-card-summary dc-snippet-quoted">&ldquo;${escapeHtml(note.substring(0, 70))}${note.length > 70 ? '…' : ''}&rdquo;</div>`;
-    } else {
-        const summary = item.feed_card_summary || item.description || '';
-        if (summary) snippetHtml = `<div class="hf-card-summary">${escapeHtml(summary.substring(0, 80))}${summary.length > 80 ? '…' : ''}</div>`;
-    }
+    // ── DISCOVER CARD LAYOUT ──
+    // 1. Lead with person — avatar + "Added by [Name]" (prominent first line)
+    // 2. The Word — 10-word truncated personal note (privacy-gated)
+    // 3. Title
+    // 4. Chips row
+    // 5. Save count (popularity signal for Discover)
 
-    // ── Bottom "by" row — avatars + label ──
-    // Determine who/what to show
-    let byLabel = '';
-    let avatarNames = [];
-
+    // ── 1. Person header — who added this ──
+    let adderName, adderAvatarCol, adderInitial;
     if (isSaveInheritance) {
-        byLabel = `Via ${escapeHtml(item._via_friend_name)}`;
-        avatarNames = [item._via_friend_name || '?'];
+        adderName = item._via_friend_name || 'Your circle';
     } else if (isOwner) {
-        byLabel = 'Added by you';
-        avatarNames = [currentProfile?.display_name || 'You'];
+        adderName = currentProfile?.display_name || 'You';
     } else if (!isExtendedCircle) {
-        // Direct friend — show adder's name + circle endorsement count
-        const cachedEndorse = endorsementsCache[item.id] || { count: 0, names: [], ids: [] };
-        const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
-        if (currentUser) friendIdSet.add(currentUser.id);
-        const circleCount = (cachedEndorse.ids || []).filter(id => friendIdSet.has(id)).length;
-        const adderName = item.added_by_name || 'Friend';
-        avatarNames = [adderName];
-        if (cachedEndorse.names) cachedEndorse.names.slice(0, 2).forEach(n => { if (n && n !== adderName) avatarNames.push(n); });
-        byLabel = circleCount > 1
-            ? `${circleCount} friends saved`
-            : `Added by ${escapeHtml(adderName)}`;
+        adderName = item.added_by_name || 'Friend';
     } else {
-        byLabel = 'Someone in your circle';
-        avatarNames = ['?'];
+        adderName = 'Someone in your circle';
     }
+    adderInitial = (adderName || '?').charAt(0).toUpperCase();
+    adderAvatarCol = strColour(adderName || '?');
 
-    const avatarsHtml = avatarNames.slice(0, 3).map((n, i) => {
-        const init = (n || '?').charAt(0).toUpperCase();
-        const col  = strColour(n || '?');
-        return `<div class="hf-card-avatar" style="z-index:${3 - i};margin-left:${i === 0 ? '0' : '-7px'};background:${col};">${init}</div>`;
-    }).join('');
+    const adderAvatarHtml = `<div class="hf-card-avatar dc-adder-avatar" style="background:${adderAvatarCol};">${adderInitial}</div>`;
+    const adderLabel = isSaveInheritance
+        ? `Via ${escapeHtml(item._via_friend_name)}`
+        : isOwner
+            ? 'Added by you'
+            : `Added by ${escapeHtml(adderName)}`;
+
+    const personHeaderHtml = `
+        <div class="hf-card-person-header">
+            ${adderAvatarHtml}
+            <span class="hf-card-person-name">${adderLabel}</span>
+        </div>`;
+
+    // ── 2. The Word — 10-word truncated personal note (privacy-gated) ──
+    // Friends see the note; extended circle sees a prompt to connect
+    let wordHtml = '';
+    if (!isExtendedCircle && note) {
+        // Direct friend or owner — can see the note
+        const words = note.trim().split(/\s+/);
+        const truncated = words.slice(0, 10).join(' ') + (words.length > 10 ? '…' : '');
+        wordHtml = `<div class="hf-card-word"><em>${escapeHtml(truncated)}</em></div>`;
+    } else if (isExtendedCircle) {
+        // Preserve existing privacy gate
+        wordHtml = `<div class="hf-card-word hf-card-word--gated">Connect to see their story</div>`;
+    }
+    // If no note at all and not extended circle, fall back silently (no word line shown)
+
+    // ── 3. Save count — popularity signal for Discover ──
+    const cachedEndorse = endorsementsCache[item.id] || { count: 0, names: [], ids: [] };
+    const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
+    if (currentUser) friendIdSet.add(currentUser.id);
+    const circleCount = (cachedEndorse.ids || []).filter(id => friendIdSet.has(id)).length;
+    // Show circle save count (adder counts as 1)
+    const totalSaves = Math.max(circleCount, 1);
+    const saveCountLabel = totalSaves === 1 ? '1 save in your circle' : `${totalSaves} saves in your circle`;
+    const saveCountHtml = `<div class="hf-card-save-count">${saveCountLabel}</div>`;
 
     const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
 
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
+            ${personHeaderHtml}
+            ${wordHtml}
             <div class="hf-card-title">${escapeHtml(item.title)}</div>
-            ${snippetHtml}
             <div class="hf-card-chips-row">${catChip}${distChip}</div>
-            <div class="hf-card-by">
-                <div class="hf-card-avatars">${avatarsHtml}</div>
-                <span class="hf-card-name">${byLabel}</span>
-            </div>
+            ${saveCountHtml}
         </div>
     `;
     return card;
