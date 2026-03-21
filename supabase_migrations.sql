@@ -18,3 +18,45 @@ ALTER TABLE profiles
 CREATE INDEX IF NOT EXISTS idx_knowledge_items_no_summary
   ON knowledge_items (id)
   WHERE feed_card_summary IS NULL;
+
+-- ============================================================
+-- 4. Invitations table — required for invite link flow
+--    Run this if the table doesn't exist yet in your Supabase project.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.invitations (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token       TEXT NOT NULL UNIQUE,
+    inviter_id  UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    used        BOOLEAN NOT NULL DEFAULT FALSE,
+    used_at     TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for fast token lookups
+CREATE INDEX IF NOT EXISTS idx_invitations_token ON public.invitations (token);
+-- Index for finding all invites by a user
+CREATE INDEX IF NOT EXISTS idx_invitations_inviter ON public.invitations (inviter_id);
+
+-- RLS: enable row-level security
+ALTER TABLE public.invitations ENABLE ROW LEVEL SECURITY;
+
+-- Policy: authenticated users can insert their own invitations
+CREATE POLICY IF NOT EXISTS "invitations_insert_own"
+    ON public.invitations FOR INSERT
+    TO authenticated
+    WITH CHECK (inviter_id = auth.uid());
+
+-- Policy: authenticated users can read any unused invitation (needed to validate a token)
+CREATE POLICY IF NOT EXISTS "invitations_select_any"
+    ON public.invitations FOR SELECT
+    TO authenticated
+    USING (true);
+
+-- Policy: authenticated users can mark an invitation as used
+--   (both the invitee who uses the link AND the inviter who generated it)
+CREATE POLICY IF NOT EXISTS "invitations_update_used"
+    ON public.invitations FOR UPDATE
+    TO authenticated
+    USING (true)
+    WITH CHECK (true);

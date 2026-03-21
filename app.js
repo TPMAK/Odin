@@ -6373,9 +6373,18 @@ async function _processInviteTokenSilently(token) {
             return;
         }
 
-        // Check not already friends
+        // Check not already friends (accepted)
         const alreadyFriends = friendsCache.some(f => f.out_user_id === inv.inviter_id);
         if (alreadyFriends) {
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+            return;
+        }
+
+        // Check not already a pending request in either direction
+        const alreadyPendingOut = outgoingFriendRequests.has(inv.inviter_id);
+        const alreadyPendingIn  = pendingFriendRequests.some(r => r.out_requester_id === inv.inviter_id);
+        if (alreadyPendingOut || alreadyPendingIn) {
             sessionStorage.removeItem('odin_invite_token');
             localStorage.removeItem('odin_invite_token');
             return;
@@ -6389,6 +6398,15 @@ async function _processInviteTokenSilently(token) {
         if (!friendErr) {
             // Notify the inviter
             const senderName = currentProfile?.display_name || currentUser.email?.split('@')[0] || 'Someone';
+
+            // Fetch inviter name for the toast message
+            const { data: inviterProfile } = await supabaseClient
+                .from('profiles')
+                .select('display_name')
+                .eq('id', inv.inviter_id)
+                .single();
+            const inviterName = inviterProfile?.display_name || 'them';
+
             await supabaseClient.rpc('notify_friend_request', {
                 p_receiver_id: inv.inviter_id,
                 p_actor_id:    currentUser.id,
@@ -6398,7 +6416,19 @@ async function _processInviteTokenSilently(token) {
             // Mark token used
             await supabaseClient
                 .from('invitations')
-                .update({ used: true, used_at: new Date().toISOString() })
+                .update({ used: true })
+                .eq('token', token);
+
+            // Refresh so the profile page shows the new outgoing request immediately
+            await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
+
+            // Let the user know a friend request was sent on their behalf
+            showToast(`Friend request sent to ${inviterName}! Check your profile for updates.`, 5000);
+        } else if (friendErr.code === '23505') {
+            // Duplicate — request already exists, just mark token used cleanly
+            await supabaseClient
+                .from('invitations')
+                .update({ used: true })
                 .eq('token', token);
         }
 
@@ -6522,6 +6552,8 @@ async function onbAcceptInvite() {
                 status: 'pending'
             });
 
+        const succeeded = !friendErr || friendErr.code === '23505'; // success or already exists
+
         if (!friendErr) {
             // Notify the inviter via the existing secure RPC
             const newUserName = currentProfile?.display_name ||
@@ -6532,20 +6564,26 @@ async function onbAcceptInvite() {
                 p_actor_id:    currentUser.id,
                 p_message:     `${newUserName} accepted your invite and wants to connect on Odin.`
             });
+        } else if (!succeeded) {
+            console.warn('Friend request insert failed:', friendErr);
+        }
 
+        if (succeeded) {
             // Mark invite token as used
             if (_onbInviteToken) {
                 await supabaseClient
                     .from('invitations')
-                    .update({ used: true, used_at: new Date().toISOString() })
+                    .update({ used: true })
                     .eq('token', _onbInviteToken);
                 sessionStorage.removeItem('odin_invite_token');
                 localStorage.removeItem('odin_invite_token');
             }
 
+            // Refresh pending requests so the profile page shows the new outgoing request
+            await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
+
             if (btn) btn.textContent = 'Request sent ✓';
         } else {
-            console.warn('Friend request insert failed:', friendErr);
             if (btn) btn.textContent = 'Could not send — skip';
         }
     } catch (err) {
