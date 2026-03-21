@@ -60,3 +60,24 @@ CREATE POLICY IF NOT EXISTS "invitations_update_used"
     TO authenticated
     USING (true)
     WITH CHECK (true);
+
+-- ============================================================
+-- 5. cancel_friend_request RPC
+--    Deletes a pending outgoing friend request by friendship ID.
+--    Only the requester (person who sent it) can cancel their own request.
+--    Run this in your Supabase SQL editor.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.cancel_friend_request(p_friendship_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    DELETE FROM public.friendships
+    WHERE id = p_friendship_id
+      AND requester_id = auth.uid()   -- only the sender can cancel
+      AND status = 'pending';         -- only pending requests can be cancelled
+END;
+$$;
