@@ -3721,7 +3721,8 @@
         }
 
         .url-hero-bar input {
-            width: 100%;
+            flex: 1;
+            min-width: 0;
             border: none;
             background: transparent;
             font-size: 14px;
@@ -3733,6 +3734,42 @@
 
         .url-hero-bar input::placeholder {
             color: #B8A99A;
+        }
+
+        /* URL input top row: input + paste button sit side by side */
+        .url-hero-input-row {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        .url-paste-btn {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: rgba(123, 45, 69, 0.08);
+            border: 1.5px solid rgba(123, 45, 69, 0.2);
+            border-radius: 8px;
+            color: #7B2D45;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            white-space: nowrap;
+            margin-left: 6px;
+        }
+        .url-paste-btn:hover {
+            background: rgba(123, 45, 69, 0.14);
+            border-color: #7B2D45;
+        }
+        .url-paste-btn:active { transform: scale(0.96); }
+        .url-paste-btn--success {
+            background: rgba(34, 139, 34, 0.1);
+            border-color: rgba(34, 139, 34, 0.4);
+            color: #228b22;
         }
 
         .url-hero-hint {
@@ -3941,8 +3978,15 @@
         }
 
         /* ── New compact Add form styles ── */
+        /* Title field: textarea that grows + optional clear button */
+        .title-field-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
         .title-input-large {
-            width: 100%;
+            flex: 1;
             padding: 10px 13px;
             border: 1.5px solid var(--border);
             background: var(--surface);
@@ -3952,6 +3996,10 @@
             color: var(--ink);
             transition: border-color 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
+            resize: none;
+            overflow: hidden;
+            line-height: 1.4;
+            min-height: 44px;
         }
         .title-input-large:focus {
             outline: none;
@@ -3959,6 +4007,32 @@
             box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
         }
         .title-input-large::placeholder { color: #C4B9AD; }
+
+        /* Clear prefill button — shown after OG auto-fill */
+        .clear-prefill-btn {
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 10px;
+            background: transparent;
+            border: 1.5px solid var(--border);
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s, background 0.2s;
+            white-space: nowrap;
+            margin-top: 0;
+        }
+        .clear-prefill-btn:hover {
+            color: #7B2D45;
+            border-color: #7B2D45;
+            background: rgba(123, 45, 69, 0.05);
+        }
+        .clear-prefill-btn.hidden { display: none; }
 
         .form-group-category { margin-bottom: 10px; }
 
@@ -4294,17 +4368,26 @@
 
         .detect-loc-btn {
             flex-shrink: 0;
-            width: 44px;
+            width: auto;
+            min-width: 44px;
             height: 44px;
+            padding: 0 12px;
             border: 1.5px solid var(--border);
             background: var(--surface);
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 5px;
             cursor: pointer;
             color: #7B2D45;
             transition: background 0.2s, border-color 0.2s;
+        }
+        .detect-loc-label {
+            font-size: 12px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            color: #7B2D45;
         }
 
         .detect-loc-btn:hover {

@@ -5591,6 +5591,11 @@ function clearCaptureForm() {
     if (addressGroup) addressGroup.style.display = '';
     // Reset Your Take rotating placeholder to Place default
     startTakePlaceholder('place');
+    // Hide clear-prefill button and reset title textarea height
+    const clearPrefillBtn = document.getElementById('clearPrefillBtn');
+    if (clearPrefillBtn) clearPrefillBtn.classList.add('hidden');
+    const titleTA = document.getElementById('title');
+    if (titleTA) { titleTA.style.height = 'auto'; }
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -5863,6 +5868,16 @@ async function fetchAndPrefillOG(url) {
             }
         }
 
+        // Show "Clear prefill" button once fields are populated
+        const clearPrefillBtn = document.getElementById('clearPrefillBtn');
+        if (clearPrefillBtn && (og.title || og.description)) {
+            clearPrefillBtn.classList.remove('hidden');
+        }
+
+        // Auto-grow title textarea if value was set programmatically
+        const titleTA = document.getElementById('title');
+        if (titleTA && titleTA._autoGrow) titleTA._autoGrow();
+
         // Show OG preview card
         if (og.title && ogCard) {
             const ogImg = document.getElementById('ogPreviewImg');
@@ -5982,7 +5997,83 @@ document.addEventListener('DOMContentLoaded', () => {
     urlInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') { e.preventDefault(); triggerOGFetch(); }
     });
+
+    // Auto-grow title textarea
+    const titleTextarea = document.getElementById('title');
+    if (titleTextarea) {
+        const autoGrow = () => {
+            titleTextarea.style.height = 'auto';
+            titleTextarea.style.height = titleTextarea.scrollHeight + 'px';
+        };
+        titleTextarea.addEventListener('input', autoGrow);
+        // Trigger once in case it's pre-filled by OG
+        const observer = new MutationObserver(() => autoGrow());
+        // Also expose for programmatic value setting
+        titleTextarea._autoGrow = autoGrow;
+    }
 });
+
+// ===== CLIPBOARD PASTE =====
+async function pasteFromClipboard() {
+    const urlInput = document.getElementById('url');
+    const btn = document.getElementById('urlPasteBtn');
+    if (!urlInput) return;
+
+    try {
+        const text = await navigator.clipboard.readText();
+        if (!text || !text.trim()) {
+            // Nothing on clipboard — show brief feedback
+            if (btn) { btn.textContent = 'Empty'; setTimeout(() => { btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Paste'; }, 1500); }
+            return;
+        }
+        const trimmed = text.trim();
+        urlInput.value = trimmed;
+        // Trigger OG fetch if it looks like a URL
+        if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
+            _lastOGFetchedUrl = trimmed;
+            fetchAndPrefillOG(trimmed);
+        }
+        // Brief success feedback on button
+        if (btn) {
+            const original = btn.innerHTML;
+            btn.innerHTML = '✓ Pasted';
+            btn.classList.add('url-paste-btn--success');
+            setTimeout(() => { btn.innerHTML = original; btn.classList.remove('url-paste-btn--success'); }, 1500);
+        }
+    } catch (e) {
+        // Clipboard permission denied — focus field so user can paste manually
+        urlInput.focus();
+        if (btn) {
+            const original = btn.innerHTML;
+            btn.innerHTML = 'Tap field';
+            setTimeout(() => { btn.innerHTML = original; }, 1800);
+        }
+    }
+}
+
+// ===== CLEAR OG PREFILL FIELDS =====
+function clearPrefillFields() {
+    const titleField = document.getElementById('title');
+    const descField = document.getElementById('personalNote');
+    const addressField = document.getElementById('address');
+    const urlInput = document.getElementById('url');
+
+    if (titleField) { titleField.value = ''; if (titleField._autoGrow) titleField._autoGrow(); }
+    if (descField) descField.value = '';
+    if (addressField) addressField.value = '';
+    if (urlInput) urlInput.value = '';
+
+    clearOGPreview();
+    removePhoto();
+    resetOGFetchState();
+
+    // Hide the clear button
+    const clearBtn = document.getElementById('clearPrefillBtn');
+    if (clearBtn) clearBtn.classList.add('hidden');
+
+    // Refocus title
+    if (titleField) titleField.focus();
+}
 
 async function submitDiscovery(e) {
     e.preventDefault();
