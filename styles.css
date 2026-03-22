@@ -10167,3 +10167,28 @@ body.map-view-open .content {
     background: rgba(123, 45, 69, 0.07);
     border-color: rgba(123, 45, 69, 0.55);
 }
+
+/* ── Coach Marks ── */
+#coachMark {
+    position: fixed;
+    bottom: calc(64px + env(safe-area-inset-bottom) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(11, 15, 26, 0.92);
+    color: #FAF6EE;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 10px 16px;
+    border-radius: 10px;
+    max-width: 280px;
+    text-align: center;
+    z-index: 9999;
+    pointer-events: auto;
+    animation: coachFadeIn 0.3s ease;
+}
+
+@keyframes coachFadeIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
