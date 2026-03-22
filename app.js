@@ -3095,6 +3095,7 @@ function setMode(mode) {
     }
 
     updateTabBar(mode);
+    showCoachMark(mode);
 }
 
 function updateTabBar(mode) {
@@ -6712,6 +6713,41 @@ function _populateStep2UI(inviter) {
     if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
     if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
     if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+}
+
+// ── Coach Marks ──
+const COACH_MARKS = {
+    home:     "Your feed — recommendations from people you trust.",
+    discover: "Browse what your circle saved. Tap the map icon to explore nearby.",
+    search:   "Ask it like you'd ask a friend.",
+    input:    "Save something great — your circle will thank you.",
+    profile:  "Your Knowledge Base — everything your network knows."
+};
+
+let _coachMarkTimer = null;
+
+function showCoachMark(mode) {
+    const key = `odin_coach_${mode}`;
+    if (localStorage.getItem(key)) return;         // already seen
+    const text = COACH_MARKS[mode];
+    if (!text) return;
+
+    const el = document.getElementById('coachMark');
+    const textEl = document.getElementById('coachMarkText');
+    if (!el || !textEl) return;
+
+    localStorage.setItem(key, '1');                // mark as seen immediately
+    textEl.textContent = text;
+    el.style.display = 'block';
+
+    if (_coachMarkTimer) clearTimeout(_coachMarkTimer);
+    _coachMarkTimer = setTimeout(dismissCoachMark, 4000);
+}
+
+function dismissCoachMark() {
+    const el = document.getElementById('coachMark');
+    if (el) el.style.display = 'none';
+    if (_coachMarkTimer) { clearTimeout(_coachMarkTimer); _coachMarkTimer = null; }
 }
 
 async function checkOnboardingBanner() {
