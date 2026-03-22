@@ -3987,6 +3987,7 @@
 
         .title-input-large {
             flex: 1;
+            width: 100%;
             padding: 10px 13px;
             border: 1.5px solid var(--border);
             background: var(--surface);
@@ -3996,10 +3997,13 @@
             color: var(--ink);
             transition: border-color 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
+            display: block;
             resize: none;
-            overflow: hidden;
+            overflow-y: hidden;
+            overflow-x: hidden;
             line-height: 1.4;
             min-height: 44px;
+            -webkit-appearance: none; /* iOS reset */
         }
         .title-input-large:focus {
             outline: none;
@@ -4063,10 +4067,13 @@
             font-size: 13px;
             font-family: inherit;
             color: var(--ink);
-            resize: vertical;
+            resize: none;           /* remove manual resize — JS handles growth */
             min-height: 72px;
             transition: border-color 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
+            display: block;
+            overflow-y: hidden;
+            -webkit-appearance: none;
             line-height: 1.5;
         }
         .your-take-textarea::placeholder {

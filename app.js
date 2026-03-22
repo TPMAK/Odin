@@ -5591,11 +5591,13 @@ function clearCaptureForm() {
     if (addressGroup) addressGroup.style.display = '';
     // Reset Your Take rotating placeholder to Place default
     startTakePlaceholder('place');
-    // Hide clear-prefill button and reset title textarea height
+    // Hide clear-prefill button and reset textarea heights
     const clearPrefillBtn = document.getElementById('clearPrefillBtn');
     if (clearPrefillBtn) clearPrefillBtn.classList.add('hidden');
     const titleTA = document.getElementById('title');
-    if (titleTA) { titleTA.style.height = 'auto'; }
+    if (titleTA) { titleTA.style.height = '44px'; }
+    const takeTA = document.getElementById('personalNote');
+    if (takeTA) { takeTA.style.height = '72px'; }
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -5998,57 +6000,143 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') { e.preventDefault(); triggerOGFetch(); }
     });
 
-    // Auto-grow title textarea
-    const titleTextarea = document.getElementById('title');
-    if (titleTextarea) {
-        const autoGrow = () => {
-            titleTextarea.style.height = 'auto';
-            titleTextarea.style.height = titleTextarea.scrollHeight + 'px';
+    // iOS-safe auto-grow helper
+    // Setting height:'auto' doesn't trigger reflow on iOS Safari.
+    // Setting to '0px' first forces a layout recalc, then scrollHeight is correct.
+    function initAutoGrow(el, minHeight) {
+        if (!el) return;
+        const grow = () => {
+            el.style.height = '0px';
+            el.style.height = Math.max(el.scrollHeight, minHeight) + 'px';
         };
-        titleTextarea.addEventListener('input', autoGrow);
-        // Trigger once in case it's pre-filled by OG
-        const observer = new MutationObserver(() => autoGrow());
-        // Also expose for programmatic value setting
-        titleTextarea._autoGrow = autoGrow;
+        el.addEventListener('input', grow);
+        el.addEventListener('focus', grow);
+        el._autoGrow = grow;
+        grow(); // initial size
     }
+
+    initAutoGrow(document.getElementById('title'), 44);
+    initAutoGrow(document.getElementById('personalNote'), 72);
 });
 
 // ===== CLIPBOARD PASTE =====
+// Strategy: try the Clipboard API first (works on Android Chrome + desktop).
+// If that fails or is unavailable (iOS Safari PWA), fall back to a native
+// paste overlay — a temporary visible input that iOS will offer its "Paste"
+// menu on. User taps Paste in the OS menu, we grab the value and close it.
 async function pasteFromClipboard() {
     const urlInput = document.getElementById('url');
     const btn = document.getElementById('urlPasteBtn');
     if (!urlInput) return;
 
-    try {
-        const text = await navigator.clipboard.readText();
-        if (!text || !text.trim()) {
-            // Nothing on clipboard — show brief feedback
-            if (btn) { btn.textContent = 'Empty'; setTimeout(() => { btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Paste'; }, 1500); }
-            return;
-        }
-        const trimmed = text.trim();
-        urlInput.value = trimmed;
-        // Trigger OG fetch if it looks like a URL
-        if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
-            _lastOGFetchedUrl = trimmed;
-            fetchAndPrefillOG(trimmed);
-        }
-        // Brief success feedback on button
-        if (btn) {
-            const original = btn.innerHTML;
-            btn.innerHTML = '✓ Pasted';
-            btn.classList.add('url-paste-btn--success');
-            setTimeout(() => { btn.innerHTML = original; btn.classList.remove('url-paste-btn--success'); }, 1500);
-        }
-    } catch (e) {
-        // Clipboard permission denied — focus field so user can paste manually
-        urlInput.focus();
-        if (btn) {
-            const original = btn.innerHTML;
-            btn.innerHTML = 'Tap field';
-            setTimeout(() => { btn.innerHTML = original; }, 1800);
+    // Try Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.readText) {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text && text.trim()) {
+                _applyPastedUrl(text.trim(), btn);
+                return;
+            }
+        } catch (e) {
+            // Permission denied or not supported — fall through to overlay
         }
     }
+
+    // Fallback: native paste overlay (works on iOS)
+    _showPasteOverlay(btn);
+}
+
+function _applyPastedUrl(trimmed, btn) {
+    const urlInput = document.getElementById('url');
+    if (!urlInput) return;
+    urlInput.value = trimmed;
+    if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
+        _lastOGFetchedUrl = trimmed;
+        fetchAndPrefillOG(trimmed);
+    }
+    if (btn) {
+        const original = btn.innerHTML;
+        btn.innerHTML = '✓ Pasted';
+        btn.classList.add('url-paste-btn--success');
+        setTimeout(() => { btn.innerHTML = original; btn.classList.remove('url-paste-btn--success'); }, 1800);
+    }
+}
+
+function _showPasteOverlay(btn) {
+    // Remove any existing overlay
+    const existing = document.getElementById('pasteOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pasteOverlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.45);
+        display: flex; align-items: flex-end;
+        padding: 16px;
+        box-sizing: border-box;
+    `;
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = `
+        background: #fff; border-radius: 16px; padding: 20px 16px 16px;
+        width: 100%; max-width: 480px; margin: 0 auto;
+        font-family: 'Inter', sans-serif;
+        box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
+    `;
+
+    const label = document.createElement('p');
+    label.textContent = 'Long-press and tap Paste ↓';
+    label.style.cssText = `margin: 0 0 10px; font-size: 13px; color: #666; text-align: center;`;
+
+    const input = document.createElement('input');
+    input.type = 'url';
+    input.placeholder = 'Long-press here to paste a link…';
+    input.autocomplete = 'off';
+    input.style.cssText = `
+        width: 100%; padding: 13px 14px; font-size: 15px;
+        border: 2px solid #7B2D45; border-radius: 10px;
+        box-sizing: border-box; font-family: 'Inter', sans-serif;
+        color: #2A1E14; outline: none; background: #FAF6EE;
+    `;
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        display: block; width: 100%; margin-top: 10px; padding: 12px;
+        background: transparent; border: 1.5px solid #EAE0D2;
+        border-radius: 10px; font-size: 14px; color: #9A8A7A;
+        font-family: 'Inter', sans-serif; cursor: pointer;
+    `;
+
+    // Confirm when user types/pastes something and taps Enter or blurs with content
+    const confirm = () => {
+        const val = input.value.trim();
+        if (val) {
+            overlay.remove();
+            _applyPastedUrl(val, btn);
+        }
+    };
+
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } });
+    // Also watch for any input change — on iOS, paste fills value immediately
+    input.addEventListener('input', () => {
+        const val = input.value.trim();
+        if (val && val.startsWith('http')) {
+            setTimeout(() => { overlay.remove(); _applyPastedUrl(val, btn); }, 200);
+        }
+    });
+    cancelBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    sheet.appendChild(label);
+    sheet.appendChild(input);
+    sheet.appendChild(cancelBtn);
+    overlay.appendChild(sheet);
+    document.body.appendChild(overlay);
+
+    // Focus with a small delay so iOS keyboard + paste menu appears
+    setTimeout(() => input.focus(), 80);
 }
 
 // ===== CLEAR OG PREFILL FIELDS =====
