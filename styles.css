@@ -4151,15 +4151,19 @@
         /* ── Category Pills ── */
         .category-pills {
             display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+            gap: 6px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
         }
+        .category-pills::-webkit-scrollbar { display: none; }
 
         .category-pill {
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding: 8px 14px;
+            gap: 4px;
+            padding: 7px 12px;
             border: 1.5px solid var(--border);
             border-radius: 20px;
             background: var(--bg);
@@ -4169,6 +4173,8 @@
             cursor: pointer;
             transition: all 0.2s;
             font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .category-pill:hover {
@@ -4363,11 +4369,7 @@
             .form-section {
                 padding: 16px;
             }
-            .category-pills {
-                gap: 6px;
-            }
             .category-pill {
-                padding: 7px 12px;
                 font-size: 12px;
             }
         }

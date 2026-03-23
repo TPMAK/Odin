@@ -6079,25 +6079,31 @@ function pasteFromClipboard() {
     const btn = document.getElementById('urlPasteBtn');
     if (!urlInput) return;
 
+    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+
     // Must call readText() in the SAME synchronous tick as the user gesture.
     if (navigator.clipboard && navigator.clipboard.readText) {
         navigator.clipboard.readText()
             .then(text => {
                 if (text && text.trim()) {
                     _applyPastedUrl(text.trim(), btn);
-                } else {
+                } else if (isIOS) {
+                    // iOS: clipboard empty or permission denied — show native paste overlay
                     _showPasteOverlay(btn);
                 }
+                // Desktop: clipboard empty — do nothing, user hasn't copied anything yet
             })
             .catch(() => {
-                // Permission denied or not supported — fall through to overlay
-                _showPasteOverlay(btn);
+                if (isIOS) {
+                    _showPasteOverlay(btn);
+                }
+                // Desktop: permission denied (e.g. focus not on page) — do nothing
             });
         return;
     }
 
-    // No Clipboard API at all — go straight to overlay
-    _showPasteOverlay(btn);
+    // No Clipboard API — iOS fallback only
+    if (isIOS) _showPasteOverlay(btn);
 }
 
 function _applyPastedUrl(trimmed, btn) {
@@ -6140,12 +6146,12 @@ function _showPasteOverlay(btn) {
     `;
 
     const label = document.createElement('p');
-    label.textContent = 'Long-press and tap Paste ↓';
+    label.textContent = 'Tap and hold the field below, then tap Paste';
     label.style.cssText = `margin: 0 0 10px; font-size: 13px; color: #666; text-align: center;`;
 
     const input = document.createElement('input');
     input.type = 'url';
-    input.placeholder = 'Long-press here to paste a link…';
+    input.placeholder = 'Tap and hold to paste a link…';
     input.autocomplete = 'off';
     input.style.cssText = `
         width: 100%; padding: 13px 14px; font-size: 15px;
