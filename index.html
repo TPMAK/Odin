@@ -1981,18 +1981,7 @@
 
                 <form id="addForm" onsubmit="submitDiscovery(event)">
 
-                    <!-- 1. TITLE -->
-                    <div class="form-group form-group-title">
-                        <div class="title-field-row">
-                            <textarea id="title" class="title-input-large" placeholder="What's the name?" rows="1" required></textarea>
-                            <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                Clear
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 2. CATEGORY -->
+                    <!-- 2. CATEGORY (shown first — intent before detail) -->
                     <div class="form-group form-group-category">
                         <div class="category-pills" id="categoryPills">
                             <button type="button" class="category-pill active" data-value="place" onclick="selectCategory(this)">
@@ -2020,7 +2009,7 @@
                         </select>
                     </div>
 
-                    <!-- 3. YOUR TAKE (merged description + personal note) -->
+                    <!-- 3. YOUR TAKE (centrepiece — always empty, user's voice) -->
                     <div class="form-group form-group-take">
                         <label class="field-label-inline">Your take</label>
                         <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
@@ -2028,49 +2017,71 @@
                         <input type="hidden" id="description">
                     </div>
 
-                    <!-- 4. ADDRESS — prominent, not buried -->
-                    <div class="form-group address-group" style="position: relative;">
-                        <label class="field-label-inline">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
-                        </label>
-                        <div class="address-input-row">
-                            <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
-                            <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <span class="detect-loc-label">Here</span>
-                            </button>
-                        </div>
-                        <div id="addressDropdown" class="address-dropdown hidden"></div>
-                        <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
-                        <input type="hidden" id="userLat" value="">
-                        <input type="hidden" id="userLng" value="">
+                    <!-- 4. DETAILS — collapsible (title, address, photo) -->
+                    <div class="details-toggle" id="detailsToggle" onclick="toggleDetails()">
+                        <span class="details-toggle-label" id="detailsToggleLabel">Details</span>
+                        <svg class="details-toggle-chevron" id="detailsChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                     </div>
 
-                    <!-- 5. PHOTO — compact -->
-                    <div class="form-group form-group-photo">
-                        <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
-                        <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            <span>Add a photo</span>
-                        </div>
-                        <input type="file" id="photo" accept="image/*" style="display: none;">
-                        <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
-                            <img id="previewImg" />
-                            <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
-                            <div class="photo-preview-actions">
-                                <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                    Replace
-                                </button>
-                                <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                    Remove
+                    <div class="details-body hidden" id="detailsBody">
+
+                        <!-- Title -->
+                        <div class="form-group form-group-title">
+                            <div class="title-field-row">
+                                <textarea id="title" class="title-input-large" placeholder="What's the name?" rows="1"></textarea>
+                                <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Clear
                                 </button>
                             </div>
+                            <p class="autofill-hint hidden" id="titleAutofillHint">Auto-filled from link — edit if needed</p>
                         </div>
-                        <input type="hidden" id="ogImageUrl" value="">
-                    </div>
+
+                        <!-- Address -->
+                        <div class="form-group address-group" style="position: relative;">
+                            <label class="field-label-inline">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
+                            </label>
+                            <div class="address-input-row">
+                                <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
+                                <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <span class="detect-loc-label">Here</span>
+                                </button>
+                            </div>
+                            <div id="addressDropdown" class="address-dropdown hidden"></div>
+                            <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
+                            <input type="hidden" id="userLat" value="">
+                            <input type="hidden" id="userLng" value="">
+                        </div>
+
+                        <!-- Photo -->
+                        <div class="form-group form-group-photo">
+                            <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
+                            <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                <span>Add a photo</span>
+                            </div>
+                            <input type="file" id="photo" accept="image/*" style="display: none;">
+                            <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
+                                <img id="previewImg" />
+                                <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
+                                <div class="photo-preview-actions">
+                                    <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                        Replace
+                                    </button>
+                                    <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="ogImageUrl" value="">
+                        </div>
+
+                    </div><!-- /details-body -->
 
                     <!-- Hidden Added By (auto-filled, not shown) -->
                     <input type="hidden" id="addedBy" value="">

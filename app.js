@@ -5833,10 +5833,11 @@ async function fetchAndPrefillOG(url) {
         // Fill form fields if empty
         if (og.title && titleField && !titleField.value.trim()) {
             titleField.value = og.title;
+            // Auto-open the details section so user can see/edit the prefilled title
+            _openDetailsAfterOG();
         }
-        if (og.description && descField && !descField.value.trim()) {
-            descField.value = og.description;
-        }
+        // Never auto-fill "Your Take" — it's the user's personal voice, not OG copy.
+        // og.description is kept in memory for the preview card only.
 
         // Auto-fill address if returned (e.g. from Google Maps)
         const addressField = document.getElementById('address');
@@ -5854,12 +5855,49 @@ async function fetchAndPrefillOG(url) {
         }
 
         // Auto-select category for Google Maps links (uses category from Places API)
+        // Auto-infer category from URL domain if not already set by user
+        const _inferCategory = (u) => {
+            const h = (() => { try { return new URL(u).hostname.replace('www.',''); } catch(e) { return ''; } })();
+            const SERVICE_DOMAINS = [
+                'coursera.org','udemy.com','linkedin.com','skillshare.com','masterclass.com',
+                'duolingo.com','khanacademy.org','edx.org','pluralsight.com','figma.com',
+                'notion.so','slack.com','dropbox.com','spotify.com','netflix.com','airbnb.com',
+                'booking.com','tripadvisor.com','uber.com','lyft.com','doordash.com',
+                'fiverr.com','upwork.com','canva.com','squarespace.com','wix.com'
+            ];
+            const PRODUCT_DOMAINS = [
+                'amazon.com','amazon.com.au','ebay.com','etsy.com','shopify.com',
+                'apple.com','bestbuy.com','target.com','walmart.com','ikea.com',
+                'asos.com','theiconic.com.au','trademe.co.nz','mighty ape.co.nz'
+            ];
+            if (SERVICE_DOMAINS.some(d => h.includes(d))) return 'service';
+            if (PRODUCT_DOMAINS.some(d => h.includes(d))) return 'product';
+            return null;
+        };
+
         if (og.source === 'googlemaps') {
             const cat = og.category || 'place';
             document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
             const targetPill = document.querySelector(`.category-pill[data-value="${cat}"]`);
             if (targetPill) targetPill.classList.add('active');
             document.getElementById('category').value = cat;
+            startTakePlaceholder(cat);
+        } else {
+            // Only infer if user hasn't already picked a non-default category
+            const currentCat = document.getElementById('category').value;
+            if (currentCat === 'place') {
+                const inferred = _inferCategory(url);
+                if (inferred) {
+                    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                    const targetPill = document.querySelector(`.category-pill[data-value="${inferred}"]`);
+                    if (targetPill) targetPill.classList.add('active');
+                    document.getElementById('category').value = inferred;
+                    startTakePlaceholder(inferred);
+                    // Hide address field — inferred category is not a place
+                    const addressGroup = document.querySelector('.address-group');
+                    if (addressGroup) addressGroup.style.display = 'none';
+                }
+            }
         }
 
         // Preload OG image into the photo section (if no user photo already)
@@ -5915,6 +5953,16 @@ async function fetchAndPrefillOG(url) {
 
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
+
+        // Auto-scroll to "Your Take" and focus it — the user's voice is the whole point.
+        // Small delay so the OG card animation finishes first.
+        setTimeout(() => {
+            const takeField = document.getElementById('personalNote');
+            if (takeField) {
+                takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                takeField.focus();
+            }
+        }, 400);
 
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
@@ -6146,6 +6194,36 @@ function _showPasteOverlay(btn) {
     setTimeout(() => { input.focus(); input.click(); }, 300);
 }
 
+// ===== DETAILS SECTION TOGGLE =====
+function toggleDetails() {
+    const body = document.getElementById('detailsBody');
+    const chevron = document.getElementById('detailsChevron');
+    const label = document.getElementById('detailsToggleLabel');
+    if (!body) return;
+    const isOpen = !body.classList.contains('hidden');
+    if (isOpen) {
+        body.classList.add('hidden');
+        if (chevron) chevron.style.transform = '';
+        if (label) label.textContent = 'Details';
+    } else {
+        body.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (label) label.textContent = 'Details';
+    }
+}
+
+// Auto-open details section and show autofill hint after OG fills title
+function _openDetailsAfterOG() {
+    const body = document.getElementById('detailsBody');
+    const chevron = document.getElementById('detailsChevron');
+    const hint = document.getElementById('titleAutofillHint');
+    if (body) {
+        body.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    }
+    if (hint) hint.classList.remove('hidden');
+}
+
 // ===== CLEAR OG PREFILL FIELDS =====
 function clearPrefillFields() {
     const titleField = document.getElementById('title');
@@ -6166,8 +6244,17 @@ function clearPrefillFields() {
     const clearBtn = document.getElementById('clearPrefillBtn');
     if (clearBtn) clearBtn.classList.add('hidden');
 
-    // Refocus title
-    if (titleField) titleField.focus();
+    // Close details section and hide autofill hint
+    const detailsBody = document.getElementById('detailsBody');
+    const detailsChevron = document.getElementById('detailsChevron');
+    const titleHint = document.getElementById('titleAutofillHint');
+    if (detailsBody) detailsBody.classList.add('hidden');
+    if (detailsChevron) detailsChevron.style.transform = '';
+    if (titleHint) titleHint.classList.add('hidden');
+
+    // Refocus Your Take (not title — it's now in the collapsed section)
+    const takeField = document.getElementById('personalNote');
+    if (takeField) takeField.focus();
 }
 
 async function submitDiscovery(e) {
@@ -6175,6 +6262,23 @@ async function submitDiscovery(e) {
 
     if (!currentUser) {
         alert('Please login first');
+        return;
+    }
+
+    // Validate title — open details section if empty so user can see the field
+    const titleVal = document.getElementById('title').value.trim();
+    if (!titleVal) {
+        const detailsBody = document.getElementById('detailsBody');
+        const detailsChevron = document.getElementById('detailsChevron');
+        if (detailsBody) detailsBody.classList.remove('hidden');
+        if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+        const titleField = document.getElementById('title');
+        if (titleField) {
+            titleField.focus();
+            titleField.style.borderColor = '#7B2D45';
+            setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
+        }
+        document.getElementById('submitBtn').disabled = false;
         return;
     }
 
@@ -6282,6 +6386,13 @@ async function submitDiscovery(e) {
     // Show URL hint again
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
+    // Close details section + hide autofill hint
+    const _detailsBody = document.getElementById('detailsBody');
+    const _detailsChevron = document.getElementById('detailsChevron');
+    const _titleHint = document.getElementById('titleAutofillHint');
+    if (_detailsBody) _detailsBody.classList.add('hidden');
+    if (_detailsChevron) _detailsChevron.style.transform = '';
+    if (_titleHint) _titleHint.classList.add('hidden');
 
     btn.disabled = false;
 
