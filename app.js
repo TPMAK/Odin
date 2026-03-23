@@ -6224,37 +6224,21 @@ function _openDetailsAfterOG() {
     if (hint) hint.classList.remove('hidden');
 }
 
-// ===== CLEAR OG PREFILL FIELDS =====
+// ===== CLEAR TITLE ONLY =====
+// The "Clear" button lives inside Details next to the title field.
+// It only clears the title — Your Take, photo, and URL are preserved.
 function clearPrefillFields() {
     const titleField = document.getElementById('title');
-    const descField = document.getElementById('personalNote');
-    const addressField = document.getElementById('address');
-    const urlInput = document.getElementById('url');
-
-    if (titleField) { titleField.value = ''; if (titleField._autoGrow) titleField._autoGrow(); }
-    if (descField) descField.value = '';
-    if (addressField) addressField.value = '';
-    if (urlInput) urlInput.value = '';
-
-    clearOGPreview();
-    removePhoto();
-    resetOGFetchState();
-
-    // Hide the clear button
+    if (titleField) {
+        titleField.value = '';
+        if (titleField._autoGrow) titleField._autoGrow();
+        titleField.focus();
+    }
+    // Hide the clear button and autofill hint
     const clearBtn = document.getElementById('clearPrefillBtn');
     if (clearBtn) clearBtn.classList.add('hidden');
-
-    // Close details section and hide autofill hint
-    const detailsBody = document.getElementById('detailsBody');
-    const detailsChevron = document.getElementById('detailsChevron');
     const titleHint = document.getElementById('titleAutofillHint');
-    if (detailsBody) detailsBody.classList.add('hidden');
-    if (detailsChevron) detailsChevron.style.transform = '';
     if (titleHint) titleHint.classList.add('hidden');
-
-    // Refocus Your Take (not title — it's now in the collapsed section)
-    const takeField = document.getElementById('personalNote');
-    if (takeField) takeField.focus();
 }
 
 async function submitDiscovery(e) {
