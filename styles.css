@@ -3573,28 +3573,27 @@
             .input-form-container { max-width: 860px; }
         }
 
-        /* ── Add page desktop 2-column grid ── */
+        /* ── Add page desktop — single column, centred ── */
         @media (min-width: 768px) {
             #addForm {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                column-gap: 24px;
+                display: block;
+                max-width: 560px;
+                margin-left: auto;
+                margin-right: auto;
             }
-            /* Full-width rows */
-            #addForm .form-group-title,
-            #addForm .visibility-group,
-            #addForm .submit-btn {
-                grid-column: 1 / -1;
+            /* Also centre the URL hero bar and OG card to match */
+            .url-hero-bar,
+            .og-preview-card,
+            .og-loading,
+            .url-hero-divider,
+            .details-toggle,
+            .details-body {
+                max-width: 560px;
+                margin-left: auto;
+                margin-right: auto;
             }
-            /* Left column */
-            #addForm .form-group-category { grid-column: 1; }
-            #addForm .address-group       { grid-column: 1; }
-            /* Right column */
-            #addForm .form-group-take  { grid-column: 2; grid-row: 2 / 4; }
-            #addForm .form-group-photo { grid-column: 2; }
-            /* Make textarea fill the available height */
             #addForm .form-group-take .your-take-textarea {
-                min-height: 190px;
+                min-height: 140px;
             }
         }
 
