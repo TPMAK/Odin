@@ -6022,28 +6022,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== CLIPBOARD PASTE =====
 // Strategy: try the Clipboard API first (works on Android Chrome + desktop).
-// If that fails or is unavailable (iOS Safari PWA), fall back to a native
-// paste overlay — a temporary visible input that iOS will offer its "Paste"
-// menu on. User taps Paste in the OS menu, we grab the value and close it.
-async function pasteFromClipboard() {
+// On iOS Safari/PWA, navigator.clipboard.readText() silently fails because
+// iOS invalidates the user gesture after any async gap (await). We call
+// readText() synchronously inside the click event, chain .then() so the
+// gesture token stays alive, and only fall back to the overlay if it rejects.
+function pasteFromClipboard() {
     const urlInput = document.getElementById('url');
     const btn = document.getElementById('urlPasteBtn');
     if (!urlInput) return;
 
-    // Try Clipboard API first
+    // Must call readText() in the SAME synchronous tick as the user gesture.
     if (navigator.clipboard && navigator.clipboard.readText) {
-        try {
-            const text = await navigator.clipboard.readText();
-            if (text && text.trim()) {
-                _applyPastedUrl(text.trim(), btn);
-                return;
-            }
-        } catch (e) {
-            // Permission denied or not supported — fall through to overlay
-        }
+        navigator.clipboard.readText()
+            .then(text => {
+                if (text && text.trim()) {
+                    _applyPastedUrl(text.trim(), btn);
+                } else {
+                    _showPasteOverlay(btn);
+                }
+            })
+            .catch(() => {
+                // Permission denied or not supported — fall through to overlay
+                _showPasteOverlay(btn);
+            });
+        return;
     }
 
-    // Fallback: native paste overlay (works on iOS)
+    // No Clipboard API at all — go straight to overlay
     _showPasteOverlay(btn);
 }
 
@@ -6136,8 +6141,9 @@ function _showPasteOverlay(btn) {
     overlay.appendChild(sheet);
     document.body.appendChild(overlay);
 
-    // Focus with a small delay so iOS keyboard + paste menu appears
-    setTimeout(() => input.focus(), 80);
+    // Focus with a longer delay so iOS keyboard is fully ready before focus
+    // (80ms is too fast — iOS needs ~300ms to register the gesture + show keyboard)
+    setTimeout(() => { input.focus(); input.click(); }, 300);
 }
 
 // ===== CLEAR OG PREFILL FIELDS =====
