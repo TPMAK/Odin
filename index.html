@@ -2616,9 +2616,8 @@
         chips.forEach(function(item) {
             var span = document.createElement('span');
             span.className = 'suggestion-chip';
-            // Strip leading emoji + space from label
-            var cleanLabel = item.label.replace(/^[\p{Emoji_Presentation}\p{Extended_Pictographic}]\s*/u, '');
-            span.textContent = cleanLabel;
+            // Show exactly what will be searched — no label mismatch
+            span.textContent = item.q;
             span.onclick = (function(q) { return function() { sendMessage(q); }; })(item.q);
             container.appendChild(span);
         });
