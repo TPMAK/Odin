@@ -5090,8 +5090,8 @@ function sendMessage(text) {
                     ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
                 const snippetLabel = isExt
-                    ? '💡 Why this matches'
-                    : (canSeeNote ? '💭 Friend says' : '💡 Why this matches');
+                    ? 'Why this matches'
+                    : (canSeeNote ? 'Friend says' : 'Why this matches');
                 const byLine = isExt
                     ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
@@ -5133,10 +5133,10 @@ function sendMessage(text) {
                 const snippet    = isExt
                     ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
-                const snippetIcon = (!isExt && canSeeNote) ? '💭' : '';
+                const snippetIcon = '';
                 const byLine = isExt
-                    ? '<span class="extended-circle-badge" style="font-size:11px;">🔵 Extended circle</span>'
-                    : (r.added_by_name ? `<span>• ${escapeHtml(r.added_by_name)}</span>` : '');
+                    ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
+                    : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
                 const saveLabel = getCircleSaveCount(r);
 
                 return `
@@ -5144,12 +5144,12 @@ function sendMessage(text) {
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         <div class="compact-meta">
-                            ${distText ? `<span>📍 ${distText}</span>` : ''}
+                            ${distText ? `<span class="meta-tag meta-distance">${distText}</span>` : ''}
                             ${byLine}
+                            <span class="meta-tag meta-saves">${saveLabel}</span>
                         </div>
-                        ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${snippetIcon ? snippetIcon + ' ' : ''}${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                        ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                         <div class="compact-footer">
-                            <span class="result-save-count">${saveLabel}</span>
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                         </div>
                     </div>
@@ -5180,7 +5180,6 @@ function sendMessage(text) {
                         <div class="more-options-section">
                             <div class="results-header">
                                 <span class="results-header-title">More Great Options</span>
-                                <span class="results-header-count">${moreResults.length} more</span>
                             </div>
                             <div class="more-options-wrapper">
                                 <button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left">

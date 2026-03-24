@@ -2712,6 +2712,11 @@
             color: #92400e;
         }
 
+        .meta-saves {
+            background: #f0f4ff;
+            color: #3b4a8a;
+        }
+
         .top-pick-reason {
             background: rgba(123, 45, 69, 0.1);
             border-radius: 8px;
