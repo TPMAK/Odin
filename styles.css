@@ -975,15 +975,15 @@
 
         /* Card body */
         .hf-card-body {
-            padding: 11px 13px 13px;
+            padding: 9px 11px 10px;
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 4px;
         }
 
         .hf-card-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             color: #1A1A1A;
             line-height: 1.3;
@@ -1510,15 +1510,15 @@
         .discover-container {
             max-width: 900px;
             margin: 0 auto;
-            padding: 16px 20px;
+            padding: 12px 16px;
         }
 
         @media (min-width: 768px) {
-            .discover-container { padding: 20px 32px; }
+            .discover-container { padding: 16px 32px; }
         }
 
         .discover-header {
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         /* Title row: heading + Map toggle side-by-side */
@@ -1527,7 +1527,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
         }
 
         /* Map toggle button — looks like a soft pill badge */
@@ -1560,15 +1560,15 @@
 
         .page-title {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
             color: #1A1A1A;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
             letter-spacing: -0.3px;
         }
 
         .page-subtitle {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--muted);
             margin-bottom: 0;
         }
@@ -1856,8 +1856,8 @@
         .discover-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-            margin-bottom: 24px;
+            gap: 10px;
+            margin-bottom: 16px;
         }
 
         @media (min-width: 768px) {
@@ -8654,7 +8654,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .dc-section-title {
     font-size: 17px;
@@ -10176,10 +10176,10 @@ body.map-view-open .content {
 
 /* ── The Word — italic personal note snippet (Home + Discover) ── */
 .hf-card-word {
-    font-size: 12px;
+    font-size: 11px;
     font-style: italic;
     color: #4A3828;
-    line-height: 1.35;
+    line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -10196,7 +10196,7 @@ body.map-view-open .content {
 .hf-card-adder {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     overflow: hidden;
 }
 
@@ -10226,7 +10226,7 @@ body.map-view-open .content {
     justify-content: space-between;
     gap: 4px;
     margin-top: auto;
-    padding-top: 8px;
+    padding-top: 6px;
     border-top: 1px solid #F0EBE4;
 }
 
