@@ -5133,23 +5133,37 @@ function sendMessage(text) {
                 const snippet    = isExt
                     ? (r.description || r.relevance_reason || '')
                     : (canSeeNote ? rawNote : (r.relevance_reason || r.description || ''));
-                const snippetIcon = '';
-                const byLine = isExt
-                    ? '<span class="meta-tag meta-added-by extended-circle-badge">🔵 Extended circle</span>'
-                    : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
                 const saveLabel = getCircleSaveCount(r);
+
+                // ── Category chip (same style as Discover card) ──
+                const catLabel = r.category
+                    ? r.category.charAt(0).toUpperCase() + r.category.slice(1)
+                    : (r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : '');
+                const catChip = catLabel ? `<span class="hf-card-cat">${catLabel}</span>` : '';
+                const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
+
+                // ── Adder avatar + name row (same style as Discover card) ──
+                let adderRow = '';
+                if (isExt) {
+                    adderRow = `<div class="cc-adder-row"><span class="cc-adder-name">🔵 Extended circle</span></div>`;
+                } else if (r.added_by_name) {
+                    const initial = r.added_by_name.charAt(0).toUpperCase();
+                    const avatarCol = typeof strColour === 'function' ? strColour(r.added_by_name) : '#7B2D45';
+                    adderRow = `<div class="cc-adder-row">
+                        <div class="cc-adder-avatar" style="background:${avatarCol};">${initial}</div>
+                        <span class="cc-adder-name">Added by ${escapeHtml(r.added_by_name)}</span>
+                    </div>`;
+                }
 
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
-                        <div class="compact-meta">
-                            ${distText ? `<span class="meta-tag meta-distance">${distText}</span>` : ''}
-                            ${byLine}
-                            <span class="meta-tag meta-saves">${saveLabel}</span>
-                        </div>
-                        ${snippet ? `<div class="compact-snippet" data-original="${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
-                        <div class="compact-footer">
+                        ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
+                        <div class="hf-card-chips-row" style="margin:6px 0 4px;">${catChip}${distChip}</div>
+                        ${adderRow}
+                        <div class="cc-saves-row">
+                            <span class="hf-card-save-count">${saveLabel}</span>
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                         </div>
                     </div>

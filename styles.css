@@ -2933,6 +2933,45 @@
             color: #374151;
         }
 
+        /* ── Compact card: Discover-style adder row ── */
+        .cc-adder-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 2px;
+        }
+
+        .cc-adder-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .cc-adder-name {
+            font-size: 11px;
+            font-weight: 600;
+            color: #2A1E14;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cc-saves-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid #F0EBE4;
+            margin-top: 6px;
+            padding-top: 6px;
+        }
+
         /* LEGACY - Keep for backwards compat */
         .result-card {
             background: #ffffff;
