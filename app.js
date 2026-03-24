@@ -5160,7 +5160,7 @@ function sendMessage(text) {
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
-                        <div class="hf-card-chips-row" style="margin:6px 0 4px;">${catChip}${distChip}</div>
+                        <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}</div>
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
