@@ -11,7 +11,7 @@
     --border:         #EAE0D2;   /* Warm border  — dividers, card borders    */
     --text-secondary: #9A8A7A;   /* Alias for --muted — search icons, hints  */
     --border-light:   #EAE0D2;   /* Alias for --border — light dividers      */
-    --nav-height:     60px;      /* Bottom tab bar content height            */
+    --nav-height:     72px;      /* Bottom tab bar content height            */
 }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2811,9 +2811,8 @@
             -ms-overflow-style: none;
             padding-bottom: 8px;
             touch-action: pan-x;
-            margin: 0 -20px;
-            padding-left: 20px;
-            padding-right: 20px;
+            /* No negative margin — aligns left edge with top pick card */
+            padding-right: 8px;
         }
 
         .more-options-scroll::-webkit-scrollbar { display: none; }
@@ -2846,10 +2845,10 @@
             transform: scale(1.08);
         }
         .scroll-arrow-left {
-            left: -4px;
+            left: -16px;
         }
         .scroll-arrow-right {
-            right: -4px;
+            right: -16px;
         }
 
         /* Hide scroll arrows on mobile — swipe is natural */
