@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Odin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --stone: #F5F0E8;
+      --stone-dark: #E8E0D0;
+      --winterberry: #7B2D45;
+      --ink: #1A1410;
+      --muted: #6B6358;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--stone);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    header {
+      background: var(--winterberry);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    header a:hover { color: #fff; }
+    header .logo {
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      color: #fff;
+      font-weight: 600;
+      margin-right: auto;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--winterberry);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 36px;
+      font-weight: 600;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .updated {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--winterberry);
+      margin: 40px 0 12px;
+    }
+    p { margin-bottom: 14px; color: var(--ink); }
+    ul {
+      padding-left: 20px;
+      margin-bottom: 14px;
+    }
+    ul li { margin-bottom: 6px; }
+    .highlight-box {
+      background: #fff;
+      border-left: 3px solid var(--winterberry);
+      padding: 16px 20px;
+      margin: 24px 0;
+      border-radius: 0 6px 6px 0;
+    }
+    .highlight-box p { margin-bottom: 8px; }
+    .highlight-box p:last-child { margin-bottom: 0; }
+    .divider {
+      border: none;
+      border-top: 1px solid var(--stone-dark);
+      margin: 40px 0;
+    }
+    a { color: var(--winterberry); }
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--stone-dark);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    footer a { color: var(--winterberry); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Odin</span>
+  <a href="index.html">← Back to app</a>
+</header>
+
+<div class="container">
+
+  <p class="eyebrow">Legal</p>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: March 2026</p>
+
+  <h2>What Odin is</h2>
+  <p>Odin is a private, invite-only discovery network. You save and search recommendations from people you actually know. We do not show you content from strangers or algorithms.</p>
+
+  <h2>What we collect</h2>
+  <ul>
+    <li><strong>Account information</strong> — your name and email address, via Google Sign-In. We use Google OAuth and do not store your password.</li>
+    <li><strong>Content you add</strong> — titles, descriptions, URLs, addresses, photos, and personal notes ("The Word") that you choose to write.</li>
+    <li><strong>Location</strong> — only when you use distance-based features. We do not store your location permanently; it is used only to calculate distances in-session.</li>
+    <li><strong>Usage data</strong> — which items you save, search queries you run, and when you were last active.</li>
+    <li><strong>Device/session data</strong> — standard technical logs (browser type, session tokens) managed by Supabase and Google.</li>
+  </ul>
+
+  <h2>How your content travels — Save Inheritance</h2>
+  <p>This is Odin's core privacy mechanic. You should understand it before adding anything.</p>
+
+  <div class="highlight-box">
+    <p><strong>When you add an item:</strong> your name and personal note are visible to your direct connections only.</p>
+    <p><strong>If a connection saves your item:</strong> their wider circle sees that the item was saved — but not by whom, and not your personal note.</p>
+    <p><strong>In plain terms:</strong> your identity and story travel one hop. Beyond that, only an anonymous signal travels. Your name never appears to people you haven't connected with.</p>
+  </div>
+
+  <p>You can set any item to <strong>"Only me"</strong> to keep it entirely private.</p>
+
+  <h2>AI processing</h2>
+  <p>Odin uses AI to make search work well. Here is what happens to your content:</p>
+  <ul>
+    <li>Your title, description, and personal note are converted into a numerical "embedding" using OpenAI's API. This is stored in our database and used only for search.</li>
+    <li>When you search, your query is sent to OpenAI to understand intent and language — it is not stored by us beyond the session.</li>
+    <li>Your personal notes may be processed by OpenAI's API as part of embedding generation. As of 2025, OpenAI does not use API-submitted data to train models.</li>
+  </ul>
+
+  <h2>What we do not do</h2>
+  <ul>
+    <li>We do not sell your data.</li>
+    <li>We do not show advertising.</li>
+    <li>We do not share your data with third parties except Supabase (storage), OpenAI (AI processing), and Google (authentication).</li>
+    <li>We do not build advertising profiles.</li>
+  </ul>
+
+  <h2>Your rights (NZ Privacy Act 2020)</h2>
+  <p>You have the right to access, correct, or delete the personal information we hold about you. To exercise any of these rights, contact us at <a href="mailto:odin.privacy@gmail.com">odin.privacy@gmail.com</a>. We will respond within 30 days.</p>
+
+  <h2>Data storage</h2>
+  <p>Your data is stored on Supabase, hosted on AWS infrastructure. By using Odin, you consent to this cross-border transfer. Supabase is SOC 2 compliant.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>We will notify you of material changes via the app before they take effect.</p>
+
+  <h2>Contact</h2>
+  <p><a href="mailto:odin.privacy@gmail.com">odin.privacy@gmail.com</a></p>
+
+</div>
+
+<footer>
+  <p>Odin — operated by its founder &nbsp;·&nbsp; <a href="privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="terms.html">Terms of Service</a></p>
+</footer>
+
+</body>
+</html>
