@@ -1050,6 +1050,18 @@
             flex-shrink: 0;
         }
 
+        .hf-card-private {
+            display: inline-flex;
+            align-items: center;
+            font-size: 10px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: 50px;
+            background: #F0F0F0;
+            color: #888;
+            white-space: nowrap;
+        }
+
         /* Saved-by row */
         .hf-card-by {
             display: flex;

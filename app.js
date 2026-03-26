@@ -3780,6 +3780,10 @@ function createCard(item, index) {
         : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
     const catChip = catLabel ? `<span class="hf-card-cat">${escapeHtml(catLabel)}</span>` : '';
 
+    // ── Private chip — only shown to the owner for their own private items ──
+    const privateChip = (item.visibility === 'private' && isOwner)
+        ? `<span class="hf-card-private">Private</span>` : '';
+
     // ── Resolve personal note ──
     let note = null;
     if (item.PersonalNote) note = item.PersonalNote;
@@ -3865,7 +3869,7 @@ function createCard(item, index) {
         <div class="hf-card-body">
             <div class="hf-card-title">${escapeHtml(item.title)}</div>
             ${wordHtml}
-            <div class="hf-card-chips-row">${catChip}${distChip}</div>
+            <div class="hf-card-chips-row">${catChip}${distChip}${privateChip}</div>
             <div class="hf-card-adder">
                 ${adderAvatarHtml}
                 <span class="hf-card-person-name">${adderLabel}</span>
@@ -5135,6 +5139,8 @@ function sendMessage(text) {
                     : (r.type ? r.type.charAt(0).toUpperCase() + r.type.slice(1) : '');
                 const catChip = catLabel ? `<span class="hf-card-cat">${catLabel}</span>` : '';
                 const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
+                const privateChip = (r.visibility === 'private' && currentUser && r.added_by === currentUser.id)
+                    ? `<span class="hf-card-private">Private</span>` : '';
 
                 // ── Adder avatar + name row (same style as Discover card) ──
                 let adderRow = '';
@@ -5154,7 +5160,7 @@ function sendMessage(text) {
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
-                        <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}</div>
+                        <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>

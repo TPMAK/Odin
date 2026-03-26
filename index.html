@@ -3803,6 +3803,8 @@
 
         var categoryLabel = escapeHtml((item.type||'Place').charAt(0).toUpperCase()+(item.type||'Place').slice(1));
         var catChip = '<span class="hf-card-cat">' + SVG_TAG + categoryLabel + '</span>';
+        var privateChip = (item.visibility === 'private' && typeof currentUser !== 'undefined' && currentUser && item.added_by === currentUser.id)
+            ? '<span class="hf-card-private">Private</span>' : '';
 
         // ── 1. The Word — resolve personal note (check all three locations) ──
         var rawNote = item.personal_note || item.PersonalNote || null;
@@ -3859,7 +3861,7 @@
             + '<div class="hf-card-body">'
             + '<div class="hf-card-title">' + escapeHtml(item.title) + '</div>'
             + wordHtml
-            + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + '</div>'
+            + '<div class="hf-card-chips-row">' + catChip + (distChip||'') + privateChip + '</div>'
             + '<div class="hf-card-by"><div class="hf-card-avatars">'+avatarsHtml+'</div>'
             + '<span class="hf-card-name">'+savedLabel+'</span>'
             + '<button class="feed-card-translate-btn" data-item-id="' + escapeHtml(item.id||'') + '" data-state="original" onclick="event.stopPropagation(); toggleFeedCardTranslate(this)">' + _homeTranslateLabel + '</button>'
