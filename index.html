@@ -1485,7 +1485,7 @@
                             <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
                             <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
                         </div>
-                        <button class="dc-see-all-btn" onclick="if(allDiscoveries && allDiscoveries.length > 0){ openCollection('All saves', allDiscoveries); } else { loadDiscoveries().then(function(){ openCollection('All saves', allDiscoveries || []); }); }">See all</button>
+                        <button class="dc-see-all-btn" onclick="openCollection('All saves', allDiscoveries || [])">See all</button>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
