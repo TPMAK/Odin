@@ -151,10 +151,64 @@ async function showMainApp() {
 
     // Navigate to home so header and layout match the Home tab state
     showHome();
+
+    // ── Realtime: live-sync visibility changes from friends ──
+    // When any friend updates an item's visibility (e.g. private→friends or
+    // friends→private), reload discoveries so this session reflects it instantly.
+    startRealtimeSync();
+}
+
+let _realtimeChannel = null;
+
+function startRealtimeSync() {
+    // Clean up any previous channel (e.g. from a prior login in the same tab)
+    if (_realtimeChannel) {
+        supabaseClient.removeChannel(_realtimeChannel);
+        _realtimeChannel = null;
+    }
+
+    _realtimeChannel = supabaseClient
+        .channel('odin-knowledge-items-sync')
+        .on(
+            'postgres_changes',
+            {
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'knowledge_items'
+            },
+            (payload) => {
+                const updated = payload.new;
+                const old     = payload.old;
+                if (!updated || !updated.id) return;
+
+                // Only act if visibility changed
+                if (updated.visibility === old.visibility) return;
+
+                const isOwner = currentUser && updated.added_by === currentUser.id;
+
+                if (isOwner) {
+                    // Update our own item in the local cache immediately
+                    const idx = allDiscoveries.findIndex(d => d.id === updated.id);
+                    if (idx >= 0) {
+                        allDiscoveries[idx].visibility = updated.visibility;
+                        filterAndRender();
+                    }
+                } else {
+                    // A friend changed an item's visibility — reload to get (or lose) it
+                    loadDiscoveries();
+                }
+            }
+        )
+        .subscribe();
 }
 
 async function handleLogout() {
     stopNotifPolling();
+    // Tear down Realtime channel so it doesn't fire after logout
+    if (_realtimeChannel) {
+        supabaseClient.removeChannel(_realtimeChannel);
+        _realtimeChannel = null;
+    }
     const { error } = await supabaseClient.auth.signOut();
     if (!error) {
         currentUser = null;
