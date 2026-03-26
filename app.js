@@ -2874,15 +2874,6 @@ function strColour(str) {
 var CATEGORY_EMOJI = { place:'🍽️', product:'📦', service:'🔧', advice:'💡', book:'📚', experience:'✨' };
 
 function buildCollectionCards() {
-    // If the new section tabs are present, delegate to the active section instead
-    var activeTab = document.querySelector('.dc-stab.active');
-    if (activeTab) {
-        if (typeof setDiscoverSection === 'function') {
-            setDiscoverSection(activeTab, activeTab.dataset.section || 'trending');
-        }
-        return;
-    }
-
     var grid = document.getElementById('dcCollectionsGrid');
     if (!grid) return;
     grid.innerHTML = '';
@@ -3552,7 +3543,7 @@ function removeActiveFilter(type, value) {
 
 // ── Odin Trust Layers ────────────────────────────────────────
 // Trust level constants used throughout the app
-const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
+const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle', OWN: 'own' };
 
 // Anonymise an extended-circle item so identity never travels more than one hop.
 // Keeps: title, photo_url, address, latitude, longitude, description,
@@ -3609,7 +3600,7 @@ async function loadDiscoveries() {
         data = data.map(item => {
             if (!item._trust_level) {
                 item._trust_level = (item.added_by === currentUser?.id)
-                    ? TRUST.PRIVATE  // own items (private or friends)
+                    ? TRUST.OWN      // own items (any visibility — private or friends)
                     : TRUST.FRIENDS;
             }
             return item;
@@ -4346,6 +4337,11 @@ function openItemDrawer(item) {
         html += `<button class="drawer-edit-btn" onclick="enterEditMode()" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
     }
     html += `</div>`;
+
+    // Private chip — only for owner's own private items
+    if (isOwner && item.visibility === 'private') {
+        html += `<div class="drawer-private-chip-row"><span class="hf-card-private">Private</span></div>`;
+    }
 
     // Sub-line: address · distance
     let subParts = [];

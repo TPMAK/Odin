@@ -1478,17 +1478,7 @@
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
                     </div>
 
-                    <!-- Smart section tabs -->
-                    <div class="dc-section-tabs-row">
-                        <div class="dc-section-tabs" id="dcSectionTabs">
-                            <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
-                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
-                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
-                        </div>
-                        <button class="dc-see-all-btn" onclick="if(allDiscoveries && allDiscoveries.length > 0){ openCollection('All saves', allDiscoveries); } else { loadDiscoveries().then(function(){ openCollection('All saves', allDiscoveries || []); }); }">See all</button>
-                    </div>
-
-                    <!-- Distance quick pills (shown when location is available, for nearby section) -->
+                    <!-- Distance quick pills (shown when location is available) -->
                     <div class="dc-distance-row" id="dcDistanceRow" style="display:none;">
                         <span class="dc-dist-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1500,7 +1490,7 @@
 
                     <!-- Collection cards -->
                     <div class="dc-section-header" id="dcCircleHeader" style="display:none;">
-                        <h2 class="dc-section-title" id="dcCircleTitle">Trending this week</h2>
+                        <h2 class="dc-section-title" id="dcCircleTitle">Your circle</h2>
                     </div>
                     <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
 
@@ -1533,7 +1523,7 @@
                             </div>
                         </div>
                         <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
+                            <button class="dc-back-btn" onclick="showAllCollections();">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -3551,16 +3541,13 @@
 
         // Show empty state if no data at all, otherwise proceed
         var emptyEl = document.getElementById('dcEmptyState');
-        var tabsEl  = document.getElementById('dcSectionTabs');
         if (allD.length === 0) {
             if (emptyEl) emptyEl.style.display = '';
-            if (tabsEl)  tabsEl.style.display  = 'none';
             var circleHeader = document.getElementById('dcCircleHeader');
             if (circleHeader) circleHeader.style.display = 'none';
             return;
         } else {
             if (emptyEl) emptyEl.style.display = 'none';
-            if (tabsEl)  tabsEl.style.display  = '';
         }
 
         // Set default sort per section

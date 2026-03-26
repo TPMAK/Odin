@@ -5980,6 +5980,10 @@
     margin: 0;
 }
 
+.drawer-private-chip-row {
+    margin: 4px 0 6px;
+}
+
 .drawer-edit-btn {
     flex-shrink: 0;
     background: none;
