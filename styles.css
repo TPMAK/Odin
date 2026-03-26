@@ -8682,14 +8682,6 @@
 }
 
 /* Sort control */
-.dc-sort-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    min-height: 32px;
-}
-
 .dc-sort-wrap {
     flex-shrink: 0;
 }
