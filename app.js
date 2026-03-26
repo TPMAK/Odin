@@ -4354,9 +4354,8 @@ function openItemDrawer(item) {
         html += `<div class="drawer-circle-signal"><span class="rc-via-dot">&#9679;</span> Via ${escapeHtml(item._via_friend_name)}</div>`;
     } else if (isExtendedCircle) {
         html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Someone in your circle</div>`;
-    } else if (isDirectFriend) {
-        html += `<div class="drawer-circle-signal"><span class="rc-circle-dot">&#9679;</span> Added by ${escapeHtml(item.added_by_name || 'a friend')}</div>`;
     }
+    // isDirectFriend: attribution shown in footer — removed duplicate here
 
     // === Extract personal note ===
     let note = null;
@@ -4587,22 +4586,17 @@ function enterEditMode() {
         <label class="edit-label">URL</label>
         <input class="edit-input" id="editUrl" value="${escapeHtml(url)}">
 
-        <div class="visibility-group" style="margin-top: 8px;">
-            <div class="visibility-label-row">
-                <span class="visibility-section-label">VISIBILITY</span>
+        <div class="form-group visibility-group" style="margin-top: 8px;">
+            <label class="field-label-inline">Who can see this</label>
+            <div class="vis-selector" id="editVisSelector">
+                <button type="button" class="vis-option${item.visibility === 'private' ? ' active' : ''}" data-value="private" onclick="selectEditVisibility(this)">
+                    <span class="vis-label">Only me</span>
+                </button>
+                <button type="button" class="vis-option${item.visibility !== 'private' ? ' active' : ''}" data-value="friends" onclick="selectEditVisibility(this)">
+                    <span class="vis-label">Friends</span>
+                </button>
             </div>
-            <div class="privacy-toggle-row" onclick="togglePrivacy('editPrivateToggle')">
-                <div class="visibility-status">
-                    <span class="visibility-icon" id="editPrivateToggleIcon">${item.visibility === 'private' ? '🔒' : '👥'}</span>
-                    <div class="visibility-info">
-                        <span class="visibility-title" id="editPrivateToggleTitle">${item.visibility === 'private' ? 'Only you' : 'Friends'}</span>
-                        <span class="visibility-desc" id="editPrivateToggleDesc">${item.visibility === 'private' ? 'Hidden from everyone else' : 'Your connections can see this'}</span>
-                    </div>
-                </div>
-                <div class="privacy-toggle-track ${item.visibility === 'private' ? 'active' : ''}" id="editPrivateToggleTrack">
-                    <div class="privacy-toggle-knob"></div>
-                </div>
-            </div>
+            <p class="vis-hint" id="editVisHint">${item.visibility === 'private' ? 'Saved privately — only you can see this.' : 'Your connections can see this.'}</p>
         </div>
         <input type="hidden" id="editPrivateToggle" value="${item.visibility === 'private' ? 'true' : 'false'}">
 
@@ -5497,6 +5491,19 @@ function togglePrivacy(inputId) {
     if (icon)  icon.textContent  = goPrivate ? '🔒' : '👥';
     if (title) title.textContent = goPrivate ? 'Only you' : 'Friends';
     if (desc)  desc.textContent  = goPrivate ? 'Hidden from everyone else' : 'Your connections can see this';
+}
+
+// ===== EDIT: VISIBILITY SELECTOR (two-button, mirrors Add page) =====
+function selectEditVisibility(el) {
+    document.querySelectorAll('#editVisSelector .vis-option').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    const val = el.dataset.value; // 'private' | 'friends'
+    const input = document.getElementById('editPrivateToggle');
+    const hint  = document.getElementById('editVisHint');
+    if (input) input.value = val === 'private' ? 'true' : 'false';
+    if (hint)  hint.textContent = val === 'private'
+        ? 'Saved privately — only you can see this.'
+        : 'Your connections can see this.';
 }
 
 // ===== CAPTURE: VISIBILITY SELECTOR =====
