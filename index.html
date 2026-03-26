@@ -1478,53 +1478,33 @@
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
                     </div>
 
-                    <!-- Distance quick pills (shown when location is available) -->
-                    <div class="dc-distance-row" id="dcDistanceRow" style="display:none;">
-                        <span class="dc-dist-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        </span>
-                        <button class="dc-dist-pill" data-dist="1" onclick="toggleDistancePill(this,1)">< 1 km</button>
-                        <button class="dc-dist-pill" data-dist="5" onclick="toggleDistancePill(this,5)">< 5 km</button>
-                        <button class="dc-dist-pill" data-dist="10" onclick="toggleDistancePill(this,10)">< 10 km</button>
-                    </div>
+                    <!-- Flat sorted grid — always visible -->
+                    <div id="dcAllItemsSection">
+                        <div class="dc-sort-bar">
+                            <span class="dc-results-count" id="dcResultsCount"></span>
+                            <select class="dc-sort-select" id="dcSortSelect" onchange="applyDiscoverSort(this.value)">
+                                <option value="recent">Most recent</option>
+                                <option value="saves">Most saved</option>
+                                <option value="nearest">Nearest first</option>
+                                <option value="az">A – Z</option>
+                            </select>
+                        </div>
 
-                    <!-- Collection cards -->
-                    <div class="dc-section-header" id="dcCircleHeader" style="display:none;">
-                        <h2 class="dc-section-title" id="dcCircleTitle">Your circle</h2>
-                    </div>
-                    <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
-
-                    <!-- Empty state — shown when user has no circle data yet -->
-                    <div id="dcEmptyState" style="display:none;">
-                        <div class="dc-empty-wrap">
-                            <div class="dc-empty-icon">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C4A882" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                            </div>
-                            <h3 class="dc-empty-title">Nothing here yet</h3>
-                            <p class="dc-empty-body">Be the first in your circle to save something — or invite a friend so their saves show up here.</p>
-                            <div class="dc-empty-actions">
-                                <button class="dc-empty-btn dc-empty-btn-primary" onclick="setMode('input')">Add your first save</button>
-                                <button class="dc-empty-btn dc-empty-btn-secondary" onclick="setMode('profile')">Invite friends</button>
+                        <!-- Empty state -->
+                        <div id="dcEmptyState" style="display:none;">
+                            <div class="dc-empty-wrap">
+                                <div class="dc-empty-icon">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C4A882" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                                </div>
+                                <h3 class="dc-empty-title">Nothing here yet</h3>
+                                <p class="dc-empty-body">Be the first in your circle to save something — or invite a friend so their saves show up here.</p>
+                                <div class="dc-empty-actions">
+                                    <button class="dc-empty-btn dc-empty-btn-primary" onclick="setMode('input')">Add your first save</button>
+                                    <button class="dc-empty-btn dc-empty-btn-secondary" onclick="setMode('profile')">Invite friends</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- All items flat grid (shown when a collection is selected) -->
-                    <div id="dcAllItemsSection" style="display:none;">
-                        <div class="dc-section-header" style="margin-top:20px;">
-                            <h2 class="dc-section-title" id="dcAllItemsTitle">All items</h2>
-                            <div class="dc-sort-wrap">
-                                <select class="dc-sort-select" id="dcSortSelect" onchange="applyDiscoverSort(this.value)">
-                                    <option value="saves">Most saved</option>
-                                    <option value="recent">Most recent</option>
-                                    <option value="nearest">Nearest first</option>
-                                    <option value="az">A – Z</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections();">← Back</button>
-                        </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
                             <button class="load-more-btn" onclick="loadMore()">Load More</button>

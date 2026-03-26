@@ -2853,15 +2853,8 @@ if (window.visualViewport) {
 function zoomMapIn()  { if (discoverMap) discoverMap.zoomIn(); }
 function zoomMapOut() { if (discoverMap) discoverMap.zoomOut(); }
 
-// ── Collection grouping ──
-var collectionGrouping = 'friend'; // 'friend' | 'category'
-
-function setCollectionGrouping(type) {
-    collectionGrouping = type;
-    document.getElementById('dcGroupFriend').classList.toggle('active', type === 'friend');
-    document.getElementById('dcGroupCat').classList.toggle('active', type === 'category');
-    buildCollectionCards();
-}
+// ── Collection grouping (kept for compatibility) ──
+var collectionGrouping = 'friend';
 
 // Colour palette for avatars / category dots
 var COLL_COLOURS = ['#7B2D45','#3D6B8C','#4A7A5C','#A0682A','#8B5E72','#5A6BAD','#6BAD5A'];
@@ -2873,123 +2866,28 @@ function strColour(str) {
 
 var CATEGORY_EMOJI = { place:'🍽️', product:'📦', service:'🔧', advice:'💡', book:'📚', experience:'✨' };
 
+// buildCollectionCards — now just triggers a flat render (no collection grouping UI)
 function buildCollectionCards() {
-    var grid = document.getElementById('dcCollectionsGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    if (!allDiscoveries || allDiscoveries.length === 0) {
-        grid.innerHTML = '<div style="color:var(--text-secondary);font-size:14px;padding:20px 0;">No discoveries yet. Add some!</div>';
-        return;
-    }
-
-    // Group — normalise category keys to avoid "service" vs "Service" duplicates
-    function normaliseKey(raw) {
-        if (!raw) return 'Other';
-        var s = raw.trim().toLowerCase();
-        return s.charAt(0).toUpperCase() + s.slice(1);
-    }
-    var groups = {};
-    allDiscoveries.forEach(function(item) {
-        var key;
-        if (item._trust_level === TRUST.EXTENDED) {
-            // Extended circle items always go into their own group regardless of grouping mode
-            key = 'Extended Circle';
-        } else if (collectionGrouping === 'friend') {
-            key = item.added_by_name || 'Unknown';
-        } else {
-            key = normaliseKey(item.category || item.type || 'Other');
-        }
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(item);
-    });
-
-    var entries = Object.entries(groups).sort(function(a,b){ return b[1].length - a[1].length; });
-
-    entries.forEach(function(entry, i) {
-        var groupName = entry[0];
-        var items     = entry[1];
-        var featured  = (i === 0);
-
-        // Pick cover image from first item with a photo
-        var coverItem = items.find(function(it){ return it.photo_url; });
-        var coverHtml = coverItem
-            ? '<img class="dc-coll-img" src="' + escapeHtml(coverItem.photo_url) + '" alt="' + escapeHtml(groupName) + '" loading="lazy">'
-            : '<div class="dc-coll-placeholder">' + (CATEGORY_EMOJI[groupName.toLowerCase()] || '📍') + '</div>';
-
-        // Avatars — extended circle group gets a fixed blue anonymous avatar
-        var avHtml;
-        if (groupName === 'Extended Circle') {
-            avHtml = '<div class="dc-coll-av dc-coll-av--extended">🔵</div>';
-        } else {
-            var avatarSet = {};
-            items.forEach(function(it) {
-                var avKey = collectionGrouping === 'friend'
-                    ? (it.category || it.type || 'other')
-                    : (it.added_by_name || '?');
-                avatarSet[avKey] = true;
-            });
-            avHtml = Object.keys(avatarSet).slice(0, 3).map(function(k) {
-                var init = k.charAt(0).toUpperCase();
-                var col  = strColour(k);
-                return '<div class="dc-coll-av" style="background:' + col + ';">' + init + '</div>';
-            }).join('');
-        }
-
-        var label = items.length + ' ' + (items.length === 1 ? 'item' : 'items');
-
-        var card = document.createElement('div');
-        card.className = 'dc-coll-card' + (featured ? ' featured' : '');
-        card.style.animationDelay = (i * 55) + 'ms';
-        card.innerHTML =
-            coverHtml +
-            '<div class="dc-coll-overlay">' +
-                '<div class="dc-coll-title">' + escapeHtml(groupName) + '</div>' +
-                '<div class="dc-coll-meta">' +
-                    '<div class="dc-coll-avatars">' + avHtml + '</div>' +
-                    '<div class="dc-coll-count">' + label + '</div>' +
-                '</div>' +
-            '</div>';
-
-        card.onclick = function() { openCollection(groupName, items); };
-        grid.appendChild(card);
-    });
+    filterAndRender();
 }
 
-// When a collection card is tapped, show filtered grid
+// openCollection — kept for compatibility; sets filtered items and re-renders
 function openCollection(groupName, items) {
     filteredDiscoveries = items;
     displayedCount = 0;
-
-    // Hide the circle section header and collection grid
-    var circleHeader = document.getElementById('dcCircleHeader');
-    var collGrid     = document.getElementById('dcCollectionsGrid');
-    if (circleHeader) circleHeader.style.display = 'none';
-    if (collGrid)     collGrid.style.display     = 'none';
-
-    document.getElementById('dcAllItemsSection').style.display = '';
-    document.getElementById('dcAllItemsTitle').textContent = groupName;
     renderGrid();
 }
 
+// showAllCollections — reset to full list
 function showAllCollections() {
-    // Restore the circle section header and collection grid
-    var circleHeader = document.getElementById('dcCircleHeader');
-    var collGrid     = document.getElementById('dcCollectionsGrid');
-    if (circleHeader) circleHeader.style.display = '';
-    if (collGrid)     collGrid.style.display     = '';
-
-    document.getElementById('dcAllItemsSection').style.display = 'none';
     filteredDiscoveries = allDiscoveries ? allDiscoveries.slice() : [];
-
-    // Clear inline search/filter state when returning to collections
     var searchInput = document.getElementById('discoverSearch');
     if (searchInput && searchInput.value) searchInput.value = '';
     filters.searchText = '';
     filters.users = [];
     filters.distances = [];
-    document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
     if (typeof buildFriendsRow === 'function') buildFriendsRow();
+    filterAndRender();
 }
 
 // ── Locate me button ──
@@ -3230,16 +3128,7 @@ function clearFilters() {
     var dsEl = document.getElementById('discoverSearch');
     if (dsEl) dsEl.value = '';
     updateFilterState();
-    // Reset inline UI
-    document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
     buildFriendsRow();
-    // Restore collections view
-    var ch  = document.getElementById('dcCircleHeader');
-    var cg  = document.getElementById('dcCollectionsGrid');
-    var ais = document.getElementById('dcAllItemsSection');
-    if (ch)  ch.style.display  = '';
-    if (cg)  cg.style.display  = '';
-    if (ais) ais.style.display = 'none';
     // If in map view, re-render map with all data
     if (discoverViewMode === 'map') {
         closeFilterModal();
@@ -3272,33 +3161,7 @@ function applyFilters() {
 function handleSearchInput() {
     var text = document.getElementById('discoverSearch').value.trim();
     filters.searchText = text.toLowerCase();
-
-    var ch  = document.getElementById('dcCircleHeader');
-    var cg  = document.getElementById('dcCollectionsGrid');
-    var ais = document.getElementById('dcAllItemsSection');
-    var ait = document.getElementById('dcAllItemsTitle');
-    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
-
-    if (text) {
-        // Show flat results grid, hide collections
-        if (ch)  ch.style.display  = 'none';
-        if (cg)  cg.style.display  = 'none';
-        if (ais) ais.style.display = '';
-        if (bb)  bb.style.display  = 'none';
-    } else if (filters.users.length === 0 && filters.distances.length === 0) {
-        // No inline filters — restore collections
-        if (ch)  ch.style.display  = '';
-        if (cg)  cg.style.display  = '';
-        if (ais) ais.style.display = 'none';
-        if (bb)  bb.style.display  = '';
-    }
-
     filterAndRender();
-
-    // Update results count in title
-    if (text && ait) {
-        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
-    }
 }
 
 function searchFromDiscover() {
@@ -3359,80 +3222,13 @@ function toggleFriendFilter(name) {
         filters.users.push(name);
     }
     buildFriendsRow();
-
-    // Toggle between flat grid and collections based on active inline filters
-    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
-    var ch  = document.getElementById('dcCircleHeader');
-    var cg  = document.getElementById('dcCollectionsGrid');
-    var ais = document.getElementById('dcAllItemsSection');
-    var ait = document.getElementById('dcAllItemsTitle');
-    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
-
-    if (hasInline) {
-        if (ch)  ch.style.display  = 'none';
-        if (cg)  cg.style.display  = 'none';
-        if (ais) ais.style.display = '';
-        if (bb)  bb.style.display  = 'none';
-    } else {
-        if (ch)  ch.style.display  = '';
-        if (cg)  cg.style.display  = '';
-        if (ais) ais.style.display = 'none';
-        if (bb)  bb.style.display  = '';
-    }
-
     filterAndRender();
-    if (hasInline && ait) {
-        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
-    }
     updateFilterState();
 }
 
-// ── Discover page: distance quick pills ──
-
-function toggleDistancePill(el, dist) {
-    var idx = filters.distances.indexOf(dist);
-    if (idx >= 0) {
-        filters.distances = [];
-        el.classList.remove('active');
-    } else {
-        filters.distances = [dist];
-        document.querySelectorAll('.dc-dist-pill').forEach(function(p) { p.classList.remove('active'); });
-        el.classList.add('active');
-    }
-
-    // Toggle flat grid vs collections
-    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
-    var ch  = document.getElementById('dcCircleHeader');
-    var cg  = document.getElementById('dcCollectionsGrid');
-    var ais = document.getElementById('dcAllItemsSection');
-    var ait = document.getElementById('dcAllItemsTitle');
-    var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
-
-    if (hasInline) {
-        if (ch)  ch.style.display  = 'none';
-        if (cg)  cg.style.display  = 'none';
-        if (ais) ais.style.display = '';
-        if (bb)  bb.style.display  = 'none';
-    } else {
-        if (ch)  ch.style.display  = '';
-        if (cg)  cg.style.display  = '';
-        if (ais) ais.style.display = 'none';
-        if (bb)  bb.style.display  = '';
-    }
-
-    filterAndRender();
-    if (hasInline && ait) {
-        ait.textContent = filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '');
-    }
-    updateFilterState();
-}
-
-function showDistanceRow() {
-    var row = document.getElementById('dcDistanceRow');
-    if (row && userLocation && userLocation.available) {
-        row.style.display = '';
-    }
-}
+// toggleDistancePill / showDistanceRow kept as stubs for any lingering references
+function toggleDistancePill() {}
+function showDistanceRow() {}
 
 // ── Discover page: count badges on category chips ──
 
@@ -3485,6 +3281,20 @@ function filterAndRender() {
 
     updateActiveFiltersBar();
     displayedCount = 0;
+
+    // Update results count in sort bar
+    var countEl = document.getElementById('dcResultsCount');
+    if (countEl) {
+        var hasFilter = filters.searchText || filters.categories.length > 0 || filters.users.length > 0 || filters.distances.length > 0 || filters.endorsed;
+        countEl.textContent = hasFilter
+            ? filteredDiscoveries.length + ' result' + (filteredDiscoveries.length !== 1 ? 's' : '')
+            : '';
+    }
+
+    // Show/hide empty state
+    var emptyEl = document.getElementById('dcEmptyState');
+    if (emptyEl) emptyEl.style.display = (allDiscoveries && allDiscoveries.length === 0) ? '' : 'none';
+
     renderGrid();
 }
 
@@ -3519,26 +3329,9 @@ function removeActiveFilter(type, value) {
         filters.distances = filters.distances.filter(d => d != value);
         var distEl = document.getElementById('dist-' + value);
         if (distEl) distEl.checked = false;
-        // Reset distance pills UI
-        document.querySelectorAll('.dc-dist-pill').forEach(function(p) {
-            p.classList.toggle('active', filters.distances.includes(Number(p.dataset.dist)));
-        });
     }
     updateFilterState();
     filterAndRender();
-
-    // If no inline filters remain, restore collections
-    var hasInline = !!(filters.searchText || filters.users.length > 0 || filters.distances.length > 0);
-    if (!hasInline) {
-        var ch  = document.getElementById('dcCircleHeader');
-        var cg  = document.getElementById('dcCollectionsGrid');
-        var ais = document.getElementById('dcAllItemsSection');
-        var bb  = ais ? ais.querySelector('.dc-back-btn') : null;
-        if (ch)  ch.style.display  = '';
-        if (cg)  cg.style.display  = '';
-        if (ais) ais.style.display = 'none';
-        if (bb)  bb.style.display  = '';
-    }
 }
 
 // ── Odin Trust Layers ────────────────────────────────────────
@@ -3719,10 +3512,7 @@ async function loadDiscoveries() {
         populateFilters();
         filterAndRender();
         renderRecentlyViewed();
-        buildCollectionCards();
         buildFriendsRow();
-        updateDiscoverCounts();
-        showDistanceRow();
         // Refresh map panel list if map is already open
         if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
