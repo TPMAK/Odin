@@ -3557,11 +3557,6 @@ function createCard(item, index) {
         : '';
     const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
 
-    // ── Odin Trust Layer ──
-    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
-    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
-    const isOwner           = currentUser && item.added_by === currentUser.id;
-
     // ── Category chip ──
     const catLabel = item.category
         ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
@@ -3582,6 +3577,11 @@ function createCard(item, index) {
             note = meta.personal_note;
         } catch (e) {}
     }
+
+    // ── Odin Trust Layer ──
+    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
+    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
+    const isOwner           = currentUser && item.added_by === currentUser.id;
 
     // ── DISCOVER CARD LAYOUT ──
     // 1. Lead with person — avatar + "Added by [Name]" (prominent first line)
@@ -4480,15 +4480,6 @@ async function saveItemEdit(itemId) {
 
         const idx = allDiscoveries.findIndex(d => d.id === itemId);
         if (idx >= 0) Object.assign(allDiscoveries[idx], updateData);
-
-        // If visibility changed to private, remove the item from other users' in-memory feed.
-        // (They won't see the change until they reload anyway, but this keeps the owner's
-        // own session consistent — and is the right safety-first behaviour.)
-        if (newVisibility === 'private') {
-            // Item stays in allDiscoveries for the owner (added_by === currentUser.id),
-            // but re-run the privacy filter so the grid re-renders correctly.
-            filterAndRender();
-        }
 
         // If title/description changed, trigger re-embedding via capture webhook
         if (needsReEmbed) {
