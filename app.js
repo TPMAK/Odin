@@ -3077,7 +3077,9 @@ function setMode(mode) {
         document.getElementById('inputArea').classList.add('hidden');
         // Always start on Collections sub-view when entering Discover
         switchDiscoverView('collections');
-        loadDiscoveries();
+        // Only reload if not already loaded — avoids wiping allDiscoveries
+        // before friendsCache is ready when user navigates quickly
+        if (!allDiscoveries || allDiscoveries.length === 0) loadDiscoveries();
         if (typeof initDiscoverGreeting === 'function') initDiscoverGreeting();
     } else if (mode === 'saved') {
         if (savedEl) savedEl.classList.remove('hidden');
