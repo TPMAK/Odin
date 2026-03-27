@@ -3552,7 +3552,12 @@ function removeActiveFilter(type, value) {
 
 // ── Odin Trust Layers ────────────────────────────────────────
 // Trust level constants used throughout the app
-const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
+const TRUST = {
+    OWN:      'own',             // _trust_level: my own items (any visibility setting)
+    PRIVATE:  'private',         // item.visibility value — "Only me"
+    FRIENDS:  'friends',         // item.visibility value + _trust_level for friend items
+    EXTENDED: 'extended_circle'  // _trust_level for save-inheritance / FOF items
+};
 
 // Anonymise an extended-circle item so identity never travels more than one hop.
 // Keeps: title, photo_url, address, latitude, longitude, description,
@@ -3609,7 +3614,7 @@ async function loadDiscoveries() {
         data = data.map(item => {
             if (!item._trust_level) {
                 item._trust_level = (item.added_by === currentUser?.id)
-                    ? TRUST.PRIVATE  // own items (private or friends)
+                    ? TRUST.OWN    // own items — visibility setting is separate
                     : TRUST.FRIENDS;
             }
             return item;
@@ -3749,7 +3754,13 @@ function renderGrid() {
     }
 
     const toDisplay = filteredDiscoveries.slice(0, displayedCount + LOAD_INCREMENT);
-    toDisplay.forEach((item, i) => grid.appendChild(createCard(item, i)));
+    toDisplay.forEach((item, i) => {
+        try {
+            grid.appendChild(createCard(item, i));
+        } catch (err) {
+            console.warn('Card render error (skipped):', item?.title, err);
+        }
+    });
     displayedCount = toDisplay.length;
 
     document.getElementById('loadMoreContainer').classList.toggle('hidden', displayedCount >= filteredDiscoveries.length);
@@ -3782,8 +3793,13 @@ function createCard(item, index) {
         : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
     const catChip = catLabel ? `<span class="hf-card-cat">${escapeHtml(catLabel)}</span>` : '';
 
+    // ── Odin Trust Layer — declared early so isOwner is available for privateChip ──
+    const isOwner           = currentUser && item.added_by === currentUser.id;
+    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
+    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
+
     // ── Private chip — only shown to the owner for their own private items ──
-    const privateChip = (item.visibility === 'private' && isOwner)
+    const privateChip = (item.visibility === TRUST.PRIVATE && isOwner)
         ? `<span class="hf-card-private">Private</span>` : '';
 
     // ── Resolve personal note ──
@@ -3796,11 +3812,6 @@ function createCard(item, index) {
             note = meta.personal_note;
         } catch (e) {}
     }
-
-    // ── Odin Trust Layer ──
-    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
-    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
-    const isOwner           = currentUser && item.added_by === currentUser.id;
 
     // ── DISCOVER CARD LAYOUT ──
     // 1. Lead with person — avatar + "Added by [Name]" (prominent first line)
@@ -4715,6 +4726,8 @@ async function saveItemEdit(itemId) {
         }
 
         showToast('Discovery updated!');
+        // Refresh the feed so visibility changes (e.g. Friends → Private) apply cleanly
+        await loadDiscoveries();
         // Re-open drawer with updated item
         openItemDrawer(item);
 
