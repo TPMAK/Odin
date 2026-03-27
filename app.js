@@ -3800,7 +3800,7 @@ function createCard(item, index) {
 
     // ── Private chip — only shown to the owner for their own private items ──
     const privateChip = (item.visibility === TRUST.PRIVATE && isOwner)
-        ? `<span class="hf-card-private"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private</span>` : '';
+        ? `<span class="hf-card-private">Private</span>` : '';
 
     // ── Resolve personal note ──
     let note = null;
@@ -4372,8 +4372,8 @@ function openItemDrawer(item) {
         : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
     const drawerCatChip     = drawerCatLabel ? `<span class="hf-card-cat">${drawerCatLabel}</span>` : '';
     const drawerPrivateChip = (item.visibility === TRUST.PRIVATE && isOwner)
-        ? `<span class="hf-card-private"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private</span>` : '';
-    const drawerDistChip    = distText ? `<span class="hf-card-dist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>${distText}</span>` : '';
+        ? `<span class="hf-card-private">Private</span>` : '';
+    const drawerDistChip    = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
     if (drawerCatChip || drawerPrivateChip || drawerDistChip) {
         html += `<div class="hf-card-chips-row" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
     }
@@ -5167,7 +5167,7 @@ function sendMessage(text) {
                 const catChip = catLabel ? `<span class="hf-card-cat">${catLabel}</span>` : '';
                 const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
                 const privateChip = (r.visibility === 'private' && currentUser && r.added_by === currentUser.id)
-                    ? `<span class="hf-card-private"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private</span>` : '';
+                    ? `<span class="hf-card-private">Private</span>` : '';
 
                 // ── Adder avatar + name row (same style as Discover card) ──
                 let adderRow = '';
