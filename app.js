@@ -139,6 +139,10 @@ async function showMainApp() {
     await loadFriends();
     await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
 
+    // Pre-seed endorsements cache with current user's own saves
+    // so the save button shows correctly before RPC fires
+    loadMyOwnSavedIds();
+
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
     loadBlockedUsers();
@@ -958,6 +962,35 @@ async function saveProfile(event) {
 // ===== ENDORSEMENT SYSTEM =====
 let endorsementsCache = {}; // { item_id: { count, names, ids, userEndorsed } }
 
+// Pre-seed the endorsements cache with the current user's own saved item IDs.
+// Called once at login so save buttons show the correct saved state immediately,
+// even before per-page RPC calls have run.
+async function loadMyOwnSavedIds() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('endorsements')
+            .select('item_id')
+            .eq('user_id', currentUser.id);
+        if (error) { console.error('loadMyOwnSavedIds error:', error); return; }
+        (data || []).forEach(row => {
+            if (!endorsementsCache[row.item_id]) {
+                endorsementsCache[row.item_id] = { count: 1, names: [], ids: [currentUser.id], userEndorsed: true };
+            } else {
+                // Only patch userEndorsed — don't overwrite richer data already there
+                endorsementsCache[row.item_id].userEndorsed = true;
+                if (!endorsementsCache[row.item_id].ids.includes(currentUser.id)) {
+                    endorsementsCache[row.item_id].ids.push(currentUser.id);
+                    endorsementsCache[row.item_id].count = Math.max(endorsementsCache[row.item_id].count, 1);
+                }
+            }
+        });
+        console.log('Own saves pre-seeded:', (data || []).length);
+    } catch (err) {
+        console.error('loadMyOwnSavedIds exception:', err);
+    }
+}
+
 async function loadEndorsementsForItems(items) {
     if (!currentUser || !items || items.length === 0) return;
 
@@ -971,16 +1004,18 @@ async function loadEndorsementsForItems(items) {
 
         if (error) {
             console.error('Error loading endorsements:', error);
-            // Initialize defaults when RPC unavailable (e.g. before SQL is run)
+            // Initialize defaults — preserve userEndorsed if pre-seeded from own saves
             itemIds.forEach(id => {
-                endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+                const existing = endorsementsCache[id];
+                endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: existing?.userEndorsed || false };
             });
             return;
         }
 
-        // Reset cache for these items
+        // Reset cache for these items — preserve userEndorsed from own-saves pre-seed
         itemIds.forEach(id => {
-            endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+            const existing = endorsementsCache[id];
+            endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: existing?.userEndorsed || false };
         });
 
         if (data) {
@@ -1030,12 +1065,16 @@ async function toggleEndorsement(itemId, event) {
             .from('endorsements')
             .insert({ user_id: currentUser.id, item_id: itemId, visibility: saveVisibility });
 
-        if (!error) {
-            cached.count += 1;
-            cached.userEndorsed = true;
-            cached.ids.push(currentUser.id);
-            const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
-            cached.names.push(myName);
+        // 409 = already exists in DB (saved in a previous session) — treat as success
+        const isSuccess = !error || error.code === '23505' || (error.status || error.code) === 409;
+        if (isSuccess) {
+            if (!cached.userEndorsed) {
+                cached.count += 1;
+                cached.userEndorsed = true;
+                if (!cached.ids.includes(currentUser.id)) cached.ids.push(currentUser.id);
+                const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
+                if (!cached.names.includes(myName)) cached.names.push(myName);
+            }
             // Milestone: first endorsement
             if (!localStorage.getItem('milestone_first_endorse')) {
                 localStorage.setItem('milestone_first_endorse', 'true');
