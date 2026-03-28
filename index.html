@@ -1507,49 +1507,28 @@
                     <!-- Smart section tabs -->
                     <div class="dc-section-tabs-row">
                         <div class="dc-section-tabs" id="dcSectionTabs">
-                            <button class="dc-stab active" data-section="recent" onclick="setDiscoverSection(this,'recent')">Recently added</button>
-                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">From your circle</button>
+                            <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
+                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
+                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
                         </div>
                         <button class="dc-see-all-btn" onclick="openCollection('All saves', allDiscoveries || [])">See all</button>
                     </div>
 
-                    <!-- Category filter chips (replaces distance pills) -->
-                    <div class="dc-category-row" id="dcCategoryRow">
-                        <button class="dc-cat-pill active" data-cat="all" onclick="setCategoryPill(this,'all')">All</button>
-                        <button class="dc-cat-pill" data-cat="place" onclick="setCategoryPill(this,'place')">Places</button>
-                        <button class="dc-cat-pill" data-cat="food" onclick="setCategoryPill(this,'food')">Food &amp; Drink</button>
-                        <button class="dc-cat-pill" data-cat="product" onclick="setCategoryPill(this,'product')">Products</button>
-                        <button class="dc-cat-pill" data-cat="service" onclick="setCategoryPill(this,'service')">Services</button>
-                        <button class="dc-cat-pill" data-cat="advice" onclick="setCategoryPill(this,'advice')">Advice</button>
-                        <button class="dc-cat-pill" data-cat="experience" onclick="setCategoryPill(this,'experience')">Experiences</button>
-                    </div>
-
-                    <!-- Surprise Me button -->
-                    <div class="dc-surprise-row" id="dcSurpriseRow">
-                        <button class="dc-surprise-btn" onclick="surpriseMe()">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                            Surprise me
-                        </button>
-                    </div>
-
-                    <!-- Distance quick pills (hidden — kept for compatibility) -->
+                    <!-- Distance quick pills (shown when location is available, for nearby section) -->
                     <div class="dc-distance-row" id="dcDistanceRow" style="display:none;">
                         <span class="dc-dist-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         </span>
-                        <button class="dc-dist-pill" data-dist="1" onclick="toggleDistancePill(this,1)">&lt; 1 km</button>
-                        <button class="dc-dist-pill" data-dist="5" onclick="toggleDistancePill(this,5)">&lt; 5 km</button>
-                        <button class="dc-dist-pill" data-dist="10" onclick="toggleDistancePill(this,10)">&lt; 10 km</button>
+                        <button class="dc-dist-pill" data-dist="1" onclick="toggleDistancePill(this,1)">< 1 km</button>
+                        <button class="dc-dist-pill" data-dist="5" onclick="toggleDistancePill(this,5)">< 5 km</button>
+                        <button class="dc-dist-pill" data-dist="10" onclick="toggleDistancePill(this,10)">< 10 km</button>
                     </div>
 
                     <!-- Collection cards -->
                     <div class="dc-section-header" id="dcCircleHeader" style="display:none;">
-                        <h2 class="dc-section-title" id="dcCircleTitle">Recently added</h2>
+                        <h2 class="dc-section-title" id="dcCircleTitle">Trending this week</h2>
                     </div>
                     <div class="dc-collections-grid" id="dcCollectionsGrid"></div>
-
-                    <!-- Category scroll rows (Browse by category) -->
-                    <div id="dcCategoryRows" style="display:none;"></div>
 
                     <!-- Empty state — shown when user has no circle data yet -->
                     <div id="dcEmptyState" style="display:none;">
@@ -1580,7 +1559,7 @@
                             </div>
                         </div>
                         <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'recent');">← Back</button>
+                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -3531,8 +3510,7 @@
     }
 
     // ── Smart section tabs ──
-    var currentDiscoverSection = 'recent';
-    var currentCategoryFilter  = 'all';
+    var currentDiscoverSection = 'trending';
 
     function setDiscoverSection(el, section) {
         currentDiscoverSection = section;
@@ -3543,37 +3521,37 @@
         var items = [];
         var titleEl = document.getElementById('dcCircleTitle');
 
-        // Apply active category filter on top of the section
-        function applyActiveCatFilter(pool) {
-            if (currentCategoryFilter === 'all') return pool;
-            return pool.filter(function(d) {
-                var cat = (d.category || d.type || '').toLowerCase();
-                return cat === currentCategoryFilter;
+        if (section === 'trending') {
+            // Most saved — sort by saves_count desc (real Supabase field)
+            var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            var recent = allD.filter(function(d) {
+                if (!d.created_at) return true;
+                return new Date(d.created_at) >= oneWeekAgo;
             });
-        }
-
-        if (section === 'recent') {
-            // Most recently added across the full circle
-            items = applyActiveCatFilter(
-                allD.slice().sort(function(a, b) {
-                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                })
-            );
-            if (titleEl) titleEl.textContent = 'Recently added';
+            var pool = recent.length >= 3 ? recent : allD;
+            items = pool.slice().sort(function(a, b) {
+                return ((b.saves_count || 0) - (a.saves_count || 0));
+            });
+            if (titleEl) titleEl.textContent = 'Trending this week';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
+        } else if (section === 'nearby') {
+            // Location-aware — filter to items with latitude/longitude (Supabase field names)
+            items = allD.filter(function(d) { return d.latitude && d.longitude; });
+            if (titleEl) titleEl.textContent = 'Popular nearby';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'flex';
         } else if (section === 'new') {
-            // Items from direct friends only (exclude extended circle)
-            var friendItems = allD.filter(function(d) {
-                return d._trust_level !== 'extended_circle';
+            // Latest additions from circle — sort by created_at desc
+            items = allD.slice().sort(function(a, b) {
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
-            items = applyActiveCatFilter(
-                friendItems.slice().sort(function(a, b) {
-                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                })
-            );
-            if (titleEl) titleEl.textContent = 'From your circle';
+            if (titleEl) titleEl.textContent = 'New from your circle';
+            var dr = document.getElementById('dcDistanceRow');
+            if (dr) dr.style.display = 'none';
         }
 
-        // Show empty state if no data at all
+        // Show empty state if no data at all, otherwise proceed
         var emptyEl = document.getElementById('dcEmptyState');
         var tabsEl  = document.getElementById('dcSectionTabs');
         if (allD.length === 0) {
@@ -3587,123 +3565,18 @@
             if (tabsEl)  tabsEl.style.display  = '';
         }
 
-        // Set sort to recency for both tabs
+        // Set default sort per section
         var sortEl = document.getElementById('dcSortSelect');
-        if (sortEl) sortEl.value = 'recent';
+        if (sortEl) {
+            if (section === 'trending') sortEl.value = 'saves';
+            else if (section === 'nearby') sortEl.value = 'nearest';
+            else if (section === 'new') sortEl.value = 'recent';
+        }
 
         var circleHeader = document.getElementById('dcCircleHeader');
         if (circleHeader) circleHeader.style.display = 'flex';
 
         openCollection(titleEl ? titleEl.textContent : section, items);
-    }
-
-    // ── Category pill filter ──
-    function setCategoryPill(el, cat) {
-        currentCategoryFilter = cat;
-        document.querySelectorAll('.dc-cat-pill').forEach(function(p) { p.classList.remove('active'); });
-        el.classList.add('active');
-
-        // Re-run the active section with the new filter
-        var activeTab = document.querySelector('.dc-stab.active');
-        if (activeTab) {
-            setDiscoverSection(activeTab, activeTab.dataset.section || 'recent');
-        }
-    }
-
-    // ── Surprise Me — random pick from all discoveries ──
-    function surpriseMe() {
-        var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
-        if (allD.length === 0) return;
-
-        // Shuffle using Fisher-Yates and take up to 10
-        var pool = allD.slice();
-        for (var i = pool.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
-            var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-        }
-        var picks = pool.slice(0, Math.min(10, pool.length));
-
-        // Animate the button briefly
-        var btn = document.querySelector('.dc-surprise-btn');
-        if (btn) {
-            btn.classList.add('spinning');
-            setTimeout(function() { btn.classList.remove('spinning'); }, 600);
-        }
-
-        // Clear category filter for surprise
-        currentCategoryFilter = 'all';
-        document.querySelectorAll('.dc-cat-pill').forEach(function(p) {
-            p.classList.toggle('active', p.dataset.cat === 'all');
-        });
-
-        openCollection('Surprise picks', picks);
-    }
-
-    // ── Browse by category: horizontal scroll rows ──
-    function buildCategoryRows() {
-        var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
-        var container = document.getElementById('dcCategoryRows');
-        if (!container) return;
-
-        var CATS = [
-            { key: 'place',      label: 'Places' },
-            { key: 'food',       label: 'Food & Drink' },
-            { key: 'product',    label: 'Products' },
-            { key: 'service',    label: 'Services' },
-            { key: 'advice',     label: 'Advice' },
-            { key: 'experience', label: 'Experiences' },
-        ];
-
-        var html = '';
-        CATS.forEach(function(cat) {
-            var items = allD.filter(function(d) {
-                var c = (d.category || d.type || '').toLowerCase();
-                return c === cat.key;
-            });
-            if (items.length === 0) return;
-
-            // Sort recently added first
-            items = items.slice().sort(function(a, b) {
-                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-            });
-
-            var cardsHtml = items.slice(0, 8).map(function(item) {
-                var img = item.photo_url
-                    ? '<img class="dc-hscroll-img" src="' + escapeHtml(item.photo_url) + '" alt="" loading="lazy">'
-                    : '<div class="dc-hscroll-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>';
-                var title = escapeHtml((item.title || '').substring(0, 40));
-                var by    = escapeHtml(item.added_by_name || '');
-                var safeId = escapeHtml(item.id || '');
-                return '<div class="dc-hscroll-card" onclick="openItemById(\'' + safeId + '\')">'
-                    + img
-                    + '<div class="dc-hscroll-body">'
-                    + '<div class="dc-hscroll-title">' + title + '</div>'
-                    + (by ? '<div class="dc-hscroll-by">' + by + '</div>' : '')
-                    + '</div>'
-                    + '</div>';
-            }).join('');
-
-            var safeLabel = escapeHtml(cat.label);
-            var safeKey   = escapeHtml(cat.key);
-            html += '<div class="dc-cat-section">'
-                + '<div class="dc-cat-section-header">'
-                + '<span class="dc-cat-section-title">' + safeLabel + '</span>'
-                + '<button class="dc-cat-see-all" onclick="setCategoryPill(document.querySelector(\'.dc-cat-pill[data-cat=\\'' + safeKey + '\\']\')||document.querySelector(\'.dc-cat-pill\'),\'' + safeKey + '\')">See all</button>'
-                + '</div>'
-                + '<div class="dc-hscroll-row">' + cardsHtml + '</div>'
-                + '</div>';
-        });
-
-        var emptyFallback = html ? '' : '<div style="color:var(--muted);font-size:14px;padding:16px 0;">No items yet — add some saves!</div>';
-        container.innerHTML = '<div class="dc-browse-heading">Browse by category</div>' + (html || emptyFallback);
-        container.style.display = '';
-    }
-
-    // Helper: open a specific item drawer by its id
-    function openItemById(id) {
-        if (typeof allDiscoveries === 'undefined' || !allDiscoveries) return;
-        var idx = allDiscoveries.findIndex(function(d) { return d.id == id; });
-        if (idx !== -1 && typeof showDrawer === 'function') showDrawer(idx);
     }
 
     // ── Discover heading + rotating subtitle ──

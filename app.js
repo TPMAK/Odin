@@ -2878,7 +2878,7 @@ function buildCollectionCards() {
     var activeTab = document.querySelector('.dc-stab.active');
     if (activeTab) {
         if (typeof setDiscoverSection === 'function') {
-            setDiscoverSection(activeTab, activeTab.dataset.section || 'recent');
+            setDiscoverSection(activeTab, activeTab.dataset.section || 'trending');
         }
         return;
     }
@@ -3737,7 +3737,6 @@ async function loadDiscoveries() {
         buildFriendsRow();
         updateDiscoverCounts();
         showDistanceRow();
-        if (typeof buildCategoryRows === 'function') buildCategoryRows();
         // Refresh map panel list if map is already open
         if (discoverViewMode === 'map' && discoverMap) buildMapPanelList();
     } catch (error) {
