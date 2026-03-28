@@ -2519,93 +2519,69 @@
     // ══════════════════════════════════════════════
     // Each pool has en[] and zh[] — 3 picked from each, queries match chip language
     var _SEARCH_CHIP_POOLS = {
-        morning: {
-            en: [
-                { q: 'Good coffee nearby',                       label: '☕ Good coffee nearby' },
-                { q: 'Best breakfast my friends like',           label: '🍳 Best breakfast spot' },
-                { q: 'Quiet café with wifi',                     label: '💻 Quiet café with wifi' },
-                { q: 'Good bakery nearby',                       label: '🥐 Good bakery nearby' },
-                { q: 'Where to get a flat white?',               label: '☕ Where to get a flat white?' },
-                { q: 'Healthy breakfast spots',                  label: '🥗 Healthy breakfast spots' },
-            ],
-            zh: [
-                { q: '附近邊度有好咖啡？',                        label: '☕ 附近咖啡推薦' },
-                { q: '朋友推介嘅早餐店係邊度？',                  label: '🍳 朋友推介早餐' },
-                { q: '有冇靜靜嘅café可以做嘢？',                  label: '💻 靜靜做嘢咖啡廳' },
-                { q: '附近有咩麵包店推薦？',                      label: '🥐 附近麵包店' },
-                { q: '邊度有好flat white？',                     label: '☕ 好flat white推薦' },
-                { q: '健康早餐去邊好？',                          label: '🥗 健康早餐推薦' },
-            ],
-        },
-        lunch: {
-            en: [
-                { q: 'Good ramen my friends recommend',          label: '🍜 Good ramen nearby' },
-                { q: 'Quick lunch nearby',                       label: '🥡 Quick lunch nearby' },
-                { q: 'Best poke bowl in the area',               label: '🍱 Best poke bowl' },
-                { q: 'Healthy lunch spots',                      label: '🥗 Healthy lunch spots' },
-                { q: 'Best sushi for lunch',                     label: '🍣 Best sushi for lunch' },
-                { q: 'Where did my friends go for dim sum?',     label: '🥟 Dim sum nearby' },
-            ],
-            zh: [
-                { q: '朋友推介嘅拉麵係邊間？',                    label: '🍜 朋友推介拉麵' },
-                { q: '附近有咩快lunch？',                         label: '🥡 附近快lunch' },
-                { q: '附近有好poke bowl嗎？',                     label: '🍱 附近poke bowl' },
-                { q: '有咩健康午餐選擇？',                        label: '🥗 健康午餐選擇' },
-                { q: '午市壽司邊度好？',                          label: '🍣 午市壽司推薦' },
-                { q: '朋友去邊度飲茶？',                          label: '🥟 朋友飲茶推薦' },
-            ],
-        },
-        afternoon: {
-            en: [
-                { q: 'Café with good matcha or coffee',          label: '🍵 Good matcha or coffee' },
-                { q: 'Cosy place to read or work',               label: '📖 Cosy place to work' },
-                { q: 'Best afternoon tea my friends saved',      label: '🫖 Best afternoon tea' },
-                { q: 'Good snack spots nearby',                  label: '🧁 Good snack spots' },
-                { q: 'Somewhere nice to sit outside',            label: '🌤 Nice outdoor seating' },
-                { q: 'What dessert places did my friends save?', label: '🍰 Dessert places nearby' },
-            ],
-            zh: [
-                { q: '邊度有好抹茶或咖啡？',                      label: '🍵 下午茶咖啡廳' },
-                { q: '有冇舒服嘅地方坐低做嘢或睇書？',             label: '📖 舒適café坐低' },
-                { q: '朋友收藏咗咩下午茶？',                      label: '🫖 下午茶推薦' },
-                { q: '附近有咩小食推薦？',                        label: '🧁 附近小食推薦' },
-                { q: '有冇靚嘅戶外坐位？',                        label: '🌤 戶外坐位推薦' },
-                { q: '朋友收藏咗咩甜品店？',                      label: '🍰 朋友收藏甜品店' },
-            ],
-        },
-        evening: {
-            en: [
-                { q: 'Good dinner spot for tonight',             label: '🍽 Good dinner tonight' },
-                { q: 'Bar my friends recommend',                 label: '🍸 Bar my friends like' },
-                { q: 'Best Italian restaurant nearby',           label: '🍝 Italian restaurant nearby' },
-                { q: 'Rooftop bar or outdoor seating',           label: '🌃 Rooftop bar nearby' },
-                { q: 'Date night restaurant my friends love',    label: '🕯 Date night restaurant' },
-                { q: 'Where to get good cocktails?',             label: '🍹 Good cocktails nearby' },
-            ],
-            zh: [
-                { q: '今晚食乜好？',                              label: '🍽 今晚食乜好?' },
-                { q: '朋友推介嘅酒吧係邊間？',                    label: '🍸 朋友推介酒吧' },
-                { q: '附近有冇好嘅意大利餐廳？',                  label: '🍝 附近意大利餐廳' },
-                { q: '附近有冇天台或戶外酒吧？',                  label: '🌃 天台/戶外酒吧' },
-                { q: '朋友推介嘅約會餐廳係邊間？',                label: '🕯 約會餐廳推薦' },
-                { q: '邊度有好cocktail？',                        label: '🍹 邊度有好cocktail?' },
-            ],
-        },
-        latenight: {
-            en: [
-                { q: 'Late night food open now',                 label: '🌙 Late night food' },
-                { q: 'Best 24hr eats my friends know',           label: '🕛 24hr food nearby' },
-                { q: 'Night cap bar nearby',                     label: '🥃 Night cap bar' },
-                { q: 'Any supper spots my friends saved?',       label: '🍜 Supper spots nearby' },
-            ],
-            zh: [
-                { q: '夜晚食宵夜邊度好？',                        label: '🌙 宵夜推薦' },
-                { q: '朋友知唔知24小時食店？',                    label: '🕛 24小時食店推介' },
-                { q: '附近有冇夜酒吧？',                          label: '🥃 附近夜酒吧' },
-                { q: '朋友有冇收藏宵夜地方？',                    label: '🍜 朋友宵夜推薦' },
-            ],
-        },
+    morning: {
+        en: [
+            { q: 'Where should I get coffee this morning?',        label: 'Coffee this morning' },
+            { q: 'Good breakfast spot my friends recommend',        label: 'Good breakfast spot' },
+            { q: 'Where do my friends go for morning coffee?',      label: "Friends' coffee picks" },
+        ],
+        zh: [
+            { q: '附近邊度飲咖啡好？',                              label: '附近飲咖啡' },
+            { q: '朋友推介邊度食早餐？',                            label: '朋友早餐推薦' },
+            { q: '有冇好嘅café推薦？',                              label: '好café推薦' },
+        ],
+    },
+    lunch: {
+        en: [
+            { q: 'Good Japanese for lunch',                        label: 'Japanese for lunch' },
+            { q: 'Quick lunch spot nearby',                        label: 'Quick lunch nearby' },
+            { q: 'Noodles my friends saved',                       label: "Friends' noodle picks" },
+        ],
+        zh: [
+            { q: '朋友推介邊度食lunch？',                           label: '朋友lunch推薦' },
+            { q: '附近有冇好拉麵或烏冬？',                          label: '附近麵食推薦' },
+            { q: '去邊度食中午好？',                                label: '今日食乜lunch' },
+        ],
+    },
+    afternoon: {
+        en: [
+            { q: 'Good café to sit and work this afternoon',       label: 'Café to work in' },
+            { q: 'Dessert or gelato nearby',                       label: 'Dessert nearby' },
+            { q: 'Afternoon coffee my friends recommend',          label: 'Afternoon coffee picks' },
+        ],
+        zh: [
+            { q: '下午茶去邊好？',                                  label: '下午茶推薦' },
+            { q: '有冇舒服咖啡廳可以坐低做嘢？',                    label: '舒適咖啡廳' },
+            { q: '附近有咩甜品或雪糕推薦？',                        label: '附近甜品推薦' },
+        ],
+    },
+    evening: {
+        en: [
+            { q: 'Good dinner spot for tonight',                   label: 'Good dinner tonight' },
+            { q: 'Italian restaurant my friends like',             label: 'Italian my friends like' },
+            { q: 'Somewhere good for a steak tonight',             label: 'Good steak tonight' },
+        ],
+        zh: [
+            { q: '今晚食乜好？',                                    label: '今晚食乜好' },
+            { q: '朋友推介嘅晚餐係邊間？',                          label: '朋友晚餐推薦' },
+            { q: '有冇好嘅中餐廳或日本餐廳推薦？',                  label: '晚餐餐廳推薦' },
+        ],
+    },
+    latenight: {
+        en: [
+            { q: 'Late night food my friends know',                label: 'Late night food' },
+            { q: 'Bar my friends actually recommend',              label: "Friends' bar picks" },
+            { q: 'Where to get cocktails tonight',                 label: 'Cocktails tonight' },
+        ],
+        zh: [
+            { q: '夜晚食宵夜去邊好？',                              label: '宵夜去邊好' },
+            { q: '朋友推薦嘅酒吧係邊間？',                          label: '朋友推薦酒吧' },
+            { q: '夜晚有咩好去處？',                                label: '夜晚好去處' },
+        ],
+    },
     };
+
+
 
     function _getChipPool() {
         var h = new Date().getHours();
