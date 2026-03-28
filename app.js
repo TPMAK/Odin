@@ -2256,7 +2256,7 @@ async function handleFriendNotifClick(notifId) {
 function trackRecentlyViewed(item) {
     if (!item || !item.id) return;
     try {
-        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        let viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         // Remove if already exists
         viewed = viewed.filter(v => v.id !== item.id);
         // Add to front
@@ -2268,7 +2268,7 @@ function trackRecentlyViewed(item) {
         });
         // Keep max 10
         viewed = viewed.slice(0, 10);
-        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+        localStorage.setItem('odin_recently_viewed', JSON.stringify(viewed));
     } catch (e) { /* ignore storage errors */ }
 }
 
@@ -2278,7 +2278,7 @@ function renderRecentlyViewed() {
     if (!section || !row) return;
 
     try {
-        const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        const viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         if (viewed.length === 0) {
             section.style.display = 'none';
             return;
@@ -2318,9 +2318,9 @@ function openRecentlyViewed(itemId) {
 
 function removeRecentlyViewed(itemId) {
     try {
-        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        let viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         viewed = viewed.filter(v => v.id !== itemId);
-        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+        localStorage.setItem('odin_recently_viewed', JSON.stringify(viewed));
         renderRecentlyViewed();
     } catch (e) { /* ignore */ }
 }

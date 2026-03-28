@@ -4075,11 +4075,11 @@
     }
 
     // ── 7. Recently viewed — persisted in localStorage ──
-    var _RECENT_KEY = 'odin_recently_viewed';
+    var _VIEWED_KEY = 'odin_recently_viewed';
     var _RECENT_MAX = 12;
 
     function _getRecentlyViewed() {
-        try { return JSON.parse(localStorage.getItem(_RECENT_KEY) || '[]'); }
+        try { return JSON.parse(localStorage.getItem(_VIEWED_KEY) || '[]'); }
         catch (e) { return []; }
     }
 
@@ -4089,11 +4089,11 @@
         var list = _getRecentlyViewed().filter(function(r) { return r.id !== item.id; });
         list.unshift({ id: item.id, title: item.title || '', photo_url: item.photo_url || '', type: item.type || '' });
         if (list.length > _RECENT_MAX) list = list.slice(0, _RECENT_MAX);
-        localStorage.setItem(_RECENT_KEY, JSON.stringify(list));
+        localStorage.setItem(_VIEWED_KEY, JSON.stringify(list));
     }
 
     function clearRecentlyViewed() {
-        localStorage.removeItem(_RECENT_KEY);
+        localStorage.removeItem(_VIEWED_KEY);
         var section = document.getElementById('homeRecentSection');
         if (section) section.style.display = 'none';
         // Also hide the launcher "Continue exploring" section
