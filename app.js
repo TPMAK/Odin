@@ -921,6 +921,12 @@ async function saveProfile(event) {
 
         if (error) throw error;
 
+        // Backfill all historical items so "Added by" always shows the latest name
+        await supabaseClient
+            .from('knowledge_items')
+            .update({ added_by_name: newName })
+            .eq('added_by', currentUser.id);
+
         currentProfile = data;
         const nameElSave = document.getElementById('profileDisplayName');
         nameElSave.textContent = newName;
