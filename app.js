@@ -1063,7 +1063,16 @@ function updateEndorsementUI(itemId) {
             svg.setAttribute('stroke', cached.userEndorsed ? '#ffffff' : '#5a5a5a');
         }
         const countEl = btn.querySelector('.react-count');
-        if (countEl) countEl.textContent = friendCount > 0 ? friendCount : '';
+        const displayCount = friendCount > 0 ? friendCount : (cached.userEndorsed ? 1 : 0);
+        if (countEl) {
+            countEl.textContent = displayCount > 0 ? displayCount : '';
+        } else if (displayCount > 0) {
+            // No count element yet — inject one
+            const newCount = document.createElement('span');
+            newCount.className = 'react-count';
+            newCount.textContent = displayCount;
+            btn.appendChild(newCount);
+        }
     });
 
     // Update drawer bookmark button
@@ -1080,7 +1089,9 @@ function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
     const friendCount = getFriendSaveCount(itemId);
-    const countHtml = friendCount > 0 ? `<span class="react-count">${friendCount}</span>` : '';
+    // Show count if friends saved it, or show 1 if current user has saved it (solo pilot mode)
+    const displayCount = friendCount > 0 ? friendCount : (cached.userEndorsed ? 1 : 0);
+    const countHtml = displayCount > 0 ? `<span class="react-count">${displayCount}</span>` : '';
 
     return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Save">
         <svg class="bookmark-icon" width="16" height="16" viewBox="0 0 24 24" fill="${cached.userEndorsed ? '#ffffff' : 'none'}" stroke="${cached.userEndorsed ? '#ffffff' : '#5a5a5a'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>${countHtml}
@@ -4551,6 +4562,22 @@ function openItemDrawer(item) {
                 }
             });
         }
+    }
+
+    // Re-fetch endorsement state for this item to ensure save button is accurate
+    // (the cache may be stale if the user saved on a previous visit)
+    if (item.id && currentUser) {
+        loadEndorsementsForItems([item]).then(() => {
+            // Only update if this drawer is still open for the same item
+            if (currentDrawerItem && currentDrawerItem.id === item.id) {
+                updateEndorsementUI(item.id);
+                // Also patch the drawer save section label directly
+                const drawerReactions = document.querySelector('.drawer-reactions');
+                if (drawerReactions) {
+                    drawerReactions.outerHTML = buildEndorseSection(item.id);
+                }
+            }
+        });
     }
 }
 
