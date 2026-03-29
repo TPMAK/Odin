@@ -94,10 +94,15 @@ async function showMainApp() {
     // (includes new registrations where prevUserId is null)
     const prevUserId = localStorage.getItem('odin_last_user_id');
     const thisUserId = currentUser ? currentUser.id : null;
-    if (thisUserId && prevUserId !== thisUserId) {
+    if (thisUserId && prevUserId && prevUserId !== thisUserId) {
+        // Different user signed in — reload the page completely to avoid
+        // showing any stale data or UI from the previous session
+        localStorage.setItem('odin_last_user_id', thisUserId);
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
         localStorage.removeItem('empty_friends_dismissed');
+        location.reload();
+        return;
     }
     if (thisUserId) localStorage.setItem('odin_last_user_id', thisUserId);
 
@@ -279,6 +284,10 @@ function showAuthMode(mode) {
         createAccountTab.classList.remove('active');
         signInForm.style.display = 'flex';
         createAccountForm.style.display = 'none';
+        // Always clear form and reset button so previous session's state doesn't bleed through
+        signInForm.reset();
+        const signInBtn = document.getElementById('signInBtn');
+        if (signInBtn) resetButton(signInBtn);
     } else {
         signInTab.classList.remove('active');
         createAccountTab.classList.add('active');
@@ -286,6 +295,8 @@ function showAuthMode(mode) {
         createAccountForm.style.display = 'flex';
         // Always clear form so no stale/pre-filled data appears
         createAccountForm.reset();
+        const signUpBtn = document.getElementById('signUpBtn');
+        if (signUpBtn) resetButton(signUpBtn);
     }
 }
 
@@ -6719,44 +6730,28 @@ function showToast(message, duration = 3000) {
 
 // Disabled: Let users manually add Founding Members to learn the Add Friend flow
 async function autoFriendOdinHQ() {
-    return; // Skip auto-connect — users add Founding Members manually
     if (currentUser.id === ODIN_HQ_USER_ID) return; // Don't friend yourself
 
     // Check if already friends with Odin HQ
     const alreadyFriend = friendsCache.some(f => f.out_user_id === ODIN_HQ_USER_ID);
     if (alreadyFriend) return;
 
-    // Check if there's already a pending request
-    const alreadyPending = pendingFriendRequests.some(r =>
-        r.out_requester_id === ODIN_HQ_USER_ID
-    );
-    if (alreadyPending) return;
-
     // Check localStorage to avoid repeated attempts
     if (localStorage.getItem('odin_hq_connected')) return;
 
     try {
-        // Insert friendship directly (both directions accepted)
-        const { error } = await supabaseClient.rpc('send_friend_request', {
-            p_requester_id: ODIN_HQ_USER_ID,
-            p_receiver_id: currentUser.id
-        });
+        // Insert accepted friendship: user → Odin HQ
+        const { error: f1Err } = await supabaseClient
+            .from('friendships')
+            .insert({ requester_id: currentUser.id, receiver_id: ODIN_HQ_USER_ID, status: 'accepted' });
 
-        if (!error) {
-            // Auto-accept it
-            // Reload pending to find the request
-            const { data: pending } = await supabaseClient.rpc('get_pending_friend_requests', {
-                p_user_id: currentUser.id
-            });
-            const hqRequest = (pending || []).find(r => r.out_requester_id === ODIN_HQ_USER_ID);
-            if (hqRequest) {
-                await supabaseClient.rpc('accept_friend_request', {
-                    p_friendship_id: hqRequest.out_id,
-                    p_user_id: currentUser.id
-                });
-            }
+        // Insert accepted friendship: Odin HQ → user (reverse)
+        const { error: f2Err } = await supabaseClient
+            .from('friendships')
+            .insert({ requester_id: ODIN_HQ_USER_ID, receiver_id: currentUser.id, status: 'accepted' });
+
+        if (!f1Err && !f2Err) {
             localStorage.setItem('odin_hq_connected', 'true');
-            // Reload friends list
             await loadFriends();
             console.log('Auto-connected with Odin HQ');
         }
@@ -6891,10 +6886,10 @@ async function _processInviteTokenSilently(token) {
             return;
         }
 
-        // Send pending friend request: current user → inviter
+        // Insert accepted friendship: current user → inviter
         const { error: friendErr } = await supabaseClient
             .from('friendships')
-            .insert({ requester_id: currentUser.id, receiver_id: inv.inviter_id, status: 'pending' });
+            .insert({ requester_id: currentUser.id, receiver_id: inv.inviter_id, status: 'accepted' });
 
         if (!friendErr) {
             // Notify the inviter
@@ -7092,19 +7087,16 @@ async function onbAcceptInvite() {
     }
 
     const btn = document.getElementById('onbConnectBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Sending request...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Connecting...'; }
 
     try {
-        // Send a PENDING friend request to the inviter.
-        // Status = 'pending' so the inviter sees it in their Requests tab
-        // and gets a notification — matching the normal friendship flow.
-        // new user = requester, inviter = receiver
+        // Insert accepted friendship: new user → inviter
         const { error: friendErr } = await supabaseClient
             .from('friendships')
             .insert({
                 requester_id: currentUser.id,
                 receiver_id: _onbInviterData.id,
-                status: 'pending'
+                status: 'accepted'
             });
 
         const succeeded = !friendErr || friendErr.code === '23505'; // success or already exists
@@ -7117,7 +7109,7 @@ async function onbAcceptInvite() {
             await supabaseClient.rpc('notify_friend_request', {
                 p_receiver_id: _onbInviterData.id,
                 p_actor_id:    currentUser.id,
-                p_message:     `${newUserName} accepted your invite and wants to connect on Odin.`
+                p_message:     `${newUserName} joined Odin through your invite — you're now connected.`
             });
         } else if (!succeeded) {
             console.warn('Friend request insert failed:', friendErr);
@@ -7134,16 +7126,16 @@ async function onbAcceptInvite() {
                 localStorage.removeItem('odin_invite_token');
             }
 
-            // Refresh pending requests so the profile page shows the new outgoing request
-            await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
+            // Refresh friends and pending requests
+            await Promise.all([loadFriends(), loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
 
-            if (btn) btn.textContent = 'Request sent ✓';
+            if (btn) btn.textContent = 'Connected ✓';
         } else {
-            if (btn) btn.textContent = 'Could not send — skip';
+            if (btn) btn.textContent = 'Could not connect — skip';
         }
     } catch (err) {
         console.warn('Auto-connect on invite failed:', err);
-        if (btn) btn.textContent = 'Could not send — skip';
+        if (btn) btn.textContent = 'Could not connect — skip';
     }
 
     // Short pause so user sees the confirmation, then move on.
