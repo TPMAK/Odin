@@ -3504,9 +3504,12 @@ function toggleDistancePill(el, dist) {
 }
 
 function showDistanceRow() {
+    // Only show distance row when 'Near me' chip is active
     var row = document.getElementById('dcDistanceRow');
-    if (row && userLocation && userLocation.available) {
-        row.style.display = '';
+    var activeChip = document.querySelector('.dc-stab.active');
+    var isNearby = activeChip && activeChip.dataset.section === 'nearby';
+    if (row && userLocation && userLocation.available && isNearby) {
+        row.style.display = 'flex';
     }
 }
 

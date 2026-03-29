@@ -1500,7 +1500,7 @@
                         <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
                             <div class="recently-viewed-header">
                                 <span>Recently viewed</span>
-                                <button class="dc-clear-recent-btn" onclick="clearRecentlyViewed()">Clear all</button>
+                                <button class="dc-clear-recent-btn" onclick="clearDiscoverRecentlyViewed()">Clear all</button>
                             </div>
                             <div class="recently-viewed-row" id="recentlyViewedRow"></div>
                         </div>
@@ -3570,12 +3570,20 @@
             if (tabsEl)  tabsEl.style.display  = '';
         }
 
-        // Set default sort per section
+        // Set default sort per section and pre-sort items accordingly
+        var sortVal = 'saves';
+        if (section === 'nearby') sortVal = 'nearest';
+        else if (section === 'new') sortVal = 'recent';
         var sortEl = document.getElementById('dcSortSelect');
-        if (sortEl) {
-            if (section === 'trending') sortEl.value = 'saves';
-            else if (section === 'nearby') sortEl.value = 'nearest';
-            else if (section === 'new') sortEl.value = 'recent';
+        if (sortEl) sortEl.value = sortVal;
+
+        // Pre-sort items before passing to openCollection
+        if (sortVal === 'nearest') {
+            items.sort(function(a, b) { return (a.distance_km || 9999) - (b.distance_km || 9999); });
+        } else if (sortVal === 'recent') {
+            items.sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
+        } else {
+            items.sort(function(a, b) { return (b.saves_count || 0) - (a.saves_count || 0); });
         }
 
         var circleHeader = document.getElementById('dcCircleHeader');
@@ -4109,6 +4117,30 @@
         if (launcherScroll) launcherScroll.innerHTML = '';
         var homeScroll = document.getElementById('homeRecentScroll');
         if (homeScroll) homeScroll.innerHTML = '';
+        // Also hide discover recently viewed
+        var dcSection = document.getElementById('recentlyViewedSection');
+        if (dcSection) dcSection.style.display = 'none';
+        var dcRow = document.getElementById('recentlyViewedRow');
+        if (dcRow) dcRow.innerHTML = '';
+        showToast('Recently viewed cleared');
+    }
+
+    function clearDiscoverRecentlyViewed() {
+        // Clear storage and hide only the discover recently viewed row
+        localStorage.removeItem(_VIEWED_KEY);
+        var dcSection = document.getElementById('recentlyViewedSection');
+        if (dcSection) dcSection.style.display = 'none';
+        var dcRow = document.getElementById('recentlyViewedRow');
+        if (dcRow) dcRow.innerHTML = '';
+        // Also clear home recently viewed cards/sections
+        var homeScroll = document.getElementById('homeRecentScroll');
+        if (homeScroll) homeScroll.innerHTML = '';
+        var launcherScroll = document.getElementById('launcherRecentScroll');
+        if (launcherScroll) launcherScroll.innerHTML = '';
+        var section = document.getElementById('homeRecentSection');
+        if (section) section.style.display = 'none';
+        var launcherSection = document.getElementById('launcherRecentSection');
+        if (launcherSection) launcherSection.style.display = 'none';
         showToast('Recently viewed cleared');
     }
 
