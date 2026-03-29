@@ -3546,25 +3546,30 @@
         .search-loc-btn {
             position: relative;
             flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: none;
-            background: none;
+            width: auto;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 18px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
             color: var(--muted);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0;
+            gap: 4px;
             margin-left: 4px;
-            transition: color 0.18s, background 0.18s;
+            transition: color 0.18s, background 0.18s, border-color 0.18s;
         }
         .search-loc-btn.active {
             color: #7B2D45;
+            border-color: #7B2D45;
+            background: rgba(123, 45, 69, 0.06);
         }
         .search-loc-btn:hover {
             background: rgba(123, 45, 69, 0.08);
+            border-color: #7B2D45;
+            color: #7B2D45;
         }
 
         #sendButton {
@@ -3602,9 +3607,10 @@
 
         /* Refresh/New session button — standalone */
         .input-new-btn {
-            width: 36px;
+            width: auto;
             height: 36px;
-            border-radius: 50%;
+            padding: 0 10px;
+            border-radius: 18px;
             border: 1.5px solid var(--border);
             background: var(--surface);
             color: var(--muted);
@@ -3612,6 +3618,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: 4px;
             flex-shrink: 0;
             transition: color 0.18s, background 0.18s, border-color 0.18s;
         }
@@ -3623,7 +3630,14 @@
         }
 
         .input-new-btn:active {
-            transform: rotate(-30deg);
+            transform: scale(0.95);
+        }
+
+        .input-btn-label {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+            line-height: 1;
         }
 
         /* INPUT MODE */
@@ -6380,9 +6394,6 @@
 }
 
 .recently-viewed-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
@@ -6390,21 +6401,6 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-.dc-clear-recent-btn {
-    background: none;
-    border: none;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    padding: 0;
-    text-transform: none;
-    letter-spacing: 0;
-    opacity: 0.7;
-    transition: opacity 0.15s;
-    -webkit-tap-highlight-color: transparent;
-}
-.dc-clear-recent-btn:hover { opacity: 1; color: #7B2D45; }
 
 .recently-viewed-row {
     display: flex;

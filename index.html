@@ -149,11 +149,11 @@
         }
         /* Section 2 label */
         #loginScreen .ls-s2-label {
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: rgba(123,45,69,1);
+            color: rgba(123,45,69,0.8);
             margin-bottom: 28px;
             display: flex;
             align-items: center;
@@ -365,12 +365,12 @@
         #loginScreen .ls-feature-row:first-child { border-top: 1px solid rgba(221,208,184,0.06); }
         #loginScreen .ls-feature-num {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 16px;
+            font-size: 13px;
             color: var(--wb);
-            opacity: 0.9;
+            opacity: 0.7;
             flex-shrink: 0;
-            width: 24px;
-            padding-top: 1px;
+            width: 18px;
+            padding-top: 2px;
             font-style: italic;
         }
         #loginScreen .ls-feature-text {
@@ -620,11 +620,11 @@
         }
         /* Section label inside sheet */
         #lsLearnSheet .ls-s2-label {
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.16em;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: rgba(123,45,69,1);
+            color: rgba(123,45,69,0.9);
             margin-bottom: 20px;
             display: flex;
             align-items: center;
@@ -656,12 +656,12 @@
         }
         #lsLearnSheet .ls-feature-num {
             font-family: 'DM Serif Display', Georgia, serif;
-            font-size: 16px;
+            font-size: 13px;
             color: var(--wb);
-            opacity: 0.9;
+            opacity: 0.7;
             flex-shrink: 0;
-            width: 24px;
-            padding-top: 1px;
+            width: 18px;
+            padding-top: 2px;
             font-style: italic;
         }
         #lsLearnSheet .ls-feature-text {
@@ -1498,10 +1498,7 @@
                             </button>
                         </div>
                         <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
-                            <div class="recently-viewed-header">
-                                <span>Recently viewed</span>
-                                <button class="dc-clear-recent-btn" onclick="clearDiscoverRecentlyViewed()">Clear all</button>
-                            </div>
+                            <div class="recently-viewed-header">Recently viewed</div>
                             <div class="recently-viewed-row" id="recentlyViewedRow"></div>
                         </div>
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
@@ -1560,6 +1557,9 @@
                                     <option value="az">A – Z</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="dc-back-row">
+                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'all');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -2153,7 +2153,8 @@
     <div class="input-area hidden" id="inputArea">
         <div class="input-wrapper">
             <button class="input-new-btn" onclick="startNewSession()" title="New search" aria-label="New search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span class="input-btn-label">New</span>
             </button>
             <div class="search-input-inner">
                 <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2164,7 +2165,8 @@
                 </button>
             </div>
             <button class="search-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location off" aria-label="Toggle location">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span class="input-btn-label" id="searchLocLabel">Near me</span>
             </button>
         </div>
     </div>
@@ -2298,7 +2300,7 @@
                     <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="18" cy="18" r="18" fill="#7B2D45"/><text x="18" y="24" text-anchor="middle" font-family="DM Serif Display, serif" font-size="20" fill="#FAF6EE">O</text></svg>
                 </div>
                 <h1 class="onb-heading">Welcome to <span class="onb-brand">Odin</span>, <span id="onbUserName">friend</span>.</h1>
-                <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle. We've connected you with our founding members so your first search always finds something real.</p>
+                <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle.</p>
                 <button class="onb-btn-primary" onclick="onbGoStep(2)">Let's go →</button>
                 <div class="onb-dots">
                     <span class="onb-dot onb-dot-active"></span>
@@ -3570,20 +3572,12 @@
             if (tabsEl)  tabsEl.style.display  = '';
         }
 
-        // Set default sort per section and pre-sort items accordingly
-        var sortVal = 'saves';
-        if (section === 'nearby') sortVal = 'nearest';
-        else if (section === 'new') sortVal = 'recent';
+        // Set default sort per section
         var sortEl = document.getElementById('dcSortSelect');
-        if (sortEl) sortEl.value = sortVal;
-
-        // Pre-sort items before passing to openCollection
-        if (sortVal === 'nearest') {
-            items.sort(function(a, b) { return (a.distance_km || 9999) - (b.distance_km || 9999); });
-        } else if (sortVal === 'recent') {
-            items.sort(function(a, b) { return new Date(b.created_at || 0) - new Date(a.created_at || 0); });
-        } else {
-            items.sort(function(a, b) { return (b.saves_count || 0) - (a.saves_count || 0); });
+        if (sortEl) {
+            if (section === 'trending') sortEl.value = 'saves';
+            else if (section === 'nearby') sortEl.value = 'nearest';
+            else if (section === 'new') sortEl.value = 'recent';
         }
 
         var circleHeader = document.getElementById('dcCircleHeader');
@@ -4117,30 +4111,6 @@
         if (launcherScroll) launcherScroll.innerHTML = '';
         var homeScroll = document.getElementById('homeRecentScroll');
         if (homeScroll) homeScroll.innerHTML = '';
-        // Also hide discover recently viewed
-        var dcSection = document.getElementById('recentlyViewedSection');
-        if (dcSection) dcSection.style.display = 'none';
-        var dcRow = document.getElementById('recentlyViewedRow');
-        if (dcRow) dcRow.innerHTML = '';
-        showToast('Recently viewed cleared');
-    }
-
-    function clearDiscoverRecentlyViewed() {
-        // Clear storage and hide only the discover recently viewed row
-        localStorage.removeItem(_VIEWED_KEY);
-        var dcSection = document.getElementById('recentlyViewedSection');
-        if (dcSection) dcSection.style.display = 'none';
-        var dcRow = document.getElementById('recentlyViewedRow');
-        if (dcRow) dcRow.innerHTML = '';
-        // Also clear home recently viewed cards/sections
-        var homeScroll = document.getElementById('homeRecentScroll');
-        if (homeScroll) homeScroll.innerHTML = '';
-        var launcherScroll = document.getElementById('launcherRecentScroll');
-        if (launcherScroll) launcherScroll.innerHTML = '';
-        var section = document.getElementById('homeRecentSection');
-        if (section) section.style.display = 'none';
-        var launcherSection = document.getElementById('launcherRecentSection');
-        if (launcherSection) launcherSection.style.display = 'none';
         showToast('Recently viewed cleared');
     }
 
