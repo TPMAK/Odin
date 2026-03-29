@@ -1507,11 +1507,11 @@
                     <!-- Smart section tabs -->
                     <div class="dc-section-tabs-row">
                         <div class="dc-section-tabs" id="dcSectionTabs">
-                            <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
-                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
-                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
+                            <button class="dc-stab active" data-section="all" onclick="setDiscoverSection(this,'all')">All</button>
+                            <button class="dc-stab" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending</button>
+                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New</button>
+                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Near me</button>
                         </div>
-                        <button class="dc-see-all-btn" onclick="openCollection('All saves', allDiscoveries || [])">See all</button>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -1557,9 +1557,6 @@
                                     <option value="az">A – Z</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -2153,7 +2150,8 @@
     <div class="input-area hidden" id="inputArea">
         <div class="input-wrapper">
             <button class="input-new-btn" onclick="startNewSession()" title="New search" aria-label="New search">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span class="input-btn-label">New</span>
             </button>
             <div class="search-input-inner">
                 <svg class="search-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2163,9 +2161,6 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
             </div>
-            <button class="search-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location off" aria-label="Toggle location">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            </button>
         </div>
     </div>
 
@@ -3383,46 +3378,6 @@
         }
     }
 
-    // ── Search location toggle (reuses the same userLocation state) ──
-    function updateSearchLocBtn() {
-        var btn = document.getElementById('searchLocBtn');
-        if (!btn) return;
-        if (_homeLocationEnabled && userLocation.available) {
-            btn.classList.add('active');
-            btn.title = 'Location on';
-        } else {
-            btn.classList.remove('active');
-            btn.title = 'Location off';
-        }
-    }
-
-    function toggleSearchLocation() {
-        if (_homeLocationEnabled && userLocation.available) {
-            _homeLocationEnabled = false;
-            localStorage.setItem('homeLocationEnabled', 'false');
-            userLocation.available = false;
-            userLocation.latitude = null;
-            userLocation.longitude = null;
-            updateSearchLocBtn();
-            updateLocationLine();
-        } else {
-            if (!navigator.geolocation) return;
-            navigator.geolocation.getCurrentPosition(function(pos) {
-                _homeLocationEnabled = true;
-                localStorage.setItem('homeLocationEnabled', 'true');
-                userLocation.latitude = pos.coords.latitude;
-                userLocation.longitude = pos.coords.longitude;
-                userLocation.available = true;
-                updateSearchLocBtn();
-                updateLocationLine();
-            }, function() {
-                _homeLocationEnabled = false;
-                localStorage.setItem('homeLocationEnabled', 'false');
-                updateSearchLocBtn();
-            });
-        }
-    }
-
     // ── 3. Search from home — appends "nearby" when location on ──
     function searchFromHome() {
         const input = document.getElementById('homeSearchInput');
@@ -3510,7 +3465,7 @@
     }
 
     // ── Smart section tabs ──
-    var currentDiscoverSection = 'trending';
+    var currentDiscoverSection = 'all';
 
     function setDiscoverSection(el, section) {
         currentDiscoverSection = section;
@@ -3520,9 +3475,17 @@
         var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
         var items = [];
         var titleEl = document.getElementById('dcCircleTitle');
+        var dr = document.getElementById('dcDistanceRow');
 
-        if (section === 'trending') {
-            // Most saved — sort by saves_count desc (real Supabase field)
+        if (section === 'all') {
+            // All items — sorted by most saved
+            items = allD.slice().sort(function(a, b) {
+                return ((b.saves_count || 0) - (a.saves_count || 0));
+            });
+            if (titleEl) titleEl.textContent = 'All';
+            if (dr) dr.style.display = 'none';
+        } else if (section === 'trending') {
+            // Most saved this week
             var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             var recent = allD.filter(function(d) {
                 if (!d.created_at) return true;
@@ -3533,13 +3496,11 @@
                 return ((b.saves_count || 0) - (a.saves_count || 0));
             });
             if (titleEl) titleEl.textContent = 'Trending this week';
-            var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         } else if (section === 'nearby') {
-            // Location-aware — filter to items with latitude/longitude (Supabase field names)
+            // Location-aware — filter to items with latitude/longitude
             items = allD.filter(function(d) { return d.latitude && d.longitude; });
-            if (titleEl) titleEl.textContent = 'Popular nearby';
-            var dr = document.getElementById('dcDistanceRow');
+            if (titleEl) titleEl.textContent = 'Near me';
             if (dr) dr.style.display = 'flex';
         } else if (section === 'new') {
             // Latest additions from circle — sort by created_at desc
@@ -3547,7 +3508,6 @@
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
             if (titleEl) titleEl.textContent = 'New from your circle';
-            var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         }
 
