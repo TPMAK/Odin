@@ -139,6 +139,10 @@ async function showMainApp() {
     await loadFriends();
     await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
 
+    // Pre-seed endorsements cache with current user's own saves
+    // so the save button shows correctly before RPC fires
+    loadMyOwnSavedIds();
+
     // Pre-load discoveries so search results can match IDs
     loadDiscoveries();
     loadBlockedUsers();
@@ -921,6 +925,12 @@ async function saveProfile(event) {
 
         if (error) throw error;
 
+        // Backfill all historical items so "Added by" always shows the latest name
+        await supabaseClient
+            .from('knowledge_items')
+            .update({ added_by_name: newName })
+            .eq('added_by', currentUser.id);
+
         currentProfile = data;
         const nameElSave = document.getElementById('profileDisplayName');
         nameElSave.textContent = newName;
@@ -952,6 +962,35 @@ async function saveProfile(event) {
 // ===== ENDORSEMENT SYSTEM =====
 let endorsementsCache = {}; // { item_id: { count, names, ids, userEndorsed } }
 
+// Pre-seed the endorsements cache with the current user's own saved item IDs.
+// Called once at login so save buttons show the correct saved state immediately,
+// even before per-page RPC calls have run.
+async function loadMyOwnSavedIds() {
+    if (!currentUser) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('endorsements')
+            .select('item_id')
+            .eq('user_id', currentUser.id);
+        if (error) { console.error('loadMyOwnSavedIds error:', error); return; }
+        (data || []).forEach(row => {
+            if (!endorsementsCache[row.item_id]) {
+                endorsementsCache[row.item_id] = { count: 1, names: [], ids: [currentUser.id], userEndorsed: true };
+            } else {
+                // Only patch userEndorsed — don't overwrite richer data already there
+                endorsementsCache[row.item_id].userEndorsed = true;
+                if (!endorsementsCache[row.item_id].ids.includes(currentUser.id)) {
+                    endorsementsCache[row.item_id].ids.push(currentUser.id);
+                    endorsementsCache[row.item_id].count = Math.max(endorsementsCache[row.item_id].count, 1);
+                }
+            }
+        });
+        console.log('Own saves pre-seeded:', (data || []).length);
+    } catch (err) {
+        console.error('loadMyOwnSavedIds exception:', err);
+    }
+}
+
 async function loadEndorsementsForItems(items) {
     if (!currentUser || !items || items.length === 0) return;
 
@@ -965,25 +1004,30 @@ async function loadEndorsementsForItems(items) {
 
         if (error) {
             console.error('Error loading endorsements:', error);
-            // Initialize defaults when RPC unavailable (e.g. before SQL is run)
+            // Initialize defaults — preserve userEndorsed if pre-seeded from own saves
             itemIds.forEach(id => {
-                endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+                const existing = endorsementsCache[id];
+                endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: existing?.userEndorsed || false };
             });
             return;
         }
 
-        // Reset cache for these items
+        // Reset cache for these items — preserve userEndorsed from own-saves pre-seed
         itemIds.forEach(id => {
-            endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: false };
+            const existing = endorsementsCache[id];
+            endorsementsCache[id] = { count: 0, names: [], ids: [], userEndorsed: existing?.userEndorsed || false };
         });
 
         if (data) {
             data.forEach(row => {
-                endorsementsCache[row.out_item_id] = {
-                    count: row.out_count,
-                    names: row.out_names || [],
-                    ids: row.out_ids || [],
-                    userEndorsed: (row.out_ids || []).includes(currentUser.id)
+                // RPC returns: item_id, count, names, user_ids
+                const ids = row.user_ids || row.out_ids || [];
+                const itemId = row.item_id || row.out_item_id;
+                endorsementsCache[itemId] = {
+                    count: row.count ?? row.out_count ?? 0,
+                    names: row.names || row.out_names || [],
+                    ids: ids,
+                    userEndorsed: ids.includes(currentUser.id)
                 };
             });
         }
@@ -1024,12 +1068,16 @@ async function toggleEndorsement(itemId, event) {
             .from('endorsements')
             .insert({ user_id: currentUser.id, item_id: itemId, visibility: saveVisibility });
 
-        if (!error) {
-            cached.count += 1;
-            cached.userEndorsed = true;
-            cached.ids.push(currentUser.id);
-            const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
-            cached.names.push(myName);
+        // 409 = already exists in DB (saved in a previous session) — treat as success
+        const isSuccess = !error || error.code === '23505' || (error.status || error.code) === 409;
+        if (isSuccess) {
+            if (!cached.userEndorsed) {
+                cached.count += 1;
+                cached.userEndorsed = true;
+                if (!cached.ids.includes(currentUser.id)) cached.ids.push(currentUser.id);
+                const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
+                if (!cached.names.includes(myName)) cached.names.push(myName);
+            }
             // Milestone: first endorsement
             if (!localStorage.getItem('milestone_first_endorse')) {
                 localStorage.setItem('milestone_first_endorse', 'true');
@@ -1057,7 +1105,16 @@ function updateEndorsementUI(itemId) {
             svg.setAttribute('stroke', cached.userEndorsed ? '#ffffff' : '#5a5a5a');
         }
         const countEl = btn.querySelector('.react-count');
-        if (countEl) countEl.textContent = friendCount > 0 ? friendCount : '';
+        const displayCount = friendCount > 0 ? friendCount : (cached.userEndorsed ? 1 : 0);
+        if (countEl) {
+            countEl.textContent = displayCount > 0 ? displayCount : '';
+        } else if (displayCount > 0) {
+            // No count element yet — inject one
+            const newCount = document.createElement('span');
+            newCount.className = 'react-count';
+            newCount.textContent = displayCount;
+            btn.appendChild(newCount);
+        }
     });
 
     // Update drawer bookmark button
@@ -1074,7 +1131,9 @@ function buildEndorseButton(itemId) {
     const cached = endorsementsCache[itemId] || { count: 0, userEndorsed: false };
     const activeClass = cached.userEndorsed ? ' endorsed' : '';
     const friendCount = getFriendSaveCount(itemId);
-    const countHtml = friendCount > 0 ? `<span class="react-count">${friendCount}</span>` : '';
+    // Show count if friends saved it, or show 1 if current user has saved it (solo pilot mode)
+    const displayCount = friendCount > 0 ? friendCount : (cached.userEndorsed ? 1 : 0);
+    const countHtml = displayCount > 0 ? `<span class="react-count">${displayCount}</span>` : '';
 
     return `<button class="react-btn${activeClass}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)" title="Save">
         <svg class="bookmark-icon" width="16" height="16" viewBox="0 0 24 24" fill="${cached.userEndorsed ? '#ffffff' : 'none'}" stroke="${cached.userEndorsed ? '#ffffff' : '#5a5a5a'}" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>${countHtml}
@@ -2025,7 +2084,7 @@ async function checkUnreadNotifications() {
         if (data && data.length > 0) {
             if (clearedAt) {
                 // Only count notifications created AFTER the clear timestamp
-                hasVisible = data.some(n => new Date(n.out_created_at) > new Date(parseInt(clearedAt)));
+                hasVisible = data.some(n => new Date(n.created_at) > new Date(parseInt(clearedAt)));
             } else {
                 hasVisible = true;
             }
@@ -2083,46 +2142,52 @@ async function loadNotifications() {
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
-            filtered = filtered.filter(n => new Date(n.out_created_at) > clearedDate);
+            filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
 
         if (filtered.length === 0) {
             section.style.display = 'none';
             container.innerHTML = '';
-            // User has seen the notifications panel — mark as viewed so badge clears
-            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
             return;
         }
 
-        // User is now viewing notifications — update clearedAt so badge resets after this view
-        // The badge will only reappear for notifications created AFTER this timestamp
-        localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+        section.style.display = 'block';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
 
-        section.style.display = 'block';
+        // User is now viewing these notifications — stamp clearedAt to the
+        // most recent one so the badge only reappears for NEW notifications after this point
+        const latestTs = Math.max(...filtered.map(n => new Date(n.created_at).getTime()));
+        localStorage.setItem(_NOTIFS_CLEARED_KEY, latestTs.toString());
+
         container.innerHTML = filtered.map(n => {
-            let icon = '📝';
-            if (n.out_type === 'endorsement') icon = '🙌';
-            else if (n.out_type === 'friend_request') icon = '🤝';
-            else if (n.out_type === 'friend_accepted') icon = '🎉';
-            const timeAgo = getTimeAgo(n.out_created_at);
-            const unreadClass = n.out_read ? '' : ' unread';
+            let icon;
+            if (n.type === 'endorsement') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+            } else if (n.type === 'friend_request') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+            } else if (n.type === 'friend_accepted') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
+            } else {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+            }
+            const timeAgo = getTimeAgo(n.created_at);
+            const unreadClass = n.read ? '' : ' unread';
 
             // Friend notifications click → go to profile (friend requests section)
-            const clickAction = (n.out_type === 'friend_request' || n.out_type === 'friend_accepted')
-                ? `handleFriendNotifClick('${n.out_id}')`
-                : `handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')`;
+            const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
+                ? `handleFriendNotifClick('${n.id}')`
+                : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
 
-            return `<div class="notif-item${unreadClass}" id="notif-${n.out_id}" onclick="${clickAction}">
+            return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
                 <div class="notif-icon">${icon}</div>
                 <div class="notif-body">
-                    <div class="notif-message">${escapeHtml(n.out_message)}</div>
+                    <div class="notif-message">${escapeHtml(n.message)}</div>
                     <div class="notif-time">${timeAgo}</div>
                 </div>
-                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.out_id}')" aria-label="Delete notification">&times;</button>
+                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
             </div>`;
         }).join('');
     } catch (err) {
@@ -2256,7 +2321,7 @@ async function handleFriendNotifClick(notifId) {
 function trackRecentlyViewed(item) {
     if (!item || !item.id) return;
     try {
-        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        let viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         // Remove if already exists
         viewed = viewed.filter(v => v.id !== item.id);
         // Add to front
@@ -2268,7 +2333,7 @@ function trackRecentlyViewed(item) {
         });
         // Keep max 10
         viewed = viewed.slice(0, 10);
-        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+        localStorage.setItem('odin_recently_viewed', JSON.stringify(viewed));
     } catch (e) { /* ignore storage errors */ }
 }
 
@@ -2278,7 +2343,7 @@ function renderRecentlyViewed() {
     if (!section || !row) return;
 
     try {
-        const viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        const viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         if (viewed.length === 0) {
             section.style.display = 'none';
             return;
@@ -2318,9 +2383,9 @@ function openRecentlyViewed(itemId) {
 
 function removeRecentlyViewed(itemId) {
     try {
-        let viewed = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        let viewed = JSON.parse(localStorage.getItem('odin_recently_viewed') || '[]');
         viewed = viewed.filter(v => v.id !== itemId);
-        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+        localStorage.setItem('odin_recently_viewed', JSON.stringify(viewed));
         renderRecentlyViewed();
     } catch (e) { /* ignore */ }
 }
@@ -3552,7 +3617,12 @@ function removeActiveFilter(type, value) {
 
 // ── Odin Trust Layers ────────────────────────────────────────
 // Trust level constants used throughout the app
-const TRUST = { PRIVATE: 'private', FRIENDS: 'friends', EXTENDED: 'extended_circle' };
+const TRUST = {
+    OWN:      'own',             // _trust_level: my own items (any visibility setting)
+    PRIVATE:  'private',         // item.visibility value — "Only me"
+    FRIENDS:  'friends',         // item.visibility value + _trust_level for friend items
+    EXTENDED: 'extended_circle'  // _trust_level for save-inheritance / FOF items
+};
 
 // Anonymise an extended-circle item so identity never travels more than one hop.
 // Keeps: title, photo_url, address, latitude, longitude, description,
@@ -3609,7 +3679,7 @@ async function loadDiscoveries() {
         data = data.map(item => {
             if (!item._trust_level) {
                 item._trust_level = (item.added_by === currentUser?.id)
-                    ? TRUST.PRIVATE  // own items (private or friends)
+                    ? TRUST.OWN    // own items — visibility setting is separate
                     : TRUST.FRIENDS;
             }
             return item;
@@ -3749,7 +3819,13 @@ function renderGrid() {
     }
 
     const toDisplay = filteredDiscoveries.slice(0, displayedCount + LOAD_INCREMENT);
-    toDisplay.forEach((item, i) => grid.appendChild(createCard(item, i)));
+    toDisplay.forEach((item, i) => {
+        try {
+            grid.appendChild(createCard(item, i));
+        } catch (err) {
+            console.warn('Card render error (skipped):', item?.title, err);
+        }
+    });
     displayedCount = toDisplay.length;
 
     document.getElementById('loadMoreContainer').classList.toggle('hidden', displayedCount >= filteredDiscoveries.length);
@@ -3782,8 +3858,13 @@ function createCard(item, index) {
         : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
     const catChip = catLabel ? `<span class="hf-card-cat">${escapeHtml(catLabel)}</span>` : '';
 
+    // ── Odin Trust Layer — declared early so isOwner is available for privateChip ──
+    const isOwner           = currentUser && item.added_by === currentUser.id;
+    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
+    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
+
     // ── Private chip — only shown to the owner for their own private items ──
-    const privateChip = (item.visibility === 'private' && isOwner)
+    const privateChip = (item.visibility === TRUST.PRIVATE && isOwner)
         ? `<span class="hf-card-private">Private</span>` : '';
 
     // ── Resolve personal note ──
@@ -3796,11 +3877,6 @@ function createCard(item, index) {
             note = meta.personal_note;
         } catch (e) {}
     }
-
-    // ── Odin Trust Layer ──
-    const isSaveInheritance = item._trust_level === TRUST.EXTENDED && item._via_friend_name;
-    const isExtendedCircle  = item._trust_level === TRUST.EXTENDED;
-    const isOwner           = currentUser && item.added_by === currentUser.id;
 
     // ── DISCOVER CARD LAYOUT ──
     // 1. Lead with person — avatar + "Added by [Name]" (prominent first line)
@@ -4355,6 +4431,18 @@ function openItemDrawer(item) {
         html += `<div class="drawer-meta-line">${subParts.join('<span class="drawer-meta-dot"> · </span>')}</div>`;
     }
 
+    // ── Drawer chips: category + private ──
+    const drawerCatLabel = item.category
+        ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
+        : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
+    const drawerCatChip     = drawerCatLabel ? `<span class="hf-card-cat">${drawerCatLabel}</span>` : '';
+    const drawerPrivateChip = (item.visibility === TRUST.PRIVATE && isOwner)
+        ? `<span class="hf-card-private">Private</span>` : '';
+    const drawerDistChip    = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
+    if (drawerCatChip || drawerPrivateChip || drawerDistChip) {
+        html += `<div class="hf-card-chips-row" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
+    }
+
     // Circle trust signal — shown below address for non-owner items
     if (isSaveInheritance) {
         html += `<div class="drawer-circle-signal"><span class="rc-via-dot">&#9679;</span> Via ${escapeHtml(item._via_friend_name)}</div>`;
@@ -4522,6 +4610,22 @@ function openItemDrawer(item) {
                 }
             });
         }
+    }
+
+    // Re-fetch endorsement state for this item to ensure save button is accurate
+    // (the cache may be stale if the user saved on a previous visit)
+    if (item.id && currentUser) {
+        loadEndorsementsForItems([item]).then(() => {
+            // Only update if this drawer is still open for the same item
+            if (currentDrawerItem && currentDrawerItem.id === item.id) {
+                updateEndorsementUI(item.id);
+                // Also patch the drawer save section label directly
+                const drawerReactions = document.querySelector('.drawer-reactions');
+                if (drawerReactions) {
+                    drawerReactions.outerHTML = buildEndorseSection(item.id);
+                }
+            }
+        });
     }
 }
 
@@ -4715,6 +4819,8 @@ async function saveItemEdit(itemId) {
         }
 
         showToast('Discovery updated!');
+        // Refresh the feed so visibility changes (e.g. Friends → Private) apply cleanly
+        await loadDiscoveries();
         // Re-open drawer with updated item
         openItemDrawer(item);
 
