@@ -1020,11 +1020,14 @@ async function loadEndorsementsForItems(items) {
 
         if (data) {
             data.forEach(row => {
-                endorsementsCache[row.out_item_id] = {
-                    count: row.out_count,
-                    names: row.out_names || [],
-                    ids: row.out_ids || [],
-                    userEndorsed: (row.out_ids || []).includes(currentUser.id)
+                // RPC returns: item_id, count, names, user_ids
+                const ids = row.user_ids || row.out_ids || [];
+                const itemId = row.item_id || row.out_item_id;
+                endorsementsCache[itemId] = {
+                    count: row.count ?? row.out_count ?? 0,
+                    names: row.names || row.out_names || [],
+                    ids: ids,
+                    userEndorsed: ids.includes(currentUser.id)
                 };
             });
         }
@@ -2081,7 +2084,7 @@ async function checkUnreadNotifications() {
         if (data && data.length > 0) {
             if (clearedAt) {
                 // Only count notifications created AFTER the clear timestamp
-                hasVisible = data.some(n => new Date(n.out_created_at) > new Date(parseInt(clearedAt)));
+                hasVisible = data.some(n => new Date(n.created_at) > new Date(parseInt(clearedAt)));
             } else {
                 hasVisible = true;
             }
@@ -2139,46 +2142,46 @@ async function loadNotifications() {
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
-            filtered = filtered.filter(n => new Date(n.out_created_at) > clearedDate);
+            filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
 
         if (filtered.length === 0) {
             section.style.display = 'none';
             container.innerHTML = '';
-            // User has seen the notifications panel — mark as viewed so badge clears
-            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
             return;
         }
 
-        // User is now viewing notifications — update clearedAt so badge resets after this view
-        // The badge will only reappear for notifications created AFTER this timestamp
-        localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+        section.style.display = 'block';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
 
-        section.style.display = 'block';
+        // User is now viewing these notifications — stamp clearedAt to the
+        // most recent one so the badge only reappears for NEW notifications after this point
+        const latestTs = Math.max(...filtered.map(n => new Date(n.created_at).getTime()));
+        localStorage.setItem(_NOTIFS_CLEARED_KEY, latestTs.toString());
+
         container.innerHTML = filtered.map(n => {
             let icon = '📝';
-            if (n.out_type === 'endorsement') icon = '🙌';
-            else if (n.out_type === 'friend_request') icon = '🤝';
-            else if (n.out_type === 'friend_accepted') icon = '🎉';
-            const timeAgo = getTimeAgo(n.out_created_at);
-            const unreadClass = n.out_read ? '' : ' unread';
+            if (n.type === 'endorsement') icon = '🙌';
+            else if (n.type === 'friend_request') icon = '🤝';
+            else if (n.type === 'friend_accepted') icon = '🎉';
+            const timeAgo = getTimeAgo(n.created_at);
+            const unreadClass = n.read ? '' : ' unread';
 
             // Friend notifications click → go to profile (friend requests section)
-            const clickAction = (n.out_type === 'friend_request' || n.out_type === 'friend_accepted')
-                ? `handleFriendNotifClick('${n.out_id}')`
-                : `handleNotifClick('${n.out_id}', '${n.out_item_id || ''}')`;
+            const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
+                ? `handleFriendNotifClick('${n.id}')`
+                : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
 
-            return `<div class="notif-item${unreadClass}" id="notif-${n.out_id}" onclick="${clickAction}">
+            return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
                 <div class="notif-icon">${icon}</div>
                 <div class="notif-body">
-                    <div class="notif-message">${escapeHtml(n.out_message)}</div>
+                    <div class="notif-message">${escapeHtml(n.message)}</div>
                     <div class="notif-time">${timeAgo}</div>
                 </div>
-                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.out_id}')" aria-label="Delete notification">&times;</button>
+                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
             </div>`;
         }).join('');
     } catch (err) {
