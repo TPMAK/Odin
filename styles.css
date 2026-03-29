@@ -3542,35 +3542,6 @@
             color: var(--ink);
         }
 
-        /* Search bar location toggle — sits outside pill, after send btn */
-        .search-loc-btn {
-            position: relative;
-            flex-shrink: 0;
-            width: auto;
-            height: 36px;
-            padding: 0 10px;
-            border-radius: 18px;
-            border: 1.5px solid var(--border);
-            background: var(--surface);
-            color: var(--muted);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            margin-left: 4px;
-            transition: color 0.18s, background 0.18s, border-color 0.18s;
-        }
-        .search-loc-btn.active {
-            color: #7B2D45;
-            border-color: #7B2D45;
-            background: rgba(123, 45, 69, 0.06);
-        }
-        .search-loc-btn:hover {
-            background: rgba(123, 45, 69, 0.08);
-            border-color: #7B2D45;
-            color: #7B2D45;
-        }
 
         #sendButton {
             position: absolute;

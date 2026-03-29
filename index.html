@@ -2164,10 +2164,6 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                 </button>
             </div>
-            <button class="search-loc-btn" id="searchLocBtn" onclick="toggleSearchLocation()" title="Location off" aria-label="Toggle location">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span class="input-btn-label" id="searchLocLabel">Near me</span>
-            </button>
         </div>
     </div>
 
@@ -3382,46 +3378,6 @@
             }, { timeout: 8000, maximumAge: 300000 }); // reuse cached position up to 5 min old
         } else {
             updateLocationLine();
-        }
-    }
-
-    // ── Search location toggle (reuses the same userLocation state) ──
-    function updateSearchLocBtn() {
-        var btn = document.getElementById('searchLocBtn');
-        if (!btn) return;
-        if (_homeLocationEnabled && userLocation.available) {
-            btn.classList.add('active');
-            btn.title = 'Location on';
-        } else {
-            btn.classList.remove('active');
-            btn.title = 'Location off';
-        }
-    }
-
-    function toggleSearchLocation() {
-        if (_homeLocationEnabled && userLocation.available) {
-            _homeLocationEnabled = false;
-            localStorage.setItem('homeLocationEnabled', 'false');
-            userLocation.available = false;
-            userLocation.latitude = null;
-            userLocation.longitude = null;
-            updateSearchLocBtn();
-            updateLocationLine();
-        } else {
-            if (!navigator.geolocation) return;
-            navigator.geolocation.getCurrentPosition(function(pos) {
-                _homeLocationEnabled = true;
-                localStorage.setItem('homeLocationEnabled', 'true');
-                userLocation.latitude = pos.coords.latitude;
-                userLocation.longitude = pos.coords.longitude;
-                userLocation.available = true;
-                updateSearchLocBtn();
-                updateLocationLine();
-            }, function() {
-                _homeLocationEnabled = false;
-                localStorage.setItem('homeLocationEnabled', 'false');
-                updateSearchLocBtn();
-            });
         }
     }
 
