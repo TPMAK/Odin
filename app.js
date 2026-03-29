@@ -3035,11 +3035,13 @@ function openCollection(groupName, items) {
     filteredDiscoveries = items;
     displayedCount = 0;
 
-    // Hide the circle section header and collection grid
+    // Hide the circle section header, collection grid, and distance row
     var circleHeader = document.getElementById('dcCircleHeader');
     var collGrid     = document.getElementById('dcCollectionsGrid');
+    var distRow      = document.getElementById('dcDistanceRow');
     if (circleHeader) circleHeader.style.display = 'none';
     if (collGrid)     collGrid.style.display     = 'none';
+    if (distRow)      distRow.style.display      = 'none';
 
     document.getElementById('dcAllItemsSection').style.display = '';
     document.getElementById('dcAllItemsTitle').textContent = groupName;
@@ -3501,9 +3503,12 @@ function toggleDistancePill(el, dist) {
 }
 
 function showDistanceRow() {
+    // Only show distance row when 'Near me' chip is active
     var row = document.getElementById('dcDistanceRow');
-    if (row && userLocation && userLocation.available) {
-        row.style.display = '';
+    var activeChip = document.querySelector('.dc-stab.active');
+    var isNearby = activeChip && activeChip.dataset.section === 'nearby';
+    if (row && userLocation && userLocation.available && isNearby) {
+        row.style.display = 'flex';
     }
 }
 
