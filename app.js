@@ -94,10 +94,15 @@ async function showMainApp() {
     // (includes new registrations where prevUserId is null)
     const prevUserId = localStorage.getItem('odin_last_user_id');
     const thisUserId = currentUser ? currentUser.id : null;
-    if (thisUserId && prevUserId !== thisUserId) {
+    if (thisUserId && prevUserId && prevUserId !== thisUserId) {
+        // Different user signed in — reload the page completely to avoid
+        // showing any stale data or UI from the previous session
+        localStorage.setItem('odin_last_user_id', thisUserId);
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
         localStorage.removeItem('empty_friends_dismissed');
+        location.reload();
+        return;
     }
     if (thisUserId) localStorage.setItem('odin_last_user_id', thisUserId);
 
@@ -279,6 +284,10 @@ function showAuthMode(mode) {
         createAccountTab.classList.remove('active');
         signInForm.style.display = 'flex';
         createAccountForm.style.display = 'none';
+        // Always clear form and reset button so previous session's state doesn't bleed through
+        signInForm.reset();
+        const signInBtn = document.getElementById('signInBtn');
+        if (signInBtn) resetButton(signInBtn);
     } else {
         signInTab.classList.remove('active');
         createAccountTab.classList.add('active');
@@ -286,6 +295,8 @@ function showAuthMode(mode) {
         createAccountForm.style.display = 'flex';
         // Always clear form so no stale/pre-filled data appears
         createAccountForm.reset();
+        const signUpBtn = document.getElementById('signUpBtn');
+        if (signUpBtn) resetButton(signUpBtn);
     }
 }
 
@@ -3035,11 +3046,13 @@ function openCollection(groupName, items) {
     filteredDiscoveries = items;
     displayedCount = 0;
 
-    // Hide the circle section header and collection grid
+    // Hide the circle section header, collection grid, and distance row
     var circleHeader = document.getElementById('dcCircleHeader');
     var collGrid     = document.getElementById('dcCollectionsGrid');
+    var distRow      = document.getElementById('dcDistanceRow');
     if (circleHeader) circleHeader.style.display = 'none';
     if (collGrid)     collGrid.style.display     = 'none';
+    if (distRow)      distRow.style.display      = 'none';
 
     document.getElementById('dcAllItemsSection').style.display = '';
     document.getElementById('dcAllItemsTitle').textContent = groupName;
@@ -3502,9 +3515,12 @@ function toggleDistancePill(el, dist) {
 }
 
 function showDistanceRow() {
+    // Only show distance row when 'Near me' chip is active
     var row = document.getElementById('dcDistanceRow');
-    if (row && userLocation && userLocation.available) {
-        row.style.display = '';
+    var activeChip = document.querySelector('.dc-stab.active');
+    var isNearby = activeChip && activeChip.dataset.section === 'nearby';
+    if (row && userLocation && userLocation.available && isNearby) {
+        row.style.display = 'flex';
     }
 }
 
