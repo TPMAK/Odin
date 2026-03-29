@@ -6380,6 +6380,9 @@
 }
 
 .recently-viewed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
@@ -6387,6 +6390,21 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
+.dc-clear-recent-btn {
+    background: none;
+    border: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0;
+    text-transform: none;
+    letter-spacing: 0;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.dc-clear-recent-btn:hover { opacity: 1; color: #7B2D45; }
 
 .recently-viewed-row {
     display: flex;

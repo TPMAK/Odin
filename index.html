@@ -1498,7 +1498,10 @@
                             </button>
                         </div>
                         <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
-                            <div class="recently-viewed-header">Recently viewed</div>
+                            <div class="recently-viewed-header">
+                                <span>Recently viewed</span>
+                                <button class="dc-clear-recent-btn" onclick="clearRecentlyViewed()">Clear all</button>
+                            </div>
                             <div class="recently-viewed-row" id="recentlyViewedRow"></div>
                         </div>
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
@@ -1557,9 +1560,6 @@
                                     <option value="az">A – Z</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'all');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
