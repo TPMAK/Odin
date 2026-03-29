@@ -2163,10 +2163,16 @@ async function loadNotifications() {
         localStorage.setItem(_NOTIFS_CLEARED_KEY, latestTs.toString());
 
         container.innerHTML = filtered.map(n => {
-            let icon = '📝';
-            if (n.type === 'endorsement') icon = '🙌';
-            else if (n.type === 'friend_request') icon = '🤝';
-            else if (n.type === 'friend_accepted') icon = '🎉';
+            let icon;
+            if (n.type === 'endorsement') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+            } else if (n.type === 'friend_request') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+            } else if (n.type === 'friend_accepted') {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
+            } else {
+                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+            }
             const timeAgo = getTimeAgo(n.created_at);
             const unreadClass = n.read ? '' : ' unread';
 
