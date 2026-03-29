@@ -1507,11 +1507,11 @@
                     <!-- Smart section tabs -->
                     <div class="dc-section-tabs-row">
                         <div class="dc-section-tabs" id="dcSectionTabs">
-                            <button class="dc-stab active" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending this week</button>
-                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Popular nearby</button>
-                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New from circle</button>
+                            <button class="dc-stab active" data-section="all" onclick="setDiscoverSection(this,'all')">All</button>
+                            <button class="dc-stab" data-section="trending" onclick="setDiscoverSection(this,'trending')">Trending</button>
+                            <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New</button>
+                            <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Near me</button>
                         </div>
-                        <button class="dc-see-all-btn" onclick="openCollection('All saves', allDiscoveries || [])">See all</button>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -1559,7 +1559,7 @@
                             </div>
                         </div>
                         <div class="dc-back-row">
-                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'trending');">← Back</button>
+                            <button class="dc-back-btn" onclick="showAllCollections(); var t=document.querySelector('.dc-stab.active'); if(t) setDiscoverSection(t, t.dataset.section||'all');">← Back</button>
                         </div>
                         <div class="discover-grid" id="discoverGrid"></div>
                         <div class="load-more-container hidden" id="loadMoreContainer">
@@ -3510,7 +3510,7 @@
     }
 
     // ── Smart section tabs ──
-    var currentDiscoverSection = 'trending';
+    var currentDiscoverSection = 'all';
 
     function setDiscoverSection(el, section) {
         currentDiscoverSection = section;
@@ -3520,9 +3520,17 @@
         var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
         var items = [];
         var titleEl = document.getElementById('dcCircleTitle');
+        var dr = document.getElementById('dcDistanceRow');
 
-        if (section === 'trending') {
-            // Most saved — sort by saves_count desc (real Supabase field)
+        if (section === 'all') {
+            // All items — sorted by most saved
+            items = allD.slice().sort(function(a, b) {
+                return ((b.saves_count || 0) - (a.saves_count || 0));
+            });
+            if (titleEl) titleEl.textContent = 'All';
+            if (dr) dr.style.display = 'none';
+        } else if (section === 'trending') {
+            // Most saved this week
             var oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
             var recent = allD.filter(function(d) {
                 if (!d.created_at) return true;
@@ -3533,13 +3541,11 @@
                 return ((b.saves_count || 0) - (a.saves_count || 0));
             });
             if (titleEl) titleEl.textContent = 'Trending this week';
-            var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         } else if (section === 'nearby') {
-            // Location-aware — filter to items with latitude/longitude (Supabase field names)
+            // Location-aware — filter to items with latitude/longitude
             items = allD.filter(function(d) { return d.latitude && d.longitude; });
-            if (titleEl) titleEl.textContent = 'Popular nearby';
-            var dr = document.getElementById('dcDistanceRow');
+            if (titleEl) titleEl.textContent = 'Near me';
             if (dr) dr.style.display = 'flex';
         } else if (section === 'new') {
             // Latest additions from circle — sort by created_at desc
@@ -3547,7 +3553,6 @@
                 return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
             if (titleEl) titleEl.textContent = 'New from your circle';
-            var dr = document.getElementById('dcDistanceRow');
             if (dr) dr.style.display = 'none';
         }
 

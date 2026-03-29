@@ -8600,10 +8600,10 @@
         padding-right: 32px;
     }
 }
-.dc-search-pinned .dc-search-row { padding-top: 8px; padding-bottom: 8px; }
-.dc-search-pinned .recently-viewed-section { padding-top: 6px; margin-bottom: 8px; }
-.dc-search-pinned .active-filters-bar { margin-bottom: 0; padding-bottom: 8px; }
-.discover-header { padding: 12px 0 6px; }
+.dc-search-pinned .dc-search-row { padding-top: 5px; padding-bottom: 5px; }
+.dc-search-pinned .recently-viewed-section { padding-top: 4px; margin-bottom: 5px; }
+.dc-search-pinned .active-filters-bar { margin-bottom: 0; padding-bottom: 5px; }
+.discover-header { padding: 8px 0 3px; }
 .dc-heading {
     /* font-size controlled by .page-heading global token */
     line-height: 1.15;
@@ -8801,30 +8801,33 @@
     padding: 0;
 }
 
-/* ── Smart section tabs ── */
+/* ── Smart section tabs (WhatsApp-style pills) ── */
 .dc-section-tabs {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding-bottom: 4px;
+    padding-bottom: 2px;
     margin-bottom: 0;
+    -webkit-overflow-scrolling: touch;
 }
 .dc-section-tabs::-webkit-scrollbar { display: none; }
 .dc-stab {
     flex-shrink: 0;
-    padding: 8px 16px;
+    padding: 6px 14px;
     background: var(--surface);
     border: 1.5px solid var(--border);
-    border-radius: 20px;
+    border-radius: 999px;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: #6A5A4A;
     cursor: pointer;
-    transition: border-color 0.18s, color 0.18s, background 0.18s;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
     white-space: nowrap;
+    line-height: 1.3;
+    -webkit-tap-highlight-color: transparent;
 }
 .dc-stab:hover {
     border-color: #7B2D45;
@@ -10269,7 +10272,8 @@ body.map-view-open .content {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    padding: 6px 0 4px;
 }
 
 /* Strip the spacing from .dc-section-tabs when inside the row */
