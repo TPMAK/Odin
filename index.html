@@ -4239,6 +4239,10 @@
         var content = document.querySelector('.content');
         if (content) content.style.overflow = '';
     }
+    function _blurActive(container) {
+        var el = document.activeElement;
+        if (el && container && container.contains(el)) el.blur();
+    }
 
     function openCircleDrawer() {
         var d = document.getElementById('circleDrawer');
@@ -4258,7 +4262,7 @@
         if (!d) return;
         d.classList.remove('is-open');
         var sheet = _drawerSheet('circleDrawer');
-        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        if (sheet) { _blurActive(sheet); sheet.setAttribute('aria-hidden', 'true'); }
         _unlockScroll();
     }
     function openMySavesDrawer() {
@@ -4275,7 +4279,7 @@
         if (!d) return;
         d.classList.remove('is-open');
         var sheet = _drawerSheet('mySavesDrawer');
-        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        if (sheet) { _blurActive(sheet); sheet.setAttribute('aria-hidden', 'true'); }
         _unlockScroll();
     }
     // Sync the hidden myEndorsementsList content into the drawer
@@ -4314,7 +4318,7 @@
         if (!d) return;
         d.classList.remove('is-open');
         var sheet = _drawerSheet('langDrawer');
-        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        if (sheet) { _blurActive(sheet); sheet.setAttribute('aria-hidden', 'true'); }
         _unlockScroll();
     }
     // ── Notifications drawer ──
@@ -4360,7 +4364,7 @@
         if (!d) return;
         d.classList.remove('is-open');
         var sheet = _drawerSheet('notifDrawer');
-        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        if (sheet) { _blurActive(sheet); sheet.setAttribute('aria-hidden', 'true'); }
         _unlockScroll();
     }
 
