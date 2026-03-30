@@ -688,7 +688,15 @@ async function loadProfilePage() {
     if (!currentProfile) await loadUserProfile();
     if (!currentProfile) return;
 
-    // Notifications now live in the drawer — not on the profile page
+    // Load notifications list first, then mark as read
+    await loadNotifications();
+
+    // Auto-clear notification dot when user opens profile
+    try {
+        await supabaseClient.rpc('mark_all_notifications_read', { p_user_id: currentUser.id });
+    } catch (e) { /* silently ignore */ }
+    const badge = document.getElementById('notifBadge');
+    if (badge) badge.style.display = 'none';
 
     // Always reset to view mode
     toggleProfileEdit(false);
@@ -2110,9 +2118,8 @@ function stopNotifPolling() {
 async function loadNotifications() {
     if (!currentUser) return;
     const container = document.getElementById('notifItems');
-    if (!container) return;
-
-    const emptyEl = document.getElementById('notifEmpty');
+    const section = document.getElementById('notificationsList');
+    if (!container || !section) return;
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -2139,14 +2146,14 @@ async function loadNotifications() {
         }
 
         if (filtered.length === 0) {
+            section.style.display = 'none';
             container.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
             return;
         }
 
-        if (emptyEl) emptyEl.style.display = 'none';
+        section.style.display = 'block';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
 
@@ -2203,13 +2210,14 @@ async function deleteNotification(notifId) {
         await supabaseClient.from('notifications').delete().eq('id', notifId);
     } catch (e) { console.error('Error deleting notification:', e); }
 
-    // Show empty state if last notification deleted
+    // Hide section if empty; store cleared timestamp when last one deleted
     setTimeout(() => {
         const container = document.getElementById('notifItems');
-        if (container && container.children.length === 0) {
-            const emptyEl = document.getElementById('notifEmpty');
-            if (emptyEl) emptyEl.style.display = 'block';
+        const section = document.getElementById('notificationsList');
+        if (container && section && container.children.length === 0) {
+            section.style.display = 'none';
             localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+            // Also hide the badge dot
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
@@ -2222,6 +2230,7 @@ async function clearAllNotifications() {
     // before this time will never be shown again, even if the DB delete fails
     localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
     const container = document.getElementById('notifItems');
+    const section = document.getElementById('notificationsList');
 
     // Fade out all items
     if (container) {
@@ -2247,8 +2256,7 @@ async function clearAllNotifications() {
 
     setTimeout(() => {
         if (container) container.innerHTML = '';
-        const emptyEl = document.getElementById('notifEmpty');
-        if (emptyEl) emptyEl.style.display = 'block';
+        if (section) section.style.display = 'none';
     }, 300);
 
     // Clear badge
@@ -2257,9 +2265,6 @@ async function clearAllNotifications() {
 }
 
 async function handleNotifClick(notifId, itemId) {
-    // Close drawer first
-    closeNotifDrawer();
-
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', {
@@ -2303,8 +2308,6 @@ async function markAllNotifsRead() {
 }
 
 async function handleFriendNotifClick(notifId) {
-    // Close drawer first
-    closeNotifDrawer();
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', { p_notification_id: notifId });
@@ -2410,9 +2413,6 @@ const LANG_LABELS = {
     es: 'ES', fr: 'FR', ar: 'AR', hi: 'HI',
     pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
 };
-
-// Translate icon — Lucide "Languages" (option 3), used everywhere instead of 🌐 emoji
-const TRANSLATE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>';
 
 /** Call once after profile is loaded. Autodetects from browser if not set. */
 async function initUserLanguage() {
@@ -2605,7 +2605,7 @@ async function toggleLang(btn, idx) {
 
     if (state === 'translated') {
         btn.dataset.state = 'original';
-        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
+        btn.textContent = 'Translate 🌐';
         updateCardContent(card, r, false);
     } else {
         btn.textContent = 'Translating...';
@@ -2674,7 +2674,7 @@ async function toggleDrawerLang(btn) {
         // Remove translation blocks — originals stay untouched
         document.querySelectorAll('.drawer-translation-block').forEach(function(el) { el.remove(); });
         btn.dataset.state = 'original';
-        btn.innerHTML = 'Translate to ' + langLabel + ' ' + TRANSLATE_ICON;
+        btn.textContent = `Translate to ${langLabel} 🌐`;
     }
 }
 
@@ -2685,7 +2685,7 @@ async function toggleFeedCardTranslate(btn) {
     const item = (typeof allDiscoveries !== 'undefined' && allDiscoveries.find(d => d.id === itemId))
         || (typeof currentResults !== 'undefined' && currentResults.find(r => r.id === itemId))
         || null;
-    if (!item) { btn.innerHTML = TRANSLATE_ICON; return; }
+    if (!item) { btn.textContent = '🌐'; return; }
 
     const state = btn.dataset.state;
     const targetLang = userPreferredLanguage || 'en';
@@ -2706,9 +2706,9 @@ async function toggleFeedCardTranslate(btn) {
                 wordEl.insertAdjacentElement('afterend', span);
             }
             btn.dataset.state = 'translated';
-            btn.innerHTML = '✕ ' + TRANSLATE_ICON;
+            btn.textContent = '✕ 🌐';
         } catch (e) {
-            btn.innerHTML = TRANSLATE_ICON;
+            btn.textContent = '🌐';
         }
         btn.classList.remove('translate-loading');
         btn.disabled = false;
@@ -2716,7 +2716,7 @@ async function toggleFeedCardTranslate(btn) {
         const prev = card && card.querySelector('.feed-card-translation');
         if (prev) prev.remove();
         btn.dataset.state = 'original';
-        btn.innerHTML = TRANSLATE_ICON;
+        btn.textContent = '🌐';
     }
 }
 
@@ -2751,7 +2751,7 @@ async function toggleCardTranslate(btn, idx) {
             btn.dataset.state = 'translated';
             btn.textContent = 'Show original';
         } catch(e) {
-            btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
+            btn.textContent = 'Translate 🌐';
             btn.dataset.state = 'original';
         }
         btn.classList.remove('translate-loading');
@@ -2763,7 +2763,7 @@ async function toggleCardTranslate(btn, idx) {
         const snippetEl = card && card.querySelector('.compact-snippet');
         if (snippetEl && snippetEl.dataset.original) snippetEl.textContent = snippetEl.dataset.original;
         btn.dataset.state = 'original';
-        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
+        btn.textContent = 'Translate 🌐';
     }
 }
 
@@ -3095,11 +3095,7 @@ function locateOnMap() {
 
 var userLocMarker = null;
 
-// Track active mode for pull-to-refresh
-var _currentMode = 'home';
-
 function setMode(mode) {
-    _currentMode = mode;
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
@@ -3948,8 +3944,8 @@ function createCard(item, index) {
 
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
-        : TRANSLATE_ICON;
+        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
+        : '🌐';
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
@@ -4477,8 +4473,8 @@ function openItemDrawer(item) {
     // What's this about = no personal note — shows feed_card_summary or description (plain, neutral)
     // Helper: build translate button label
     const _translateBtnLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
-        : 'Translate ' + TRANSLATE_ICON;
+        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
+        : 'Translate 🌐';
 
     if (isOwner && note) {
         // Scenario 1: own save with note
@@ -5229,7 +5225,7 @@ function sendMessage(text) {
                             ` : ''}
                             <div class="top-pick-footer">
                                 <span class="result-save-count">${saveLabel}</span>
-                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
+                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                             </div>
                         </div>
                     </div>
@@ -5280,7 +5276,7 @@ function sendMessage(text) {
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
-                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
+                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
                         </div>
                     </div>
                 `;
@@ -5697,8 +5693,6 @@ function startTakePlaceholder(category) {
 function clearCaptureForm() {
     document.getElementById('addForm').reset();
     document.getElementById('url').value = '';
-    const retryBtn = document.getElementById('ogRetryBtn');
-    if (retryBtn) retryBtn.style.display = 'none';
     document.getElementById('userLat').value = '';
     document.getElementById('userLng').value = '';
     document.getElementById('locationStatus').textContent = '';
@@ -6111,21 +6105,6 @@ async function fetchAndPrefillOG(url) {
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
         if (heroHint) heroHint.style.display = 'flex';
-        // Show retry button and reset dedup so user can try again
-        const retryBtn = document.getElementById('ogRetryBtn');
-        if (retryBtn) retryBtn.style.display = 'inline-block';
-        _lastOGFetchedUrl = ''; // allow re-fetch of same URL
-    }
-}
-
-function retryOGFetch() {
-    const retryBtn = document.getElementById('ogRetryBtn');
-    if (retryBtn) retryBtn.style.display = 'none';
-    const urlInput = document.getElementById('url');
-    const val = urlInput ? urlInput.value.trim() : '';
-    if (val && val.startsWith('http')) {
-        _lastOGFetchedUrl = ''; // ensure dedup doesn't block
-        fetchAndPrefillOG(val);
     }
 }
 
@@ -7266,185 +7245,4 @@ function dismissEmptyFriends() {
         el.style.transition = 'opacity 0.3s';
         setTimeout(() => { el.style.display = 'none'; }, 300);
     }
-}
-
-// ===== PULL-TO-REFRESH =====
-(function initPullToRefresh() {
-    var PTR_THRESHOLD = 65;   // px drag needed to trigger refresh
-    var PTR_MAX      = 90;    // max drag distance (visual clamp)
-
-    var touchStartY  = 0;
-    var pulling      = false;
-    var refreshing   = false;
-
-    // Create indicator element
-    var indicator = document.createElement('div');
-    indicator.id  = 'ptrIndicator';
-    indicator.style.cssText = [
-        'position:fixed',
-        'top:0',
-        'left:0',
-        'right:0',
-        'z-index:9999',
-        'display:flex',
-        'align-items:center',
-        'justify-content:center',
-        'height:0',
-        'overflow:hidden',
-        'transition:height 0.2s ease',
-        'background:transparent',
-        'pointer-events:none'
-    ].join(';');
-
-    indicator.innerHTML =
-        '<div style="display:flex;align-items:center;gap:8px;' +
-        'background:var(--surface,#fff);border-radius:20px;' +
-        'padding:6px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.12);' +
-        'font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text-secondary,#888);">' +
-        '<svg id="ptrSpinner" width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="#7B2D45" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
-        '<polyline points="1 4 1 10 7 10"/>' +
-        '<path d="M3.51 15a9 9 0 1 0 .49-4.5"/>' +
-        '</svg>' +
-        '<span id="ptrLabel">Pull to refresh</span>' +
-        '</div>';
-
-    document.addEventListener('DOMContentLoaded', function() {
-        document.body.appendChild(indicator);
-    });
-
-    function isRefreshableMode() {
-        return _currentMode === 'home' ||
-               _currentMode === 'discover' ||
-               _currentMode === 'profile' ||
-               _currentMode === 'input';
-    }
-
-    function getScrollTop() {
-        var content = document.querySelector('.content');
-        if (content) return content.scrollTop;
-        return window.scrollY || document.documentElement.scrollTop;
-    }
-
-    function setIndicatorHeight(px) {
-        indicator.style.height = px + 'px';
-    }
-
-    function setIndicatorLabel(text) {
-        var label = document.getElementById('ptrLabel');
-        if (label) label.textContent = text;
-    }
-
-    function spinIndicator(spin) {
-        var svg = document.getElementById('ptrSpinner');
-        if (!svg) return;
-        if (spin) {
-            svg.style.animation = 'ptrSpin 0.7s linear infinite';
-        } else {
-            svg.style.animation = '';
-        }
-    }
-
-    async function triggerRefresh() {
-        if (refreshing) return;
-        refreshing = true;
-        setIndicatorHeight(PTR_THRESHOLD);
-        setIndicatorLabel('Refreshing…');
-        spinIndicator(true);
-
-        try {
-            if (_currentMode === 'home') {
-                await loadFriends();
-                loadDiscoveries();
-            } else if (_currentMode === 'discover') {
-                allDiscoveries = [];
-                await loadDiscoveries();
-            } else if (_currentMode === 'profile') {
-                await loadProfilePage();
-            } else if (_currentMode === 'input') {
-                // On Add page: only retry OG fetch if a URL is present — don't wipe the form
-                var urlVal = (document.getElementById('url') || {}).value;
-                if (urlVal && urlVal.trim().startsWith('http')) {
-                    _lastOGFetchedUrl = '';
-                    await fetchAndPrefillOG(urlVal.trim());
-                }
-            }
-        } catch(e) {
-            console.warn('Pull-to-refresh error:', e);
-        }
-
-        spinIndicator(false);
-        setIndicatorLabel('Pull to refresh');
-        setIndicatorHeight(0);
-        refreshing = false;
-    }
-
-    document.addEventListener('touchstart', function(e) {
-        if (!isRefreshableMode()) return;
-        if (getScrollTop() > 0) return;
-        touchStartY = e.touches[0].clientY;
-        pulling = true;
-    }, { passive: true });
-
-    document.addEventListener('touchmove', function(e) {
-        if (!pulling || refreshing) return;
-        var delta = e.touches[0].clientY - touchStartY;
-        if (delta <= 0) { pulling = false; setIndicatorHeight(0); return; }
-        var clamped = Math.min(delta * 0.5, PTR_MAX);
-        setIndicatorHeight(clamped);
-        setIndicatorLabel(clamped >= PTR_THRESHOLD * 0.5 ? 'Release to refresh' : 'Pull to refresh');
-    }, { passive: true });
-
-    document.addEventListener('touchend', function() {
-        if (!pulling || refreshing) return;
-        pulling = false;
-        var currentH = parseFloat(indicator.style.height) || 0;
-        if (currentH >= PTR_THRESHOLD * 0.5) {
-            triggerRefresh();
-        } else {
-            setIndicatorHeight(0);
-        }
-    }, { passive: true });
-
-    // Inject keyframe animation for spinner
-    var style = document.createElement('style');
-    style.textContent = '@keyframes ptrSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
-    document.head.appendChild(style);
-})();
-
-// ===== NOTIFICATION DRAWER =====
-var _notifDrawerOpen = false;
-
-function toggleNotifDrawer() {
-    if (_notifDrawerOpen) {
-        closeNotifDrawer();
-    } else {
-        openNotifDrawer();
-    }
-}
-
-function openNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    // Load fresh notifications every time drawer opens
-    loadNotifications();
-
-    backdrop.style.display = 'block';
-    drawer.style.display   = 'flex'; // ensure it's rendered before transition
-    // Force reflow so transition fires
-    drawer.getBoundingClientRect();
-    drawer.style.transform = 'translateY(0)';
-    _notifDrawerOpen = true;
-}
-
-function closeNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    drawer.style.transform = 'translateY(-110%)';
-    backdrop.style.display = 'none';
-    _notifDrawerOpen = false;
 }

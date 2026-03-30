@@ -1247,8 +1247,8 @@
                         </div>
                     </div>
                 </div>
-                <!-- Bell icon — opens notification drawer over Home -->
-                <button class="header-bell-btn" onclick="toggleNotifDrawer()" aria-label="Notifications">
+                <!-- Bell icon replaces avatar — profile still in tab bar -->
+                <button class="header-bell-btn" onclick="setMode('profile')" aria-label="Notifications">
                     <svg class="header-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -1754,8 +1754,15 @@
                     </form>
                 </div>
 
-                <!-- ── Notifications moved to floating drawer — stub kept for JS safety ── -->
-                <div id="notificationsList" style="display:none;"></div>
+                <!-- ── Notifications (triggered from bell icon) ── -->
+                <div id="notificationsList" class="profile-notif-section" style="display:none;">
+                    <div class="profile-section-divider"></div>
+                    <div class="home-section-header">
+                        <h2>Notifications</h2>
+                        <a onclick="clearAllNotifications()">Clear all</a>
+                    </div>
+                    <div id="notifItems" class="notif-list"></div>
+                </div>
 
                 <!-- ── Hidden anchors kept for JS compatibility ── -->
                 <div id="profileSavesSection" style="display:none;"></div>
@@ -1969,7 +1976,6 @@
                         Auto-fills title, description &amp; more
                     </div>
                     <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px; display: none;"></small>
-                    <button type="button" id="ogRetryBtn" onclick="retryOGFetch()" style="display:none; margin-top:6px; background:none; border:1px solid #7B2D45; color:#7B2D45; border-radius:8px; padding:5px 12px; font-family:'DM Sans',sans-serif; font-size:12px; cursor:pointer;">↺ Retry preview</button>
                 </div>
 
                 <!-- OG Preview Card (appears after URL fetch) -->
@@ -3810,8 +3816,8 @@
 
         // HOME card order: Title → The Word → chips → who saved + save count + translate
         var _homeTranslateLabel = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage && userPreferredLanguage !== 'en')
-            ? 'Translate ' + TRANSLATE_ICON
-            : TRANSLATE_ICON;
+            ? 'Translate 🌐'
+            : '🌐';
         return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
             + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
@@ -4463,66 +4469,6 @@
     <!-- Coach Marks -->
     <div id="coachMark" style="display:none;" onclick="dismissCoachMark()">
         <div id="coachMarkText"></div>
-    </div>
-
-    <!-- ── Notification Drawer ── -->
-    <div id="notifBackdrop" onclick="closeNotifDrawer()" style="
-        display:none;
-        position:fixed;inset:0;
-        background:rgba(0,0,0,0.35);
-        z-index:1100;
-        backdrop-filter:blur(2px);
-        -webkit-backdrop-filter:blur(2px);
-    "></div>
-
-    <div id="notifDrawer" style="
-        position:fixed;
-        top:0;left:0;right:0;
-        z-index:1101;
-        background:var(--surface,#fff);
-        border-radius:0 0 20px 20px;
-        box-shadow:0 8px 32px rgba(0,0,0,0.18);
-        max-height:72vh;
-        display:flex;flex-direction:column;
-        transform:translateY(-110%);
-        transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
-        overflow:hidden;
-    ">
-        <!-- Drawer header -->
-        <div style="
-            display:flex;align-items:center;justify-content:space-between;
-            padding:16px 20px 12px;
-            border-bottom:1px solid var(--border,#eee);
-            flex-shrink:0;
-        ">
-            <span style="font-family:'DM Serif Display',Georgia,serif;font-size:18px;font-weight:400;color:var(--text-primary,#1a1a1a);">Notifications</span>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button onclick="clearAllNotifications()" style="
-                    background:none;border:none;cursor:pointer;
-                    font-family:'DM Sans',sans-serif;font-size:13px;
-                    color:var(--text-secondary,#888);padding:0;
-                ">Clear all</button>
-                <button onclick="closeNotifDrawer()" style="
-                    background:none;border:none;cursor:pointer;
-                    display:flex;align-items:center;justify-content:center;
-                    width:28px;height:28px;border-radius:50%;
-                    color:var(--text-secondary,#888);
-                " aria-label="Close">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-            </div>
-        </div>
-        <!-- Notif list -->
-        <div id="notifItems" class="notif-list" style="overflow-y:auto;flex:1;padding:8px 0;"></div>
-        <!-- Empty state -->
-        <div id="notifEmpty" style="
-            display:none;
-            padding:36px 20px;text-align:center;
-            font-family:'DM Sans',sans-serif;font-size:14px;
-            color:var(--text-secondary,#aaa);
-        ">You're all caught up</div>
-        <!-- Safe area spacer for iOS -->
-        <div style="height:env(safe-area-inset-bottom,0px);flex-shrink:0;"></div>
     </div>
 
 </body>
