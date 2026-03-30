@@ -3145,13 +3145,17 @@
             40% { transform: scale(1); opacity: 1; }
         }
 
-        /* Search Results Map */
+        /* Search Results Map — matches Discover map style */
         .search-map-container {
-            margin-top: 20px;
-            border-radius: 12px;
+            margin-top: 16px;
+            border-radius: 14px;
             overflow: hidden;
             border: 1px solid var(--border);
-            height: 400px;
+            height: 260px;
+            position: relative;
+        }
+        .search-map-container .leaflet-container {
+            border-radius: 14px;
         }
 
         /* Photo Lightbox */
