@@ -5328,6 +5328,16 @@ function sendMessage(text) {
                         </div>`;
                 }
 
+                // ── Map — only when ≥2 results have valid coordinates ──
+                const locatedResults = currentResults.filter(r => {
+                    const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
+                    return !isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01);
+                });
+                const mapId = 'searchMap_' + Date.now();
+                if (locatedResults.length >= 2) {
+                    html += `<div class="search-map-container"><div id="${mapId}" style="width:100%;height:100%;"></div></div>`;
+                }
+
                 html += '</div></div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
@@ -5335,6 +5345,10 @@ function sendMessage(text) {
                 if (moreScroll && moreScroll.id) {
                     setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
                     moreScroll.addEventListener('scroll', function() { updateScrollArrows(moreScroll.id); });
+                }
+
+                if (locatedResults.length >= 2) {
+                    setTimeout(function() { initSearchMap(mapId, currentResults); }, 100);
                 }
 
                 sessionMessages.push({
@@ -5479,32 +5493,122 @@ function sendMessage(text) {
 }
 
 function initSearchMap(mapId, results) {
-    const mapEl = document.getElementById(mapId);
+    var mapEl = document.getElementById(mapId);
     if (!mapEl) return;
 
-    const located = results.filter(r => r.latitude && r.longitude);
-    if (located.length === 0) return;
+    // Destroy any previous instance
+    if (searchMap) { try { searchMap.remove(); } catch(e) {} searchMap = null; }
+    if (mapEl._leaflet_id !== undefined) { mapEl._leaflet_id = undefined; mapEl.innerHTML = ''; }
 
-    searchMap = L.map(mapId);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(searchMap);
+    // Pre-filter results with valid coordinates (skip null-island)
+    var located = results.reduce(function(acc, r, originalIdx) {
+        var lat = parseFloat(r.latitude);
+        var lng = parseFloat(r.longitude);
+        if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) {
+            acc.push({ r: r, lat: lat, lng: lng, originalIdx: originalIdx });
+        }
+        return acc;
+    }, []);
+    if (located.length < 2) return;
 
-    const bounds = [];
-    located.forEach((r, i) => {
-        const lat = parseFloat(r.latitude);
-        const lng = parseFloat(r.longitude);
-        if (isNaN(lat) || isNaN(lng)) return;
-        bounds.push([lat, lng]);
-        L.marker([lat, lng]).addTo(searchMap).bindTooltip(`<strong>${escapeHtml(r.title)}</strong>`).on('click', () => showSearchDrawer(i));
-    });
+    try {
+        searchMap = L.map(mapId, { zoomControl: false });
+    } catch(e) { return; }
 
+    // Same CartoDB Positron tiles as Discover map
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(searchMap);
+
+    // User location dot — same style as Discover
     if (userLocation.available) {
         L.circleMarker([userLocation.latitude, userLocation.longitude], {
-            radius: 8, fillColor: '#059669', color: '#fff', weight: 2, fillOpacity: 0.8
-        }).addTo(searchMap).bindTooltip('You are here');
-        bounds.push([userLocation.latitude, userLocation.longitude]);
+            radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
+        }).addTo(searchMap).bindTooltip('You are here', { direction: 'top' });
     }
 
-    if (bounds.length > 0) searchMap.fitBounds(bounds, { padding: [30, 30] });
+    var bounds = [];
+    located.forEach(function(entry, listIdx) {
+        var r   = entry.r;
+        var lat = entry.lat;
+        var lng = entry.lng;
+        var oi  = entry.originalIdx;
+        bounds.push([lat, lng]);
+
+        var col    = typeof catColour === 'function' ? catColour(r.category || r.type) : '#7B2D45';
+        var avInit = (r.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol  = typeof strColour === 'function' ? strColour(r.added_by_name || '?') : '#7B2D45';
+        var num    = listIdx + 1;
+
+        // Numbered teardrop pin — same shape as Discover, number instead of category initial
+        var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:11px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + num + '</span></div>';
+        var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
+
+        // Popup — same odin-pop structure as Discover
+        var distText = r.distance_km
+            ? (r.distance_km < 1 ? Math.round(r.distance_km * 1000) + 'm' : r.distance_km.toFixed(1) + 'km')
+            : '';
+        var popHtml =
+            '<div class="odin-pop">' +
+                '<div class="odin-pop-cat">' +
+                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
+                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(r.category || r.type || '') + '</span>' +
+                    (distText ? '<span class="odin-pop-label" style="color:#888;margin-left:6px;">&middot; ' + distText + '</span>' : '') +
+                '</div>' +
+                '<div class="odin-pop-name">' + escapeHtml(r.title) + '</div>' +
+                '<div class="odin-pop-by">' +
+                    '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<div class="odin-pop-by-text">by <strong>' + escapeHtml(r.added_by_name || '?') + '</strong></div>' +
+                '</div>' +
+                '<button class="odin-pop-view" onclick="showSearchDrawer(' + oi + ')">View details &rsaquo;</button>' +
+            '</div>';
+
+        var marker = L.marker([lat, lng], { icon: icon })
+            .addTo(searchMap)
+            .bindPopup(popHtml, { maxWidth: 240, autoPan: false });
+
+        marker.on('mouseover', function() { this.openPopup(); });
+        marker.on('click', function() { this.openPopup(); });
+    });
+
+    if (bounds.length > 0) searchMap.fitBounds(bounds, { padding: [36, 36] });
+
+    // Fix size after render (same pattern as Discover)
+    setTimeout(function() { if (searchMap) searchMap.invalidateSize(); }, 200);
+    setTimeout(function() { if (searchMap) searchMap.invalidateSize(); }, 600);
+
+    // Inject locate button
+    setTimeout(function() {
+        var cont = document.getElementById(mapId);
+        if (!cont || cont.querySelector('.smap-controls')) return;
+        var ctrl = document.createElement('div');
+        ctrl.className = 'smap-controls';
+        ctrl.innerHTML =
+            '<button class="dmap-ctrl-btn dmap-locate-btn" onclick="locateOnSearchMap(this)" title="My location">' +
+                '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>' +
+            '</button>';
+        cont.appendChild(ctrl);
+    }, 400);
+}
+
+function locateOnSearchMap(btn) {
+    if (!navigator.geolocation || !searchMap) return;
+    if (btn) btn.classList.add('locating');
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            var lat = pos.coords.latitude;
+            var lng = pos.coords.longitude;
+            userLocation.latitude  = lat;
+            userLocation.longitude = lng;
+            userLocation.available = true;
+            searchMap.setView([lat, lng], 14, { animate: true });
+            if (btn) btn.classList.remove('locating');
+        },
+        function() { if (btn) btn.classList.remove('locating'); },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
 }
 
 // ===== SCROLL ARROWS FOR MORE OPTIONS =====
