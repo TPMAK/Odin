@@ -2411,6 +2411,9 @@ const LANG_LABELS = {
     pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
 };
 
+// Translate icon — Lucide "Languages" (option 3), used everywhere instead of 🌐 emoji
+const TRANSLATE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>';
+
 /** Call once after profile is loaded. Autodetects from browser if not set. */
 async function initUserLanguage() {
     // 1. Try profile setting from Supabase
@@ -2602,7 +2605,7 @@ async function toggleLang(btn, idx) {
 
     if (state === 'translated') {
         btn.dataset.state = 'original';
-        btn.textContent = 'Translate 🌐';
+        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
         updateCardContent(card, r, false);
     } else {
         btn.textContent = 'Translating...';
@@ -2671,7 +2674,7 @@ async function toggleDrawerLang(btn) {
         // Remove translation blocks — originals stay untouched
         document.querySelectorAll('.drawer-translation-block').forEach(function(el) { el.remove(); });
         btn.dataset.state = 'original';
-        btn.textContent = `Translate to ${langLabel} 🌐`;
+        btn.innerHTML = 'Translate to ' + langLabel + ' ' + TRANSLATE_ICON;
     }
 }
 
@@ -2682,7 +2685,7 @@ async function toggleFeedCardTranslate(btn) {
     const item = (typeof allDiscoveries !== 'undefined' && allDiscoveries.find(d => d.id === itemId))
         || (typeof currentResults !== 'undefined' && currentResults.find(r => r.id === itemId))
         || null;
-    if (!item) { btn.textContent = '🌐'; return; }
+    if (!item) { btn.innerHTML = TRANSLATE_ICON; return; }
 
     const state = btn.dataset.state;
     const targetLang = userPreferredLanguage || 'en';
@@ -2703,9 +2706,9 @@ async function toggleFeedCardTranslate(btn) {
                 wordEl.insertAdjacentElement('afterend', span);
             }
             btn.dataset.state = 'translated';
-            btn.textContent = '✕ 🌐';
+            btn.innerHTML = '✕ ' + TRANSLATE_ICON;
         } catch (e) {
-            btn.textContent = '🌐';
+            btn.innerHTML = TRANSLATE_ICON;
         }
         btn.classList.remove('translate-loading');
         btn.disabled = false;
@@ -2713,7 +2716,7 @@ async function toggleFeedCardTranslate(btn) {
         const prev = card && card.querySelector('.feed-card-translation');
         if (prev) prev.remove();
         btn.dataset.state = 'original';
-        btn.textContent = '🌐';
+        btn.innerHTML = TRANSLATE_ICON;
     }
 }
 
@@ -2748,7 +2751,7 @@ async function toggleCardTranslate(btn, idx) {
             btn.dataset.state = 'translated';
             btn.textContent = 'Show original';
         } catch(e) {
-            btn.textContent = 'Translate 🌐';
+            btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
             btn.dataset.state = 'original';
         }
         btn.classList.remove('translate-loading');
@@ -2760,7 +2763,7 @@ async function toggleCardTranslate(btn, idx) {
         const snippetEl = card && card.querySelector('.compact-snippet');
         if (snippetEl && snippetEl.dataset.original) snippetEl.textContent = snippetEl.dataset.original;
         btn.dataset.state = 'original';
-        btn.textContent = 'Translate 🌐';
+        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
     }
 }
 
@@ -3945,8 +3948,8 @@ function createCard(item, index) {
 
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
-        : '🌐';
+        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
+        : TRANSLATE_ICON;
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
@@ -4474,8 +4477,8 @@ function openItemDrawer(item) {
     // What's this about = no personal note — shows feed_card_summary or description (plain, neutral)
     // Helper: build translate button label
     const _translateBtnLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
-        : 'Translate 🌐';
+        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
+        : 'Translate ' + TRANSLATE_ICON;
 
     if (isOwner && note) {
         // Scenario 1: own save with note
@@ -5226,7 +5229,7 @@ function sendMessage(text) {
                             ` : ''}
                             <div class="top-pick-footer">
                                 <span class="result-save-count">${saveLabel}</span>
-                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                             </div>
                         </div>
                     </div>
@@ -5277,7 +5280,7 @@ function sendMessage(text) {
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
-                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                         </div>
                     </div>
                 `;

@@ -3810,8 +3810,8 @@
 
         // HOME card order: Title → The Word → chips → who saved + save count + translate
         var _homeTranslateLabel = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage && userPreferredLanguage !== 'en')
-            ? 'Translate 🌐'
-            : '🌐';
+            ? 'Translate ' + TRANSLATE_ICON
+            : TRANSLATE_ICON;
         return '<div class="hf-card" onclick="goToEndorsedItem(\'' + item.id + '\')">'
             + '<div class="hf-card-media-wrap">' + media + '</div>'
             + '<div class="hf-card-body">'
