@@ -94,15 +94,10 @@ async function showMainApp() {
     // (includes new registrations where prevUserId is null)
     const prevUserId = localStorage.getItem('odin_last_user_id');
     const thisUserId = currentUser ? currentUser.id : null;
-    if (thisUserId && prevUserId && prevUserId !== thisUserId) {
-        // Different user signed in — reload the page completely to avoid
-        // showing any stale data or UI from the previous session
-        localStorage.setItem('odin_last_user_id', thisUserId);
+    if (thisUserId && prevUserId !== thisUserId) {
         localStorage.removeItem('recentlyViewed');
         localStorage.removeItem('onboarding_welcome_dismissed');
         localStorage.removeItem('empty_friends_dismissed');
-        location.reload();
-        return;
     }
     if (thisUserId) localStorage.setItem('odin_last_user_id', thisUserId);
 
@@ -284,10 +279,6 @@ function showAuthMode(mode) {
         createAccountTab.classList.remove('active');
         signInForm.style.display = 'flex';
         createAccountForm.style.display = 'none';
-        // Always clear form and reset button so previous session's state doesn't bleed through
-        signInForm.reset();
-        const signInBtn = document.getElementById('signInBtn');
-        if (signInBtn) resetButton(signInBtn);
     } else {
         signInTab.classList.remove('active');
         createAccountTab.classList.add('active');
@@ -295,8 +286,6 @@ function showAuthMode(mode) {
         createAccountForm.style.display = 'flex';
         // Always clear form so no stale/pre-filled data appears
         createAccountForm.reset();
-        const signUpBtn = document.getElementById('signUpBtn');
-        if (signUpBtn) resetButton(signUpBtn);
     }
 }
 
@@ -3106,7 +3095,11 @@ function locateOnMap() {
 
 var userLocMarker = null;
 
+// Track active mode for pull-to-refresh
+var _currentMode = 'home';
+
 function setMode(mode) {
+    _currentMode = mode;
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
@@ -7257,3 +7250,139 @@ function dismissEmptyFriends() {
         setTimeout(() => { el.style.display = 'none'; }, 300);
     }
 }
+
+// ===== PULL-TO-REFRESH =====
+(function initPullToRefresh() {
+    var PTR_THRESHOLD = 65;   // px drag needed to trigger refresh
+    var PTR_MAX      = 90;    // max drag distance (visual clamp)
+
+    var touchStartY  = 0;
+    var pulling      = false;
+    var refreshing   = false;
+
+    // Create indicator element
+    var indicator = document.createElement('div');
+    indicator.id  = 'ptrIndicator';
+    indicator.style.cssText = [
+        'position:fixed',
+        'top:0',
+        'left:0',
+        'right:0',
+        'z-index:9999',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'height:0',
+        'overflow:hidden',
+        'transition:height 0.2s ease',
+        'background:transparent',
+        'pointer-events:none'
+    ].join(';');
+
+    indicator.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;' +
+        'background:var(--surface,#fff);border-radius:20px;' +
+        'padding:6px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.12);' +
+        'font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text-secondary,#888);">' +
+        '<svg id="ptrSpinner" width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="#7B2D45" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="1 4 1 10 7 10"/>' +
+        '<path d="M3.51 15a9 9 0 1 0 .49-4.5"/>' +
+        '</svg>' +
+        '<span id="ptrLabel">Pull to refresh</span>' +
+        '</div>';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.appendChild(indicator);
+    });
+
+    function isRefreshableMode() {
+        return _currentMode === 'home' ||
+               _currentMode === 'discover' ||
+               _currentMode === 'profile';
+    }
+
+    function getScrollTop() {
+        var content = document.querySelector('.content');
+        if (content) return content.scrollTop;
+        return window.scrollY || document.documentElement.scrollTop;
+    }
+
+    function setIndicatorHeight(px) {
+        indicator.style.height = px + 'px';
+    }
+
+    function setIndicatorLabel(text) {
+        var label = document.getElementById('ptrLabel');
+        if (label) label.textContent = text;
+    }
+
+    function spinIndicator(spin) {
+        var svg = document.getElementById('ptrSpinner');
+        if (!svg) return;
+        if (spin) {
+            svg.style.animation = 'ptrSpin 0.7s linear infinite';
+        } else {
+            svg.style.animation = '';
+        }
+    }
+
+    async function triggerRefresh() {
+        if (refreshing) return;
+        refreshing = true;
+        setIndicatorHeight(PTR_THRESHOLD);
+        setIndicatorLabel('Refreshing…');
+        spinIndicator(true);
+
+        try {
+            if (_currentMode === 'home') {
+                await loadFriends();
+                loadDiscoveries();
+            } else if (_currentMode === 'discover') {
+                allDiscoveries = [];
+                await loadDiscoveries();
+            } else if (_currentMode === 'profile') {
+                await loadProfilePage();
+            }
+        } catch(e) {
+            console.warn('Pull-to-refresh error:', e);
+        }
+
+        spinIndicator(false);
+        setIndicatorLabel('Pull to refresh');
+        setIndicatorHeight(0);
+        refreshing = false;
+    }
+
+    document.addEventListener('touchstart', function(e) {
+        if (!isRefreshableMode()) return;
+        if (getScrollTop() > 0) return;
+        touchStartY = e.touches[0].clientY;
+        pulling = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!pulling || refreshing) return;
+        var delta = e.touches[0].clientY - touchStartY;
+        if (delta <= 0) { pulling = false; setIndicatorHeight(0); return; }
+        var clamped = Math.min(delta * 0.5, PTR_MAX);
+        setIndicatorHeight(clamped);
+        setIndicatorLabel(clamped >= PTR_THRESHOLD * 0.5 ? 'Release to refresh' : 'Pull to refresh');
+    }, { passive: true });
+
+    document.addEventListener('touchend', function() {
+        if (!pulling || refreshing) return;
+        pulling = false;
+        var currentH = parseFloat(indicator.style.height) || 0;
+        if (currentH >= PTR_THRESHOLD * 0.5) {
+            triggerRefresh();
+        } else {
+            setIndicatorHeight(0);
+        }
+    }, { passive: true });
+
+    // Inject keyframe animation for spinner
+    var style = document.createElement('style');
+    style.textContent = '@keyframes ptrSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+})();
