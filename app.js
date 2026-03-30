@@ -5694,6 +5694,8 @@ function startTakePlaceholder(category) {
 function clearCaptureForm() {
     document.getElementById('addForm').reset();
     document.getElementById('url').value = '';
+    const retryBtn = document.getElementById('ogRetryBtn');
+    if (retryBtn) retryBtn.style.display = 'none';
     document.getElementById('userLat').value = '';
     document.getElementById('userLng').value = '';
     document.getElementById('locationStatus').textContent = '';
@@ -6106,6 +6108,21 @@ async function fetchAndPrefillOG(url) {
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
         if (heroHint) heroHint.style.display = 'flex';
+        // Show retry button and reset dedup so user can try again
+        const retryBtn = document.getElementById('ogRetryBtn');
+        if (retryBtn) retryBtn.style.display = 'inline-block';
+        _lastOGFetchedUrl = ''; // allow re-fetch of same URL
+    }
+}
+
+function retryOGFetch() {
+    const retryBtn = document.getElementById('ogRetryBtn');
+    if (retryBtn) retryBtn.style.display = 'none';
+    const urlInput = document.getElementById('url');
+    const val = urlInput ? urlInput.value.trim() : '';
+    if (val && val.startsWith('http')) {
+        _lastOGFetchedUrl = ''; // ensure dedup doesn't block
+        fetchAndPrefillOG(val);
     }
 }
 
@@ -7296,7 +7313,8 @@ function dismissEmptyFriends() {
     function isRefreshableMode() {
         return _currentMode === 'home' ||
                _currentMode === 'discover' ||
-               _currentMode === 'profile';
+               _currentMode === 'profile' ||
+               _currentMode === 'input';
     }
 
     function getScrollTop() {
@@ -7340,6 +7358,13 @@ function dismissEmptyFriends() {
                 await loadDiscoveries();
             } else if (_currentMode === 'profile') {
                 await loadProfilePage();
+            } else if (_currentMode === 'input') {
+                // On Add page: only retry OG fetch if a URL is present — don't wipe the form
+                var urlVal = (document.getElementById('url') || {}).value;
+                if (urlVal && urlVal.trim().startsWith('http')) {
+                    _lastOGFetchedUrl = '';
+                    await fetchAndPrefillOG(urlVal.trim());
+                }
             }
         } catch(e) {
             console.warn('Pull-to-refresh error:', e);
