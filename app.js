@@ -688,15 +688,7 @@ async function loadProfilePage() {
     if (!currentProfile) await loadUserProfile();
     if (!currentProfile) return;
 
-    // Load notifications list first, then mark as read
-    await loadNotifications();
-
-    // Auto-clear notification dot when user opens profile
-    try {
-        await supabaseClient.rpc('mark_all_notifications_read', { p_user_id: currentUser.id });
-    } catch (e) { /* silently ignore */ }
-    const badge = document.getElementById('notifBadge');
-    if (badge) badge.style.display = 'none';
+    // Notifications now live in the drawer — not on the profile page
 
     // Always reset to view mode
     toggleProfileEdit(false);
@@ -2118,8 +2110,9 @@ function stopNotifPolling() {
 async function loadNotifications() {
     if (!currentUser) return;
     const container = document.getElementById('notifItems');
-    const section = document.getElementById('notificationsList');
-    if (!container || !section) return;
+    if (!container) return;
+
+    const emptyEl = document.getElementById('notifEmpty');
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -2146,14 +2139,14 @@ async function loadNotifications() {
         }
 
         if (filtered.length === 0) {
-            section.style.display = 'none';
             container.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
             return;
         }
 
-        section.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
 
@@ -2210,14 +2203,13 @@ async function deleteNotification(notifId) {
         await supabaseClient.from('notifications').delete().eq('id', notifId);
     } catch (e) { console.error('Error deleting notification:', e); }
 
-    // Hide section if empty; store cleared timestamp when last one deleted
+    // Show empty state if last notification deleted
     setTimeout(() => {
         const container = document.getElementById('notifItems');
-        const section = document.getElementById('notificationsList');
-        if (container && section && container.children.length === 0) {
-            section.style.display = 'none';
+        if (container && container.children.length === 0) {
+            const emptyEl = document.getElementById('notifEmpty');
+            if (emptyEl) emptyEl.style.display = 'block';
             localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
-            // Also hide the badge dot
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
@@ -2230,7 +2222,6 @@ async function clearAllNotifications() {
     // before this time will never be shown again, even if the DB delete fails
     localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
     const container = document.getElementById('notifItems');
-    const section = document.getElementById('notificationsList');
 
     // Fade out all items
     if (container) {
@@ -2256,7 +2247,8 @@ async function clearAllNotifications() {
 
     setTimeout(() => {
         if (container) container.innerHTML = '';
-        if (section) section.style.display = 'none';
+        const emptyEl = document.getElementById('notifEmpty');
+        if (emptyEl) emptyEl.style.display = 'block';
     }, 300);
 
     // Clear badge
@@ -2265,6 +2257,9 @@ async function clearAllNotifications() {
 }
 
 async function handleNotifClick(notifId, itemId) {
+    // Close drawer first
+    closeNotifDrawer();
+
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', {
@@ -2308,6 +2303,8 @@ async function markAllNotifsRead() {
 }
 
 async function handleFriendNotifClick(notifId) {
+    // Close drawer first
+    closeNotifDrawer();
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', { p_notification_id: notifId });
@@ -2413,6 +2410,9 @@ const LANG_LABELS = {
     es: 'ES', fr: 'FR', ar: 'AR', hi: 'HI',
     pt: 'PT', de: 'DE', id: 'ID', th: 'TH'
 };
+
+// Translate icon — Lucide "Languages", used everywhere instead of 🌐 emoji
+const TRANSLATE_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;flex-shrink:0"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>';
 
 /** Call once after profile is loaded. Autodetects from browser if not set. */
 async function initUserLanguage() {
@@ -2605,7 +2605,7 @@ async function toggleLang(btn, idx) {
 
     if (state === 'translated') {
         btn.dataset.state = 'original';
-        btn.textContent = 'Translate 🌐';
+        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
         updateCardContent(card, r, false);
     } else {
         btn.textContent = 'Translating...';
@@ -2674,7 +2674,7 @@ async function toggleDrawerLang(btn) {
         // Remove translation blocks — originals stay untouched
         document.querySelectorAll('.drawer-translation-block').forEach(function(el) { el.remove(); });
         btn.dataset.state = 'original';
-        btn.textContent = `Translate to ${langLabel} 🌐`;
+        btn.innerHTML = 'Translate to ' + langLabel + ' ' + TRANSLATE_ICON;
     }
 }
 
@@ -2685,7 +2685,7 @@ async function toggleFeedCardTranslate(btn) {
     const item = (typeof allDiscoveries !== 'undefined' && allDiscoveries.find(d => d.id === itemId))
         || (typeof currentResults !== 'undefined' && currentResults.find(r => r.id === itemId))
         || null;
-    if (!item) { btn.textContent = '🌐'; return; }
+    if (!item) { btn.innerHTML = TRANSLATE_ICON; return; }
 
     const state = btn.dataset.state;
     const targetLang = userPreferredLanguage || 'en';
@@ -2706,9 +2706,9 @@ async function toggleFeedCardTranslate(btn) {
                 wordEl.insertAdjacentElement('afterend', span);
             }
             btn.dataset.state = 'translated';
-            btn.textContent = '✕ 🌐';
+            btn.innerHTML = '✕ ' + TRANSLATE_ICON;
         } catch (e) {
-            btn.textContent = '🌐';
+            btn.innerHTML = TRANSLATE_ICON;
         }
         btn.classList.remove('translate-loading');
         btn.disabled = false;
@@ -2716,7 +2716,7 @@ async function toggleFeedCardTranslate(btn) {
         const prev = card && card.querySelector('.feed-card-translation');
         if (prev) prev.remove();
         btn.dataset.state = 'original';
-        btn.textContent = '🌐';
+        btn.innerHTML = TRANSLATE_ICON;
     }
 }
 
@@ -2751,7 +2751,7 @@ async function toggleCardTranslate(btn, idx) {
             btn.dataset.state = 'translated';
             btn.textContent = 'Show original';
         } catch(e) {
-            btn.textContent = 'Translate 🌐';
+            btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
             btn.dataset.state = 'original';
         }
         btn.classList.remove('translate-loading');
@@ -2763,7 +2763,7 @@ async function toggleCardTranslate(btn, idx) {
         const snippetEl = card && card.querySelector('.compact-snippet');
         if (snippetEl && snippetEl.dataset.original) snippetEl.textContent = snippetEl.dataset.original;
         btn.dataset.state = 'original';
-        btn.textContent = 'Translate 🌐';
+        btn.innerHTML = 'Translate ' + TRANSLATE_ICON;
     }
 }
 
@@ -3095,7 +3095,11 @@ function locateOnMap() {
 
 var userLocMarker = null;
 
+// Track active mode for pull-to-refresh
+var _currentMode = 'home';
+
 function setMode(mode) {
+    _currentMode = mode;
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
     document.getElementById('discoverMode').classList.add('hidden');
@@ -3944,8 +3948,8 @@ function createCard(item, index) {
 
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
-        : '🌐';
+        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
+        : TRANSLATE_ICON;
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
         <div class="hf-card-body">
@@ -4473,8 +4477,8 @@ function openItemDrawer(item) {
     // What's this about = no personal note — shows feed_card_summary or description (plain, neutral)
     // Helper: build translate button label
     const _translateBtnLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? `Translate to ${LANG_LABELS[userPreferredLanguage] || userPreferredLanguage} 🌐`
-        : 'Translate 🌐';
+        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
+        : 'Translate ' + TRANSLATE_ICON;
 
     if (isOwner && note) {
         // Scenario 1: own save with note
@@ -5225,7 +5229,7 @@ function sendMessage(text) {
                             ` : ''}
                             <div class="top-pick-footer">
                                 <span class="result-save-count">${saveLabel}</span>
-                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                                <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                             </div>
                         </div>
                     </div>
@@ -5276,7 +5280,7 @@ function sendMessage(text) {
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
-                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">Translate 🌐</button>
+                            <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                         </div>
                     </div>
                 `;
@@ -5324,16 +5328,6 @@ function sendMessage(text) {
                         </div>`;
                 }
 
-                // ── Map block — only for place results with ≥2 coordinates ──
-                const locatedResults = currentResults.filter(r => {
-                    const lat = parseFloat(r.latitude), lng = parseFloat(r.longitude);
-                    return !isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01);
-                });
-                const mapId = 'searchMap_' + Date.now();
-                if (locatedResults.length >= 2) {
-                    html += `<div class="search-map-container"><div id="${mapId}" style="width:100%;height:100%;"></div></div>`;
-                }
-
                 html += '</div></div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
@@ -5341,11 +5335,6 @@ function sendMessage(text) {
                 if (moreScroll && moreScroll.id) {
                     setTimeout(function() { updateScrollArrows(moreScroll.id); }, 150);
                     moreScroll.addEventListener('scroll', function() { updateScrollArrows(moreScroll.id); });
-                }
-
-                // Init map after DOM paint
-                if (locatedResults.length >= 2) {
-                    setTimeout(function() { initSearchMap(mapId, currentResults); }, 100);
                 }
 
                 sessionMessages.push({
@@ -5490,91 +5479,32 @@ function sendMessage(text) {
 }
 
 function initSearchMap(mapId, results) {
-    var mapEl = document.getElementById(mapId);
+    const mapEl = document.getElementById(mapId);
     if (!mapEl) return;
 
-    // Destroy any previous instance
-    if (searchMap) { try { searchMap.remove(); } catch(e) {} searchMap = null; }
-    if (mapEl._leaflet_id !== undefined) { mapEl._leaflet_id = undefined; mapEl.innerHTML = ''; }
+    const located = results.filter(r => r.latitude && r.longitude);
+    if (located.length === 0) return;
 
-    // Pre-filter results with valid coordinates (skip null-island)
-    var located = results.reduce(function(acc, r, originalIdx) {
-        var lat = parseFloat(r.latitude);
-        var lng = parseFloat(r.longitude);
-        if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) {
-            acc.push({ r: r, lat: lat, lng: lng, originalIdx: originalIdx });
-        }
-        return acc;
-    }, []);
-    if (located.length < 2) return;
+    searchMap = L.map(mapId);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(searchMap);
 
-    try {
-        searchMap = L.map(mapId, { zoomControl: false });
-    } catch(e) { return; }
-
-    // Same CartoDB Positron tiles as Discover map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(searchMap);
-
-    // User location dot — same style as Discover
-    if (userLocation.available) {
-        L.circleMarker([userLocation.latitude, userLocation.longitude], {
-            radius: 8, color: 'white', weight: 3, fillColor: '#2979FF', fillOpacity: 1
-        }).addTo(searchMap).bindTooltip('You are here', { direction: 'top' });
-    }
-
-    var bounds = [];
-    located.forEach(function(entry, listIdx) {
-        var r   = entry.r;
-        var lat = entry.lat;
-        var lng = entry.lng;
-        var oi  = entry.originalIdx;
+    const bounds = [];
+    located.forEach((r, i) => {
+        const lat = parseFloat(r.latitude);
+        const lng = parseFloat(r.longitude);
+        if (isNaN(lat) || isNaN(lng)) return;
         bounds.push([lat, lng]);
-
-        var col    = typeof catColour === 'function' ? catColour(r.category || r.type) : '#7B2D45';
-        var avInit = (r.added_by_name || '?').charAt(0).toUpperCase();
-        var avCol  = typeof strColour === 'function' ? strColour(r.added_by_name || '?') : '#7B2D45';
-        var num    = listIdx + 1;
-
-        // Numbered teardrop pin — same shape as Discover, number instead of category initial
-        var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:11px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + num + '</span></div>';
-        var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
-
-        // Popup — same odin-pop structure as Discover
-        var distText = r.distance_km
-            ? (r.distance_km < 1 ? Math.round(r.distance_km * 1000) + 'm' : r.distance_km.toFixed(1) + 'km')
-            : '';
-        var popHtml =
-            '<div class="odin-pop">' +
-                '<div class="odin-pop-cat">' +
-                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(r.category || r.type || '') + '</span>' +
-                    (distText ? '<span class="odin-pop-label" style="color:#888;margin-left:6px;">&middot; ' + distText + '</span>' : '') +
-                '</div>' +
-                '<div class="odin-pop-name">' + escapeHtml(r.title) + '</div>' +
-                '<div class="odin-pop-by">' +
-                    '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="odin-pop-by-text">by <strong>' + escapeHtml(r.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<button class="odin-pop-view" onclick="showSearchDrawer(' + oi + ')">View details &rsaquo;</button>' +
-            '</div>';
-
-        var marker = L.marker([lat, lng], { icon: icon })
-            .addTo(searchMap)
-            .bindPopup(popHtml, { maxWidth: 240, autoPan: false });
-
-        marker.on('mouseover', function() { this.openPopup(); });
-        marker.on('click', function() { this.openPopup(); });
+        L.marker([lat, lng]).addTo(searchMap).bindTooltip(`<strong>${escapeHtml(r.title)}</strong>`).on('click', () => showSearchDrawer(i));
     });
 
-    if (bounds.length > 0) searchMap.fitBounds(bounds, { padding: [36, 36] });
+    if (userLocation.available) {
+        L.circleMarker([userLocation.latitude, userLocation.longitude], {
+            radius: 8, fillColor: '#059669', color: '#fff', weight: 2, fillOpacity: 0.8
+        }).addTo(searchMap).bindTooltip('You are here');
+        bounds.push([userLocation.latitude, userLocation.longitude]);
+    }
 
-    // Fix size after render (same pattern as Discover)
-    setTimeout(function() { if (searchMap) searchMap.invalidateSize(); }, 200);
-    setTimeout(function() { if (searchMap) searchMap.invalidateSize(); }, 600);
+    if (bounds.length > 0) searchMap.fitBounds(bounds, { padding: [30, 30] });
 }
 
 // ===== SCROLL ARROWS FOR MORE OPTIONS =====
@@ -7319,4 +7249,177 @@ function dismissEmptyFriends() {
         el.style.transition = 'opacity 0.3s';
         setTimeout(() => { el.style.display = 'none'; }, 300);
     }
+}
+
+// ===== PULL-TO-REFRESH =====
+(function initPullToRefresh() {
+    var PTR_THRESHOLD = 65;   // px drag needed to trigger refresh
+    var PTR_MAX      = 90;    // max drag distance (visual clamp)
+
+    var touchStartY  = 0;
+    var pulling      = false;
+    var refreshing   = false;
+
+    // Create indicator element
+    var indicator = document.createElement('div');
+    indicator.id  = 'ptrIndicator';
+    indicator.style.cssText = [
+        'position:fixed',
+        'top:0',
+        'left:0',
+        'right:0',
+        'z-index:9999',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'height:0',
+        'overflow:hidden',
+        'transition:height 0.2s ease',
+        'background:transparent',
+        'pointer-events:none'
+    ].join(';');
+
+    indicator.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;' +
+        'background:var(--surface,#fff);border-radius:20px;' +
+        'padding:6px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.12);' +
+        'font-family:\'DM Sans\',sans-serif;font-size:13px;color:var(--text-secondary,#888);">' +
+        '<svg id="ptrSpinner" width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="#7B2D45" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+        '<polyline points="1 4 1 10 7 10"/>' +
+        '<path d="M3.51 15a9 9 0 1 0 .49-4.5"/>' +
+        '</svg>' +
+        '<span id="ptrLabel">Pull to refresh</span>' +
+        '</div>';
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.body.appendChild(indicator);
+    });
+
+    function isRefreshableMode() {
+        return _currentMode === 'home' ||
+               _currentMode === 'discover' ||
+               _currentMode === 'profile';
+    }
+
+    function getScrollTop() {
+        var content = document.querySelector('.content');
+        if (content) return content.scrollTop;
+        return window.scrollY || document.documentElement.scrollTop;
+    }
+
+    function setIndicatorHeight(px) {
+        indicator.style.height = px + 'px';
+    }
+
+    function setIndicatorLabel(text) {
+        var label = document.getElementById('ptrLabel');
+        if (label) label.textContent = text;
+    }
+
+    function spinIndicator(spin) {
+        var svg = document.getElementById('ptrSpinner');
+        if (!svg) return;
+        if (spin) {
+            svg.style.animation = 'ptrSpin 0.7s linear infinite';
+        } else {
+            svg.style.animation = '';
+        }
+    }
+
+    async function triggerRefresh() {
+        if (refreshing) return;
+        refreshing = true;
+        setIndicatorHeight(PTR_THRESHOLD);
+        setIndicatorLabel('Refreshing…');
+        spinIndicator(true);
+
+        try {
+            if (_currentMode === 'home') {
+                await loadFriends();
+                loadDiscoveries();
+            } else if (_currentMode === 'discover') {
+                allDiscoveries = [];
+                await loadDiscoveries();
+            } else if (_currentMode === 'profile') {
+                await loadProfilePage();
+            }
+        } catch(e) {
+            console.warn('Pull-to-refresh error:', e);
+        }
+
+        spinIndicator(false);
+        setIndicatorLabel('Pull to refresh');
+        setIndicatorHeight(0);
+        refreshing = false;
+    }
+
+    document.addEventListener('touchstart', function(e) {
+        if (!isRefreshableMode()) return;
+        if (getScrollTop() > 0) return;
+        touchStartY = e.touches[0].clientY;
+        pulling = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+        if (!pulling || refreshing) return;
+        var delta = e.touches[0].clientY - touchStartY;
+        if (delta <= 0) { pulling = false; setIndicatorHeight(0); return; }
+        var clamped = Math.min(delta * 0.5, PTR_MAX);
+        setIndicatorHeight(clamped);
+        setIndicatorLabel(clamped >= PTR_THRESHOLD * 0.5 ? 'Release to refresh' : 'Pull to refresh');
+    }, { passive: true });
+
+    document.addEventListener('touchend', function() {
+        if (!pulling || refreshing) return;
+        pulling = false;
+        var currentH = parseFloat(indicator.style.height) || 0;
+        if (currentH >= PTR_THRESHOLD * 0.5) {
+            triggerRefresh();
+        } else {
+            setIndicatorHeight(0);
+        }
+    }, { passive: true });
+
+    // Inject keyframe animation for spinner
+    var style = document.createElement('style');
+    style.textContent = '@keyframes ptrSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
+})();
+
+// ===== NOTIFICATION DRAWER =====
+var _notifDrawerOpen = false;
+
+function toggleNotifDrawer() {
+    if (_notifDrawerOpen) {
+        closeNotifDrawer();
+    } else {
+        openNotifDrawer();
+    }
+}
+
+function openNotifDrawer() {
+    var drawer   = document.getElementById('notifDrawer');
+    var backdrop = document.getElementById('notifBackdrop');
+    if (!drawer) return;
+
+    // Load fresh notifications every time drawer opens
+    loadNotifications();
+
+    backdrop.style.display = 'block';
+    drawer.style.display   = 'flex'; // ensure it's rendered before transition
+    // Force reflow so transition fires
+    drawer.getBoundingClientRect();
+    drawer.style.transform = 'translateY(0)';
+    _notifDrawerOpen = true;
+}
+
+function closeNotifDrawer() {
+    var drawer   = document.getElementById('notifDrawer');
+    var backdrop = document.getElementById('notifBackdrop');
+    if (!drawer) return;
+
+    drawer.style.transform = 'translateY(-110%)';
+    backdrop.style.display = 'none';
+    _notifDrawerOpen = false;
 }
