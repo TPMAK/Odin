@@ -1248,7 +1248,7 @@
                     </div>
                 </div>
                 <!-- Bell icon replaces avatar — profile still in tab bar -->
-                <button class="header-bell-btn" onclick="setMode('profile')" aria-label="Notifications">
+                <button class="header-bell-btn" onclick="openNotifDrawer()" aria-label="Notifications">
                     <svg class="header-bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -1929,6 +1929,26 @@
                         <button class="lang-drawer-item" data-lang="id"   onclick="setPreferredLanguage('id');  closeLangDrawer()">🇮🇩 Bahasa</button>
                         <button class="lang-drawer-item" data-lang="th"   onclick="setPreferredLanguage('th');  closeLangDrawer()">🇹🇭 ภาษาไทย</button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             NOTIFICATIONS SLIDE-UP DRAWER
+        ══════════════════════════════════════════ -->
+        <div id="notifDrawer" class="profile-drawer">
+            <div class="profile-drawer-backdrop" onclick="closeNotifDrawer()"></div>
+            <div class="profile-drawer-sheet" aria-hidden="true">
+                <div class="profile-drawer-handle"></div>
+                <div class="profile-drawer-header">
+                    <h2 class="profile-drawer-title">Notifications</h2>
+                    <button class="profile-drawer-close" onclick="closeNotifDrawer()" aria-label="Close">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="profile-drawer-body">
+                    <div id="notifDrawerItems" class="notif-list"></div>
+                    <div id="notifDrawerEmpty" style="display:none; text-align:center; padding:48px 0; color:#8a7f72; font-size:14px;">No notifications yet</div>
                 </div>
             </div>
         </div>
@@ -4297,6 +4317,53 @@
         if (sheet) sheet.setAttribute('aria-hidden', 'true');
         _unlockScroll();
     }
+    // ── Notifications drawer ──
+    async function openNotifDrawer() {
+        var d = document.getElementById('notifDrawer');
+        if (!d) return;
+        d.classList.add('is-open');
+        var sheet = _drawerSheet('notifDrawer');
+        if (sheet) sheet.removeAttribute('aria-hidden');
+        _lockScroll();
+        // Load notifications and render
+        var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+        if (notifs.length === 0 && typeof loadNotifications === 'function') {
+            await loadNotifications();
+            notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+        }
+        var list = document.getElementById('notifDrawerItems');
+        var empty = document.getElementById('notifDrawerEmpty');
+        if (!list) return;
+        if (notifs.length === 0) {
+            list.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+        } else {
+            if (empty) empty.style.display = 'none';
+            list.innerHTML = notifs.slice(0, 20).map(function(n) {
+                var initial = (n.actor_name || '?').charAt(0).toUpperCase();
+                var isUnread = !n.read;
+                return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\'); closeNotifDrawer();">'
+                    + '<div class="activity-avatar">' + initial + '</div>'
+                    + '<div class="activity-body">'
+                    + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
+                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
+                    + '</div>'
+                    + '</div>';
+            }).join('');
+        }
+        // Mark unread badge clear
+        var badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+    }
+    function closeNotifDrawer() {
+        var d = document.getElementById('notifDrawer');
+        if (!d) return;
+        d.classList.remove('is-open');
+        var sheet = _drawerSheet('notifDrawer');
+        if (sheet) sheet.setAttribute('aria-hidden', 'true');
+        _unlockScroll();
+    }
+
     // Sync the profile settings label on load (app.js _applyLangLabel handles live updates)
     function syncProfileLangLabel() {
         var cur = (typeof userPreferredLanguage !== 'undefined' && userPreferredLanguage)
@@ -4316,6 +4383,7 @@
             closeCircleDrawer();
             closeMySavesDrawer();
             closeLangDrawer();
+            closeNotifDrawer();
         }
     });
 
