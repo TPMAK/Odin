@@ -688,15 +688,7 @@ async function loadProfilePage() {
     if (!currentProfile) await loadUserProfile();
     if (!currentProfile) return;
 
-    // Load notifications list first, then mark as read
-    await loadNotifications();
-
-    // Auto-clear notification dot when user opens profile
-    try {
-        await supabaseClient.rpc('mark_all_notifications_read', { p_user_id: currentUser.id });
-    } catch (e) { /* silently ignore */ }
-    const badge = document.getElementById('notifBadge');
-    if (badge) badge.style.display = 'none';
+    // Notifications now live in the drawer — not on the profile page
 
     // Always reset to view mode
     toggleProfileEdit(false);
@@ -2118,8 +2110,9 @@ function stopNotifPolling() {
 async function loadNotifications() {
     if (!currentUser) return;
     const container = document.getElementById('notifItems');
-    const section = document.getElementById('notificationsList');
-    if (!container || !section) return;
+    if (!container) return;
+
+    const emptyEl = document.getElementById('notifEmpty');
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -2146,14 +2139,14 @@ async function loadNotifications() {
         }
 
         if (filtered.length === 0) {
-            section.style.display = 'none';
             container.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
             return;
         }
 
-        section.style.display = 'block';
+        if (emptyEl) emptyEl.style.display = 'none';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
 
@@ -2210,14 +2203,13 @@ async function deleteNotification(notifId) {
         await supabaseClient.from('notifications').delete().eq('id', notifId);
     } catch (e) { console.error('Error deleting notification:', e); }
 
-    // Hide section if empty; store cleared timestamp when last one deleted
+    // Show empty state if last notification deleted
     setTimeout(() => {
         const container = document.getElementById('notifItems');
-        const section = document.getElementById('notificationsList');
-        if (container && section && container.children.length === 0) {
-            section.style.display = 'none';
+        if (container && container.children.length === 0) {
+            const emptyEl = document.getElementById('notifEmpty');
+            if (emptyEl) emptyEl.style.display = 'block';
             localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
-            // Also hide the badge dot
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
@@ -2230,7 +2222,6 @@ async function clearAllNotifications() {
     // before this time will never be shown again, even if the DB delete fails
     localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
     const container = document.getElementById('notifItems');
-    const section = document.getElementById('notificationsList');
 
     // Fade out all items
     if (container) {
@@ -2256,7 +2247,8 @@ async function clearAllNotifications() {
 
     setTimeout(() => {
         if (container) container.innerHTML = '';
-        if (section) section.style.display = 'none';
+        const emptyEl = document.getElementById('notifEmpty');
+        if (emptyEl) emptyEl.style.display = 'block';
     }, 300);
 
     // Clear badge
@@ -2265,6 +2257,9 @@ async function clearAllNotifications() {
 }
 
 async function handleNotifClick(notifId, itemId) {
+    // Close drawer first
+    closeNotifDrawer();
+
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', {
@@ -2308,6 +2303,8 @@ async function markAllNotifsRead() {
 }
 
 async function handleFriendNotifClick(notifId) {
+    // Close drawer first
+    closeNotifDrawer();
     // Mark as read
     try {
         await supabaseClient.rpc('mark_notification_read', { p_notification_id: notifId });
@@ -7386,3 +7383,40 @@ function dismissEmptyFriends() {
     style.textContent = '@keyframes ptrSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
     document.head.appendChild(style);
 })();
+
+// ===== NOTIFICATION DRAWER =====
+var _notifDrawerOpen = false;
+
+function toggleNotifDrawer() {
+    if (_notifDrawerOpen) {
+        closeNotifDrawer();
+    } else {
+        openNotifDrawer();
+    }
+}
+
+function openNotifDrawer() {
+    var drawer   = document.getElementById('notifDrawer');
+    var backdrop = document.getElementById('notifBackdrop');
+    if (!drawer) return;
+
+    // Load fresh notifications every time drawer opens
+    loadNotifications();
+
+    backdrop.style.display = 'block';
+    drawer.style.display   = 'flex'; // ensure it's rendered before transition
+    // Force reflow so transition fires
+    drawer.getBoundingClientRect();
+    drawer.style.transform = 'translateY(0)';
+    _notifDrawerOpen = true;
+}
+
+function closeNotifDrawer() {
+    var drawer   = document.getElementById('notifDrawer');
+    var backdrop = document.getElementById('notifBackdrop');
+    if (!drawer) return;
+
+    drawer.style.transform = 'translateY(-110%)';
+    backdrop.style.display = 'none';
+    _notifDrawerOpen = false;
+}
