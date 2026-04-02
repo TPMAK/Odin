@@ -1498,7 +1498,10 @@
                             </button>
                         </div>
                         <div class="recently-viewed-section" id="recentlyViewedSection" style="display:none;">
-                            <div class="recently-viewed-header">Recently viewed</div>
+                            <div class="recently-viewed-header">
+                                <span>Recently viewed</span>
+                                <a onclick="clearRecentlyViewed()">Clear</a>
+                            </div>
                             <div class="recently-viewed-row" id="recentlyViewedRow"></div>
                         </div>
                         <div class="active-filters-bar" id="activeFiltersBar"></div>
@@ -1532,7 +1535,15 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="discover-grid dc-surprise-grid" id="dcSurpriseGrid"></div>
+                        <div class="dc-surprise-grid-wrap">
+                            <button class="dc-sg-arrow dc-sg-arrow-left" id="dcSurpriseLeft" onclick="scrollSurprise(-1)" style="display:none;" aria-label="Scroll left">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <div class="discover-grid dc-surprise-grid" id="dcSurpriseGrid"></div>
+                            <button class="dc-sg-arrow dc-sg-arrow-right" id="dcSurpriseRight" onclick="scrollSurprise(1)" aria-label="Scroll right">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -3633,6 +3644,11 @@
         // Show strip, animate button
         strip.style.display = '';
         strip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Reset scroll position and update arrows
+        grid.scrollLeft = 0;
+        setTimeout(function() { updateSurpriseArrows(); }, 100);
+        // Keep arrows in sync while user scrolls
+        grid.onscroll = function() { updateSurpriseArrows(); };
 
         var btn = document.getElementById('dcSurpriseBtn');
         if (btn) {
@@ -3644,6 +3660,27 @@
     function closeSurpriseStrip() {
         var strip = document.getElementById('dcSurpriseStrip');
         if (strip) strip.style.display = 'none';
+    }
+
+    function scrollSurprise(dir) {
+        var grid = document.getElementById('dcSurpriseGrid');
+        if (!grid) return;
+        var cardW = grid.querySelector('.hf-card');
+        var amount = cardW ? (cardW.offsetWidth + 10) * 2 : 440;
+        grid.scrollBy({ left: dir * amount, behavior: 'smooth' });
+        // Update arrow visibility after scroll settles
+        setTimeout(function() { updateSurpriseArrows(); }, 350);
+    }
+
+    function updateSurpriseArrows() {
+        var grid  = document.getElementById('dcSurpriseGrid');
+        var left  = document.getElementById('dcSurpriseLeft');
+        var right = document.getElementById('dcSurpriseRight');
+        if (!grid || !left || !right) return;
+        var atStart = grid.scrollLeft <= 4;
+        var atEnd   = grid.scrollLeft + grid.offsetWidth >= grid.scrollWidth - 4;
+        left.style.display  = atStart ? 'none' : 'flex';
+        right.style.display = atEnd   ? 'none' : 'flex';
     }
 
     // ── Discover heading + rotating subtitle ──

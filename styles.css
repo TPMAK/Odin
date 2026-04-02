@@ -6382,12 +6382,24 @@
 }
 
 .recently-viewed-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
     margin-bottom: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+.recently-viewed-header a {
+    font-size: 13px;
+    color: #7B2D45;
+    text-decoration: none;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
 }
 
 .recently-viewed-row {
@@ -8931,6 +8943,9 @@
     padding: 4px 8px;
 }
 /* Surprise grid — always a horizontal scroll row, 3 cards visible at a time */
+.dc-surprise-grid-wrap {
+    position: relative;
+}
 .dc-surprise-grid {
     display: flex;
     flex-direction: row;
@@ -8948,10 +8963,37 @@
     flex: 0 0 calc(33.33% - 8px);
     min-width: 180px;
 }
-@media (max-width: 540px) {
-    .dc-surprise-grid .hf-card {
-        flex: 0 0 200px;
-    }
+/* Scroll arrows — desktop only */
+.dc-sg-arrow {
+    display: none; /* shown via JS when needed */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink);
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(42,30,20,0.12);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    padding: 0;
+}
+.dc-sg-arrow:hover {
+    background: rgba(123,45,69,0.06);
+    border-color: #7B2D45;
+    color: #7B2D45;
+}
+.dc-sg-arrow-left  { left: -14px; }
+.dc-sg-arrow-right { right: -14px; }
+/* Mobile: hide arrows, touch scroll is enough */
+@media (max-width: 639px) {
+    .dc-sg-arrow { display: none !important; }
+    .dc-surprise-grid .hf-card { flex: 0 0 200px; }
 }
 
 /* ── Discover category chips (hidden — replaced by section tabs) ── */
