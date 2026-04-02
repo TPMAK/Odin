@@ -4257,7 +4257,7 @@ function initDiscoverMap() {
         bounds.push([lat, lng]);
 
         var col        = catColour(d.category || d.type);
-        var catInitial = (d.category || 'P').charAt(0).toUpperCase();
+        var catInitial = (d.category || d.type || 'P').charAt(0).toUpperCase();
         var avInit     = (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol      = strColour(d.added_by_name || '?');
         var distText   = d.distance_km
