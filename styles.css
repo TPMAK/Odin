@@ -8847,6 +8847,9 @@
 /* ── Surprise Me button ── */
 .dc-surprise-btn {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
     padding: 6px 14px;
     background: var(--surface);
     border: 1.5px dashed #C4A882;
@@ -8928,8 +8931,33 @@
 .dc-surprise-close-btn {
     padding: 4px 8px;
 }
+/* Surprise grid — horizontal scroll row on mobile, normal grid on larger screens */
 .dc-surprise-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 4px;
     margin-top: 0;
+}
+.dc-surprise-grid::-webkit-scrollbar { display: none; }
+.dc-surprise-grid .hf-card {
+    flex: 0 0 200px;
+    min-width: 0;
+}
+@media (min-width: 640px) {
+    .dc-surprise-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        overflow-x: unset;
+    }
+    .dc-surprise-grid .hf-card {
+        flex: unset;
+    }
 }
 
 /* ── Discover category chips (hidden — replaced by section tabs) ── */
