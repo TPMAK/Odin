@@ -1512,6 +1512,30 @@
                             <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New</button>
                             <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Near me</button>
                         </div>
+                        <button class="dc-surprise-btn" id="dcSurpriseBtn" onclick="surpriseMe()" title="Surprise me">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="3" ry="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+                            Surprise me
+                        </button>
+                    </div>
+
+                    <!-- Surprise strip (shown when Surprise Me is active) -->
+                    <div id="dcSurpriseStrip" class="dc-surprise-strip" style="display:none;">
+                        <div class="dc-surprise-strip-header">
+                            <span class="dc-surprise-strip-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="3" ry="3"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="16" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+                                Hidden gems for you
+                            </span>
+                            <div class="dc-surprise-strip-actions">
+                                <button class="dc-surprise-action-btn" onclick="surpriseMe()">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/></svg>
+                                    Reshuffle
+                                </button>
+                                <button class="dc-surprise-action-btn dc-surprise-close-btn" onclick="closeSurpriseStrip()">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="discover-grid dc-surprise-grid" id="dcSurpriseGrid"></div>
                     </div>
 
                     <!-- Distance quick pills (shown when location is available, for nearby section) -->
@@ -3491,6 +3515,8 @@
         currentDiscoverSection = section;
         document.querySelectorAll('.dc-stab').forEach(function(b) { b.classList.remove('active'); });
         el.classList.add('active');
+        // Dismiss surprise strip when switching section
+        closeSurpriseStrip();
 
         var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
         var items = [];
@@ -3557,6 +3583,70 @@
         if (circleHeader) circleHeader.style.display = 'flex';
 
         openCollection(titleEl ? titleEl.textContent : section, items);
+    }
+
+    // ── Surprise Me ──
+    function surpriseMe() {
+        var allD = (typeof allDiscoveries !== 'undefined' && allDiscoveries) ? allDiscoveries : [];
+        if (allD.length === 0) return;
+
+        var strip = document.getElementById('dcSurpriseStrip');
+        var grid  = document.getElementById('dcSurpriseGrid');
+        if (!strip || !grid) return;
+
+        // Bias toward hidden gems: items with low endorsement count (≤2)
+        // Split pool into low-save (weight ×3) and all others
+        var lowSave  = allD.filter(function(d) { return (d.endorsement_count || 1) <= 2; });
+        var highSave = allD.filter(function(d) { return (d.endorsement_count || 1) > 2; });
+
+        // Build weighted pool: each low-save item appears 3× more likely
+        var pool = lowSave.concat(lowSave).concat(lowSave).concat(highSave);
+
+        // Fisher-Yates shuffle
+        function shuffle(arr) {
+            var a = arr.slice();
+            for (var i = a.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+            }
+            return a;
+        }
+
+        // Pick 4 unique items from shuffled pool
+        var shuffled = shuffle(pool);
+        var seen = new Set();
+        var picks = [];
+        for (var k = 0; k < shuffled.length && picks.length < 4; k++) {
+            if (!seen.has(shuffled[k].id)) {
+                seen.add(shuffled[k].id);
+                picks.push(shuffled[k]);
+            }
+        }
+
+        // Render into surprise grid using existing card renderer
+        grid.innerHTML = '';
+        picks.forEach(function(item) {
+            var idx = allD.findIndex(function(d) { return d.id === item.id; });
+            if (typeof createCard === 'function') {
+                var cardEl = createCard(item, idx);
+                if (cardEl) grid.appendChild(cardEl);
+            }
+        });
+
+        // Show strip, animate button
+        strip.style.display = '';
+        strip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        var btn = document.getElementById('dcSurpriseBtn');
+        if (btn) {
+            btn.classList.add('dc-surprise-btn--active');
+            setTimeout(function() { btn.classList.remove('dc-surprise-btn--active'); }, 600);
+        }
+    }
+
+    function closeSurpriseStrip() {
+        var strip = document.getElementById('dcSurpriseStrip');
+        if (strip) strip.style.display = 'none';
     }
 
     // ── Discover heading + rotating subtitle ──

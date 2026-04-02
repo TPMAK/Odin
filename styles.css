@@ -8844,6 +8844,96 @@
 }
 .dc-stab.active:hover { background: #5A1F30; border-color: #5A1F30; color: #FAF6EE; }
 
+/* ── Surprise Me button ── */
+.dc-surprise-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1.5px solid #C4A882;
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #7B5A3A;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+}
+.dc-surprise-btn:hover {
+    border-color: #7B2D45;
+    color: #7B2D45;
+    background: rgba(123,45,69,0.05);
+}
+.dc-surprise-btn--active {
+    transform: scale(0.93);
+    border-color: #7B2D45;
+    color: #7B2D45;
+}
+
+/* ── Surprise strip ── */
+.dc-surprise-strip {
+    background: rgba(123,45,69,0.04);
+    border: 1.5px solid rgba(123,45,69,0.15);
+    border-radius: 14px;
+    padding: 14px 14px 12px;
+    margin-bottom: 18px;
+    animation: surpriseIn 0.25s ease;
+}
+@keyframes surpriseIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.dc-surprise-strip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.dc-surprise-strip-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #7B2D45;
+    font-family: 'Inter', sans-serif;
+}
+.dc-surprise-strip-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.dc-surprise-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1.5px solid rgba(123,45,69,0.3);
+    border-radius: 999px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: #7B2D45;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+.dc-surprise-action-btn:hover {
+    background: rgba(123,45,69,0.08);
+    border-color: #7B2D45;
+}
+.dc-surprise-close-btn {
+    padding: 4px 8px;
+}
+.dc-surprise-grid {
+    margin-top: 0;
+}
+
 /* ── Discover category chips (hidden — replaced by section tabs) ── */
 .dc-chips-row {
     display: none;
