@@ -3631,13 +3631,17 @@
             }
         }
 
-        // Render into surprise grid using existing card renderer
+        // Render into surprise grid — override onclick to use openItemDrawer
+        // so the drawer always opens the correct item regardless of filteredDiscoveries state
         grid.innerHTML = '';
         picks.forEach(function(item) {
             var idx = allD.findIndex(function(d) { return d.id === item.id; });
             if (typeof createCard === 'function') {
                 var cardEl = createCard(item, idx);
-                if (cardEl) grid.appendChild(cardEl);
+                if (cardEl) {
+                    cardEl.onclick = function() { openItemDrawer(item); };
+                    grid.appendChild(cardEl);
+                }
             }
         });
 
