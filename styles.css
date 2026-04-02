@@ -8847,9 +8847,6 @@
 /* ── Surprise Me button ── */
 .dc-surprise-btn {
     flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 5px;
     padding: 6px 14px;
     background: var(--surface);
     border: 1.5px dashed #C4A882;
@@ -8931,7 +8928,7 @@
 .dc-surprise-close-btn {
     padding: 4px 8px;
 }
-/* Surprise grid — horizontal scroll row on mobile, normal grid on larger screens */
+/* Surprise grid — horizontal scroll row on mobile, 3-col on desktop */
 .dc-surprise-grid {
     display: flex;
     flex-direction: row;
@@ -8952,7 +8949,7 @@
 @media (min-width: 640px) {
     .dc-surprise-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         overflow-x: unset;
     }
     .dc-surprise-grid .hf-card {
