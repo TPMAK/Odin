@@ -4203,11 +4203,16 @@
         // Also hide the launcher "Continue exploring" section
         var launcherSection = document.getElementById('launcherRecentSection');
         if (launcherSection) launcherSection.style.display = 'none';
+        // Hide the Discover recently viewed section
+        var discoverSection = document.getElementById('recentlyViewedSection');
+        if (discoverSection) discoverSection.style.display = 'none';
         // Clear the card contents too
         var launcherScroll = document.getElementById('launcherRecentScroll');
         if (launcherScroll) launcherScroll.innerHTML = '';
         var homeScroll = document.getElementById('homeRecentScroll');
         if (homeScroll) homeScroll.innerHTML = '';
+        var discoverRow = document.getElementById('recentlyViewedRow');
+        if (discoverRow) discoverRow.innerHTML = '';
         showToast('Recently viewed cleared');
     }
 
