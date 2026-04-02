@@ -6661,21 +6661,31 @@ function selectCategory(el) {
 
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');
-    if (addressGroup) {
-        if (val === 'place') {
-            addressGroup.style.display = '';
-        } else {
-            addressGroup.style.display = 'none';
-            // Clear address when hidden
-            const addrInput = document.getElementById('address');
-            if (addrInput) addrInput.value = '';
-        }
-    }
-
-    // Update address label hint based on category
     const addressLabel = document.getElementById('addressLabel');
-    if (addressLabel) {
-        addressLabel.textContent = '— recommended for places';
+    const detailsBody = document.getElementById('detailsBody');
+    const detailsChevron = document.getElementById('detailsChevron');
+
+    if (val === 'place') {
+        if (addressGroup) addressGroup.style.display = '';
+        if (addressLabel) addressLabel.textContent = '— recommended for places';
+        // Auto-open Details so address field is visible
+        if (detailsBody) {
+            detailsBody.classList.remove('hidden');
+            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+        }
+    } else if (val === 'service') {
+        if (addressGroup) addressGroup.style.display = '';
+        if (addressLabel) addressLabel.textContent = '— optional for services';
+        // Auto-open Details so address field is visible
+        if (detailsBody) {
+            detailsBody.classList.remove('hidden');
+            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+        }
+    } else {
+        if (addressGroup) addressGroup.style.display = 'none';
+        // Clear address when hidden
+        const addrInput = document.getElementById('address');
+        if (addrInput) addrInput.value = '';
     }
 }
 
