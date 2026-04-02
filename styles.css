@@ -8856,6 +8856,17 @@
 }
 .dc-stab.active:hover { background: #5A1F30; border-color: #5A1F30; color: #FAF6EE; }
 
+/* ── Divider between tabs and Surprise me ── */
+.dc-tabs-divider {
+    display: block;
+    flex-shrink: 0;
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    align-self: center;
+    opacity: 0.7;
+}
+
 /* ── Surprise Me button ── */
 .dc-surprise-btn {
     flex-shrink: 0;
