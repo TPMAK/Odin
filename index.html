@@ -1512,7 +1512,10 @@
                             <button class="dc-stab" data-section="new" onclick="setDiscoverSection(this,'new')">New</button>
                             <button class="dc-stab" data-section="nearby" onclick="setDiscoverSection(this,'nearby')">Near me</button>
                         </div>
-                        <button class="dc-surprise-btn" id="dcSurpriseBtn" onclick="surpriseMe()" title="Surprise me">Surprise me</button>
+                        <button class="dc-surprise-btn" id="dcSurpriseBtn" onclick="surpriseMe()" title="Surprise me">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                            Surprise me
+                        </button>
                     </div>
 
                     <!-- Surprise strip (shown when Surprise Me is active) -->
@@ -3606,11 +3609,11 @@
             return a;
         }
 
-        // Pick 3 unique items from shuffled pool (fills 3-col desktop row; scrollable on mobile)
+        // Pick 6 unique items — 3 visible on desktop, scroll right for more; scrollable row on mobile
         var shuffled = shuffle(pool);
         var seen = new Set();
         var picks = [];
-        for (var k = 0; k < shuffled.length && picks.length < 3; k++) {
+        for (var k = 0; k < shuffled.length && picks.length < 6; k++) {
             if (!seen.has(shuffled[k].id)) {
                 seen.add(shuffled[k].id);
                 picks.push(shuffled[k]);
