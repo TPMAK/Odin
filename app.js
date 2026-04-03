@@ -3161,9 +3161,13 @@ function setMode(mode) {
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Restore last active chip (if any)
         _restoreEntryChip();
-        // NOTE: clipboard check intentionally NOT called here on load.
-        // iOS shows a native "Paste" prompt for any clipboard read not tied to
-        // a direct user gesture. We trigger it only when the user taps Link.
+        // Check clipboard for a URL — but only once per session and never on iOS
+        // (iOS shows a system "Paste" prompt for background clipboard reads)
+        const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+        if (!isIOS && !window._clipboardCheckedThisSession) {
+            window._clipboardCheckedThisSession = true;
+            _checkClipboardForUrl();
+        }
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -5906,8 +5910,6 @@ function selectEntryChip(chip) {
 
     // Chip-specific actions
     if (chip === 'link') {
-        // Check clipboard here — this is a real user gesture so iOS allows it
-        _checkClipboardForUrl();
         const urlInput = document.getElementById('url');
         if (urlInput) setTimeout(() => urlInput.focus(), 50);
     } else if (chip === 'here') {
