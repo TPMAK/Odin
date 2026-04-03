@@ -3161,11 +3161,15 @@ function setMode(mode) {
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Restore last active chip (if any)
         _restoreEntryChip();
-        // Check clipboard for a URL — but only once per session and never on iOS
-        // (iOS shows a system "Paste" prompt for background clipboard reads)
+        // Check clipboard for a URL on page entry.
+        // iOS can't do background clipboard reads without a system prompt,
+        // so we show a manual "Got a link?" tap button for iOS instead.
         const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-        if (!isIOS && !window._clipboardCheckedThisSession) {
-            window._clipboardCheckedThisSession = true;
+        const iosLinkHint = document.getElementById('iosLinkHint');
+        if (isIOS) {
+            if (iosLinkHint) iosLinkHint.classList.remove('hidden');
+        } else {
+            if (iosLinkHint) iosLinkHint.classList.add('hidden');
             _checkClipboardForUrl();
         }
     } else if (mode === 'profile') {
@@ -5864,9 +5868,11 @@ function clearCaptureForm() {
     if (photoSection) photoSection.classList.add('hidden');
     const urlHeroBar = document.getElementById('urlHeroBar');
     if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    // Hide clipboard banner
+    // Hide clipboard banner and iOS hint
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
+    const iosHint = document.getElementById('iosLinkHint');
+    if (iosHint) iosHint.classList.add('hidden');
     // Clear photo opt link input
     const photoOptLink = document.getElementById('photoOptLink');
     if (photoOptLink) photoOptLink.value = '';
