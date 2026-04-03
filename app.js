@@ -5894,25 +5894,35 @@ function selectEntryChip(chip) {
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
     }
 
-    // Reveal category step when any chip is selected
+    // Any chip reveals the full form at once
     _revealStep('stepCategory');
+    _revealStep('stepTake');
+    _revealStep('stepFinal');
 
     // Chip-specific actions
     if (chip === 'link') {
         const urlInput = document.getElementById('url');
-        if (urlInput) { urlInput.focus(); urlInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        if (urlInput) setTimeout(() => urlInput.focus(), 50);
     } else if (chip === 'here') {
         prefillCaptureLocation();
-        // Open details accordion so address field is visible
-        const detailsToggle = document.querySelector('.details-toggle, [data-toggle="details"]');
-        if (detailsToggle) detailsToggle.click();
+        // Open details so address is visible
+        const detailsBody = document.getElementById('detailsBody');
+        const detailsChevron = document.getElementById('detailsChevron');
+        if (detailsBody) {
+            detailsBody.classList.remove('hidden');
+            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+        }
     } else if (chip === 'type') {
-        // Open details accordion then focus title
-        const detailsToggle = document.querySelector('.details-toggle, [data-toggle="details"]');
-        if (detailsToggle) detailsToggle.click();
+        // Open details and focus name field
+        const detailsBody = document.getElementById('detailsBody');
+        const detailsChevron = document.getElementById('detailsChevron');
+        if (detailsBody) {
+            detailsBody.classList.remove('hidden');
+            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+        }
         setTimeout(() => {
             const titleField = document.getElementById('title');
-            if (titleField) { titleField.focus(); titleField.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            if (titleField) { titleField.focus(); titleField.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
         }, 150);
     }
 }
@@ -6235,11 +6245,13 @@ async function fetchAndPrefillOG(url) {
         }
 
         // Fill form fields if empty
-        if (og.title && titleField && !titleField.value.trim()) {
+        const didFillTitle = !!(og.title && titleField && !titleField.value.trim());
+        if (didFillTitle) {
             titleField.value = og.title;
-            // Auto-open the details section so user can see/edit the prefilled title
-            _openDetailsAfterOG();
+            if (titleField._autoGrow) titleField._autoGrow();
         }
+        // Always open Details after fetch so user can see/fill the name field
+        _openDetailsAfterOG(didFillTitle);
         // Never auto-fill "Your Take" — it's the user's personal voice, not OG copy.
         // og.description is kept in memory for the preview card only.
 
@@ -6441,17 +6453,6 @@ function resetOGFetchState() {
     clearOGPreview();
 }
 
-// Reveal stepFinal when user starts typing in Your Take
-document.addEventListener('DOMContentLoaded', () => {
-    const takeInput = document.getElementById('personalNote');
-    if (takeInput) {
-        takeInput.addEventListener('input', function() {
-            if (this.value.trim().length > 0) {
-                _revealStep('stepFinal');
-            }
-        });
-    }
-});
 
 // Attach URL paste/blur/input listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -6649,7 +6650,7 @@ function toggleDetails() {
 }
 
 // Auto-open details section and show autofill hint after OG fills title
-function _openDetailsAfterOG() {
+function _openDetailsAfterOG(hasTitle) {
     const body = document.getElementById('detailsBody');
     const chevron = document.getElementById('detailsChevron');
     const hint = document.getElementById('titleAutofillHint');
@@ -6657,7 +6658,11 @@ function _openDetailsAfterOG() {
         body.classList.remove('hidden');
         if (chevron) chevron.style.transform = 'rotate(180deg)';
     }
-    if (hint) hint.classList.remove('hidden');
+    // Only show "Auto-filled from link" hint if title was actually prefilled
+    if (hint) {
+        if (hasTitle) hint.classList.remove('hidden');
+        else hint.classList.add('hidden');
+    }
     // Reveal remaining steps — OG fetch means we have content, skip manual steps
     _revealStep('stepCategory');
     _revealStep('stepTake');
@@ -6843,9 +6848,6 @@ function selectCategory(el) {
     el.classList.add('active');
     const val = el.dataset.value;
     document.getElementById('category').value = val;
-
-    // Reveal Your Take step
-    _revealStep('stepTake');
 
     // Category-aware rotating placeholders
     startTakePlaceholder(val);
