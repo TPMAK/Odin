@@ -3161,8 +3161,11 @@ function setMode(mode) {
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Always start clean — wipe any leftover state from a previous visit
         _resetAddState();
-        // Check clipboard for a URL — show "Found a link" banner if found
-        _checkClipboardForUrl();
+        // Check clipboard on desktop/Android only — iOS shows a native system
+        // "Paste" permission dialog for ANY background clipboard read, even on
+        // a user gesture. Skip it entirely; iOS users tap Link then paste manually.
+        const _isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        if (!_isIOS) _checkClipboardForUrl();
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
