@@ -3161,8 +3161,7 @@ function setMode(mode) {
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Always start clean — wipe any leftover state from a previous visit
         _resetAddState();
-        // _checkClipboardForUrl() is called on the Add button tap directly,
-        // so it runs inside a real user gesture (required for iOS clipboard access).
+        // _checkClipboardForUrl() skips iOS — the system Paste banner cannot be suppressed.
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -5970,9 +5969,10 @@ function _restoreEntryChip() {
 }
 
 function _checkClipboardForUrl() {
+    // iOS always shows a system "Paste" confirmation banner for any clipboard read,
+    // regardless of gesture context. Skip entirely on iOS — user pastes manually.
+    if (/iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) return;
     if (!navigator.clipboard || !navigator.clipboard.readText) return;
-    // Use .then() (not async/await) so iOS keeps the user-gesture token alive
-    // through the clipboard read — prevents the native "Paste" permission popup.
     navigator.clipboard.readText()
         .then(function(text) {
             if (!text) return;
