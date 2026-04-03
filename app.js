@@ -5921,6 +5921,18 @@ function selectEntryChip(chip) {
     if (chip === 'link') {
         const urlInput = document.getElementById('url');
         if (urlInput) setTimeout(() => urlInput.focus(), 50);
+        // Try reading clipboard when user explicitly taps Link — works on all
+        // platforms including iOS (the tap is a direct user gesture).
+        if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText()
+                .then(function(text) {
+                    if (!text) return;
+                    var trimmed = text.trim();
+                    if (!/^https?:\/\//i.test(trimmed)) return;
+                    _showClipBanner(trimmed);
+                })
+                .catch(function() {});
+        }
     } else if (chip === 'here') {
         prefillCaptureLocation();
         // Open details so address is visible
