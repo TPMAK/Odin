@@ -3164,7 +3164,9 @@ function setMode(mode) {
         // Check clipboard for a URL on page entry.
         // iOS can't do background clipboard reads without a system prompt,
         // so we show a manual "Got a link?" tap button for iOS instead.
-        const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
+        // True iOS: has iPhone/iPad UA *and* no Chrome (Chrome on desktop can
+        // spoof iOS UA in DevTools, but it still has "Chrome" in the UA string)
+        const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && !/CriOS|Chrome/.test(navigator.userAgent);
         const iosLinkHint = document.getElementById('iosLinkHint');
         if (isIOS) {
             if (iosLinkHint) iosLinkHint.classList.remove('hidden');
@@ -5984,6 +5986,9 @@ async function _checkClipboardForUrl() {
         if (display.length > 40) display = display.substring(0, 40) + '…';
         urlEl.textContent = display;
         banner.classList.remove('hidden');
+        // Hide the iOS hint — banner takes over
+        const iosHintEl = document.getElementById('iosLinkHint');
+        if (iosHintEl) iosHintEl.classList.add('hidden');
         if (useBtn) {
             useBtn.onclick = function() {
                 banner.classList.add('hidden');
