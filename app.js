@@ -3159,8 +3159,8 @@ function setMode(mode) {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
-        // Restore last active chip (if any)
-        _restoreEntryChip();
+        // Always start clean — wipe any leftover state from a previous visit
+        _resetAddState();
         // Check clipboard for a URL — show "Found a link" banner if found
         _checkClipboardForUrl();
     } else if (mode === 'profile') {
@@ -5850,18 +5850,8 @@ function clearCaptureForm() {
     const takeTA = document.getElementById('personalNote');
     if (takeTA) { takeTA.style.height = '72px'; }
     // Reset progressive steps
-    _resetSteps();
-    // Reset entry cards
-    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
-    try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
-    // Hide photo section AND url bar — both hidden until a card is selected
-    const photoSection = document.getElementById('photoChipSection');
-    if (photoSection) photoSection.classList.add('hidden');
-    const urlHeroBar = document.getElementById('urlHeroBar');
-    if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    // Hide clipboard banner and iOS hint
-    const clipBanner = document.getElementById('clipDetectBanner');
-    if (clipBanner) clipBanner.classList.add('hidden');
+    // Reset all UI state (cards, URL bar, banner, steps, overlay)
+    _resetAddState();
     // Clear photo opt link input
     const photoOptLink = document.getElementById('photoOptLink');
     if (photoOptLink) photoOptLink.value = '';
@@ -5874,6 +5864,29 @@ function clearCaptureForm() {
 
 // ===== ENTRY CHIPS =====
 let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
+
+// Resets UI state on every Add tab entry — hides URL bar, photo section,
+// clears active card, hides banner. Does NOT clear form field values.
+function _resetAddState() {
+    // Deactivate all entry cards
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+    try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
+    // Hide URL bar and photo section — both start hidden until a card is chosen
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    const photoSection = document.getElementById('photoChipSection');
+    if (photoSection) photoSection.classList.add('hidden');
+    // Hide clipboard banner
+    const clipBanner = document.getElementById('clipDetectBanner');
+    if (clipBanner) clipBanner.classList.add('hidden');
+    // Hide any leftover paste overlay
+    const pasteOverlay = document.getElementById('pasteOverlay');
+    if (pasteOverlay) pasteOverlay.remove();
+    // Collapse progressive form steps
+    _resetSteps();
+    // Reset OG fetch dedup guard
+    _lastOGFetchedUrl = '';
+}
 
 function selectEntryChip(chip) {
     // Update active state
