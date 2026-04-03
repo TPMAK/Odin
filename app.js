@@ -5953,9 +5953,14 @@ async function _checkClipboardForUrl() {
         if (useBtn) {
             useBtn.onclick = function() {
                 banner.classList.add('hidden');
-                fetchAndPrefillOG(trimmed);
-                // Switch to Link chip
+                // Switch to Link chip first — this makes the URL bar visible
                 selectEntryChip('link');
+                // Put URL into the input field so OG card renders in the right place
+                const urlInput = document.getElementById('url');
+                if (urlInput) urlInput.value = trimmed;
+                // Reset dedup guard so fetchAndPrefillOG won't skip it
+                _lastOGFetchedUrl = '';
+                fetchAndPrefillOG(trimmed);
             };
         }
         if (dismissBtn) {
