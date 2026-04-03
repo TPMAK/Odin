@@ -6319,9 +6319,6 @@ async function fetchAndPrefillOG(url) {
             clearPrefillBtn.classList.remove('hidden');
         }
 
-        // Progressive reveal — OG fetch counts as "content ready", reveal category
-        _revealStep('stepCategory');
-
         // Auto-grow title textarea if value was set programmatically
         const titleTA = document.getElementById('title');
         if (titleTA && titleTA._autoGrow) titleTA._autoGrow();
@@ -6361,6 +6358,11 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
+        // Always reveal all steps once fetch completes — regardless of what came back
+        _revealStep('stepCategory');
+        _revealStep('stepTake');
+        _revealStep('stepFinal');
+
         // Auto-scroll to "Your Take" and focus it — the user's voice is the whole point.
         // Small delay so the OG card animation finishes first.
         setTimeout(() => {
@@ -6374,6 +6376,10 @@ async function fetchAndPrefillOG(url) {
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
         if (heroHint) heroHint.style.display = 'flex';
+        // Even on error, reveal steps so user can still fill in manually
+        _revealStep('stepCategory');
+        _revealStep('stepTake');
+        _revealStep('stepFinal');
     }
 }
 
