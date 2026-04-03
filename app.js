@@ -5970,9 +5970,37 @@ function _restoreEntryChip() {
     } catch(e) {}
 }
 
+// Show the "Found a link" banner for a given URL string
+function _showClipBanner(trimmed) {
+    var banner = document.getElementById('clipDetectBanner');
+    var urlEl = document.getElementById('clipDetectUrl');
+    var useBtn = document.getElementById('clipDetectUse');
+    var dismissBtn = document.getElementById('clipDetectDismiss');
+    if (!banner || !urlEl) return;
+    var display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
+    if (display.length > 40) display = display.substring(0, 40) + '…';
+    urlEl.textContent = display;
+    banner.classList.remove('hidden');
+    var iosHintEl = document.getElementById('iosLinkHint');
+    if (iosHintEl) iosHintEl.classList.add('hidden');
+    if (useBtn) {
+        useBtn.onclick = function() {
+            banner.classList.add('hidden');
+            selectEntryChip('link');
+            var urlInput = document.getElementById('url');
+            if (urlInput) urlInput.value = trimmed;
+            _lastOGFetchedUrl = '';
+            fetchAndPrefillOG(trimmed);
+        };
+    }
+    if (dismissBtn) {
+        dismissBtn.onclick = function() { banner.classList.add('hidden'); };
+    }
+}
+
 function _checkClipboardForUrl() {
-    // iOS always shows a system "Paste" confirmation banner for any clipboard read,
-    // regardless of gesture context. Skip entirely on iOS — user pastes manually.
+    // iOS always shows a system "Paste" confirmation banner for any clipboard read.
+    // Skip readText() on iOS — the document-level paste listener handles it instead.
     if (/iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) return;
     if (!navigator.clipboard || !navigator.clipboard.readText) return;
     navigator.clipboard.readText()
@@ -5980,30 +6008,7 @@ function _checkClipboardForUrl() {
             if (!text) return;
             var trimmed = text.trim();
             if (!/^https?:\/\//i.test(trimmed)) return;
-            var banner = document.getElementById('clipDetectBanner');
-            var urlEl = document.getElementById('clipDetectUrl');
-            var useBtn = document.getElementById('clipDetectUse');
-            var dismissBtn = document.getElementById('clipDetectDismiss');
-            if (!banner || !urlEl) return;
-            var display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
-            if (display.length > 40) display = display.substring(0, 40) + '…';
-            urlEl.textContent = display;
-            banner.classList.remove('hidden');
-            var iosHintEl = document.getElementById('iosLinkHint');
-            if (iosHintEl) iosHintEl.classList.add('hidden');
-            if (useBtn) {
-                useBtn.onclick = function() {
-                    banner.classList.add('hidden');
-                    selectEntryChip('link');
-                    var urlInput = document.getElementById('url');
-                    if (urlInput) urlInput.value = trimmed;
-                    _lastOGFetchedUrl = '';
-                    fetchAndPrefillOG(trimmed);
-                };
-            }
-            if (dismissBtn) {
-                dismissBtn.onclick = function() { banner.classList.add('hidden'); };
-            }
+            _showClipBanner(trimmed);
         })
         .catch(function() {
             // Clipboard permission denied — silent fail
@@ -6479,6 +6484,18 @@ function resetOGFetchState() {
 
 // Attach URL paste/blur/input listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Page-level paste listener: if the user pastes a URL anywhere on the Add
+    // page, show the "Found a link" banner. This is the primary detection path
+    // on iOS (where readText() is blocked) and a nice fallback everywhere else.
+    document.addEventListener('paste', function(e) {
+        if (_currentMode !== 'input') return;
+        var text = (e.clipboardData || window.clipboardData || '').getData('text');
+        if (!text) return;
+        var trimmed = text.trim();
+        if (!/^https?:\/\//i.test(trimmed)) return;
+        _showClipBanner(trimmed);
+    });
+
     const urlInput = document.getElementById('url');
     if (!urlInput) return;
 
