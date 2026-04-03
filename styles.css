@@ -3779,26 +3779,6 @@
         }
 
         /* ── URL Hero Bar ── */
-        /* ===== iOS LINK HINT ===== */
-        .ios-link-hint {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            width: 100%;
-            padding: 10px 12px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border: 1px dashed #C4A9B2;
-            background: transparent;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 500;
-            color: #7B2D45;
-            cursor: pointer;
-            text-align: left;
-        }
-        .ios-link-hint:active { opacity: 0.7; }
-
         /* ===== CLIPBOARD DETECT BANNER ===== */
         .clip-detect-banner {
             display: flex;

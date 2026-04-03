@@ -3161,19 +3161,8 @@ function setMode(mode) {
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Restore last active chip (if any)
         _restoreEntryChip();
-        // Check clipboard for a URL on page entry.
-        // iOS can't do background clipboard reads without a system prompt,
-        // so we show a manual "Got a link?" tap button for iOS instead.
-        // True iOS: has iPhone/iPad UA *and* no Chrome (Chrome on desktop can
-        // spoof iOS UA in DevTools, but it still has "Chrome" in the UA string)
-        const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && !/CriOS|Chrome/.test(navigator.userAgent);
-        const iosLinkHint = document.getElementById('iosLinkHint');
-        if (isIOS) {
-            if (iosLinkHint) iosLinkHint.classList.remove('hidden');
-        } else {
-            if (iosLinkHint) iosLinkHint.classList.add('hidden');
-            _checkClipboardForUrl();
-        }
+        // Check clipboard for a URL — show "Found a link" banner if found
+        _checkClipboardForUrl();
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -5873,8 +5862,6 @@ function clearCaptureForm() {
     // Hide clipboard banner and iOS hint
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
-    const iosHint = document.getElementById('iosLinkHint');
-    if (iosHint) iosHint.classList.add('hidden');
     // Clear photo opt link input
     const photoOptLink = document.getElementById('photoOptLink');
     if (photoOptLink) photoOptLink.value = '';
