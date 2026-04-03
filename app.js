@@ -5873,6 +5873,7 @@ function clearCaptureForm() {
 }
 
 // ===== ENTRY CHIPS =====
+let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
 
 function selectEntryChip(chip) {
     // Update active state
@@ -6429,9 +6430,6 @@ function removePhoto() {
     if (heroFilled) heroFilled.classList.add('hidden');
 }
 
-// Track last fetched URL at module level so clearCaptureForm can reset it
-let _lastOGFetchedUrl = '';
-
 function resetOGFetchState() {
     _lastOGFetchedUrl = '';
     clearOGPreview();
@@ -6458,6 +6456,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = urlInput.value.trim();
         if (val && val !== _lastOGFetchedUrl && val.startsWith('http')) {
             _lastOGFetchedUrl = val;
+            selectEntryChip('link'); // highlight Link chip whenever a URL is entered
             fetchAndPrefillOG(val);
         }
     };
@@ -6533,6 +6532,8 @@ function _applyPastedUrl(trimmed, btn) {
     const urlInput = document.getElementById('url');
     if (!urlInput) return;
     urlInput.value = trimmed;
+    // Highlight the Link chip
+    selectEntryChip('link');
     if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
         _lastOGFetchedUrl = trimmed;
         fetchAndPrefillOG(trimmed);
@@ -6651,6 +6652,10 @@ function _openDetailsAfterOG() {
         if (chevron) chevron.style.transform = 'rotate(180deg)';
     }
     if (hint) hint.classList.remove('hidden');
+    // Reveal remaining steps — OG fetch means we have content, skip manual steps
+    _revealStep('stepCategory');
+    _revealStep('stepTake');
+    _revealStep('stepFinal');
 }
 
 // ===== CLEAR TITLE ONLY =====
