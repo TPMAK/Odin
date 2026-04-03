@@ -3667,7 +3667,10 @@
             .og-loading,
             .url-hero-divider,
             .details-toggle,
-            .details-body {
+            .details-body,
+            .clip-detect-banner,
+            .entry-chips-wrap,
+            .photo-chip-section {
                 max-width: 560px;
                 margin-left: auto;
                 margin-right: auto;
@@ -3776,6 +3779,179 @@
         }
 
         /* ── URL Hero Bar ── */
+        /* ===== CLIPBOARD DETECT BANNER ===== */
+        .clip-detect-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            border: 1px solid #7B2D45;
+            border-radius: 10px;
+            padding: 9px 11px;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .clip-detect-inner { flex: 1; min-width: 0; }
+        .clip-detect-head {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1a1208;
+        }
+        .clip-detect-url {
+            font-size: 11px;
+            color: #9a8f82;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .clip-detect-use {
+            font-size: 11px;
+            font-weight: 500;
+            color: #7B2D45;
+            padding: 4px 10px;
+            border: 1px solid #7B2D45;
+            border-radius: 8px;
+            background: transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .clip-detect-dismiss {
+            font-size: 13px;
+            color: #B0A89E;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 2px 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        /* ===== ENTRY CHIPS ===== */
+        .entry-chips-wrap {
+            margin-bottom: 10px;
+        }
+        .entry-chips-label {
+            font-size: 9px;
+            font-weight: 500;
+            color: #B0A89E;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .entry-chips {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .entry-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid #DDD5CC;
+            background: #fff;
+            font-size: 12px;
+            color: #6b5e52;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s, border-color 0.15s, color 0.15s;
+        }
+        .entry-chip svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            stroke-width: 2;
+            fill: none;
+            stroke: currentColor;
+        }
+        .entry-chip.active {
+            background: #7B2D45;
+            border-color: #7B2D45;
+            color: #fff;
+        }
+
+        /* ===== PHOTO CHIP SECTION ===== */
+        .photo-chip-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .photo-hero-zone {
+            background: #fff;
+            border: 1.5px dashed #DDD5CC;
+            border-radius: 12px;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            color: #B0A89E;
+            transition: border-color 0.2s;
+        }
+        .photo-hero-zone:hover { border-color: #7B2D45; }
+        .photo-hero-tap { font-size: 13px; }
+        .photo-hero-sub { font-size: 11px; color: #CCC4BC; }
+        .photo-hero-filled {
+            background: #EDE5DB;
+            border: 1px solid #DDD5CC;
+            border-radius: 12px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .photo-hero-filename {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b5e52;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .photo-hero-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .photo-hero-actions button {
+            font-size: 11px;
+            color: #7B2D45;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            padding: 0;
+        }
+        .photo-opt-link {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #FAF8F5;
+            border: 1px dashed #DDD5CC;
+            border-radius: 8px;
+            padding: 8px 11px;
+        }
+        .photo-opt-link svg { flex-shrink: 0; }
+        .photo-opt-link-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            color: #6b5e52;
+            font-family: inherit;
+            outline: none;
+        }
+        .photo-opt-link-input::placeholder { color: #C4B9AF; }
+
+        /* ===== URL HERO BAR ===== */
         .url-hero-bar {
             background: var(--surface);
             border: 2px solid var(--border);

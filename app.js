@@ -3159,6 +3159,10 @@ function setMode(mode) {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
+        // Restore last active chip (if any)
+        _restoreEntryChip();
+        // Check clipboard for a URL
+        _checkClipboardForUrl();
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -5845,6 +5849,129 @@ function clearCaptureForm() {
     if (titleTA) { titleTA.style.height = '44px'; }
     const takeTA = document.getElementById('personalNote');
     if (takeTA) { takeTA.style.height = '72px'; }
+    // Reset entry chips
+    document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
+    try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
+    // Hide photo chip section, show URL bar
+    const photoSection = document.getElementById('photoChipSection');
+    if (photoSection) photoSection.classList.add('hidden');
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+    // Hide clipboard banner
+    const clipBanner = document.getElementById('clipDetectBanner');
+    if (clipBanner) clipBanner.classList.add('hidden');
+    // Clear photo opt link input
+    const photoOptLink = document.getElementById('photoOptLink');
+    if (photoOptLink) photoOptLink.value = '';
+    // Reset photo hero filled state
+    const heroFilled = document.getElementById('photoHeroFilled');
+    const heroZone = document.getElementById('photoHeroZone');
+    if (heroFilled) heroFilled.classList.add('hidden');
+    if (heroZone) heroZone.classList.remove('hidden');
+}
+
+// ===== ENTRY CHIPS =====
+
+function selectEntryChip(chip) {
+    // Update active state
+    document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
+    const activeChip = document.querySelector(`.entry-chip[data-chip="${chip}"]`);
+    if (activeChip) activeChip.classList.add('active');
+    // Persist selection
+    try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+
+    // Show/hide photo hero section
+    const photoSection = document.getElementById('photoChipSection');
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (chip === 'photo') {
+        if (photoSection) photoSection.classList.remove('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    } else {
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+    }
+
+    // Chip-specific actions
+    if (chip === 'link') {
+        const urlInput = document.getElementById('url');
+        if (urlInput) { urlInput.focus(); urlInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    } else if (chip === 'here') {
+        prefillCaptureLocation();
+        // Open details accordion so address field is visible
+        const detailsToggle = document.querySelector('.details-toggle, [data-toggle="details"]');
+        if (detailsToggle) detailsToggle.click();
+    } else if (chip === 'type') {
+        // Open details accordion then focus title
+        const detailsToggle = document.querySelector('.details-toggle, [data-toggle="details"]');
+        if (detailsToggle) detailsToggle.click();
+        setTimeout(() => {
+            const titleField = document.getElementById('title');
+            if (titleField) { titleField.focus(); titleField.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        }, 150);
+    }
+}
+
+function _restoreEntryChip() {
+    try {
+        const saved = localStorage.getItem('odin_entry_chip');
+        if (saved) {
+            // Just restore visual active state, don't re-trigger side effects
+            document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
+            const chip = document.querySelector(`.entry-chip[data-chip="${saved}"]`);
+            if (chip) chip.classList.add('active');
+            // Re-show photo section if photo was last selected
+            const photoSection = document.getElementById('photoChipSection');
+            const urlHeroBar = document.getElementById('urlHeroBar');
+            if (saved === 'photo') {
+                if (photoSection) photoSection.classList.remove('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            } else {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            }
+        }
+    } catch(e) {}
+}
+
+async function _checkClipboardForUrl() {
+    try {
+        const text = await navigator.clipboard.readText();
+        if (!text) return;
+        const trimmed = text.trim();
+        // Simple URL check
+        if (!/^https?:\/\//i.test(trimmed)) return;
+        const banner = document.getElementById('clipDetectBanner');
+        const urlEl = document.getElementById('clipDetectUrl');
+        const useBtn = document.getElementById('clipDetectUse');
+        const dismissBtn = document.getElementById('clipDetectDismiss');
+        if (!banner || !urlEl) return;
+        // Truncate display URL
+        let display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
+        if (display.length > 40) display = display.substring(0, 40) + '…';
+        urlEl.textContent = display;
+        banner.classList.remove('hidden');
+        if (useBtn) {
+            useBtn.onclick = function() {
+                banner.classList.add('hidden');
+                fetchAndPrefillOG(trimmed);
+                // Switch to Link chip
+                selectEntryChip('link');
+            };
+        }
+        if (dismissBtn) {
+            dismissBtn.onclick = function() { banner.classList.add('hidden'); };
+        }
+    } catch(e) {
+        // Clipboard permission denied — silent fail
+    }
+}
+
+function handlePhotoOptLink(val) {
+    const trimmed = (val || '').trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+        // Prefill title/desc but do NOT replace the photo
+        fetchAndPrefillOG(trimmed);
+    }
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -6262,6 +6389,11 @@ function removePhoto() {
     if (ogUrlField) ogUrlField.value = '';
     if (photoInput) photoInput.value = '';
     _photoSource = 'none';
+    // Reset photo hero UI
+    const heroZone = document.getElementById('photoHeroZone');
+    const heroFilled = document.getElementById('photoHeroFilled');
+    if (heroZone) heroZone.classList.remove('hidden');
+    if (heroFilled) heroFilled.classList.add('hidden');
 }
 
 // Track last fetched URL at module level so clearCaptureForm can reset it
@@ -6704,6 +6836,13 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (ogUrlField) ogUrlField.value = '';
             const badge = document.getElementById('photoSourceBadge');
             if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
+            // Update photo hero UI (chip flow)
+            const heroZone = document.getElementById('photoHeroZone');
+            const heroFilled = document.getElementById('photoHeroFilled');
+            const heroFilename = document.getElementById('photoHeroFilename');
+            if (heroZone) heroZone.classList.add('hidden');
+            if (heroFilled) heroFilled.classList.remove('hidden');
+            if (heroFilename) heroFilename.textContent = file.name;
         };
         reader.readAsDataURL(file);
     }

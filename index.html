@@ -2012,6 +2012,60 @@
                 </div>
                 <div id="formMessage"></div>
 
+                <!-- ✦ CLIPBOARD BANNER (shown when URL detected on open) -->
+                <div class="clip-detect-banner hidden" id="clipDetectBanner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <div class="clip-detect-inner">
+                        <div class="clip-detect-head">Found a link</div>
+                        <div class="clip-detect-url" id="clipDetectUrl"></div>
+                    </div>
+                    <button type="button" class="clip-detect-use" id="clipDetectUse">Use it</button>
+                    <button type="button" class="clip-detect-dismiss" id="clipDetectDismiss" title="Dismiss">✕</button>
+                </div>
+
+                <!-- ✦ ENTRY CHIPS — orient user before filling in the form -->
+                <div class="entry-chips-wrap">
+                    <div class="entry-chips-label">What do you have?</div>
+                    <div class="entry-chips" id="entryChips">
+                        <button type="button" class="entry-chip" data-chip="photo" onclick="selectEntryChip('photo')">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            Photo
+                        </button>
+                        <button type="button" class="entry-chip" data-chip="link" onclick="selectEntryChip('link')">
+                            <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Link
+                        </button>
+                        <button type="button" class="entry-chip" data-chip="here" onclick="selectEntryChip('here')">
+                            <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            I'm here
+                        </button>
+                        <button type="button" class="entry-chip" data-chip="type" onclick="selectEntryChip('type')">
+                            <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            Type it
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ✦ PHOTO HERO SECTION (visible when Photo chip selected) -->
+                <div class="photo-chip-section hidden" id="photoChipSection">
+                    <div class="photo-hero-zone" id="photoHeroZone" onclick="document.getElementById('photo').click()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span class="photo-hero-tap">Tap to add a photo</span>
+                        <span class="photo-hero-sub">Camera roll or take one now</span>
+                    </div>
+                    <div class="photo-hero-filled hidden" id="photoHeroFilled">
+                        <span class="photo-hero-filename" id="photoHeroFilename"></span>
+                        <span class="photo-hero-actions">
+                            <button type="button" onclick="replacePhoto()">Replace</button>
+                            <button type="button" onclick="removePhoto()">Remove</button>
+                        </span>
+                    </div>
+                    <div class="photo-opt-link">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <input type="url" id="photoOptLink" class="photo-opt-link-input" placeholder="Got a link too? Paste to prefill title (optional)" autocomplete="off" oninput="handlePhotoOptLink(this.value)">
+                    </div>
+                </div>
+
                 <!-- ✦ QUICK ADD — URL paste bar (hero) -->
                 <div class="url-hero-bar" id="urlHeroBar">
                     <div class="url-hero-icon">
