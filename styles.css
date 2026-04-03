@@ -3843,34 +3843,56 @@
         .entry-chips {
             display: flex;
             gap: 6px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
         .entry-chip {
+            flex: 1;
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
+            justify-content: center;
+            gap: 4px;
+            padding: 7px 8px;
             border-radius: 20px;
-            border: 1px solid #DDD5CC;
-            background: #fff;
-            font-size: 12px;
-            color: #6b5e52;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
             cursor: pointer;
-            font-family: inherit;
-            transition: background 0.15s, border-color 0.15s, color 0.15s;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            transition: all 0.2s;
         }
         .entry-chip svg {
-            width: 12px;
-            height: 12px;
+            width: 13px;
+            height: 13px;
             flex-shrink: 0;
             stroke-width: 2;
             fill: none;
             stroke: currentColor;
         }
-        .entry-chip.active {
-            background: #7B2D45;
+        .entry-chip:hover {
             border-color: #7B2D45;
-            color: #fff;
+            color: #7B2D45;
+        }
+        .entry-chip.active {
+            background: rgba(123, 45, 69, 0.08);
+            border-color: #7B2D45;
+            color: #7B2D45;
+            font-weight: 600;
+        }
+
+        /* ===== PROGRESSIVE FADE-IN ===== */
+        @keyframes odin-fadein {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .step-hidden {
+            display: none;
+        }
+        .step-reveal {
+            display: block;
+            animation: odin-fadein 0.28s ease both;
         }
 
         /* ===== PHOTO CHIP SECTION ===== */

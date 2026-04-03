@@ -5849,6 +5849,8 @@ function clearCaptureForm() {
     if (titleTA) { titleTA.style.height = '44px'; }
     const takeTA = document.getElementById('personalNote');
     if (takeTA) { takeTA.style.height = '72px'; }
+    // Reset progressive steps
+    _resetSteps();
     // Reset entry chips
     document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
     try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
@@ -5890,6 +5892,9 @@ function selectEntryChip(chip) {
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
     }
+
+    // Reveal category step when any chip is selected
+    _revealStep('stepCategory');
 
     // Chip-specific actions
     if (chip === 'link') {
@@ -5977,6 +5982,26 @@ function handlePhotoOptLink(val) {
         // Prefill title/desc but do NOT replace the photo
         fetchAndPrefillOG(trimmed);
     }
+}
+
+// ===== PROGRESSIVE STEP REVEAL =====
+function _revealStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    // Scroll to newly revealed section smoothly
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+function _resetSteps() {
+    ['stepCategory', 'stepTake', 'stepFinal'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('step-hidden');
+            el.classList.remove('step-reveal');
+        }
+    });
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -6293,6 +6318,9 @@ async function fetchAndPrefillOG(url) {
             clearPrefillBtn.classList.remove('hidden');
         }
 
+        // Progressive reveal — OG fetch counts as "content ready", reveal category
+        _revealStep('stepCategory');
+
         // Auto-grow title textarea if value was set programmatically
         const titleTA = document.getElementById('title');
         if (titleTA && titleTA._autoGrow) titleTA._autoGrow();
@@ -6408,6 +6436,18 @@ function resetOGFetchState() {
     _lastOGFetchedUrl = '';
     clearOGPreview();
 }
+
+// Reveal stepFinal when user starts typing in Your Take
+document.addEventListener('DOMContentLoaded', () => {
+    const takeInput = document.getElementById('personalNote');
+    if (takeInput) {
+        takeInput.addEventListener('input', function() {
+            if (this.value.trim().length > 0) {
+                _revealStep('stepFinal');
+            }
+        });
+    }
+});
 
 // Attach URL paste/blur/input listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
@@ -6792,6 +6832,9 @@ function selectCategory(el) {
     el.classList.add('active');
     const val = el.dataset.value;
     document.getElementById('category').value = val;
+
+    // Reveal Your Take step
+    _revealStep('stepTake');
 
     // Category-aware rotating placeholders
     startTakePlaceholder(val);
