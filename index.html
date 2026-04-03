@@ -1287,7 +1287,7 @@
 
                         <!-- Add + Browse row -->
                         <div class="launcher-row">
-                            <button class="launcher-tile tile-add" onclick="setMode('input')">
+                            <button class="launcher-tile tile-add" onclick="setMode('input'); _checkClipboardForUrl();">
                                 <div class="launcher-tile-icon">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                                 </div>
@@ -2299,7 +2299,7 @@
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <div class="tab-label">Search</div>
         </button>
-        <button class="tab-item" onclick="setMode('input')" id="addTab">
+        <button class="tab-item" onclick="setMode('input'); _checkClipboardForUrl();" id="addTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <div class="tab-label">Add</div>
         </button>
@@ -4729,7 +4729,7 @@
             var tileAdd    = document.querySelector('.tile-add');
             var tileBrowse = document.querySelector('.tile-browse');
             if (tileSearch) tileSearch.addEventListener('click', function(e) { e.stopPropagation(); setMode('search'); });
-            if (tileAdd)    tileAdd.addEventListener('click',    function(e) { e.stopPropagation(); setMode('input'); });
+            if (tileAdd)    tileAdd.addEventListener('click',    function(e) { e.stopPropagation(); setMode('input'); _checkClipboardForUrl(); });
             if (tileBrowse) tileBrowse.addEventListener('click', function(e) { e.stopPropagation(); setMode('discover'); });
         }
         if (document.readyState === 'loading') {
