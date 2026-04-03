@@ -3669,7 +3669,7 @@
             .details-toggle,
             .details-body,
             .clip-detect-banner,
-            .entry-chips-wrap,
+            .entry-cards-wrap,
             .photo-chip-section {
                 max-width: 560px;
                 margin-left: auto;
@@ -3828,58 +3828,83 @@
             flex-shrink: 0;
         }
 
-        /* ===== ENTRY CHIPS ===== */
-        .entry-chips-wrap {
+        /* ===== ENTRY CARDS ===== */
+        .entry-cards-wrap {
             margin-bottom: 10px;
         }
-        .entry-chips-label {
+        .entry-cards-label {
             font-size: 9px;
             font-weight: 500;
             color: #B0A89E;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            margin-bottom: 6px;
+            margin-bottom: 10px;
         }
-        .entry-chips {
+        .entry-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .entry-card {
             display: flex;
-            gap: 6px;
-            flex-wrap: nowrap;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 14px;
+            border-radius: 16px;
+            border: 1.5px solid var(--border);
+            background: var(--surface);
+            box-shadow: 0 2px 8px rgba(42,30,20,0.06);
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            text-align: left;
+            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
         }
-        .entry-chip {
-            flex: 1;
+        .entry-card:hover {
+            border-color: #7B2D45;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(42,30,20,0.10);
+        }
+        .entry-card:active {
+            transform: translateY(0);
+        }
+        .entry-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 7px 8px;
-            border-radius: 20px;
-            border: 1.5px solid var(--border);
-            background: var(--bg);
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--muted);
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            white-space: nowrap;
-            transition: all 0.2s;
-        }
-        .entry-chip svg {
-            width: 13px;
-            height: 13px;
             flex-shrink: 0;
-            stroke-width: 2;
-            fill: none;
-            stroke: currentColor;
         }
-        .entry-chip:hover {
-            border-color: #7B2D45;
-            color: #7B2D45;
+        .entry-card-icon--photo { background: #F5EDE8; color: #7B2D45; }
+        .entry-card-icon--link  { background: #EAF0F8; color: #2D5A7B; }
+        .entry-card-icon--here  { background: #EBF5EC; color: #2D7B3A; }
+        .entry-card-icon--type  { background: #EDE8F5; color: #4B2D7B; }
+        .entry-card-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
         }
-        .entry-chip.active {
-            background: rgba(123, 45, 69, 0.08);
-            border-color: #7B2D45;
-            color: #7B2D45;
+        .entry-card-label {
+            font-size: 14px;
             font-weight: 600;
+            color: var(--ink);
+            line-height: 1.2;
+        }
+        .entry-card-sub {
+            font-size: 10px;
+            color: var(--muted);
+            line-height: 1.3;
+            white-space: normal;
+        }
+        .entry-card.active {
+            border-color: #7B2D45;
+            background: rgba(123, 45, 69, 0.04);
+            box-shadow: 0 4px 14px rgba(123,45,69,0.12);
+        }
+        .entry-card.active .entry-card-label {
+            color: #7B2D45;
         }
 
         /* ===== PROGRESSIVE FADE-IN ===== */

@@ -5851,14 +5851,14 @@ function clearCaptureForm() {
     if (takeTA) { takeTA.style.height = '72px'; }
     // Reset progressive steps
     _resetSteps();
-    // Reset entry chips
-    document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
+    // Reset entry cards
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
     try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
-    // Hide photo chip section, show URL bar
+    // Hide photo section AND url bar — both hidden until a card is selected
     const photoSection = document.getElementById('photoChipSection');
     if (photoSection) photoSection.classList.add('hidden');
     const urlHeroBar = document.getElementById('urlHeroBar');
-    if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+    if (urlHeroBar) urlHeroBar.classList.add('hidden');
     // Hide clipboard banner
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
@@ -5877,21 +5877,25 @@ let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
 
 function selectEntryChip(chip) {
     // Update active state
-    document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
-    const activeChip = document.querySelector(`.entry-chip[data-chip="${chip}"]`);
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+    const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
     if (activeChip) activeChip.classList.add('active');
     // Persist selection
     try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
 
-    // Show/hide photo hero section
+    // Show/hide photo hero section and url bar
     const photoSection = document.getElementById('photoChipSection');
     const urlHeroBar = document.getElementById('urlHeroBar');
     if (chip === 'photo') {
         if (photoSection) photoSection.classList.remove('hidden');
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    } else {
+    } else if (chip === 'link') {
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+    } else {
+        // here / type — no URL bar needed
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
     }
 
     // Any chip reveals the full form at once
@@ -5932,18 +5936,21 @@ function _restoreEntryChip() {
         const saved = localStorage.getItem('odin_entry_chip');
         if (saved) {
             // Just restore visual active state, don't re-trigger side effects
-            document.querySelectorAll('.entry-chip').forEach(el => el.classList.remove('active'));
-            const chip = document.querySelector(`.entry-chip[data-chip="${saved}"]`);
+            document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+            const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
             if (chip) chip.classList.add('active');
-            // Re-show photo section if photo was last selected
+            // Re-show appropriate sections based on saved selection
             const photoSection = document.getElementById('photoChipSection');
             const urlHeroBar = document.getElementById('urlHeroBar');
             if (saved === 'photo') {
                 if (photoSection) photoSection.classList.remove('hidden');
                 if (urlHeroBar) urlHeroBar.classList.add('hidden');
-            } else {
+            } else if (saved === 'link') {
                 if (photoSection) photoSection.classList.add('hidden');
                 if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            } else {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
             }
         }
     } catch(e) {}
