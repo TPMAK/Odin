@@ -4028,40 +4028,10 @@
             color: #B8A99A;
         }
 
-        /* URL input top row: input + paste button sit side by side */
         .url-hero-input-row {
             display: flex;
             align-items: center;
             width: 100%;
-        }
-
-        .url-paste-btn {
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 10px;
-            background: rgba(123, 45, 69, 0.08);
-            border: 1.5px solid rgba(123, 45, 69, 0.2);
-            border-radius: 8px;
-            color: #7B2D45;
-            font-size: 12px;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: background 0.2s, border-color 0.2s;
-            white-space: nowrap;
-            margin-left: 6px;
-        }
-        .url-paste-btn:hover {
-            background: rgba(123, 45, 69, 0.14);
-            border-color: #7B2D45;
-        }
-        .url-paste-btn:active { transform: scale(0.96); }
-        .url-paste-btn--success {
-            background: rgba(34, 139, 34, 0.1);
-            border-color: rgba(34, 139, 34, 0.4);
-            color: #228b22;
         }
 
         .url-hero-hint {

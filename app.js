@@ -5969,45 +5969,43 @@ function _restoreEntryChip() {
     } catch(e) {}
 }
 
-async function _checkClipboardForUrl() {
-    try {
-        const text = await navigator.clipboard.readText();
-        if (!text) return;
-        const trimmed = text.trim();
-        // Simple URL check
-        if (!/^https?:\/\//i.test(trimmed)) return;
-        const banner = document.getElementById('clipDetectBanner');
-        const urlEl = document.getElementById('clipDetectUrl');
-        const useBtn = document.getElementById('clipDetectUse');
-        const dismissBtn = document.getElementById('clipDetectDismiss');
-        if (!banner || !urlEl) return;
-        // Truncate display URL
-        let display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
-        if (display.length > 40) display = display.substring(0, 40) + '…';
-        urlEl.textContent = display;
-        banner.classList.remove('hidden');
-        // Hide the iOS hint — banner takes over
-        const iosHintEl = document.getElementById('iosLinkHint');
-        if (iosHintEl) iosHintEl.classList.add('hidden');
-        if (useBtn) {
-            useBtn.onclick = function() {
-                banner.classList.add('hidden');
-                // Switch to Link chip first — this makes the URL bar visible
-                selectEntryChip('link');
-                // Put URL into the input field so OG card renders in the right place
-                const urlInput = document.getElementById('url');
-                if (urlInput) urlInput.value = trimmed;
-                // Reset dedup guard so fetchAndPrefillOG won't skip it
-                _lastOGFetchedUrl = '';
-                fetchAndPrefillOG(trimmed);
-            };
-        }
-        if (dismissBtn) {
-            dismissBtn.onclick = function() { banner.classList.add('hidden'); };
-        }
-    } catch(e) {
-        // Clipboard permission denied — silent fail
-    }
+function _checkClipboardForUrl() {
+    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+    // Use .then() (not async/await) so iOS keeps the user-gesture token alive
+    // through the clipboard read — prevents the native "Paste" permission popup.
+    navigator.clipboard.readText()
+        .then(function(text) {
+            if (!text) return;
+            var trimmed = text.trim();
+            if (!/^https?:\/\//i.test(trimmed)) return;
+            var banner = document.getElementById('clipDetectBanner');
+            var urlEl = document.getElementById('clipDetectUrl');
+            var useBtn = document.getElementById('clipDetectUse');
+            var dismissBtn = document.getElementById('clipDetectDismiss');
+            if (!banner || !urlEl) return;
+            var display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
+            if (display.length > 40) display = display.substring(0, 40) + '…';
+            urlEl.textContent = display;
+            banner.classList.remove('hidden');
+            var iosHintEl = document.getElementById('iosLinkHint');
+            if (iosHintEl) iosHintEl.classList.add('hidden');
+            if (useBtn) {
+                useBtn.onclick = function() {
+                    banner.classList.add('hidden');
+                    selectEntryChip('link');
+                    var urlInput = document.getElementById('url');
+                    if (urlInput) urlInput.value = trimmed;
+                    _lastOGFetchedUrl = '';
+                    fetchAndPrefillOG(trimmed);
+                };
+            }
+            if (dismissBtn) {
+                dismissBtn.onclick = function() { banner.classList.add('hidden'); };
+            }
+        })
+        .catch(function() {
+            // Clipboard permission denied — silent fail
+        });
 }
 
 function handlePhotoOptLink(val) {
@@ -6520,139 +6518,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initAutoGrow(document.getElementById('personalNote'), 72);
 });
 
-// ===== CLIPBOARD PASTE =====
-// Strategy: try the Clipboard API first (works on Android Chrome + desktop).
-// On iOS Safari/PWA, navigator.clipboard.readText() silently fails because
-// iOS invalidates the user gesture after any async gap (await). We call
-// readText() synchronously inside the click event, chain .then() so the
-// gesture token stays alive, and only fall back to the overlay if it rejects.
-function pasteFromClipboard() {
-    const urlInput = document.getElementById('url');
-    const btn = document.getElementById('urlPasteBtn');
-    if (!urlInput) return;
-
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-
-    // Must call readText() in the SAME synchronous tick as the user gesture.
-    if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText()
-            .then(text => {
-                if (text && text.trim()) {
-                    _applyPastedUrl(text.trim(), btn);
-                } else if (isIOS) {
-                    // iOS: clipboard empty or permission denied — show native paste overlay
-                    _showPasteOverlay(btn);
-                }
-                // Desktop: clipboard empty — do nothing, user hasn't copied anything yet
-            })
-            .catch(() => {
-                if (isIOS) {
-                    _showPasteOverlay(btn);
-                }
-                // Desktop: permission denied (e.g. focus not on page) — do nothing
-            });
-        return;
-    }
-
-    // No Clipboard API — iOS fallback only
-    if (isIOS) _showPasteOverlay(btn);
-}
-
-function _applyPastedUrl(trimmed, btn) {
-    const urlInput = document.getElementById('url');
-    if (!urlInput) return;
-    urlInput.value = trimmed;
-    // Highlight the Link chip
-    selectEntryChip('link');
-    if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
-        _lastOGFetchedUrl = trimmed;
-        fetchAndPrefillOG(trimmed);
-    }
-    if (btn) {
-        const original = btn.innerHTML;
-        btn.innerHTML = '✓ Pasted';
-        btn.classList.add('url-paste-btn--success');
-        setTimeout(() => { btn.innerHTML = original; btn.classList.remove('url-paste-btn--success'); }, 1800);
-    }
-}
-
-function _showPasteOverlay(btn) {
-    // Remove any existing overlay
-    const existing = document.getElementById('pasteOverlay');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'pasteOverlay';
-    overlay.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.45);
-        display: flex; align-items: flex-end;
-        padding: 16px;
-        box-sizing: border-box;
-    `;
-
-    const sheet = document.createElement('div');
-    sheet.style.cssText = `
-        background: #fff; border-radius: 16px; padding: 20px 16px 16px;
-        width: 100%; max-width: 480px; margin: 0 auto;
-        font-family: 'Inter', sans-serif;
-        box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
-    `;
-
-    const label = document.createElement('p');
-    label.textContent = 'Tap and hold the field below, then tap Paste';
-    label.style.cssText = `margin: 0 0 10px; font-size: 13px; color: #666; text-align: center;`;
-
-    const input = document.createElement('input');
-    input.type = 'url';
-    input.placeholder = 'Tap and hold to paste a link…';
-    input.autocomplete = 'off';
-    input.style.cssText = `
-        width: 100%; padding: 13px 14px; font-size: 15px;
-        border: 2px solid #7B2D45; border-radius: 10px;
-        box-sizing: border-box; font-family: 'Inter', sans-serif;
-        color: #2A1E14; outline: none; background: #FAF6EE;
-    `;
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.style.cssText = `
-        display: block; width: 100%; margin-top: 10px; padding: 12px;
-        background: transparent; border: 1.5px solid #EAE0D2;
-        border-radius: 10px; font-size: 14px; color: #9A8A7A;
-        font-family: 'Inter', sans-serif; cursor: pointer;
-    `;
-
-    // Confirm when user types/pastes something and taps Enter or blurs with content
-    const confirm = () => {
-        const val = input.value.trim();
-        if (val) {
-            overlay.remove();
-            _applyPastedUrl(val, btn);
-        }
-    };
-
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } });
-    // Also watch for any input change — on iOS, paste fills value immediately
-    input.addEventListener('input', () => {
-        const val = input.value.trim();
-        if (val && val.startsWith('http')) {
-            setTimeout(() => { overlay.remove(); _applyPastedUrl(val, btn); }, 200);
-        }
-    });
-    cancelBtn.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-    sheet.appendChild(label);
-    sheet.appendChild(input);
-    sheet.appendChild(cancelBtn);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
-
-    // Focus with a longer delay so iOS keyboard is fully ready before focus
-    // (80ms is too fast — iOS needs ~300ms to register the gesture + show keyboard)
-    setTimeout(() => { input.focus(); input.click(); }, 300);
-}
 
 // ===== DETAILS SECTION TOGGLE =====
 function toggleDetails() {
