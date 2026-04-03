@@ -3099,6 +3099,7 @@ var userLocMarker = null;
 var _currentMode = 'home';
 
 function setMode(mode) {
+    var _prevMode = _currentMode;
     _currentMode = mode;
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
@@ -3159,8 +3160,9 @@ function setMode(mode) {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
-        // Always start clean — wipe any leftover state from a previous visit
-        _resetAddState();
+        // Only reset when arriving from a different page. Re-tapping Add while
+        // already on the Add page must not wipe the "Found a link" banner.
+        if (_prevMode !== 'input') _resetAddState();
         // _checkClipboardForUrl() skips iOS — the system Paste banner cannot be suppressed.
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
