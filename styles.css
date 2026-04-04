@@ -4034,6 +4034,21 @@
             width: 100%;
         }
 
+        .url-paste-btn {
+            flex-shrink: 0;
+            margin-left: 8px;
+            padding: 6px 14px;
+            background: #7B2D45;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
         .url-hero-hint {
             display: flex;
             align-items: center;

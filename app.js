@@ -5922,13 +5922,32 @@ function selectEntryChip(chip) {
         const urlInput = document.getElementById('url');
         if (urlInput) setTimeout(() => urlInput.focus(), 50);
         var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-        var iosHint = document.getElementById('iosLinkHint');
+        var pasteBtn = document.getElementById('iosPasteBtn');
         if (_iosDevice) {
-            // iOS: can't silently read clipboard — show paste hint instead
-            if (iosHint) iosHint.classList.remove('hidden');
+            // iOS: show an explicit Paste button — readText() from its tap is a clean user gesture
+            if (pasteBtn) {
+                pasteBtn.classList.remove('hidden');
+                pasteBtn.onclick = function() {
+                    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+                    navigator.clipboard.readText()
+                        .then(function(text) {
+                            if (!text) return;
+                            var trimmed = text.trim();
+                            if (!urlInput) return;
+                            urlInput.value = trimmed;
+                            urlInput.focus();
+                            pasteBtn.classList.add('hidden');
+                            if (/^https?:\/\//i.test(trimmed)) {
+                                _lastOGFetchedUrl = '';
+                                fetchAndPrefillOG(trimmed);
+                            }
+                        })
+                        .catch(function() {});
+                };
+            }
         } else {
-            // Non-iOS: silently check clipboard for a URL
-            if (iosHint) iosHint.classList.add('hidden');
+            // Non-iOS: hide the Paste button, silently check clipboard instead
+            if (pasteBtn) pasteBtn.classList.add('hidden');
             if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
                 navigator.clipboard.readText()
                     .then(function(text) {
@@ -6002,6 +6021,8 @@ function _showClipBanner(trimmed) {
     banner.classList.remove('hidden');
     var iosHintEl = document.getElementById('iosLinkHint');
     if (iosHintEl) iosHintEl.classList.add('hidden');
+    var iosPasteBtn = document.getElementById('iosPasteBtn');
+    if (iosPasteBtn) iosPasteBtn.classList.add('hidden');
     if (useBtn) {
         useBtn.onclick = function() {
             banner.classList.add('hidden');
