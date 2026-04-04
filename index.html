@@ -922,6 +922,18 @@
 </head>
 <body>
 
+    <!-- ── PWA Install Banner (Android only) ── -->
+    <div id="pwa-banner" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+        background:#3d1f1f; color:#FAF6EE; padding:14px 18px; border-radius:14px;
+        box-shadow:0 6px 20px rgba(0,0,0,0.35); z-index:9999; align-items:center; gap:12px;
+        font-family:'DM Sans',sans-serif; width:92%; max-width:400px; box-sizing:border-box;">
+        <span style="flex:1; font-size:13px; line-height:1.4;">Install Odin on your home screen for the best experience</span>
+        <button onclick="installPWA()" style="background:#7B2D45; color:#FAF6EE; border:none;
+            padding:9px 16px; border-radius:9px; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap;">Add</button>
+        <button onclick="dismissPWABanner()" style="background:transparent; color:#FAF6EE;
+            border:none; font-size:20px; line-height:1; cursor:pointer; padding:0 2px;">&#x2715;</button>
+    </div>
+
         <!-- ════════════════════════════════════════════
          LANDING / PRE-LOGIN SCREEN
     ════════════════════════════════════════════ -->
@@ -4741,6 +4753,58 @@
     <div id="coachMark" style="display:none;" onclick="dismissCoachMark()">
         <div id="coachMarkText"></div>
     </div>
+
+    <!-- ── PWA: Install prompt (Android/Chrome) + Service Worker ── -->
+    <script>
+      (function() {
+        var deferredPrompt = null;
+        var isAndroid = /android/i.test(navigator.userAgent);
+
+        // Only wire up on Android
+        if (!isAndroid) return;
+
+        var banner = document.getElementById('pwa-banner');
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          deferredPrompt = e;
+          // Show only if user hasn't already acted on it
+          if (!localStorage.getItem('pwaBannerDismissed')) {
+            banner.style.display = 'flex';
+          }
+        });
+
+        // Hide banner once app is actually installed
+        window.addEventListener('appinstalled', function() {
+          localStorage.setItem('pwaBannerDismissed', 'true');
+          banner.style.display = 'none';
+        });
+
+        window.installPWA = function() {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function() {
+            localStorage.setItem('pwaBannerDismissed', 'true');
+            banner.style.display = 'none';
+            deferredPrompt = null;
+          });
+        };
+
+        window.dismissPWABanner = function() {
+          localStorage.setItem('pwaBannerDismissed', 'true');
+          banner.style.display = 'none';
+        };
+      })();
+
+      // ── Service Worker registration ──
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('./sw.js')
+            .then(function(reg) { console.log('[Odin SW] Registered:', reg.scope); })
+            .catch(function(err) { console.warn('[Odin SW] Registration failed:', err); });
+        });
+      }
+    </script>
 
 </body>
 </html>
