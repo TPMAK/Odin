@@ -6851,6 +6851,35 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (heroZone) heroZone.classList.add('hidden');
             if (heroFilled) heroFilled.classList.remove('hidden');
             if (heroFilename) heroFilename.textContent = file.name;
+
+            // Open Details panel so user sees the preview and can fill in info
+            const detailsBody = document.getElementById('detailsBody');
+            const detailsChevron = document.getElementById('detailsChevron');
+            if (detailsBody) {
+                detailsBody.classList.remove('hidden');
+                if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+            }
+
+            // Prefill title from filename if title is empty
+            const titleField = document.getElementById('title');
+            const hint = document.getElementById('titleAutofillHint');
+            if (titleField && !titleField.value.trim()) {
+                // Clean up filename: remove extension, replace separators with spaces, trim
+                const cleaned = file.name
+                    .replace(/\.[^.]+$/, '')           // remove extension
+                    .replace(/[_\-]+/g, ' ')            // underscores/hyphens → spaces
+                    .replace(/\b\w/g, c => c.toUpperCase()) // title-case
+                    .trim();
+                titleField.value = cleaned;
+                // Show "Auto-filled from photo" hint
+                if (hint) {
+                    hint.textContent = 'From filename — edit or clear it';
+                    hint.classList.remove('hidden');
+                }
+                // Show clear button
+                const clearBtn = document.getElementById('clearPrefillBtn');
+                if (clearBtn) clearBtn.classList.remove('hidden');
+            }
         };
         reader.readAsDataURL(file);
     }

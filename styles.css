@@ -4429,9 +4429,16 @@
         .photo-upload-compact span { font-size: 13px; }
 
         /* ── Category Pills ── */
+        .category-pills-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-family: 'DM Sans', sans-serif;
+        }
+
         .category-pills {
             display: flex;
-            gap: 6px;
+            gap: 8px;
             flex-wrap: nowrap;
         }
 
@@ -4440,17 +4447,17 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 7px 8px;
+            gap: 6px;
+            padding: 11px 10px;
             border: 1.5px solid var(--border);
             border-radius: 20px;
             background: var(--bg);
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 500;
             color: var(--muted);
             cursor: pointer;
             transition: all 0.2s;
-            font-family: 'Inter', sans-serif;
+            font-family: 'DM Sans', sans-serif;
             white-space: nowrap;
         }
 
@@ -4647,7 +4654,8 @@
                 padding: 16px;
             }
             .category-pill {
-                font-size: 12px;
+                font-size: 13px;
+                padding: 10px 8px;
             }
         }
 
