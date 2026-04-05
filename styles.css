@@ -3831,9 +3831,11 @@
         /* ===== ADD STEP INDICATOR ===== */
         .add-step-indicator {
             display: flex;
-            align-items: center;
+            flex-direction: row;
+            align-items: flex-start;
+            width: 100%;
+            max-width: 360px;
             margin: 12px 0 18px;
-            gap: 0;
         }
         .add-step {
             display: flex;
@@ -3841,6 +3843,7 @@
             align-items: center;
             gap: 5px;
             flex-shrink: 0;
+            min-width: 52px;
         }
         .add-step-circle {
             width: 30px;
@@ -3852,6 +3855,7 @@
             background: #EDE3E7;
             color: #B08090;
             transition: background 0.2s, color 0.2s;
+            flex-shrink: 0;
         }
         .add-step-label {
             font-size: 10px;
@@ -3873,8 +3877,8 @@
             flex: 1;
             height: 1.5px;
             background: #E3D6DA;
-            margin: 0 6px;
-            margin-bottom: 16px; /* aligns with circle centre */
+            margin: 14px 4px 0; /* 14px top = half of 30px circle */
+            align-self: flex-start;
         }
 
         /* ===== TAKE SUBLABEL ===== */
