@@ -932,14 +932,37 @@
         color: #fff;
         font-size: 11px;
         font-family: Inter, sans-serif;
-        white-space: nowrap;
-        padding: 5px 9px;
+        white-space: normal;
+        width: max-content;
+        max-width: 140px;
+        text-align: center;
+        padding: 6px 10px;
         border-radius: 6px;
         pointer-events: none;
         opacity: 0;
         transition: opacity 0.18s ease;
         z-index: 999;
         line-height: 1.4;
+    }
+    /* First stat — anchor tooltip to the left so it doesn't bleed off-screen */
+    .profile-stat-col:first-child[data-tooltip]::after {
+        left: 0;
+        transform: translateX(0);
+    }
+    .profile-stat-col:first-child[data-tooltip]::before {
+        left: 20px;
+        transform: translateX(0);
+    }
+    /* Last stat — anchor tooltip to the right */
+    .profile-stat-col:last-child[data-tooltip]::after {
+        left: auto;
+        right: 0;
+        transform: translateX(0);
+    }
+    .profile-stat-col:last-child[data-tooltip]::before {
+        left: auto;
+        right: 20px;
+        transform: translateX(0);
     }
     .profile-stat-col[data-tooltip]::before {
         content: '';
