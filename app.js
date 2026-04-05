@@ -5949,7 +5949,7 @@ function selectEntryChip(chip) {
                             urlInput.focus();
                             pasteBtn.classList.add('hidden');
                             if (/^https?:\/\//i.test(trimmed)) {
-                                _lastOGFetchedUrl = '';
+                                _lastOGFetchedUrl = trimmed;
                                 fetchAndPrefillOG(trimmed);
                             }
                         })
@@ -6030,7 +6030,7 @@ function _showClipBanner(trimmed) {
             selectEntryChip('link');
             var urlInput = document.getElementById('url');
             if (urlInput) urlInput.value = trimmed;
-            _lastOGFetchedUrl = '';
+            _lastOGFetchedUrl = trimmed;
             fetchAndPrefillOG(trimmed);
         };
     }
