@@ -6351,9 +6351,12 @@ function prefillCaptureLocation() {
     });
 })();
 
-// ===== CAPTURE: URL OG PREFILL =====
+/// ===== CAPTURE: URL OG PREFILL =====
+let _ogFetchInFlight = false;
 async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
+    if (_ogFetchInFlight) return;  // iOS duplicate-call guard
+    _ogFetchInFlight = true;
 
     const titleField = document.getElementById('title');
     // personalNote is now the single user-facing field (merged with description)
@@ -6537,6 +6540,8 @@ async function fetchAndPrefillOG(url) {
         // On error still reveal Step 2 so user can continue manually
         _revealWizardStep('wStep2');
         updateAddStep(2);
+    } finally {
+        _ogFetchInFlight = false;  // always release lock when done
     }
 }
 
@@ -6593,6 +6598,7 @@ function removePhoto() {
 
 function resetOGFetchState() {
     _lastOGFetchedUrl = '';
+    _ogFetchInFlight = false;
     clearOGPreview();
 }
 
