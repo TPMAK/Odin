@@ -132,12 +132,12 @@ async function showMainApp() {
     // Set avatar initial in header
     updateAvatarInitials(userName);
 
-    // Start notification polling
-    startNotifPolling();
-
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
     await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
+
+    // Start notification polling AFTER initial load to avoid duplicate RPC calls
+    startNotifPolling();
 
     // Pre-seed endorsements cache with current user's own saves
     // so the save button shows correctly before RPC fires
@@ -2089,10 +2089,9 @@ async function checkUnreadNotifications() {
 }
 
 function startNotifPolling() {
-    // Check immediately
+    // Initial check — friend requests already loaded by init, just check notif badge
     checkUnreadNotifications();
-    Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
-    // Then poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
+    // Poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
     if (notifPollInterval) clearInterval(notifPollInterval);
     notifPollInterval = setInterval(() => {
         checkUnreadNotifications();
