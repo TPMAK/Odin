@@ -3828,6 +3828,64 @@
             flex-shrink: 0;
         }
 
+        /* ===== ADD STEP INDICATOR ===== */
+        .add-step-indicator {
+            display: flex;
+            align-items: center;
+            margin: 12px 0 18px;
+            gap: 0;
+        }
+        .add-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        .add-step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #EDE3E7;
+            color: #B08090;
+            transition: background 0.2s, color 0.2s;
+        }
+        .add-step-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #B08090;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            transition: color 0.2s;
+        }
+        .add-step.active .add-step-circle {
+            background: #7B2D45;
+            color: #fff;
+        }
+        .add-step.active .add-step-label {
+            color: #7B2D45;
+        }
+        .add-step-line {
+            flex: 1;
+            height: 1.5px;
+            background: #E3D6DA;
+            margin: 0 6px;
+            margin-bottom: 16px; /* aligns with circle centre */
+        }
+
+        /* ===== TAKE SUBLABEL ===== */
+        .take-sublabel {
+            font-size: 11px;
+            color: #9A8A8E;
+            margin: 2px 0 8px;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+
         /* ===== ENTRY CARDS ===== */
         .entry-cards-wrap {
             margin-bottom: 16px;
@@ -4397,7 +4455,7 @@
             font-family: inherit;
             color: var(--ink);
             resize: none;           /* remove manual resize — JS handles growth */
-            min-height: 72px;
+            min-height: 120px;
             transition: border-color 0.2s, box-shadow 0.2s;
             box-sizing: border-box;
             display: block;

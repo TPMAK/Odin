@@ -3163,6 +3163,7 @@ function setMode(mode) {
         // Only reset when arriving from a different page. Re-tapping Add while
         // already on the Add page must not wipe the "Found a link" banner.
         if (_prevMode !== 'input') _resetAddState();
+        updateAddStep(1);
         // _checkClipboardForUrl() skips iOS — the system Paste banner cannot be suppressed.
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
@@ -5849,7 +5850,7 @@ function clearCaptureForm() {
     const titleTA = document.getElementById('title');
     if (titleTA) { titleTA.style.height = '44px'; }
     const takeTA = document.getElementById('personalNote');
-    if (takeTA) { takeTA.style.height = '72px'; }
+    if (takeTA) { takeTA.style.height = '120px'; }
     // Reset progressive steps
     // Reset all UI state (cards, URL bar, banner, steps, overlay)
     _resetAddState();
@@ -5885,6 +5886,8 @@ function _resetAddState() {
     if (pasteOverlay) pasteOverlay.remove();
     // Collapse progressive form steps
     _resetSteps();
+    // Reset step indicator back to Step 1
+    updateAddStep(1);
     // Reset OG fetch dedup guard
     _lastOGFetchedUrl = '';
 }
@@ -5896,6 +5899,9 @@ function selectEntryChip(chip) {
     if (activeChip) activeChip.classList.add('active');
     // Persist selection
     try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+
+    // Advance step indicator to Step 2 (method selected)
+    updateAddStep(2);
 
     // Show/hide photo hero section and url bar
     const photoSection = document.getElementById('photoChipSection');
@@ -6064,6 +6070,20 @@ function handlePhotoOptLink(val) {
 }
 
 // ===== PROGRESSIVE STEP REVEAL =====
+// ── ADD STEP INDICATOR ──────────────────────────────────────────
+// Step 1 = How (default active), Step 2 = method selected, Step 3 = Your Take has text
+function updateAddStep(n) {
+    for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById('addStep' + i);
+        if (!el) continue;
+        if (i <= n) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    }
+}
+
 function _revealStep(id) {
     const el = document.getElementById(id);
     if (!el || !el.classList.contains('step-hidden')) return;
@@ -6443,6 +6463,12 @@ async function fetchAndPrefillOG(url) {
         _revealStep('stepTake');
         _revealStep('stepFinal');
 
+        // Link flow: Details is already pre-filled — collapse it so user lands on Your Take
+        const _detailsBodyOG = document.getElementById('detailsBody');
+        const _detailsChevronOG = document.getElementById('detailsChevron');
+        if (_detailsBodyOG) _detailsBodyOG.classList.add('hidden');
+        if (_detailsChevronOG) _detailsChevronOG.style.transform = '';
+
         // Auto-scroll to "Your Take" and focus it — the user's voice is the whole point.
         // Small delay so the OG card animation finishes first.
         setTimeout(() => {
@@ -6574,7 +6600,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initAutoGrow(document.getElementById('title'), 44);
-    initAutoGrow(document.getElementById('personalNote'), 72);
+    initAutoGrow(document.getElementById('personalNote'), 120);
+
+    // Step indicator: advance to Step 3 when Your Take has text, back to Step 2 if cleared
+    const takeTA = document.getElementById('personalNote');
+    if (takeTA) {
+        takeTA.addEventListener('input', () => {
+            const hasText = takeTA.value.trim().length > 0;
+            // Only advance/retreat if a method has already been selected (step >= 2)
+            const step2Active = document.getElementById('addStep2')?.classList.contains('active');
+            if (step2Active) {
+                updateAddStep(hasText ? 3 : 2);
+            }
+        });
+    }
 });
 
 
@@ -6641,21 +6680,43 @@ async function submitDiscovery(e) {
         return;
     }
 
-    // Validate title — open details section if empty so user can see the field
-    const titleVal = document.getElementById('title').value.trim();
+    // Auto-generate title if empty — no prompt shown, just silent fallback
+    const titleField = document.getElementById('title');
+    let titleVal = titleField ? titleField.value.trim() : '';
     if (!titleVal) {
-        const detailsBody = document.getElementById('detailsBody');
-        const detailsChevron = document.getElementById('detailsChevron');
-        if (detailsBody) detailsBody.classList.remove('hidden');
-        if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        const titleField = document.getElementById('title');
-        if (titleField) {
-            titleField.focus();
-            titleField.style.borderColor = '#7B2D45';
-            setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
+        const activeChip = document.querySelector('.entry-card.active');
+        const chipType = activeChip ? activeChip.dataset.chip : '';
+        if (chipType === 'photo') {
+            // "Photo — 5 Apr 2026"
+            const now = new Date();
+            const day = now.getDate();
+            const mon = now.toLocaleString('en-NZ', { month: 'short' });
+            const yr  = now.getFullYear();
+            titleVal = `Photo \u2014 ${day} ${mon} ${yr}`;
+        } else if (chipType === 'type') {
+            // First 6 words of Your Take
+            const takeText = document.getElementById('personalNote').value.trim();
+            const words = takeText.split(/\s+/).slice(0, 6).join(' ');
+            if (words) {
+                titleVal = words + (takeText.split(/\s+/).length > 6 ? '\u2026' : '');
+            }
         }
-        document.getElementById('submitBtn').disabled = false;
-        return;
+        // If still empty (link/here with no OG title), fall back to old validation
+        if (!titleVal) {
+            const detailsBody = document.getElementById('detailsBody');
+            const detailsChevron = document.getElementById('detailsChevron');
+            if (detailsBody) detailsBody.classList.remove('hidden');
+            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
+            if (titleField) {
+                titleField.focus();
+                titleField.style.borderColor = '#7B2D45';
+                setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
+            }
+            document.getElementById('submitBtn').disabled = false;
+            return;
+        }
+        // Write the generated title back into the field so it's picked up by the payload
+        if (titleField) titleField.value = titleVal;
     }
 
     // Validate "Your take" — required but no asterisk shown
@@ -6860,26 +6921,8 @@ document.getElementById('photo').addEventListener('change', function(e) {
                 if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
             }
 
-            // Prefill title from filename if title is empty
-            const titleField = document.getElementById('title');
-            const hint = document.getElementById('titleAutofillHint');
-            if (titleField && !titleField.value.trim()) {
-                // Clean up filename: remove extension, replace separators with spaces, trim
-                const cleaned = file.name
-                    .replace(/\.[^.]+$/, '')           // remove extension
-                    .replace(/[_\-]+/g, ' ')            // underscores/hyphens → spaces
-                    .replace(/\b\w/g, c => c.toUpperCase()) // title-case
-                    .trim();
-                titleField.value = cleaned;
-                // Show "Auto-filled from photo" hint
-                if (hint) {
-                    hint.textContent = 'From filename — edit or clear it';
-                    hint.classList.remove('hidden');
-                }
-                // Show clear button
-                const clearBtn = document.getElementById('clearPrefillBtn');
-                if (clearBtn) clearBtn.classList.remove('hidden');
-            }
+            // Title for photo flow is auto-generated at submit time ("Photo — D Mon YYYY")
+            // Do NOT prefill from filename — filenames like "Screenshot 2026-04-05..." are noise.
         };
         reader.readAsDataURL(file);
     }

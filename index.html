@@ -2024,6 +2024,30 @@
                 </div>
                 <div id="formMessage"></div>
 
+                <!-- ✦ ADD STEP INDICATOR -->
+                <div class="add-step-indicator" id="addStepIndicator">
+                    <div class="add-step" id="addStep1" data-step="1">
+                        <div class="add-step-circle">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <span class="add-step-label">How</span>
+                    </div>
+                    <div class="add-step-line"></div>
+                    <div class="add-step" id="addStep2" data-step="2">
+                        <div class="add-step-circle">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </div>
+                        <span class="add-step-label">Your Take</span>
+                    </div>
+                    <div class="add-step-line"></div>
+                    <div class="add-step" id="addStep3" data-step="3">
+                        <div class="add-step-circle">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v14a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        </div>
+                        <span class="add-step-label">Save</span>
+                    </div>
+                </div>
+
                 <!-- ✦ CLIPBOARD BANNER (shown when URL detected on open) -->
                 <div class="clip-detect-banner hidden" id="clipDetectBanner">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -2160,7 +2184,8 @@
                     <!-- 3. YOUR TAKE -->
                     <div id="stepTake" class="step-hidden">
                     <div class="form-group form-group-take">
-                        <label class="field-label-inline">Your take</label>
+                        <label class="field-label-inline">YOUR TAKE</label>
+                        <p class="take-sublabel">This is the part your circle actually needs.</p>
                         <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
                         <!-- Hidden description mirrors personalNote value on submit -->
                         <input type="hidden" id="description">
