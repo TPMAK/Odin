@@ -3836,6 +3836,8 @@
             background: var(--bg);
             border-bottom: 1px solid var(--border);
             padding: 10px 16px 8px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         /* ===== ADD STEP INDICATOR ===== */
@@ -3882,6 +3884,18 @@
         }
         .add-step.active .add-step-label {
             color: #7B2D45;
+        }
+        /* Completed step — green circle with tick */
+        .add-step.done .add-step-circle {
+            background: #2D7B45;
+            color: #fff;
+        }
+        .add-step.done .add-step-label {
+            color: #2D7B45;
+        }
+        /* Line turns green when step before it is done */
+        .add-step.done + .add-step-line {
+            background: #2D7B45;
         }
         .add-step-line {
             flex: 1;
@@ -4617,6 +4631,14 @@
             display: block;
             max-height: 200px;
             object-fit: cover;
+        }
+        /* Larger preview when shown in step 1 hero position */
+        .photo-preview-hero {
+            margin-top: 0;
+            border-radius: 12px;
+        }
+        .photo-preview-hero img {
+            max-height: 260px;
         }
 
         .photo-preview-badge {

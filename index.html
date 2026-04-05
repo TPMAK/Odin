@@ -2106,18 +2106,28 @@
 
                     <!-- Photo hero (shown when Photo chip selected) -->
                     <div class="photo-chip-section hidden" id="photoChipSection">
+                        <!-- Tap zone (before photo chosen) -->
                         <div class="photo-hero-zone" id="photoHeroZone" onclick="document.getElementById('photo').click()">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             <span class="photo-hero-tap">Tap to add a photo</span>
                             <span class="photo-hero-sub">Camera roll or take one now</span>
                         </div>
-                        <div class="photo-hero-filled hidden" id="photoHeroFilled">
-                            <span class="photo-hero-filename" id="photoHeroFilename"></span>
-                            <span class="photo-hero-actions">
-                                <button type="button" onclick="replacePhoto()">Replace</button>
-                                <button type="button" onclick="removePhoto()">Remove</button>
-                            </span>
+                        <!-- Inline preview (after photo chosen) — replaces the tap zone -->
+                        <div id="photoPreview" class="photo-preview-wrap photo-preview-hero" style="display: none;">
+                            <img id="previewImg" />
+                            <div class="photo-preview-badge" id="photoSourceBadge">Your photo</div>
+                            <div class="photo-preview-actions">
+                                <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Replace">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Replace
+                                </button>
+                                <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Remove
+                                </button>
+                            </div>
                         </div>
+                        <input type="file" id="photo" accept="image/*" style="display: none;">
                         <div class="photo-opt-link">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             <input type="url" id="photoOptLink" class="photo-opt-link-input" placeholder="Got a link too? Paste to prefill title (optional)" autocomplete="off" oninput="handlePhotoOptLink(this.value)">
@@ -2245,27 +2255,13 @@
                         <input type="hidden" id="userLng" value="">
                     </div>
 
-                    <!-- Photo (non-photo flow) -->
+                    <!-- Photo upload for non-photo flows (link/here/type) -->
+                    <!-- Hidden when photo chip is active (photo is already in step 1) -->
                     <div class="form-group form-group-photo" id="detailsPhotoGroup">
                         <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
                         <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             <span>Add a photo</span>
-                        </div>
-                        <input type="file" id="photo" accept="image/*" style="display: none;">
-                        <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
-                            <img id="previewImg" />
-                            <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
-                            <div class="photo-preview-actions">
-                                <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                    Replace
-                                </button>
-                                <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                    Remove
-                                </button>
-                            </div>
                         </div>
                         <input type="hidden" id="ogImageUrl" value="">
                     </div>
