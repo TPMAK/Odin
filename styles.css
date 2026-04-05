@@ -3828,43 +3828,53 @@
             flex-shrink: 0;
         }
 
+        /* ===== ADD STEP — STICKY WRAPPER ===== */
+        .add-step-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px 8px;
+        }
+
         /* ===== ADD STEP INDICATOR ===== */
         .add-step-indicator {
             display: flex;
             flex-direction: row;
             align-items: flex-start;
             width: 100%;
-            max-width: 360px;
-            margin: 12px 0 18px;
+            max-width: 480px;
+            margin: 0 auto;
         }
         .add-step {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             flex-shrink: 0;
-            min-width: 52px;
+            min-width: 48px;
         }
         .add-step-circle {
-            width: 30px;
-            height: 30px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #EDE3E7;
             color: #B08090;
-            transition: background 0.2s, color 0.2s;
+            transition: background 0.25s, color 0.25s;
             flex-shrink: 0;
         }
         .add-step-label {
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 600;
             color: #B08090;
             letter-spacing: 0.03em;
             text-transform: uppercase;
             white-space: nowrap;
-            transition: color 0.2s;
+            transition: color 0.25s;
         }
         .add-step.active .add-step-circle {
             background: #7B2D45;
@@ -3877,9 +3887,38 @@
             flex: 1;
             height: 1.5px;
             background: #E3D6DA;
-            margin: 14px 4px 0; /* 14px top = half of 30px circle */
+            margin: 13px 4px 0; /* 13px = half of 28px circle */
             align-self: flex-start;
+            transition: background 0.25s;
         }
+
+        /* ===== WIZARD SECTION SPACING ===== */
+        .wizard-step {
+            margin-bottom: 8px;
+        }
+
+        /* ===== NEXT BUTTON ===== */
+        .wizard-next-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+            width: 100%;
+            margin-top: 14px;
+            padding: 13px 20px;
+            background: #7B2D45;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            -webkit-appearance: none;
+        }
+        .wizard-next-btn:hover { background: #6a2539; }
+        .wizard-next-btn:active { transform: scale(0.98); }
 
         /* ===== TAKE SUBLABEL ===== */
         .take-sublabel {

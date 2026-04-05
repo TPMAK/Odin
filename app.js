@@ -5900,9 +5900,6 @@ function selectEntryChip(chip) {
     // Persist selection
     try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
 
-    // Advance step indicator to Step 2 (method selected)
-    updateAddStep(2);
-
     // Show/hide photo hero section and url bar
     const photoSection = document.getElementById('photoChipSection');
     const urlHeroBar = document.getElementById('urlHeroBar');
@@ -5913,24 +5910,17 @@ function selectEntryChip(chip) {
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
     } else {
-        // here / type — no URL bar needed
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
     }
 
-    // Any chip reveals the full form at once
-    _revealStep('stepCategory');
-    _revealStep('stepTake');
-    _revealStep('stepFinal');
-
-    // Chip-specific actions
+    // Chip-specific: handle URL input focus, location prefill
     if (chip === 'link') {
         const urlInput = document.getElementById('url');
         if (urlInput) setTimeout(() => urlInput.focus(), 50);
         var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
         var pasteBtn = document.getElementById('iosPasteBtn');
         if (_iosDevice) {
-            // iOS: show an explicit Paste button — readText() from its tap is a clean user gesture
             if (pasteBtn) {
                 pasteBtn.classList.remove('hidden');
                 pasteBtn.onclick = function() {
@@ -5952,7 +5942,6 @@ function selectEntryChip(chip) {
                 };
             }
         } else {
-            // Non-iOS: hide the Paste button, silently check clipboard instead
             if (pasteBtn) pasteBtn.classList.add('hidden');
             if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
                 navigator.clipboard.readText()
@@ -5967,26 +5956,17 @@ function selectEntryChip(chip) {
         }
     } else if (chip === 'here') {
         prefillCaptureLocation();
-        // Open details so address is visible
-        const detailsBody = document.getElementById('detailsBody');
-        const detailsChevron = document.getElementById('detailsChevron');
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
-    } else if (chip === 'type') {
-        // Open details and focus name field
-        const detailsBody = document.getElementById('detailsBody');
-        const detailsChevron = document.getElementById('detailsChevron');
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
-        setTimeout(() => {
-            const titleField = document.getElementById('title');
-            if (titleField) { titleField.focus(); titleField.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-        }, 150);
     }
+
+    // Auto-advance to Step 2 (Your Take) after chip selection
+    // Small delay so the chip section animation plays first
+    setTimeout(() => {
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
+        // Focus the textarea
+        const takeField = document.getElementById('personalNote');
+        if (takeField) takeField.focus();
+    }, 200);
 }
 
 function _restoreEntryChip() {
@@ -6071,9 +6051,9 @@ function handlePhotoOptLink(val) {
 
 // ===== PROGRESSIVE STEP REVEAL =====
 // ── ADD STEP INDICATOR ──────────────────────────────────────────
-// Step 1 = How (default active), Step 2 = method selected, Step 3 = Your Take has text
+// Steps: 1=How, 2=Your Take, 3=Details, 4=Save
 function updateAddStep(n) {
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 4; i++) {
         const el = document.getElementById('addStep' + i);
         if (!el) continue;
         if (i <= n) {
@@ -6081,6 +6061,48 @@ function updateAddStep(n) {
         } else {
             el.classList.remove('active');
         }
+    }
+}
+
+// Reveal a wizard section with fade-in and scroll
+function _revealWizardStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+// Called by "Next" buttons — advances to a given step number
+function wizardAdvance(toStep) {
+    if (toStep === 3) {
+        // Validate Your Take before advancing
+        const takeVal = document.getElementById('personalNote').value.trim();
+        if (!takeVal) {
+            const textarea = document.getElementById('personalNote');
+            textarea.focus();
+            textarea.style.borderColor = '#7B2D45';
+            textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+            const formMsg = document.getElementById('formMessage');
+            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your take first — even one line helps.</p>';
+            setTimeout(() => {
+                textarea.style.borderColor = '';
+                textarea.style.boxShadow = '';
+            }, 2500);
+            return;
+        }
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) formMsg.innerHTML = '';
+        _revealWizardStep('wStep3');
+        updateAddStep(3);
+    } else if (toStep === 4) {
+        _revealWizardStep('wStep4');
+        updateAddStep(4);
+        // Scroll to Save button
+        setTimeout(() => {
+            const saveBtn = document.getElementById('submitBtn');
+            if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
     }
 }
 
@@ -6094,7 +6116,8 @@ function _revealStep(id) {
 }
 
 function _resetSteps() {
-    ['stepCategory', 'stepTake', 'stepFinal'].forEach(id => {
+    // Reset wizard steps 2-4 back to hidden; step 1 (How) always stays visible
+    ['wStep2', 'wStep3', 'wStep4'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add('step-hidden');
@@ -6458,34 +6481,26 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // Always reveal all steps once fetch completes — regardless of what came back
-        _revealStep('stepCategory');
-        _revealStep('stepTake');
-        _revealStep('stepFinal');
+        // OG fetch complete — reveal Step 2 (Your Take) so user can add their note.
+        // Step 3 (Details) is pre-filled and will be revealed when user taps "Next".
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
 
-        // Link flow: Details is already pre-filled — collapse it so user lands on Your Take
-        const _detailsBodyOG = document.getElementById('detailsBody');
-        const _detailsChevronOG = document.getElementById('detailsChevron');
-        if (_detailsBodyOG) _detailsBodyOG.classList.add('hidden');
-        if (_detailsChevronOG) _detailsChevronOG.style.transform = '';
-
-        // Auto-scroll to "Your Take" and focus it — the user's voice is the whole point.
-        // Small delay so the OG card animation finishes first.
+        // Focus Your Take — the user's voice is the whole point.
         setTimeout(() => {
             const takeField = document.getElementById('personalNote');
             if (takeField) {
                 takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 takeField.focus();
             }
-        }, 400);
+        }, 300);
 
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
         if (heroHint) heroHint.style.display = 'flex';
-        // Even on error, reveal steps so user can still fill in manually
-        _revealStep('stepCategory');
-        _revealStep('stepTake');
-        _revealStep('stepFinal');
+        // On error still reveal Step 2 so user can continue manually
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
     }
 }
 
@@ -6602,57 +6617,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initAutoGrow(document.getElementById('title'), 44);
     initAutoGrow(document.getElementById('personalNote'), 120);
 
-    // Step indicator: advance to Step 3 when Your Take has text, back to Step 2 if cleared
-    const takeTA = document.getElementById('personalNote');
-    if (takeTA) {
-        takeTA.addEventListener('input', () => {
-            const hasText = takeTA.value.trim().length > 0;
-            // Only advance/retreat if a method has already been selected (step >= 2)
-            const step2Active = document.getElementById('addStep2')?.classList.contains('active');
-            if (step2Active) {
-                updateAddStep(hasText ? 3 : 2);
-            }
-        });
-    }
+    // Step indicator: no automatic advance from textarea — user taps "Next" to advance.
+    // (wizardAdvance handles the step indicator update)
 });
 
 
 // ===== DETAILS SECTION TOGGLE =====
-function toggleDetails() {
-    const body = document.getElementById('detailsBody');
-    const chevron = document.getElementById('detailsChevron');
-    const label = document.getElementById('detailsToggleLabel');
-    if (!body) return;
-    const isOpen = !body.classList.contains('hidden');
-    if (isOpen) {
-        body.classList.add('hidden');
-        if (chevron) chevron.style.transform = '';
-        if (label) label.textContent = 'Details';
-    } else {
-        body.classList.remove('hidden');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
-        if (label) label.textContent = 'Details';
-    }
-}
+// Details is now wizard step 3 — always visible when reached. No-op kept for safety.
+function toggleDetails() {}
 
-// Auto-open details section and show autofill hint after OG fills title
+// Show autofill hint after OG fills title (Details is now wizard step 3, always revealed on Next)
 function _openDetailsAfterOG(hasTitle) {
-    const body = document.getElementById('detailsBody');
-    const chevron = document.getElementById('detailsChevron');
     const hint = document.getElementById('titleAutofillHint');
-    if (body) {
-        body.classList.remove('hidden');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
-    }
-    // Only show "Auto-filled from link" hint if title was actually prefilled
     if (hint) {
         if (hasTitle) hint.classList.remove('hidden');
         else hint.classList.add('hidden');
     }
-    // Reveal remaining steps — OG fetch means we have content, skip manual steps
-    _revealStep('stepCategory');
-    _revealStep('stepTake');
-    _revealStep('stepFinal');
 }
 
 // ===== CLEAR TITLE ONLY =====
@@ -6701,12 +6681,8 @@ async function submitDiscovery(e) {
                 titleVal = words + (takeText.split(/\s+/).length > 6 ? '\u2026' : '');
             }
         }
-        // If still empty (link/here with no OG title), fall back to old validation
+        // If still empty (link/here with no OG title), highlight the title field
         if (!titleVal) {
-            const detailsBody = document.getElementById('detailsBody');
-            const detailsChevron = document.getElementById('detailsChevron');
-            if (detailsBody) detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
             if (titleField) {
                 titleField.focus();
                 titleField.style.borderColor = '#7B2D45';
@@ -6823,12 +6799,8 @@ async function submitDiscovery(e) {
     // Show URL hint again
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
-    // Close details section + hide autofill hint
-    const _detailsBody = document.getElementById('detailsBody');
-    const _detailsChevron = document.getElementById('detailsChevron');
+    // Hide autofill hint on successful save
     const _titleHint = document.getElementById('titleAutofillHint');
-    if (_detailsBody) _detailsBody.classList.add('hidden');
-    if (_detailsChevron) _detailsChevron.style.transform = '';
     if (_titleHint) _titleHint.classList.add('hidden');
 
     btn.disabled = false;
@@ -6863,25 +6835,13 @@ function selectCategory(el) {
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');
     const addressLabel = document.getElementById('addressLabel');
-    const detailsBody = document.getElementById('detailsBody');
-    const detailsChevron = document.getElementById('detailsChevron');
 
     if (val === 'place') {
         if (addressGroup) addressGroup.style.display = '';
         if (addressLabel) addressLabel.textContent = '— recommended for places';
-        // Auto-open Details so address field is visible
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
     } else if (val === 'service') {
         if (addressGroup) addressGroup.style.display = '';
         if (addressLabel) addressLabel.textContent = '— optional for services';
-        // Auto-open Details so address field is visible
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
     } else {
         if (addressGroup) addressGroup.style.display = 'none';
         // Clear address when hidden
@@ -6912,14 +6872,6 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (heroZone) heroZone.classList.add('hidden');
             if (heroFilled) heroFilled.classList.remove('hidden');
             if (heroFilename) heroFilename.textContent = file.name;
-
-            // Open Details panel so user sees the preview and can fill in info
-            const detailsBody = document.getElementById('detailsBody');
-            const detailsChevron = document.getElementById('detailsChevron');
-            if (detailsBody) {
-                detailsBody.classList.remove('hidden');
-                if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-            }
 
             // Title for photo flow is auto-generated at submit time ("Photo — D Mon YYYY")
             // Do NOT prefill from filename — filenames like "Screenshot 2026-04-05..." are noise.
