@@ -2785,6 +2785,7 @@ function showHome() {
     if (savedEl) savedEl.classList.add('hidden');
     var stepBar = document.getElementById('addStepSticky');
     if (stepBar) stepBar.classList.add('hidden');
+    document.body.classList.remove('add-tab-open');
     document.getElementById('inputArea').classList.add('hidden');
     // Language button only shows on profile page — always hide it on home
     var langWrap = document.getElementById('headerLangWrap');
@@ -3113,6 +3114,7 @@ function setMode(mode) {
     // Always hide step bar; re-shown below if mode === 'input'
     var stepBar = document.getElementById('addStepSticky');
     if (stepBar) stepBar.classList.add('hidden');
+    document.body.classList.remove('add-tab-open');
 
     // Show header only on Home page, hide on all other pages
     var headerEl = document.querySelector('.header');
@@ -3164,9 +3166,10 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
-        // Show step bar (it lives outside .content so it never scrolls)
+        // Show step bar (fixed to top — never scrolls)
         var stepBar = document.getElementById('addStepSticky');
         if (stepBar) stepBar.classList.remove('hidden');
+        document.body.classList.add('add-tab-open');
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Only reset when arriving from a different page. Re-tapping Add while
         // already on the Add page must not wipe the "Found a link" banner.

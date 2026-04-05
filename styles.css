@@ -3828,13 +3828,21 @@
             flex-shrink: 0;
         }
 
-        /* ===== ADD STEP BAR — lives outside .content, never scrolls away ===== */
+        /* ===== ADD STEP BAR — fixed to top, never scrolls ===== */
         .add-step-sticky {
+            position: fixed;
+            top: env(safe-area-inset-top, 0px);
+            left: 0;
+            right: 0;
+            z-index: 200;
             background: var(--bg);
             border-bottom: 1px solid var(--border);
             width: 100%;
             box-sizing: border-box;
-            flex-shrink: 0;
+        }
+        /* Push .content down when step bar is visible so it doesn't hide behind the fixed bar */
+        body.add-tab-open .content {
+            padding-top: calc(68px + env(safe-area-inset-top, 0px));
         }
 
         .add-step-indicator {
