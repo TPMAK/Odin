@@ -918,6 +918,46 @@
         background-size: contain;
         background-repeat: no-repeat;
     }
+    /* ── Profile stat tooltips ── */
+    .profile-stat-col {
+        position: relative;
+    }
+    .profile-stat-col[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2a2a2a;
+        color: #fff;
+        font-size: 11px;
+        font-family: Inter, sans-serif;
+        white-space: nowrap;
+        padding: 5px 9px;
+        border-radius: 6px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        z-index: 999;
+        line-height: 1.4;
+    }
+    .profile-stat-col[data-tooltip]::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #2a2a2a;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        z-index: 999;
+    }
+    .profile-stat-col[data-tooltip]:hover::after,
+    .profile-stat-col[data-tooltip]:hover::before {
+        opacity: 1;
+    }
     </style>
 </head>
 <body>
@@ -1745,24 +1785,24 @@
 
                     <!-- ── Stats Row ── -->
                     <div class="profile-stats-row">
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="Places you've added to Odin">
                             <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
                             <div class="profile-stat-label">Added</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="Recommendations you've saved from your circle">
                             <div class="profile-stat-number" id="profileEndorsementCount">0</div>
                             <div class="profile-stat-label">Saved</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="Trusted people in your network">
                             <div class="profile-stat-number" id="profilePeopleCount">0</div>
                             <div class="profile-stat-label">Friends</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col pstat-kb">
+                        <div class="profile-stat-col pstat-kb" data-tooltip="Total items visible to you via your circle">
                             <div class="profile-stat-number" id="profileKnowledgeBase">0</div>
-                            <div class="profile-stat-label">Knowledge Base</div>
+                            <div class="profile-stat-label">Knowledge</div>
                         </div>
                     </div>
 
@@ -2482,7 +2522,7 @@
                     <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
                 </div>
                 <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
-                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge Base grows the moment you connect.</p>
+                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge grows the moment you connect.</p>
                 <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
                 <button class="onb-btn-skip" onclick="onbSkipInvite()">Skip for now</button>
                 <div class="onb-dots">
@@ -2582,7 +2622,7 @@
             'The bigger your circle, the richer this gets.',
             'Real places. Real takes. Real people.',
             'Trending doesn\'t mean viral. It means trusted.',
-            'Your Knowledge Base, all in one place.',
+            'Your Knowledge, all in one place.',
             'Discover more by knowing more people.',
             'What\'s popular here actually means something.',
         ],
@@ -2611,12 +2651,12 @@
             'Knowledge shared is knowledge multiplied.',
         ],
         profile: [
-            'Your Knowledge Base grows with every connection.',
+            'Your Knowledge grows with every connection.',
             'More friends. Less noise. More signal.',
             'Everything here, earned through trust.',
             'Your circle is your most valuable asset.',
             'The more you give, the more your circle grows.',
-            'Your Knowledge Base is yours. Build it well.',
+            'Your Knowledge is yours. Build it well.',
             'Three friends today. A hundred trusted items tomorrow.',
             'Every person you add expands what you know.',
             'Small circle. High trust. That\'s the point.',
@@ -4643,7 +4683,7 @@
         }
     });
 
-    // ── Knowledge Base count ──
+    // ── Knowledge count ──
     // Uses the get_kb_count SECURITY DEFINER RPC which runs server-side
     // and bypasses RLS correctly. Counts:
     //   1. Own items (any visibility)
