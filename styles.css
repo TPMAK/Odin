@@ -3829,81 +3829,75 @@
         }
 
         /* ===== ADD STEP — STICKY WRAPPER ===== */
+        /* ===== STEP BAR — Facebook-style sticky strip ===== */
         .add-step-sticky {
             position: sticky;
             top: 0;
             z-index: 40;
             background: var(--bg);
             border-bottom: 1px solid var(--border);
-            padding: 10px 16px 8px;
+            /* Stretch across full width even inside a flex-column with align-items:center */
+            align-self: stretch;
             width: 100%;
             box-sizing: border-box;
         }
 
-        /* ===== ADD STEP INDICATOR ===== */
         .add-step-indicator {
             display: flex;
             flex-direction: row;
-            align-items: flex-start;
+            align-items: center;
+            justify-content: center;
             width: 100%;
-            max-width: 480px;
+            max-width: 400px;
             margin: 0 auto;
+            padding: 10px 20px;
+            gap: 0;
         }
+
         .add-step {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
             flex-shrink: 0;
-            min-width: 48px;
         }
+
         .add-step-circle {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #EDE3E7;
             color: #B08090;
-            transition: background 0.25s, color 0.25s;
+            transition: background 0.2s, color 0.2s;
             flex-shrink: 0;
         }
-        .add-step-label {
-            font-size: 9px;
-            font-weight: 600;
-            color: #B08090;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            white-space: nowrap;
-            transition: color 0.25s;
-        }
+
+        /* Hide labels — icon-only like Facebook tabs */
+        .add-step-label { display: none; }
+
         .add-step.active .add-step-circle {
             background: #7B2D45;
             color: #fff;
         }
-        .add-step.active .add-step-label {
-            color: #7B2D45;
-        }
-        /* Completed step — green circle with tick */
+        /* Completed step — muted green tick */
         .add-step.done .add-step-circle {
             background: #2D7B45;
             color: #fff;
         }
-        .add-step.done .add-step-label {
-            color: #2D7B45;
-        }
-        /* Line turns green when step before it is done */
-        .add-step.done + .add-step-line {
-            background: #2D7B45;
-        }
+        /* Connecting line */
         .add-step-line {
             flex: 1;
-            height: 1.5px;
+            height: 2px;
             background: #E3D6DA;
-            margin: 13px 4px 0; /* 13px = half of 28px circle */
-            align-self: flex-start;
-            transition: background 0.25s;
+            min-width: 20px;
+            max-width: 60px;
+            transition: background 0.2s;
+        }
+        /* Line after a completed step turns green */
+        .add-step.done + .add-step-line {
+            background: #2D7B45;
         }
 
         /* ===== WIZARD SECTION SPACING ===== */
