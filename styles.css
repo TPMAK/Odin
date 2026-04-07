@@ -6274,11 +6274,11 @@
     margin-bottom: 14px;
 }
 
-/* Save row: avatars on left, save button on right */
+/* Save row: save button only (social proof moved to drawer-attribution) */
 .drawer-save-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
     padding: 4px 0;
 }

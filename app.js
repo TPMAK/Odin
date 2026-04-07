@@ -1158,43 +1158,11 @@ function buildEndorseSection(itemId) {
     const fillColor = cached.userEndorsed ? '#7B2D45' : 'none';
     const strokeColor = '#7B2D45';
 
-    // Only show names and count of friends + self (not global)
-    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
-    if (currentUser) friendIds.add(currentUser.id);
-    const friendNames = [];
-    (cached.ids || []).forEach((id, i) => {
-        if (friendIds.has(id) && cached.names[i]) {
-            friendNames.push(cached.names[i]);
-        }
-    });
-
-    const friendCount = friendNames.length;
-
-    // Build stacked avatar initials (up to 3)
-    let avatarsHtml = '';
-    if (friendCount > 0) {
-        const avatarNames = friendNames.slice(0, 3);
-        avatarsHtml = `<div class="endorse-avatars">${avatarNames.map(n => `<div class="endorse-avatar-chip">${n.charAt(0).toUpperCase()}</div>`).join('')}</div>`;
-    }
-
-    // Build "Saved by X and N others" sentence
-    let savedByText = '';
-    if (friendCount > 0) {
-        const first = friendNames[0];
-        if (friendCount === 1) {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong>`;
-        } else if (friendCount === 2) {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and <strong>${escapeHtml(friendNames[1])}</strong>`;
-        } else {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and ${friendCount - 1} others`;
-        }
-    }
-
+    // Social proof (avatars + "Saved by") now lives in drawer-attribution block.
+    // This section renders the Save button only.
     return `<div class="drawer-reactions">
         <div class="drawer-save-row">
-            ${avatarsHtml}
             <div class="drawer-save-right">
-                ${savedByText ? `<div class="endorse-names">${savedByText}</div>` : ''}
                 <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
                     <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                     <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
