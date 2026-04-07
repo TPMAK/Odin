@@ -4476,7 +4476,6 @@ function openItemDrawer(item) {
         html += `<div class="drawer-quote">
             <div class="drawer-quote-label">THE WORD</div>
             <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
-            <div class="drawer-quote-attribution">— ${escapeHtml(item.added_by_name || 'Friend')}</div>
         </div>`;
         html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
