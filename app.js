@@ -1070,11 +1070,18 @@ async function toggleEndorsement(itemId, event) {
                 const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
                 if (!cached.names.includes(myName)) cached.names.push(myName);
             }
-            // Milestone: first endorsement
-            if (!localStorage.getItem('milestone_first_endorse')) {
-                localStorage.setItem('milestone_first_endorse', 'true');
-                setTimeout(() => showToast('Your friends will see you endorsed this!'), 300);
-            }
+            // Motivational save toast — random variant, shows every time
+            const _toastVariants = (name) => [
+                `${name} will see you loved this too.`,
+                `Nice taste. ${name} is going to feel seen.`,
+                `You just made ${name}'s find worth even more.`
+            ];
+            const _adderName = item?.added_by_name
+                ? item.added_by_name.split(' ')[0]
+                : 'Your friend';
+            const _variants = _toastVariants(_adderName);
+            const _msg = _variants[Math.floor(Math.random() * _variants.length)];
+            setTimeout(() => showToast(_msg), 300);
         }
     }
 
@@ -1160,6 +1167,22 @@ function buildEndorseSection(itemId) {
 
     // Social proof (avatars + "Saved by") now lives in drawer-attribution block.
     // This section renders the Save button only.
+
+    // One-time contact CTA per item
+    const _ctaKey = `odin_contact_cta_${itemId}`;
+    const _myName = currentProfile?.display_name || (currentUser?.user_metadata?.full_name) || '';
+    const _ctaFriendName = cached.names.find(n => n !== _myName);
+    let _contactHtml = '';
+    if (_ctaFriendName && !localStorage.getItem(_ctaKey)) {
+        localStorage.setItem(_ctaKey, '1');
+        const _firstName = (_ctaFriendName.split(' ')[0] || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+        _contactHtml = `
+        <div class="drawer-contact-cta" onclick="this.remove()">
+            <span class="drawer-contact-text">Want to know more? Ask ${_firstName} directly — they're just a message away.</span>
+            <span class="drawer-contact-dismiss">&#x2715;</span>
+        </div>`;
+    }
+
     return `<div class="drawer-reactions">
         <div class="drawer-save-row">
             <div class="drawer-save-right">
@@ -1169,6 +1192,7 @@ function buildEndorseSection(itemId) {
                 </button>
             </div>
         </div>
+        ${_contactHtml}
     </div>`;
 }
 
