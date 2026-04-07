@@ -4431,7 +4431,7 @@ function openItemDrawer(item) {
         ? `<span class="hf-card-private">Private</span>` : '';
     const drawerDistChip    = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
     if (drawerCatChip || drawerPrivateChip || drawerDistChip) {
-        html += `<div class="hf-card-chips-row drawer-chips" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
+        html += `<div class="hf-card-chips-row drawer-chips">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
     }
 
     // Circle trust signal — shown below address for non-owner items

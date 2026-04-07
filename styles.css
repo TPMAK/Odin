@@ -1050,17 +1050,25 @@
             flex-shrink: 0;
         }
 
-        /* Drawer chip overrides — larger chips inside the detail drawer */
+        /* Drawer chip overrides — consistent size for all chips inside the detail drawer */
+        .drawer-chips {
+            margin-top: 10px;
+            margin-bottom: 14px;
+        }
         .drawer-chips .hf-card-cat {
-            padding: 7px 14px;
-            font-size: 13px;
+            padding: 6px 12px;
+            font-size: 12px;
             background: #7B2D45;
             color: #fff;
             border-color: #7B2D45;
         }
         .drawer-chips .hf-card-dist {
-            padding: 7px 14px;
-            font-size: 13px;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .drawer-chips .hf-card-private {
+            padding: 6px 12px;
+            font-size: 12px;
         }
 
         .hf-card-private {
@@ -3373,7 +3381,7 @@
             gap: 6px;
             font-size: 13px;
             color: var(--muted);
-            margin-bottom: 20px;
+            margin-bottom: 4px;
             flex-wrap: wrap;
         }
         .drawer-meta-dot {
