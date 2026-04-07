@@ -1177,9 +1177,12 @@ function buildEndorseSection(itemId) {
         localStorage.setItem(_ctaKey, '1');
         const _firstName = (_ctaFriendName.split(' ')[0] || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
         _contactHtml = `
-        <div class="drawer-contact-cta" onclick="this.remove()">
-            <span class="drawer-contact-text">Want to know more? Ask ${_firstName} directly — they're just a message away.</span>
-            <span class="drawer-contact-dismiss">&#x2715;</span>
+        <div class="drawer-contact-cta">
+            <span class="drawer-contact-icon">💬</span>
+            <div class="drawer-contact-body">
+                <span class="drawer-contact-text">Want to know more? Ask ${_firstName} — they're just a message away.</span>
+            </div>
+            <span class="drawer-contact-dismiss" onclick="this.closest('.drawer-contact-cta').remove()">&#x2715;</span>
         </div>`;
     }
 
