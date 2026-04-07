@@ -1050,6 +1050,19 @@
             flex-shrink: 0;
         }
 
+        /* Drawer chip overrides — larger chips inside the detail drawer */
+        .drawer-chips .hf-card-cat {
+            padding: 7px 14px;
+            font-size: 13px;
+            background: #7B2D45;
+            color: #fff;
+            border-color: #7B2D45;
+        }
+        .drawer-chips .hf-card-dist {
+            padding: 7px 14px;
+            font-size: 13px;
+        }
+
         .hf-card-private {
             display: inline-flex;
             align-items: center;
@@ -10655,7 +10668,7 @@ body.map-view-open .content {
     line-height: 1.55;
 }
 
-/* Footer attribution */
+/* Footer attribution — legacy (kept for any residual references) */
 .drawer-footer-attribution {
     display: flex;
     align-items: center;
@@ -10683,6 +10696,70 @@ body.map-view-open .content {
     font-weight: 700;
     font-family: 'Inter', sans-serif;
     border: 2px solid #FAF6EE;
+}
+
+/* Attribution block redesign */
+.drawer-attribution {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: var(--surface, #FAF6EE);
+    border-radius: 10px;
+    border-top: 1px solid var(--border, #EDE6DC);
+}
+.drawer-attr-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.drawer-attr-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.drawer-attr-info {
+    flex: 1;
+    min-width: 0;
+}
+.drawer-attr-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink, #2C1A0E);
+}
+.drawer-attr-sub {
+    font-size: 11px;
+    color: var(--muted, #9A8A7A);
+    margin-top: 1px;
+}
+.drawer-attr-saves {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted, #9A8A7A);
+}
+.drawer-save-avatars {
+    display: flex;
+}
+.drawer-save-av {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--bg, #FAF6EE);
+    margin-right: -6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
 }
 
 /* "Ask [Name] about this" CTA — Scenario 3 only */

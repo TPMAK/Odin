@@ -4447,10 +4447,9 @@ function openItemDrawer(item) {
     }
     html += `</div>`;
 
-    // Sub-line: address · distance
+    // Sub-line: address only (distance lives in the chips row)
     let subParts = [];
     if (item.address) subParts.push(`<span class="drawer-meta-address">${escapeHtml(item.address)}</span>`);
-    if (distText)     subParts.push(`<span class="drawer-meta-dist">${distText} away</span>`);
     if (subParts.length) {
         html += `<div class="drawer-meta-line">${subParts.join('<span class="drawer-meta-dot"> · </span>')}</div>`;
     }
@@ -4464,7 +4463,7 @@ function openItemDrawer(item) {
         ? `<span class="hf-card-private">Private</span>` : '';
     const drawerDistChip    = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
     if (drawerCatChip || drawerPrivateChip || drawerDistChip) {
-        html += `<div class="hf-card-chips-row" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
+        html += `<div class="hf-card-chips-row drawer-chips" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
     }
 
     // Circle trust signal — shown below address for non-owner items
@@ -4586,18 +4585,67 @@ function openItemDrawer(item) {
             return `<span class="drawer-saver-avatar" style="background:${col};">${initial}</span>`;
         };
 
-        let footerHtml = '<div class="drawer-footer-attribution">';
+        // Build mini stacked avatar for saves-by row
+        const makeMiniAv = (initial, name) => {
+            const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
+            return `<span class="drawer-save-av" style="background:${col};">${initial}</span>`;
+        };
+
+        // Saves-by row (others who also saved) — shown when saves_count > 1
+        const savesCount = item.saves_count || item.endorsements || 0;
+        let savesByHtml = '';
+        if ((isOwner || isDirectFriend) && savesCount > 1) {
+            // savesCount includes the owner, so others = savesCount - 1
+            const othersCount = savesCount - 1;
+            const otherLabel = othersCount === 1
+                ? 'Also saved by 1 other in your circle'
+                : `Also saved by ${othersCount} others in your circle`;
+            savesByHtml = `<div class="drawer-attr-saves">
+                <div class="drawer-save-avatars">${makeMiniAv('?', 'other')}</div>
+                <span>${otherLabel}</span>
+            </div>`;
+        }
+
+        let footerHtml = '';
         if (isOwner) {
             const myName = currentProfile?.display_name || 'You';
             const myInit = myName.charAt(0).toUpperCase();
-            footerHtml += `${makeAvatar(myInit, myName)}<span class="drawer-saved-by">Added by you</span>`;
+            const myCol  = typeof strColour === 'function' ? strColour(myName) : '#7B2D45';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${myCol};">${myInit}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">You added this</div>
+                        <div class="drawer-attr-sub">Added this to Odin</div>
+                    </div>
+                </div>
+                ${savesByHtml}
+            </div>`;
         } else if (isSaveInheritance && viaName) {
-            // Via = the friend who saved/endorsed it (adder is anonymous)
-            footerHtml += `${makeAvatar(viaInitial, viaName)}<span class="drawer-saved-by">Via ${viaName}</span>`;
+            const viaCol = typeof strColour === 'function' ? strColour(viaName) : '#7B2D45';
+            const savesLabel = savesCount > 1 ? `Saved by ${savesCount} people in your circle` : 'Saved in your circle';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${viaCol};">${viaInitial}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">Via ${viaName}</div>
+                        <div class="drawer-attr-sub">${savesLabel}</div>
+                    </div>
+                </div>
+            </div>`;
         } else if (isDirectFriend) {
-            footerHtml += `${makeAvatar(friendInitial, friendName)}<span class="drawer-saved-by">Added by ${friendName}</span>`;
+            const friendCol = typeof strColour === 'function' ? strColour(friendName) : '#7B2D45';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${friendCol};">${friendInitial}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">${friendName}</div>
+                        <div class="drawer-attr-sub">Added this to Odin</div>
+                    </div>
+                </div>
+                ${savesByHtml}
+            </div>`;
         }
-        footerHtml += '</div>';
 
         // "Ask [Name] about this" — only for Scenario 3 (direct friend, no personal note)
         let askCtaHtml = '';
