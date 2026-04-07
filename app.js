@@ -7154,7 +7154,11 @@ function showToast(message, duration = 3000) {
     const toast = document.createElement('div');
     toast.id = 'appToast';
     toast.className = 'app-toast';
-    toast.textContent = message;
+    toast.innerHTML = `
+        <span class="app-toast-icon">🔖</span>
+        <span class="app-toast-text">${message}</span>
+        <span class="app-toast-dismiss" onclick="this.closest('#appToast').remove()">&#x2715;</span>
+    `;
     document.body.appendChild(toast);
 
     // Trigger animation
