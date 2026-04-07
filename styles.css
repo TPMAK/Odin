@@ -10698,12 +10698,10 @@ body.map-view-open .content {
     border: 2px solid #FAF6EE;
 }
 
-/* Attribution block redesign */
+/* Attribution block redesign — plain section with top divider, no card background */
 .drawer-attribution {
     margin-top: 10px;
-    padding: 10px 12px;
-    background: var(--surface, #FAF6EE);
-    border-radius: 10px;
+    padding-top: 10px;
     border-top: 1px solid var(--border, #EDE6DC);
 }
 .drawer-attr-row {

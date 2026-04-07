@@ -4559,25 +4559,14 @@ function openItemDrawer(item) {
             return `<span class="drawer-save-av" style="background:${col};">${initial}</span>`;
         };
 
-        // Saves-by row (others who also saved) — shown when saves_count > 1
+        // Saves-by row — built from endorsementsCache once loaded; placeholder until then
         const savesCount = item.saves_count || item.endorsements || 0;
-        let savesByHtml = '';
-        if ((isOwner || isDirectFriend) && savesCount > 1) {
-            // savesCount includes the owner, so others = savesCount - 1
-            const othersCount = savesCount - 1;
-            const otherLabel = othersCount === 1
-                ? 'Also saved by 1 other in your circle'
-                : `Also saved by ${othersCount} others in your circle`;
-            savesByHtml = `<div class="drawer-attr-saves">
-                <div class="drawer-save-avatars">${makeMiniAv('?', 'other')}</div>
-                <span>${otherLabel}</span>
-            </div>`;
-        }
+        const savesByHtml = ''; // populated async after endorsements load (see below)
 
         let footerHtml = '';
         if (isOwner) {
-            const myName = currentProfile?.display_name || 'You';
-            const myInit = myName.charAt(0).toUpperCase();
+            const myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || currentUser?.email || 'You';
+            const myInit = myName !== 'You' ? myName.charAt(0).toUpperCase() : (currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : 'Y');
             const myCol  = typeof strColour === 'function' ? strColour(myName) : '#7B2D45';
             footerHtml = `<div class="drawer-attribution">
                 <div class="drawer-attr-row">
@@ -4587,7 +4576,7 @@ function openItemDrawer(item) {
                         <div class="drawer-attr-sub">Added this to Odin</div>
                     </div>
                 </div>
-                ${savesByHtml}
+                <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
             </div>`;
         } else if (isSaveInheritance && viaName) {
             const viaCol = typeof strColour === 'function' ? strColour(viaName) : '#7B2D45';
@@ -4611,7 +4600,7 @@ function openItemDrawer(item) {
                         <div class="drawer-attr-sub">Added this to Odin</div>
                     </div>
                 </div>
-                ${savesByHtml}
+                <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
             </div>`;
         }
 
@@ -4659,10 +4648,38 @@ function openItemDrawer(item) {
             // Only update if this drawer is still open for the same item
             if (currentDrawerItem && currentDrawerItem.id === item.id) {
                 updateEndorsementUI(item.id);
-                // Also patch the drawer save section label directly
+                // Patch save button
                 const drawerReactions = document.querySelector('.drawer-reactions');
                 if (drawerReactions) {
                     drawerReactions.outerHTML = buildEndorseSection(item.id);
+                }
+                // Patch saves-by row in attribution block now that we have real names
+                const savesSlot = document.getElementById('drawerAttrSaves');
+                if (savesSlot && (isOwner || isDirectFriend)) {
+                    const cached = endorsementsCache[item.id] || { names: [], ids: [] };
+                    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+                    if (currentUser) friendIds.add(currentUser.id);
+                    // Exclude the item adder from "also saved by"
+                    const adderName = isOwner
+                        ? (currentProfile?.display_name || currentUser?.user_metadata?.full_name || '')
+                        : (item.added_by_name || '');
+                    const otherSavers = [];
+                    (cached.ids || []).forEach((id, i) => {
+                        if (friendIds.has(id) && cached.names[i] && cached.names[i] !== adderName) {
+                            otherSavers.push(cached.names[i]);
+                        }
+                    });
+                    if (otherSavers.length > 0) {
+                        const avatarsHtml = otherSavers.slice(0, 3).map(n => {
+                            const col = typeof strColour === 'function' ? strColour(n) : '#5A8A6A';
+                            return `<span class="drawer-save-av" style="background:${col};">${n.charAt(0).toUpperCase()}</span>`;
+                        }).join('');
+                        const label = otherSavers.length === 1
+                            ? `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> in your circle`
+                            : `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> &amp; ${otherSavers.length - 1} other${otherSavers.length > 2 ? 's' : ''} in your circle`;
+                        savesSlot.innerHTML = `<div class="drawer-save-avatars">${avatarsHtml}</div><span style="margin-left:4px;">${label}</span>`;
+                        savesSlot.style.display = 'flex';
+                    }
                 }
             }
         });
