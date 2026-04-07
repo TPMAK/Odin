@@ -7146,7 +7146,7 @@ async function removeSavedItem(itemId) {
 }
 
 // ===== TOAST NOTIFICATIONS =====
-function showToast(message, duration = 3000) {
+function showToast(message, duration = 4500) {
     // Remove any existing toast
     const existing = document.getElementById('appToast');
     if (existing) existing.remove();
@@ -7155,7 +7155,6 @@ function showToast(message, duration = 3000) {
     toast.id = 'appToast';
     toast.className = 'app-toast';
     toast.innerHTML = `
-        <span class="app-toast-icon">🔖</span>
         <span class="app-toast-text">${message}</span>
         <span class="app-toast-dismiss" onclick="this.closest('#appToast').remove()">&#x2715;</span>
     `;
