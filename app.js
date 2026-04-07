@@ -4563,6 +4563,15 @@ function openItemDrawer(item) {
         const savesCount = item.saves_count || item.endorsements || 0;
         const savesByHtml = ''; // populated async after endorsements load (see below)
 
+        // Save button — rendered inline, patched async once endorsement state loads
+        const _cached0 = endorsementsCache[item.id] || { userEndorsed: false };
+        const _bActive = _cached0.userEndorsed ? ' active' : '';
+        const _bFill   = _cached0.userEndorsed ? '#7B2D45' : 'none';
+        const saveBtnHtml = `<button class="drawer-bookmark-btn${_bActive}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">
+            <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${_bFill}" stroke="#7B2D45" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span class="drawer-bookmark-label">${_cached0.userEndorsed ? 'Saved' : 'Save'}</span>
+        </button>`;
+
         let footerHtml = '';
         if (isOwner) {
             const myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || currentUser?.email || 'You';
@@ -4575,6 +4584,7 @@ function openItemDrawer(item) {
                         <div class="drawer-attr-name">You added this</div>
                         <div class="drawer-attr-sub">Added this to Odin</div>
                     </div>
+                    ${saveBtnHtml}
                 </div>
                 <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
             </div>`;
@@ -4588,6 +4598,7 @@ function openItemDrawer(item) {
                         <div class="drawer-attr-name">Via ${viaName}</div>
                         <div class="drawer-attr-sub">${savesLabel}</div>
                     </div>
+                    ${saveBtnHtml}
                 </div>
             </div>`;
         } else if (isDirectFriend) {
@@ -4599,6 +4610,7 @@ function openItemDrawer(item) {
                         <div class="drawer-attr-name">${friendName}</div>
                         <div class="drawer-attr-sub">Added this to Odin</div>
                     </div>
+                    ${saveBtnHtml}
                 </div>
                 <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
             </div>`;
@@ -4615,7 +4627,6 @@ function openItemDrawer(item) {
         html += `<div class="drawer-social">
             ${footerHtml}
             ${askCtaHtml}
-            ${buildEndorseSection(item.id)}
             <div class="drawer-comments" id="communityNotesContainer"><div class="notes-loading">Loading comments...</div></div>
         </div>`;
     }
@@ -4648,10 +4659,15 @@ function openItemDrawer(item) {
             // Only update if this drawer is still open for the same item
             if (currentDrawerItem && currentDrawerItem.id === item.id) {
                 updateEndorsementUI(item.id);
-                // Patch save button
-                const drawerReactions = document.querySelector('.drawer-reactions');
-                if (drawerReactions) {
-                    drawerReactions.outerHTML = buildEndorseSection(item.id);
+                // Patch inline save button state
+                const saveBtn = document.getElementById('drawerSaveBtn');
+                if (saveBtn) {
+                    const c = endorsementsCache[item.id] || { userEndorsed: false };
+                    saveBtn.className = 'drawer-bookmark-btn' + (c.userEndorsed ? ' active' : '');
+                    const svg = saveBtn.querySelector('svg');
+                    if (svg) svg.setAttribute('fill', c.userEndorsed ? '#7B2D45' : 'none');
+                    const lbl = saveBtn.querySelector('.drawer-bookmark-label');
+                    if (lbl) lbl.textContent = c.userEndorsed ? 'Saved' : 'Save';
                 }
                 // Patch saves-by row in attribution block now that we have real names
                 const savesSlot = document.getElementById('drawerAttrSaves');

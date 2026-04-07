@@ -10698,11 +10698,17 @@ body.map-view-open .content {
     border: 2px solid #FAF6EE;
 }
 
-/* Attribution block redesign — plain section with top divider, no card background */
+/* Attribution block — plain, no background, no extra divider (.drawer-social provides the top border) */
 .drawer-attribution {
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px solid var(--border, #EDE6DC);
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Save button sits inline in the attr-row — compact pill style */
+.drawer-attr-row .drawer-bookmark-btn {
+    padding: 6px 12px;
+    flex-shrink: 0;
+    margin-left: auto;
 }
 .drawer-attr-row {
     display: flex;
