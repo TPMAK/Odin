@@ -4668,6 +4668,25 @@ function closeDrawer() {
 }
 
 // ===== EDIT DISCOVERY IN DRAWER =====
+function previewEditPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('editPhotoPreview');
+        if (preview.tagName === 'IMG') {
+            preview.src = e.target.result;
+        } else {
+            // Replace placeholder div with img
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.id = 'editPhotoPreview';
+            preview.parentNode.replaceChild(img, preview);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 function enterEditMode() {
     const item = currentDrawerItem;
     if (!item || !currentUser || item.added_by !== currentUser.id) return;
@@ -4697,16 +4716,22 @@ function enterEditMode() {
     ).join('');
 
     let html = '';
+
+    // Photo section with change option
+    html += `<div class="drawer-hero edit-photo-wrap" id="editPhotoWrap">`;
     if (item.photo_url) {
-        html += `<div class="drawer-hero"><img src="${escapeHtml(item.photo_url)}"></div>`;
+        html += `<img src="${escapeHtml(item.photo_url)}" id="editPhotoPreview">`;
+    } else {
+        html += `<div class="edit-photo-placeholder" id="editPhotoPreview">📷</div>`;
     }
+    html += `<label class="edit-photo-btn" for="editPhotoInput">Change Photo</label>
+        <input type="file" id="editPhotoInput" accept="image/*" style="display:none" onchange="previewEditPhoto(this)">
+        <input type="hidden" id="editPhotoFile">
+    </div>`;
 
     html += `<div class="drawer-body"><div class="edit-form" id="drawerEditForm">
         <label class="edit-label">Title</label>
         <input class="edit-input" id="editTitle" value="${escapeHtml(item.title)}" maxlength="200">
-
-        <label class="edit-label">Description</label>
-        <textarea class="edit-textarea" id="editDescription" rows="3" maxlength="1000">${escapeHtml(item.description || '')}</textarea>
 
         <label class="edit-label">Personal Note</label>
         <textarea class="edit-textarea" id="editNote" rows="2" maxlength="500">${escapeHtml(note)}</textarea>
@@ -4764,7 +4789,6 @@ async function saveItemEdit(itemId) {
     btn.textContent = 'Saving...';
 
     const newTitle = document.getElementById('editTitle').value.trim();
-    const newDescription = document.getElementById('editDescription').value.trim();
     const newNote = document.getElementById('editNote').value.trim();
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
@@ -4778,16 +4802,41 @@ async function saveItemEdit(itemId) {
         return;
     }
 
-    // Check if title or description changed significantly (for re-embedding)
-    const oldText = (item.title + ' ' + (item.description || '')).toLowerCase().trim();
-    const newText = (newTitle + ' ' + newDescription).toLowerCase().trim();
+    // Check if title changed significantly (for re-embedding)
+    const oldText = item.title.toLowerCase().trim();
+    const newText = newTitle.toLowerCase().trim();
     const needsReEmbed = oldText !== newText;
+
+    // Handle photo upload if a new file was selected
+    let newPhotoUrl = item.photo_url || null;
+    const photoInput = document.getElementById('editPhotoInput');
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+        try {
+            btn.textContent = 'Uploading photo...';
+            const file = photoInput.files[0];
+            const ext = file.name.split('.').pop();
+            const filePath = `${currentUser.id}/${itemId}_${Date.now()}.${ext}`;
+            const { data: uploadData, error: uploadError } = await supabaseClient
+                .storage.from('recommendation-photos')
+                .upload(filePath, file, { upsert: true });
+            if (uploadError) throw new Error('Photo upload failed: ' + uploadError.message);
+            const { data: urlData } = supabaseClient
+                .storage.from('recommendation-photos')
+                .getPublicUrl(filePath);
+            newPhotoUrl = urlData.publicUrl;
+        } catch (photoErr) {
+            document.getElementById('editMessage').innerHTML = `<div class="error-msg">${photoErr.message}</div>`;
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+            return;
+        }
+    }
 
     try {
         // Update in Supabase
         const updateData = {
             title: newTitle,
-            description: newDescription || null,
+            photo_url: newPhotoUrl,
             type: newCategory,
             address: newAddress || null,
             URL: newUrl ? [newUrl] : [],
@@ -4834,7 +4883,6 @@ async function saveItemEdit(itemId) {
                     action: 'update_embedding',
                     itemId: itemId,
                     title: newTitle,
-                    description: newDescription,
                     personalNote: newNote || null,
                     type: newCategory,
                     UserID: currentUser.id
