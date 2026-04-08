@@ -3955,14 +3955,12 @@ function createCard(item, index) {
     const saveCountLabel = totalSaves === 1 ? '1 save in your circle' : `${totalSaves} saves in your circle`;
     const saveCountHtml = `<div class="hf-card-save-count">${saveCountLabel}</div>`;
 
-    const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
-
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
         ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
         : TRANSLATE_ICON;
     card.innerHTML = `
-        <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
+        <div class="hf-card-media-wrap">${mediaHtml}</div>
         <div class="hf-card-body">
             <div class="hf-card-title">${escapeHtml(item.title)}</div>
             ${wordHtml}

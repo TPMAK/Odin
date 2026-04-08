@@ -3714,9 +3714,9 @@
         var dr = document.getElementById('dcDistanceRow');
 
         if (section === 'all') {
-            // All items — sorted by most saved
+            // All items — sorted by most recent
             items = allD.slice().sort(function(a, b) {
-                return ((b.saves_count || 0) - (a.saves_count || 0));
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
             if (titleEl) titleEl.textContent = 'All';
             if (dr) dr.style.display = 'none';
@@ -3767,6 +3767,7 @@
             if (section === 'trending') sortEl.value = 'saves';
             else if (section === 'nearby') sortEl.value = 'nearest';
             else if (section === 'new') sortEl.value = 'recent';
+            else sortEl.value = 'recent';
         }
 
         var circleHeader = document.getElementById('dcCircleHeader');
