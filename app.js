@@ -655,6 +655,20 @@ async function loadUserProfile() {
             }
         } else if (data) {
             currentProfile = data;
+            // Sync notifs_cleared_at from profile to localStorage so the filter
+            // stays consistent across devices and fresh sessions.
+            if (data.notifs_cleared_at) {
+                const profileTs = new Date(data.notifs_cleared_at).getTime();
+                const localTs = parseInt(localStorage.getItem(_NOTIFS_CLEARED_KEY) || '0');
+                // Use whichever is more recent
+                if (profileTs > localTs) {
+                    localStorage.setItem(_NOTIFS_CLEARED_KEY, profileTs.toString());
+                }
+            } else {
+                // Profile has no cleared timestamp — remove stale local one so
+                // notifications aren't permanently hidden after e.g. a DB reset.
+                localStorage.removeItem(_NOTIFS_CLEARED_KEY);
+            }
         }
     } catch (err) {
         console.error('Error loading profile:', err);
