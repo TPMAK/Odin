@@ -2137,12 +2137,7 @@ async function loadNotifications() {
         }
 
         // Filter out notifications created before the last "Clear all"
-        // Use localStorage first (fast), fall back to DB-persisted timestamp (cross-device)
-        const localClearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
-        const dbClearedAt = currentProfile?.notifs_cleared_at
-            ? new Date(currentProfile.notifs_cleared_at).getTime().toString()
-            : null;
-        const clearedAt = localClearedAt || dbClearedAt;
+        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
