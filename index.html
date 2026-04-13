@@ -918,9 +918,84 @@
         background-size: contain;
         background-repeat: no-repeat;
     }
+    /* ── Profile stat tooltips ── */
+    .profile-stat-col {
+        position: relative;
+    }
+    .profile-stat-col[data-tooltip]::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #2a2a2a;
+        color: #fff;
+        font-size: 11px;
+        font-family: Inter, sans-serif;
+        white-space: normal;
+        width: max-content;
+        max-width: 140px;
+        text-align: center;
+        padding: 6px 10px;
+        border-radius: 6px;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        z-index: 999;
+        line-height: 1.4;
+    }
+    /* First stat — anchor tooltip to the left so it doesn't bleed off-screen */
+    .profile-stat-col:first-child[data-tooltip]::after {
+        left: 0;
+        transform: translateX(0);
+    }
+    .profile-stat-col:first-child[data-tooltip]::before {
+        left: 20px;
+        transform: translateX(0);
+    }
+    /* Last stat — anchor tooltip to the right */
+    .profile-stat-col:last-child[data-tooltip]::after {
+        left: auto;
+        right: 0;
+        transform: translateX(0);
+    }
+    .profile-stat-col:last-child[data-tooltip]::before {
+        left: auto;
+        right: 20px;
+        transform: translateX(0);
+    }
+    .profile-stat-col[data-tooltip]::before {
+        content: '';
+        position: absolute;
+        bottom: calc(100% + 3px);
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #2a2a2a;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.18s ease;
+        z-index: 999;
+    }
+    .profile-stat-col[data-tooltip]:hover::after,
+    .profile-stat-col[data-tooltip]:hover::before {
+        opacity: 1;
+    }
     </style>
 </head>
 <body>
+
+    <!-- ── PWA Install Banner (Android only) ── -->
+    <div id="pwa-banner" style="display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+        background:#3d1f1f; color:#FAF6EE; padding:14px 18px; border-radius:14px;
+        box-shadow:0 6px 20px rgba(0,0,0,0.35); z-index:9999; align-items:center; gap:12px;
+        font-family:'DM Sans',sans-serif; width:92%; max-width:400px; box-sizing:border-box;">
+        <span style="flex:1; font-size:13px; line-height:1.4;">Install Odin on your home screen for the best experience</span>
+        <button onclick="installPWA()" style="background:#7B2D45; color:#FAF6EE; border:none;
+            padding:9px 16px; border-radius:9px; font-weight:600; font-size:13px; cursor:pointer; white-space:nowrap;">Add</button>
+        <button onclick="dismissPWABanner()" style="background:transparent; color:#FAF6EE;
+            border:none; font-size:20px; line-height:1; cursor:pointer; padding:0 2px;">&#x2715;</button>
+    </div>
 
         <!-- ════════════════════════════════════════════
          LANDING / PRE-LOGIN SCREEN
@@ -1259,6 +1334,39 @@
         </div>
     </div>
 
+    <!-- ✦ STEP BAR — lives OUTSIDE .content so it's never scrolled away -->
+    <div class="add-step-sticky hidden" id="addStepSticky">
+        <div class="add-step-indicator" id="addStepIndicator">
+            <div class="add-step active" id="addStep1" data-step="1">
+                <div class="add-step-circle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <span class="add-step-label">How</span>
+            </div>
+            <div class="add-step-line"></div>
+            <div class="add-step" id="addStep2" data-step="2">
+                <div class="add-step-circle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </div>
+                <span class="add-step-label">Your Note</span>
+            </div>
+            <div class="add-step-line"></div>
+            <div class="add-step" id="addStep3" data-step="3">
+                <div class="add-step-circle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </div>
+                <span class="add-step-label">Details</span>
+            </div>
+            <div class="add-step-line"></div>
+            <div class="add-step" id="addStep4" data-step="4">
+                <div class="add-step-circle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span class="add-step-label">Save</span>
+            </div>
+        </div>
+    </div>
+
     <div class="content">
         <!-- HOME PAGE -->
         <div id="homePage" class="hidden">
@@ -1287,7 +1395,7 @@
 
                         <!-- Add + Browse row -->
                         <div class="launcher-row">
-                            <button class="launcher-tile tile-add" onclick="setMode('input')">
+                            <button class="launcher-tile tile-add" onclick="setMode('input'); _checkClipboardForUrl();">
                                 <div class="launcher-tile-icon">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                                 </div>
@@ -1700,24 +1808,24 @@
 
                     <!-- ── Stats Row ── -->
                     <div class="profile-stats-row">
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="Knowledge you've shared with people who matter">
                             <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
                             <div class="profile-stat-label">Added</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="Things your circle inspired you to explore">
                             <div class="profile-stat-number" id="profileEndorsementCount">0</div>
                             <div class="profile-stat-label">Saved</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col">
+                        <div class="profile-stat-col" data-tooltip="The people behind your knowledge">
                             <div class="profile-stat-number" id="profilePeopleCount">0</div>
                             <div class="profile-stat-label">Friends</div>
                         </div>
                         <div class="pstat-divider"></div>
-                        <div class="profile-stat-col pstat-kb">
+                        <div class="profile-stat-col pstat-kb" data-tooltip="Everything your circle knows, now yours to explore">
                             <div class="profile-stat-number" id="profileKnowledgeBase">0</div>
-                            <div class="profile-stat-label">Knowledge Base</div>
+                            <div class="profile-stat-label">Knowledge</div>
                         </div>
                     </div>
 
@@ -1999,6 +2107,7 @@
 
         <!-- INPUT MODE -->
         <div id="inputMode" class="hidden">
+
             <div class="input-form-container">
                 <div class="capture-form-header">
                     <div>
@@ -2012,68 +2121,162 @@
                 </div>
                 <div id="formMessage"></div>
 
-                <!-- ✦ QUICK ADD — URL paste bar (hero) -->
-                <div class="url-hero-bar" id="urlHeroBar">
-                    <div class="url-hero-icon">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <!-- ✦ CLIPBOARD BANNER -->
+                <div class="clip-detect-banner hidden" id="clipDetectBanner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    <div class="clip-detect-inner">
+                        <div class="clip-detect-head">Found a link</div>
+                        <div class="clip-detect-url" id="clipDetectUrl"></div>
                     </div>
-                    <div class="url-hero-input-row">
-                        <input type="url" id="url" placeholder="Paste a link to auto-fill..." autocomplete="off">
-                        <button type="button" class="url-paste-btn" id="urlPasteBtn" onclick="pasteFromClipboard()" title="Paste from clipboard">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
-                            Paste
-                        </button>
-                    </div>
-                    <div class="url-hero-hint" id="urlHeroHint">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                        Auto-fills title, description &amp; more
-                    </div>
-                    <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px; display: none;"></small>
+                    <button type="button" class="clip-detect-use" id="clipDetectUse">Use it</button>
+                    <button type="button" class="clip-detect-dismiss" id="clipDetectDismiss" title="Dismiss">✕</button>
                 </div>
 
-                <!-- OG Preview Card (appears after URL fetch) -->
-                <div class="og-preview-card hidden" id="ogPreviewCard">
-                    <img id="ogPreviewImg" class="og-preview-img" src="" alt="">
-                    <div class="og-preview-body">
-                        <div class="og-preview-title" id="ogPreviewTitle"></div>
-                        <div class="og-preview-desc" id="ogPreviewDesc"></div>
-                        <div class="og-preview-url" id="ogPreviewUrl"></div>
-                    </div>
-                    <button type="button" class="og-preview-close" onclick="clearOGPreview()" title="Remove preview">&times;</button>
-                </div>
+                <!-- ══════════════════════════════════════════ -->
+                <!-- WIZARD STEP 1 — How                       -->
+                <!-- ══════════════════════════════════════════ -->
+                <div id="wStep1" class="wizard-step">
 
-                <!-- Loading shimmer (during OG fetch) -->
-                <div class="og-loading hidden" id="ogLoading">
-                    <div class="og-loading-shimmer"></div>
-                    <div class="og-loading-lines">
-                        <div class="shimmer-line w70"></div>
-                        <div class="shimmer-line w50"></div>
+                    <!-- Entry chips -->
+                    <div class="entry-cards-wrap">
+                        <div class="entry-cards-label">How do you want to add it?</div>
+                        <div class="entry-cards" id="entryChips">
+                            <button type="button" class="entry-card" data-chip="photo" onclick="selectEntryChip('photo')">
+                                <div class="entry-card-icon entry-card-icon--photo">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                </div>
+                                <span class="entry-card-label">Photo</span>
+                            </button>
+                            <button type="button" class="entry-card" data-chip="link" onclick="selectEntryChip('link')">
+                                <div class="entry-card-icon entry-card-icon--link">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                </div>
+                                <span class="entry-card-label">Link</span>
+                            </button>
+                            <button type="button" class="entry-card" data-chip="here" onclick="selectEntryChip('here')">
+                                <div class="entry-card-icon entry-card-icon--here">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                </div>
+                                <span class="entry-card-label">I'm here</span>
+                            </button>
+                            <button type="button" class="entry-card" data-chip="type" onclick="selectEntryChip('type')">
+                                <div class="entry-card-icon entry-card-icon--type">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                </div>
+                                <span class="entry-card-label">Type it</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="url-hero-divider">
-                    <span>or fill in manually</span>
-                </div>
+                    <!-- Photo hero (shown when Photo chip selected) -->
+                    <div class="photo-chip-section hidden" id="photoChipSection">
+                        <!-- Tap zone (before photo chosen) -->
+                        <div class="photo-hero-zone" id="photoHeroZone" onclick="document.getElementById('photo').click()">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <span class="photo-hero-tap">Tap to add a photo</span>
+                            <span class="photo-hero-sub">Camera roll or take one now</span>
+                        </div>
+                        <!-- Inline preview (after photo chosen) — replaces the tap zone -->
+                        <div id="photoPreview" class="photo-preview-wrap photo-preview-hero" style="display: none;">
+                            <img id="previewImg" />
+                            <div class="photo-preview-badge" id="photoSourceBadge">Your photo</div>
+                            <div class="photo-preview-actions">
+                                <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Replace">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                    Replace
+                                </button>
+                                <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                        <input type="file" id="photo" accept="image/*" style="display: none;">
+                        <div class="photo-opt-link">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <input type="url" id="photoOptLink" class="photo-opt-link-input" placeholder="Got a link too? Paste to prefill title (optional)" autocomplete="off" oninput="handlePhotoOptLink(this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Link URL bar (shown when Link chip selected) -->
+                    <div class="url-hero-bar hidden" id="urlHeroBar">
+                        <div class="url-hero-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        </div>
+                        <div class="url-hero-input-row">
+                            <input type="url" id="url" placeholder="Paste a link to auto-fill..." autocomplete="off">
+                            <button type="button" class="url-paste-btn hidden" id="iosPasteBtn">Paste link</button>
+                        </div>
+                        <div class="url-hero-hint" id="urlHeroHint">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                            Auto-fills title, description &amp; more
+                        </div>
+                        <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px; display: none;"></small>
+                    </div>
+
+                    <!-- OG loading shimmer -->
+                    <div class="og-loading hidden" id="ogLoading">
+                        <div class="og-loading-shimmer"></div>
+                        <div class="og-loading-lines">
+                            <div class="shimmer-line w70"></div>
+                            <div class="shimmer-line w50"></div>
+                        </div>
+                    </div>
+
+                </div><!-- /wStep1 -->
 
                 <form id="addForm" onsubmit="submitDiscovery(event)">
 
-                    <!-- 2. CATEGORY (shown first — intent before detail) -->
+                <!-- ══════════════════════════════════════════ -->
+                <!-- WIZARD STEP 2 — Your Note                 -->
+                <!-- ══════════════════════════════════════════ -->
+                <div id="wStep2" class="wizard-step step-hidden">
+                    <!-- OG Preview Card — shown here after link fetch so user sees it immediately -->
+                    <div class="og-preview-card hidden" id="ogPreviewCard">
+                        <img id="ogPreviewImg" class="og-preview-img" src="" alt="">
+                        <div class="og-preview-body">
+                            <div class="og-preview-title" id="ogPreviewTitle"></div>
+                            <div class="og-preview-desc" id="ogPreviewDesc"></div>
+                            <div class="og-preview-url" id="ogPreviewUrl"></div>
+                        </div>
+                        <button type="button" class="og-preview-close" onclick="clearOGPreview()" title="Remove preview">&times;</button>
+                    </div>
+
+                    <div class="form-group form-group-take">
+                        <label class="field-label-inline">YOUR NOTE</label>
+                        <p class="take-sublabel">This is the part your circle actually needs.</p>
+                        <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
+                        <input type="hidden" id="description">
+                    </div>
+                    <button type="button" class="wizard-next-btn" id="nextToDetails" onclick="wizardAdvance(3)">
+                        Next — Details
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div><!-- /wStep2 -->
+
+                <!-- ══════════════════════════════════════════ -->
+                <!-- WIZARD STEP 3 — Details                   -->
+                <!-- ══════════════════════════════════════════ -->
+                <div id="wStep3" class="wizard-step step-hidden">
+
+                    <!-- Category -->
                     <div class="form-group form-group-category">
+                        <p class="category-pills-label">What kind of thing is it?</p>
                         <div class="category-pills" id="categoryPills">
                             <button type="button" class="category-pill active" data-value="place" onclick="selectCategory(this)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                                 Place
                             </button>
                             <button type="button" class="category-pill" data-value="product" onclick="selectCategory(this)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
                                 Product
                             </button>
                             <button type="button" class="category-pill" data-value="service" onclick="selectCategory(this)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                                 Service
                             </button>
                             <button type="button" class="category-pill" data-value="advice" onclick="selectCategory(this)">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 Advice
                             </button>
                         </div>
@@ -2085,84 +2288,61 @@
                         </select>
                     </div>
 
-                    <!-- 3. YOUR TAKE (centrepiece — always empty, user's voice) -->
-                    <div class="form-group form-group-take">
-                        <label class="field-label-inline">Your take</label>
-                        <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
-                        <!-- Hidden description mirrors personalNote value on submit -->
-                        <input type="hidden" id="description">
+                    <!-- Title -->
+                    <div class="form-group form-group-title">
+                        <div class="title-field-row">
+                            <textarea id="title" class="title-input-large" placeholder="Name — or leave blank to auto-generate" rows="1"></textarea>
+                            <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                Clear
+                            </button>
+                        </div>
+                        <p class="autofill-hint hidden" id="titleAutofillHint">Auto-filled from link — edit if needed</p>
                     </div>
 
-                    <!-- 4. DETAILS — collapsible (title, address, photo) -->
-                    <div class="details-toggle" id="detailsToggle" onclick="toggleDetails()">
-                        <span class="details-toggle-label" id="detailsToggleLabel">Details</span>
-                        <svg class="details-toggle-chevron" id="detailsChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    <!-- Address -->
+                    <div class="form-group address-group" style="position: relative;">
+                        <label class="field-label-inline">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
+                        </label>
+                        <div class="address-input-row">
+                            <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
+                            <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                <span class="detect-loc-label">Here</span>
+                            </button>
+                        </div>
+                        <div id="addressDropdown" class="address-dropdown hidden"></div>
+                        <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
+                        <input type="hidden" id="userLat" value="">
+                        <input type="hidden" id="userLng" value="">
                     </div>
 
-                    <div class="details-body hidden" id="detailsBody">
-
-                        <!-- Title -->
-                        <div class="form-group form-group-title">
-                            <div class="title-field-row">
-                                <textarea id="title" class="title-input-large" placeholder="What's the name?" rows="1"></textarea>
-                                <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                    Clear
-                                </button>
-                            </div>
-                            <p class="autofill-hint hidden" id="titleAutofillHint">Auto-filled from link — edit if needed</p>
+                    <!-- Photo upload for non-photo flows (link/here/type) -->
+                    <!-- Hidden when photo chip is active (photo is already in step 1) -->
+                    <div class="form-group form-group-photo" id="detailsPhotoGroup">
+                        <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
+                        <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <span>Add a photo</span>
                         </div>
+                        <input type="hidden" id="ogImageUrl" value="">
+                    </div>
 
-                        <!-- Address -->
-                        <div class="form-group address-group" style="position: relative;">
-                            <label class="field-label-inline">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
-                            </label>
-                            <div class="address-input-row">
-                                <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
-                                <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                    <span class="detect-loc-label">Here</span>
-                                </button>
-                            </div>
-                            <div id="addressDropdown" class="address-dropdown hidden"></div>
-                            <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
-                            <input type="hidden" id="userLat" value="">
-                            <input type="hidden" id="userLng" value="">
-                        </div>
+                    <button type="button" class="wizard-next-btn" id="nextToSave" onclick="wizardAdvance(4)">
+                        Next — Privacy &amp; Save
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div><!-- /wStep3 -->
 
-                        <!-- Photo -->
-                        <div class="form-group form-group-photo">
-                            <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
-                            <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                                <span>Add a photo</span>
-                            </div>
-                            <input type="file" id="photo" accept="image/*" style="display: none;">
-                            <div id="photoPreview" class="photo-preview-wrap" style="display: none;">
-                                <img id="previewImg" />
-                                <div class="photo-preview-badge" id="photoSourceBadge">From link</div>
-                                <div class="photo-preview-actions">
-                                    <button type="button" class="photo-action-btn" onclick="replacePhoto()" title="Upload your own">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                                        Replace
-                                    </button>
-                                    <button type="button" class="photo-action-btn photo-action-remove" onclick="removePhoto()" title="Remove photo">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                        Remove
-                                    </button>
-                                </div>
-                            </div>
-                            <input type="hidden" id="ogImageUrl" value="">
-                        </div>
-
-                    </div><!-- /details-body -->
-
-                    <!-- Hidden Added By (auto-filled, not shown) -->
+                <!-- ══════════════════════════════════════════ -->
+                <!-- WIZARD STEP 4 — Privacy + Save            -->
+                <!-- ══════════════════════════════════════════ -->
+                <div id="wStep4" class="wizard-step step-hidden">
                     <input type="hidden" id="addedBy" value="">
 
-                    <!-- Visibility 2-way Selector -->
+                    <!-- Visibility -->
                     <div class="form-group visibility-group" style="margin-top: 4px;">
                         <label class="field-label-inline">Who can see this</label>
                         <div class="vis-selector" id="visSelector">
@@ -2174,7 +2354,6 @@
                             </button>
                         </div>
                         <p class="vis-hint" id="visHint">Saved privately — only you can see this. Change to Friends when you're ready to share.</p>
-                        <!-- private=true by default -->
                         <input type="hidden" id="privateToggle" value="true">
                         <input type="hidden" id="visibilityValue" value="private">
                     </div>
@@ -2183,6 +2362,8 @@
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         Save Discovery
                     </button>
+                </div><!-- /wStep4 -->
+
                 </form>
 
                 <!-- Save success overlay -->
@@ -2231,7 +2412,7 @@
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <div class="tab-label">Search</div>
         </button>
-        <button class="tab-item" onclick="setMode('input')" id="addTab">
+        <button class="tab-item" onclick="setMode('input'); _checkClipboardForUrl();" id="addTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             <div class="tab-label">Add</div>
         </button>
@@ -2364,7 +2545,7 @@
                     <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
                 </div>
                 <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
-                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge Base grows the moment you connect.</p>
+                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge grows the moment you connect.</p>
                 <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
                 <button class="onb-btn-skip" onclick="onbSkipInvite()">Skip for now</button>
                 <div class="onb-dots">
@@ -2418,7 +2599,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=51"></script>
+    <script src="app.js?v=53"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
@@ -2464,7 +2645,7 @@
             'The bigger your circle, the richer this gets.',
             'Real places. Real takes. Real people.',
             'Trending doesn\'t mean viral. It means trusted.',
-            'Your Knowledge Base, all in one place.',
+            'Your Knowledge, all in one place.',
             'Discover more by knowing more people.',
             'What\'s popular here actually means something.',
         ],
@@ -2489,16 +2670,16 @@
             'The best gift you can give is what you already know.',
             'Every add makes your circle smarter.',
             'You know something worth saving. Add it.',
-            'Your take matters more than any review site.',
+            'Your note matters more than any review site.',
             'Knowledge shared is knowledge multiplied.',
         ],
         profile: [
-            'Your Knowledge Base grows with every connection.',
+            'Your Knowledge grows with every connection.',
             'More friends. Less noise. More signal.',
             'Everything here, earned through trust.',
             'Your circle is your most valuable asset.',
             'The more you give, the more your circle grows.',
-            'Your Knowledge Base is yours. Build it well.',
+            'Your Knowledge is yours. Build it well.',
             'Three friends today. A hundred trusted items tomorrow.',
             'Every person you add expands what you know.',
             'Small circle. High trust. That\'s the point.',
@@ -3533,9 +3714,9 @@
         var dr = document.getElementById('dcDistanceRow');
 
         if (section === 'all') {
-            // All items — sorted by most saved
+            // All items — sorted by most recent
             items = allD.slice().sort(function(a, b) {
-                return ((b.saves_count || 0) - (a.saves_count || 0));
+                return new Date(b.created_at || 0) - new Date(a.created_at || 0);
             });
             if (titleEl) titleEl.textContent = 'All';
             if (dr) dr.style.display = 'none';
@@ -3586,6 +3767,7 @@
             if (section === 'trending') sortEl.value = 'saves';
             else if (section === 'nearby') sortEl.value = 'nearest';
             else if (section === 'new') sortEl.value = 'recent';
+            else sortEl.value = 'recent';
         }
 
         var circleHeader = document.getElementById('dcCircleHeader');
@@ -4152,11 +4334,17 @@
         var container = document.getElementById('homeActivityItems');
         if (!container || typeof currentUser === 'undefined' || !currentUser) return;
         try {
-            var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
-            if (notifs.length === 0 && typeof loadNotifications === 'function') {
-                await loadNotifications();
-                notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+            var result = await supabaseClient.rpc('get_user_notifications', { p_user_id: currentUser.id, p_limit: 10 });
+            var notifs = (result && result.data) ? result.data : [];
+
+            // Apply clearedAt filter
+            var clearedAt = localStorage.getItem('odin_notifs_cleared_at');
+            if (clearedAt) {
+                notifs = notifs.filter(function(n) {
+                    return new Date(n.created_at) > new Date(parseInt(clearedAt));
+                });
             }
+
             if (notifs.length === 0) {
                 if (section) section.style.display = 'none';
                 return;
@@ -4165,11 +4353,12 @@
             container.innerHTML = notifs.slice(0, 10).map(function(n) {
                 var initial = (n.actor_name || '?').charAt(0).toUpperCase();
                 var isUnread = !n.read;
+                var timeStr = (typeof getTimeAgo === 'function') ? getTimeAgo(n.created_at) : (n.created_at || '');
                 return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\')">'
                     + '<div class="activity-avatar">' + initial + '</div>'
                     + '<div class="activity-body">'
                     + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
-                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
+                    + '<div class="activity-time">' + escapeHtml(timeStr) + '</div>'
                     + '</div>'
                     + '</div>';
             }).join('');
@@ -4456,40 +4645,22 @@
         _unlockScroll();
     }
     // ── Notifications drawer ──
-    async function openNotifDrawer() {
+    function openNotifDrawer() {
         var d = document.getElementById('notifDrawer');
         if (!d) return;
         d.classList.add('is-open');
         var sheet = _drawerSheet('notifDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
         _lockScroll();
-        // Load notifications and render
-        var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
-        if (notifs.length === 0 && typeof loadNotifications === 'function') {
-            await loadNotifications();
-            notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+
+        // Delegate to loadNotifications() in app.js — it already populates
+        // notifDrawerItems and handles the clearedAt filter. No second network
+        // call needed, avoids concurrent-request stalls.
+        if (typeof loadNotifications === 'function') {
+            loadNotifications();
         }
-        var list = document.getElementById('notifDrawerItems');
-        var empty = document.getElementById('notifDrawerEmpty');
-        if (!list) return;
-        if (notifs.length === 0) {
-            list.innerHTML = '';
-            if (empty) empty.style.display = 'block';
-        } else {
-            if (empty) empty.style.display = 'none';
-            list.innerHTML = notifs.slice(0, 20).map(function(n) {
-                var initial = (n.actor_name || '?').charAt(0).toUpperCase();
-                var isUnread = !n.read;
-                return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\'); closeNotifDrawer();">'
-                    + '<div class="activity-avatar">' + initial + '</div>'
-                    + '<div class="activity-body">'
-                    + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
-                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
-                    + '</div>'
-                    + '</div>';
-            }).join('');
-        }
-        // Mark unread badge clear
+
+        // Clear unread badge
         var badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
     }
@@ -4525,7 +4696,7 @@
         }
     });
 
-    // ── Knowledge Base count ──
+    // ── Knowledge count ──
     // Uses the get_kb_count SECURITY DEFINER RPC which runs server-side
     // and bypasses RLS correctly. Counts:
     //   1. Own items (any visibility)
@@ -4661,7 +4832,7 @@
             var tileAdd    = document.querySelector('.tile-add');
             var tileBrowse = document.querySelector('.tile-browse');
             if (tileSearch) tileSearch.addEventListener('click', function(e) { e.stopPropagation(); setMode('search'); });
-            if (tileAdd)    tileAdd.addEventListener('click',    function(e) { e.stopPropagation(); setMode('input'); });
+            if (tileAdd)    tileAdd.addEventListener('click',    function(e) { e.stopPropagation(); setMode('input'); _checkClipboardForUrl(); });
             if (tileBrowse) tileBrowse.addEventListener('click', function(e) { e.stopPropagation(); setMode('discover'); });
         }
         if (document.readyState === 'loading') {
@@ -4676,6 +4847,58 @@
     <div id="coachMark" style="display:none;" onclick="dismissCoachMark()">
         <div id="coachMarkText"></div>
     </div>
+
+    <!-- ── PWA: Install prompt (Android/Chrome) + Service Worker ── -->
+    <script>
+      (function() {
+        var deferredPrompt = null;
+        var isAndroid = /android/i.test(navigator.userAgent);
+
+        // Only wire up on Android
+        if (!isAndroid) return;
+
+        var banner = document.getElementById('pwa-banner');
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+          e.preventDefault();
+          deferredPrompt = e;
+          // Show only if user hasn't already acted on it
+          if (!localStorage.getItem('pwaBannerDismissed')) {
+            banner.style.display = 'flex';
+          }
+        });
+
+        // Hide banner once app is actually installed
+        window.addEventListener('appinstalled', function() {
+          localStorage.setItem('pwaBannerDismissed', 'true');
+          banner.style.display = 'none';
+        });
+
+        window.installPWA = function() {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(function() {
+            localStorage.setItem('pwaBannerDismissed', 'true');
+            banner.style.display = 'none';
+            deferredPrompt = null;
+          });
+        };
+
+        window.dismissPWABanner = function() {
+          localStorage.setItem('pwaBannerDismissed', 'true');
+          banner.style.display = 'none';
+        };
+      })();
+
+      // ── Service Worker registration ──
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('./sw.js')
+            .then(function(reg) { console.log('[Odin SW] Registered:', reg.scope); })
+            .catch(function(err) { console.warn('[Odin SW] Registration failed:', err); });
+        });
+      }
+    </script>
 
 </body>
 </html>

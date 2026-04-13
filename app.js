@@ -132,12 +132,12 @@ async function showMainApp() {
     // Set avatar initial in header
     updateAvatarInitials(userName);
 
-    // Start notification polling
-    startNotifPolling();
-
     // Load friends first, then discoveries (discoveries filter by friends)
     await loadFriends();
     await Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]);
+
+    // Start notification polling AFTER initial load to avoid duplicate RPC calls
+    startNotifPolling();
 
     // Pre-seed endorsements cache with current user's own saves
     // so the save button shows correctly before RPC fires
@@ -655,6 +655,20 @@ async function loadUserProfile() {
             }
         } else if (data) {
             currentProfile = data;
+            // Sync notifs_cleared_at from profile to localStorage so the filter
+            // stays consistent across devices and fresh sessions.
+            if (data.notifs_cleared_at) {
+                const profileTs = new Date(data.notifs_cleared_at).getTime();
+                const localTs = parseInt(localStorage.getItem(_NOTIFS_CLEARED_KEY) || '0');
+                // Use whichever is more recent
+                if (profileTs > localTs) {
+                    localStorage.setItem(_NOTIFS_CLEARED_KEY, profileTs.toString());
+                }
+            } else {
+                // Profile has no cleared timestamp — remove stale local one so
+                // notifications aren't permanently hidden after e.g. a DB reset.
+                localStorage.removeItem(_NOTIFS_CLEARED_KEY);
+            }
         }
     } catch (err) {
         console.error('Error loading profile:', err);
@@ -1070,10 +1084,34 @@ async function toggleEndorsement(itemId, event) {
                 const myName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'You';
                 if (!cached.names.includes(myName)) cached.names.push(myName);
             }
-            // Milestone: first endorsement
-            if (!localStorage.getItem('milestone_first_endorse')) {
-                localStorage.setItem('milestone_first_endorse', 'true');
-                setTimeout(() => showToast('Your friends will see you endorsed this!'), 300);
+            // Motivational save toast — random variant, shows every time
+            const _toastVariants = (name) => [
+                `${name} will see you loved this too.`,
+                `Nice taste. ${name} is going to feel seen.`,
+                `You just made ${name}'s find worth even more.`
+            ];
+            const _adderName = item?.added_by_name
+                ? item.added_by_name.split(' ')[0]
+                : 'Your friend';
+            const _variants = _toastVariants(_adderName);
+            const _msg = _variants[Math.floor(Math.random() * _variants.length)];
+            setTimeout(() => showToast(_msg), 300);
+
+            // Notify item owner that someone saved their item
+            const _ownerId = item?.added_by;
+            if (_ownerId && _ownerId !== currentUser.id) {
+                const _saverName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'Someone';
+                try {
+                    await supabaseClient.from('notifications').insert({
+                        user_id:  _ownerId,
+                        actor_id: currentUser.id,
+                        type:     'endorsement',
+                        item_id:  itemId,
+                        message:  `${_saverName} saved your item`
+                    });
+                } catch (_notifErr) {
+                    console.warn('Could not send save notification:', _notifErr);
+                }
             }
         }
     }
@@ -1158,49 +1196,37 @@ function buildEndorseSection(itemId) {
     const fillColor = cached.userEndorsed ? '#7B2D45' : 'none';
     const strokeColor = '#7B2D45';
 
-    // Only show names and count of friends + self (not global)
-    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
-    if (currentUser) friendIds.add(currentUser.id);
-    const friendNames = [];
-    (cached.ids || []).forEach((id, i) => {
-        if (friendIds.has(id) && cached.names[i]) {
-            friendNames.push(cached.names[i]);
-        }
-    });
+    // Social proof (avatars + "Saved by") now lives in drawer-attribution block.
+    // This section renders the Save button only.
 
-    const friendCount = friendNames.length;
-
-    // Build stacked avatar initials (up to 3)
-    let avatarsHtml = '';
-    if (friendCount > 0) {
-        const avatarNames = friendNames.slice(0, 3);
-        avatarsHtml = `<div class="endorse-avatars">${avatarNames.map(n => `<div class="endorse-avatar-chip">${n.charAt(0).toUpperCase()}</div>`).join('')}</div>`;
-    }
-
-    // Build "Saved by X and N others" sentence
-    let savedByText = '';
-    if (friendCount > 0) {
-        const first = friendNames[0];
-        if (friendCount === 1) {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong>`;
-        } else if (friendCount === 2) {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and <strong>${escapeHtml(friendNames[1])}</strong>`;
-        } else {
-            savedByText = `Saved by <strong>${escapeHtml(first)}</strong> and ${friendCount - 1} others`;
-        }
+    // One-time contact CTA per item
+    const _ctaKey = `odin_contact_cta_${itemId}`;
+    const _myName = currentProfile?.display_name || (currentUser?.user_metadata?.full_name) || '';
+    const _ctaFriendName = cached.names.find(n => n !== _myName);
+    let _contactHtml = '';
+    if (_ctaFriendName && !localStorage.getItem(_ctaKey)) {
+        localStorage.setItem(_ctaKey, '1');
+        const _firstName = (_ctaFriendName.split(' ')[0] || '').replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+        _contactHtml = `
+        <div class="drawer-contact-cta">
+            <span class="drawer-contact-icon">💬</span>
+            <div class="drawer-contact-body">
+                <span class="drawer-contact-text">Want to know more? Ask ${_firstName} — they're just a message away.</span>
+            </div>
+            <span class="drawer-contact-dismiss" onclick="this.closest('.drawer-contact-cta').remove()">&#x2715;</span>
+        </div>`;
     }
 
     return `<div class="drawer-reactions">
         <div class="drawer-save-row">
-            ${avatarsHtml}
             <div class="drawer-save-right">
-                ${savedByText ? `<div class="endorse-names">${savedByText}</div>` : ''}
                 <button class="drawer-bookmark-btn${bookmarkActive}" data-endorse-id="${itemId}" onclick="toggleEndorsement('${itemId}', event)">
                     <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                     <span class="drawer-bookmark-label">${cached.userEndorsed ? 'Saved' : 'Save'}</span>
                 </button>
             </div>
         </div>
+        ${_contactHtml}
     </div>`;
 }
 
@@ -2055,6 +2081,10 @@ const _NOTIFS_CLEARED_KEY = 'odin_notifs_cleared_at';
 // Any notification created BEFORE this timestamp is permanently hidden,
 // even if the Supabase delete didn't fully propagate.
 
+// In-memory cache of the last successfully fetched notifications.
+// openNotifDrawer uses this so it never makes a second concurrent RPC call.
+let _notifCache = null;
+
 async function checkUnreadNotifications() {
     const badge = document.getElementById('notifBadge');
     if (!currentUser) {
@@ -2065,22 +2095,21 @@ async function checkUnreadNotifications() {
         // Fetch actual notifications to check if any exist after clearedAt
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
             p_user_id: currentUser.id,
-            p_limit: 1
+            p_limit: 20
         });
         if (error) {
             if (badge) badge.style.display = 'none';
             return;
         }
         const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
-        let hasVisible = false;
-        if (data && data.length > 0) {
-            if (clearedAt) {
-                // Only count notifications created AFTER the clear timestamp
-                hasVisible = data.some(n => new Date(n.created_at) > new Date(parseInt(clearedAt)));
-            } else {
-                hasVisible = true;
-            }
+        let filtered = data || [];
+        if (clearedAt) {
+            const clearedDate = new Date(parseInt(clearedAt));
+            filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
+        // Update cache so loadNotifications() can render instantly without a new RPC
+        _notifCache = filtered;
+        let hasVisible = filtered.length > 0;
         if (badge) badge.style.display = hasVisible ? 'block' : 'none';
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
@@ -2089,10 +2118,9 @@ async function checkUnreadNotifications() {
 }
 
 function startNotifPolling() {
-    // Check immediately
+    // Initial check — friend requests already loaded by init, just check notif badge
     checkUnreadNotifications();
-    Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()]).then(updateFriendsDisplay);
-    // Then poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
+    // Poll every 30 seconds — refresh badge, incoming AND outgoing pending friend requests
     if (notifPollInterval) clearInterval(notifPollInterval);
     notifPollInterval = setInterval(() => {
         checkUnreadNotifications();
@@ -2107,12 +2135,65 @@ function stopNotifPolling() {
     }
 }
 
+function _renderNotifications(filtered) {
+    const container = document.getElementById('notifItems');
+    const emptyEl = document.getElementById('notifEmpty');
+    const drawerList = document.getElementById('notifDrawerItems');
+    const drawerEmpty = document.getElementById('notifDrawerEmpty');
+
+    if (filtered.length === 0) {
+        if (container) container.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (drawerList) drawerList.innerHTML = '';
+        if (drawerEmpty) drawerEmpty.style.display = 'block';
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (drawerEmpty) drawerEmpty.style.display = 'none';
+
+    const html = filtered.map(n => {
+        let icon;
+        if (n.type === 'endorsement') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+        } else if (n.type === 'friend_request') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+        } else if (n.type === 'friend_accepted') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
+        } else {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+        }
+        const timeAgo = getTimeAgo(n.created_at);
+        const unreadClass = n.read ? '' : ' unread';
+        const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
+            ? `handleFriendNotifClick('${n.id}')`
+            : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
+
+        return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
+            <div class="notif-icon">${icon}</div>
+            <div class="notif-body">
+                <div class="notif-message">${escapeHtml(n.message)}</div>
+                <div class="notif-time">${timeAgo}</div>
+            </div>
+            <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
+        </div>`;
+    }).join('');
+
+    if (container) container.innerHTML = html;
+    if (drawerList) drawerList.innerHTML = html;
+}
+
 async function loadNotifications() {
     if (!currentUser) return;
-    const container = document.getElementById('notifItems');
-    if (!container) return;
 
-    const emptyEl = document.getElementById('notifEmpty');
+    // If we have cached data, render immediately (no network call).
+    // The 30s poll and checkUnreadNotifications keep the cache fresh.
+    if (_notifCache) {
+        _renderNotifications(_notifCache);
+        return;
+    }
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -2126,63 +2207,15 @@ async function loadNotifications() {
         }
 
         // Filter out notifications created before the last "Clear all"
-        // Use localStorage first (fast), fall back to DB-persisted timestamp (cross-device)
-        const localClearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
-        const dbClearedAt = currentProfile?.notifs_cleared_at
-            ? new Date(currentProfile.notifs_cleared_at).getTime().toString()
-            : null;
-        const clearedAt = localClearedAt || dbClearedAt;
+        const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
         let filtered = data || [];
         if (clearedAt) {
             const clearedDate = new Date(parseInt(clearedAt));
             filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
 
-        if (filtered.length === 0) {
-            container.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-            const badge = document.getElementById('notifBadge');
-            if (badge) badge.style.display = 'none';
-            return;
-        }
-
-        if (emptyEl) emptyEl.style.display = 'none';
-        const badge = document.getElementById('notifBadge');
-        if (badge) badge.style.display = 'none';
-
-        // User is now viewing these notifications — stamp clearedAt to the
-        // most recent one so the badge only reappears for NEW notifications after this point
-        const latestTs = Math.max(...filtered.map(n => new Date(n.created_at).getTime()));
-        localStorage.setItem(_NOTIFS_CLEARED_KEY, latestTs.toString());
-
-        container.innerHTML = filtered.map(n => {
-            let icon;
-            if (n.type === 'endorsement') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
-            } else if (n.type === 'friend_request') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
-            } else if (n.type === 'friend_accepted') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
-            } else {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-            }
-            const timeAgo = getTimeAgo(n.created_at);
-            const unreadClass = n.read ? '' : ' unread';
-
-            // Friend notifications click → go to profile (friend requests section)
-            const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
-                ? `handleFriendNotifClick('${n.id}')`
-                : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
-
-            return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
-                <div class="notif-icon">${icon}</div>
-                <div class="notif-body">
-                    <div class="notif-message">${escapeHtml(n.message)}</div>
-                    <div class="notif-time">${timeAgo}</div>
-                </div>
-                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
-            </div>`;
-        }).join('');
+        _notifCache = filtered;
+        _renderNotifications(filtered);
     } catch (err) {
         console.error('Error in loadNotifications:', err);
     }
@@ -2209,7 +2242,6 @@ async function deleteNotification(notifId) {
         if (container && container.children.length === 0) {
             const emptyEl = document.getElementById('notifEmpty');
             if (emptyEl) emptyEl.style.display = 'block';
-            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
@@ -2220,7 +2252,8 @@ async function clearAllNotifications() {
     if (!currentUser) return;
     // Store the cleared timestamp permanently — any notification created
     // before this time will never be shown again, even if the DB delete fails
-    localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+    localStorage.setItem(_NOTIFS_CLEARED_KEY, (Date.now() + 1).toString());
+    _notifCache = []; // Clear cache so next poll fetches fresh
     const container = document.getElementById('notifItems');
 
     // Fade out all items
@@ -2783,6 +2816,9 @@ function showHome() {
     document.getElementById('profileMode').classList.add('hidden');
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
+    var stepBar = document.getElementById('addStepSticky');
+    if (stepBar) stepBar.classList.add('hidden');
+    document.body.classList.remove('add-tab-open');
     document.getElementById('inputArea').classList.add('hidden');
     // Language button only shows on profile page — always hide it on home
     var langWrap = document.getElementById('headerLangWrap');
@@ -3099,6 +3135,7 @@ var userLocMarker = null;
 var _currentMode = 'home';
 
 function setMode(mode) {
+    var _prevMode = _currentMode;
     _currentMode = mode;
     document.getElementById('homePage').classList.add('hidden');
     document.getElementById('searchMode').classList.add('hidden');
@@ -3107,6 +3144,10 @@ function setMode(mode) {
     document.getElementById('profileMode').classList.add('hidden');
     var savedEl = document.getElementById('savedMode');
     if (savedEl) savedEl.classList.add('hidden');
+    // Always hide step bar; re-shown below if mode === 'input'
+    var stepBar = document.getElementById('addStepSticky');
+    if (stepBar) stepBar.classList.add('hidden');
+    document.body.classList.remove('add-tab-open');
 
     // Show header only on Home page, hide on all other pages
     var headerEl = document.querySelector('.header');
@@ -3158,7 +3199,16 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
+        // Show step bar (fixed to top — never scrolls)
+        var stepBar = document.getElementById('addStepSticky');
+        if (stepBar) stepBar.classList.remove('hidden');
+        document.body.classList.add('add-tab-open');
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
+        // Only reset when arriving from a different page. Re-tapping Add while
+        // already on the Add page must not wipe the "Found a link" banner.
+        if (_prevMode !== 'input') _resetAddState();
+        updateAddStep(1);
+        // _checkClipboardForUrl() skips iOS — the system Paste banner cannot be suppressed.
     } else if (mode === 'profile') {
         document.getElementById('profileMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
@@ -3944,14 +3994,12 @@ function createCard(item, index) {
     const saveCountLabel = totalSaves === 1 ? '1 save in your circle' : `${totalSaves} saves in your circle`;
     const saveCountHtml = `<div class="hf-card-save-count">${saveCountLabel}</div>`;
 
-    const endorseBtn = item.id ? buildEndorseButton(item.id) : '';
-
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
         ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
         : TRANSLATE_ICON;
     card.innerHTML = `
-        <div class="hf-card-media-wrap">${mediaHtml}${endorseBtn}</div>
+        <div class="hf-card-media-wrap">${mediaHtml}</div>
         <div class="hf-card-body">
             <div class="hf-card-title">${escapeHtml(item.title)}</div>
             ${wordHtml}
@@ -4431,10 +4479,9 @@ function openItemDrawer(item) {
     }
     html += `</div>`;
 
-    // Sub-line: address · distance
+    // Sub-line: address only (distance lives in the chips row)
     let subParts = [];
     if (item.address) subParts.push(`<span class="drawer-meta-address">${escapeHtml(item.address)}</span>`);
-    if (distText)     subParts.push(`<span class="drawer-meta-dist">${distText} away</span>`);
     if (subParts.length) {
         html += `<div class="drawer-meta-line">${subParts.join('<span class="drawer-meta-dot"> · </span>')}</div>`;
     }
@@ -4448,7 +4495,7 @@ function openItemDrawer(item) {
         ? `<span class="hf-card-private">Private</span>` : '';
     const drawerDistChip    = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
     if (drawerCatChip || drawerPrivateChip || drawerDistChip) {
-        html += `<div class="hf-card-chips-row" style="margin-bottom:14px;">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
+        html += `<div class="hf-card-chips-row drawer-chips">${drawerCatChip}${drawerDistChip}${drawerPrivateChip}</div>`;
     }
 
     // Circle trust signal — shown below address for non-owner items
@@ -4493,7 +4540,6 @@ function openItemDrawer(item) {
         html += `<div class="drawer-quote">
             <div class="drawer-quote-label">THE WORD</div>
             <div class="drawer-quote-text drawer-story-text">${escapeHtml(note)}</div>
-            <div class="drawer-quote-attribution">— ${escapeHtml(item.added_by_name || 'Friend')}</div>
         </div>`;
         html += `<button class="drawer-translate-btn" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
@@ -4570,18 +4616,68 @@ function openItemDrawer(item) {
             return `<span class="drawer-saver-avatar" style="background:${col};">${initial}</span>`;
         };
 
-        let footerHtml = '<div class="drawer-footer-attribution">';
+        // Build mini stacked avatar for saves-by row
+        const makeMiniAv = (initial, name) => {
+            const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
+            return `<span class="drawer-save-av" style="background:${col};">${initial}</span>`;
+        };
+
+        // Saves-by row — built from endorsementsCache once loaded; placeholder until then
+        const savesCount = item.saves_count || item.endorsements || 0;
+        const savesByHtml = ''; // populated async after endorsements load (see below)
+
+        // Save button — rendered inline, patched async once endorsement state loads
+        const _cached0 = endorsementsCache[item.id] || { userEndorsed: false };
+        const _bActive = _cached0.userEndorsed ? ' active' : '';
+        const _bFill   = _cached0.userEndorsed ? '#7B2D45' : 'none';
+        const saveBtnHtml = `<button class="drawer-bookmark-btn${_bActive}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">
+            <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${_bFill}" stroke="#7B2D45" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            <span class="drawer-bookmark-label">${_cached0.userEndorsed ? 'Saved' : 'Save'}</span>
+        </button>`;
+
+        let footerHtml = '';
         if (isOwner) {
-            const myName = currentProfile?.display_name || 'You';
-            const myInit = myName.charAt(0).toUpperCase();
-            footerHtml += `${makeAvatar(myInit, myName)}<span class="drawer-saved-by">Added by you</span>`;
+            const myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || currentUser?.email || 'You';
+            const myInit = myName !== 'You' ? myName.charAt(0).toUpperCase() : (currentUser?.email ? currentUser.email.charAt(0).toUpperCase() : 'Y');
+            const myCol  = typeof strColour === 'function' ? strColour(myName) : '#7B2D45';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${myCol};">${myInit}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">You added this</div>
+                        <div class="drawer-attr-sub">Added this to Odin</div>
+                    </div>
+                    ${saveBtnHtml}
+                </div>
+                <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
+            </div>`;
         } else if (isSaveInheritance && viaName) {
-            // Via = the friend who saved/endorsed it (adder is anonymous)
-            footerHtml += `${makeAvatar(viaInitial, viaName)}<span class="drawer-saved-by">Via ${viaName}</span>`;
+            const viaCol = typeof strColour === 'function' ? strColour(viaName) : '#7B2D45';
+            const savesLabel = savesCount > 1 ? `Saved by ${savesCount} people in your circle` : 'Saved in your circle';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${viaCol};">${viaInitial}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">Via ${viaName}</div>
+                        <div class="drawer-attr-sub">${savesLabel}</div>
+                    </div>
+                    ${saveBtnHtml}
+                </div>
+            </div>`;
         } else if (isDirectFriend) {
-            footerHtml += `${makeAvatar(friendInitial, friendName)}<span class="drawer-saved-by">Added by ${friendName}</span>`;
+            const friendCol = typeof strColour === 'function' ? strColour(friendName) : '#7B2D45';
+            footerHtml = `<div class="drawer-attribution">
+                <div class="drawer-attr-row">
+                    <div class="drawer-attr-avatar" style="background:${friendCol};">${friendInitial}</div>
+                    <div class="drawer-attr-info">
+                        <div class="drawer-attr-name">${friendName}</div>
+                        <div class="drawer-attr-sub">Added this to Odin</div>
+                    </div>
+                    ${saveBtnHtml}
+                </div>
+                <div class="drawer-attr-saves" id="drawerAttrSaves" style="display:none;"></div>
+            </div>`;
         }
-        footerHtml += '</div>';
 
         // "Ask [Name] about this" — only for Scenario 3 (direct friend, no personal note)
         let askCtaHtml = '';
@@ -4594,7 +4690,6 @@ function openItemDrawer(item) {
         html += `<div class="drawer-social">
             ${footerHtml}
             ${askCtaHtml}
-            ${buildEndorseSection(item.id)}
             <div class="drawer-comments" id="communityNotesContainer"><div class="notes-loading">Loading comments...</div></div>
         </div>`;
     }
@@ -4627,10 +4722,43 @@ function openItemDrawer(item) {
             // Only update if this drawer is still open for the same item
             if (currentDrawerItem && currentDrawerItem.id === item.id) {
                 updateEndorsementUI(item.id);
-                // Also patch the drawer save section label directly
-                const drawerReactions = document.querySelector('.drawer-reactions');
-                if (drawerReactions) {
-                    drawerReactions.outerHTML = buildEndorseSection(item.id);
+                // Patch inline save button state
+                const saveBtn = document.getElementById('drawerSaveBtn');
+                if (saveBtn) {
+                    const c = endorsementsCache[item.id] || { userEndorsed: false };
+                    saveBtn.className = 'drawer-bookmark-btn' + (c.userEndorsed ? ' active' : '');
+                    const svg = saveBtn.querySelector('svg');
+                    if (svg) svg.setAttribute('fill', c.userEndorsed ? '#7B2D45' : 'none');
+                    const lbl = saveBtn.querySelector('.drawer-bookmark-label');
+                    if (lbl) lbl.textContent = c.userEndorsed ? 'Saved' : 'Save';
+                }
+                // Patch saves-by row in attribution block now that we have real names
+                const savesSlot = document.getElementById('drawerAttrSaves');
+                if (savesSlot && (isOwner || isDirectFriend)) {
+                    const cached = endorsementsCache[item.id] || { names: [], ids: [] };
+                    const friendIds = new Set(friendsCache.map(f => f.out_user_id));
+                    if (currentUser) friendIds.add(currentUser.id);
+                    // Exclude the item adder from "also saved by"
+                    const adderName = isOwner
+                        ? (currentProfile?.display_name || currentUser?.user_metadata?.full_name || '')
+                        : (item.added_by_name || '');
+                    const otherSavers = [];
+                    (cached.ids || []).forEach((id, i) => {
+                        if (friendIds.has(id) && cached.names[i] && cached.names[i] !== adderName) {
+                            otherSavers.push(cached.names[i]);
+                        }
+                    });
+                    if (otherSavers.length > 0) {
+                        const avatarsHtml = otherSavers.slice(0, 3).map(n => {
+                            const col = typeof strColour === 'function' ? strColour(n) : '#5A8A6A';
+                            return `<span class="drawer-save-av" style="background:${col};">${n.charAt(0).toUpperCase()}</span>`;
+                        }).join('');
+                        const label = otherSavers.length === 1
+                            ? `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> in your circle`
+                            : `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> &amp; ${otherSavers.length - 1} other${otherSavers.length > 2 ? 's' : ''} in your circle`;
+                        savesSlot.innerHTML = `<div class="drawer-save-avatars">${avatarsHtml}</div><span style="margin-left:4px;">${label}</span>`;
+                        savesSlot.style.display = 'flex';
+                    }
                 }
             }
         });
@@ -4652,6 +4780,25 @@ function closeDrawer() {
 }
 
 // ===== EDIT DISCOVERY IN DRAWER =====
+function previewEditPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const preview = document.getElementById('editPhotoPreview');
+        if (preview.tagName === 'IMG') {
+            preview.src = e.target.result;
+        } else {
+            // Replace placeholder div with img
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.id = 'editPhotoPreview';
+            preview.parentNode.replaceChild(img, preview);
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
 function enterEditMode() {
     const item = currentDrawerItem;
     if (!item || !currentUser || item.added_by !== currentUser.id) return;
@@ -4681,16 +4828,22 @@ function enterEditMode() {
     ).join('');
 
     let html = '';
+
+    // Photo section with change option
+    html += `<div class="drawer-hero edit-photo-wrap" id="editPhotoWrap">`;
     if (item.photo_url) {
-        html += `<div class="drawer-hero"><img src="${escapeHtml(item.photo_url)}"></div>`;
+        html += `<img src="${escapeHtml(item.photo_url)}" id="editPhotoPreview">`;
+    } else {
+        html += `<div class="edit-photo-placeholder" id="editPhotoPreview">📷</div>`;
     }
+    html += `<label class="edit-photo-btn" for="editPhotoInput">Change Photo</label>
+        <input type="file" id="editPhotoInput" accept="image/*" style="display:none" onchange="previewEditPhoto(this)">
+        <input type="hidden" id="editPhotoFile">
+    </div>`;
 
     html += `<div class="drawer-body"><div class="edit-form" id="drawerEditForm">
         <label class="edit-label">Title</label>
         <input class="edit-input" id="editTitle" value="${escapeHtml(item.title)}" maxlength="200">
-
-        <label class="edit-label">Description</label>
-        <textarea class="edit-textarea" id="editDescription" rows="3" maxlength="1000">${escapeHtml(item.description || '')}</textarea>
 
         <label class="edit-label">Personal Note</label>
         <textarea class="edit-textarea" id="editNote" rows="2" maxlength="500">${escapeHtml(note)}</textarea>
@@ -4748,7 +4901,6 @@ async function saveItemEdit(itemId) {
     btn.textContent = 'Saving...';
 
     const newTitle = document.getElementById('editTitle').value.trim();
-    const newDescription = document.getElementById('editDescription').value.trim();
     const newNote = document.getElementById('editNote').value.trim();
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
@@ -4762,16 +4914,41 @@ async function saveItemEdit(itemId) {
         return;
     }
 
-    // Check if title or description changed significantly (for re-embedding)
-    const oldText = (item.title + ' ' + (item.description || '')).toLowerCase().trim();
-    const newText = (newTitle + ' ' + newDescription).toLowerCase().trim();
+    // Check if title changed significantly (for re-embedding)
+    const oldText = item.title.toLowerCase().trim();
+    const newText = newTitle.toLowerCase().trim();
     const needsReEmbed = oldText !== newText;
+
+    // Handle photo upload if a new file was selected
+    let newPhotoUrl = item.photo_url || null;
+    const photoInput = document.getElementById('editPhotoInput');
+    if (photoInput && photoInput.files && photoInput.files[0]) {
+        try {
+            btn.textContent = 'Uploading photo...';
+            const file = photoInput.files[0];
+            const ext = file.name.split('.').pop();
+            const filePath = `${currentUser.id}/${itemId}_${Date.now()}.${ext}`;
+            const { data: uploadData, error: uploadError } = await supabaseClient
+                .storage.from('recommendation-photos')
+                .upload(filePath, file, { upsert: true });
+            if (uploadError) throw new Error('Photo upload failed: ' + uploadError.message);
+            const { data: urlData } = supabaseClient
+                .storage.from('recommendation-photos')
+                .getPublicUrl(filePath);
+            newPhotoUrl = urlData.publicUrl;
+        } catch (photoErr) {
+            document.getElementById('editMessage').innerHTML = `<div class="error-msg">${photoErr.message}</div>`;
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+            return;
+        }
+    }
 
     try {
         // Update in Supabase
         const updateData = {
             title: newTitle,
-            description: newDescription || null,
+            photo_url: newPhotoUrl,
             type: newCategory,
             address: newAddress || null,
             URL: newUrl ? [newUrl] : [],
@@ -4818,7 +4995,6 @@ async function saveItemEdit(itemId) {
                     action: 'update_embedding',
                     itemId: itemId,
                     title: newTitle,
-                    description: newDescription,
                     personalNote: newNote || null,
                     type: newCategory,
                     UserID: currentUser.id
@@ -5844,7 +6020,306 @@ function clearCaptureForm() {
     const titleTA = document.getElementById('title');
     if (titleTA) { titleTA.style.height = '44px'; }
     const takeTA = document.getElementById('personalNote');
-    if (takeTA) { takeTA.style.height = '72px'; }
+    if (takeTA) { takeTA.style.height = '120px'; }
+    // Reset progressive steps
+    // Reset all UI state (cards, URL bar, banner, steps, overlay)
+    _resetAddState();
+    // Clear photo opt link input
+    const photoOptLink = document.getElementById('photoOptLink');
+    if (photoOptLink) photoOptLink.value = '';
+    // Reset photo hero filled state
+    const heroFilled = document.getElementById('photoHeroFilled');
+    const heroZone = document.getElementById('photoHeroZone');
+    if (heroFilled) heroFilled.classList.add('hidden');
+    if (heroZone) heroZone.classList.remove('hidden');
+}
+
+// ===== ENTRY CHIPS =====
+let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
+
+// Resets UI state on every Add tab entry — hides URL bar, photo section,
+// clears active card, hides banner. Does NOT clear form field values.
+function _resetAddState() {
+    // Deactivate all entry cards
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+    try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
+    // Hide URL bar and photo section — both start hidden until a card is chosen
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    const photoSection = document.getElementById('photoChipSection');
+    if (photoSection) photoSection.classList.add('hidden');
+    // Hide clipboard banner
+    const clipBanner = document.getElementById('clipDetectBanner');
+    if (clipBanner) clipBanner.classList.add('hidden');
+    // Hide any leftover paste overlay
+    const pasteOverlay = document.getElementById('pasteOverlay');
+    if (pasteOverlay) pasteOverlay.remove();
+    // Collapse progressive form steps
+    _resetSteps();
+    // Reset step indicator back to Step 1
+    updateAddStep(1);
+    // Reset OG fetch dedup guard
+    _lastOGFetchedUrl = '';
+}
+
+function selectEntryChip(chip) {
+    // Update active state
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+    const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
+    if (activeChip) activeChip.classList.add('active');
+    // Persist selection
+    try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+
+    // Show/hide photo hero section and url bar
+    const photoSection = document.getElementById('photoChipSection');
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    const detailsPhotoGroup = document.getElementById('detailsPhotoGroup');
+    if (chip === 'photo') {
+        if (photoSection) photoSection.classList.remove('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+        // Photo chosen in step 1 — hide the duplicate upload zone in step 3
+        if (detailsPhotoGroup) detailsPhotoGroup.style.display = 'none';
+    } else if (chip === 'link') {
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
+    } else {
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
+    }
+
+    // Chip-specific: handle URL input focus, location prefill
+    if (chip === 'link') {
+        const urlInput = document.getElementById('url');
+        if (urlInput) setTimeout(() => urlInput.focus(), 50);
+        var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        var pasteBtn = document.getElementById('iosPasteBtn');
+        if (_iosDevice) {
+            if (pasteBtn) {
+                pasteBtn.classList.remove('hidden');
+                pasteBtn.onclick = function() {
+                    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+                    navigator.clipboard.readText()
+                        .then(function(text) {
+                            if (!text) return;
+                            var trimmed = text.trim();
+                            if (!urlInput) return;
+                            urlInput.value = trimmed;
+                            urlInput.focus();
+                            pasteBtn.classList.add('hidden');
+                            if (/^https?:\/\//i.test(trimmed)) {
+                                _lastOGFetchedUrl = trimmed;
+                                fetchAndPrefillOG(trimmed);
+                            }
+                        })
+                        .catch(function() {});
+                };
+            }
+        } else {
+            if (pasteBtn) pasteBtn.classList.add('hidden');
+            if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
+                navigator.clipboard.readText()
+                    .then(function(text) {
+                        if (!text) return;
+                        var trimmed = text.trim();
+                        if (!/^https?:\/\//i.test(trimmed)) return;
+                        _showClipBanner(trimmed);
+                    })
+                    .catch(function() {});
+            }
+        }
+    } else if (chip === 'here') {
+        prefillCaptureLocation();
+    }
+
+    // Auto-advance to Step 2 (Your Take) after chip selection
+    // Small delay so the chip section animation plays first
+    setTimeout(() => {
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
+        // Focus the textarea
+        const takeField = document.getElementById('personalNote');
+        if (takeField) takeField.focus();
+    }, 200);
+}
+
+function _restoreEntryChip() {
+    try {
+        const saved = localStorage.getItem('odin_entry_chip');
+        if (saved) {
+            // Just restore visual active state, don't re-trigger side effects
+            document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+            const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
+            if (chip) chip.classList.add('active');
+            // Re-show appropriate sections based on saved selection
+            const photoSection = document.getElementById('photoChipSection');
+            const urlHeroBar = document.getElementById('urlHeroBar');
+            if (saved === 'photo') {
+                if (photoSection) photoSection.classList.remove('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            } else if (saved === 'link') {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            } else {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            }
+        }
+    } catch(e) {}
+}
+
+// Show the "Found a link" banner for a given URL string
+function _showClipBanner(trimmed) {
+    var banner = document.getElementById('clipDetectBanner');
+    var urlEl = document.getElementById('clipDetectUrl');
+    var useBtn = document.getElementById('clipDetectUse');
+    var dismissBtn = document.getElementById('clipDetectDismiss');
+    if (!banner || !urlEl) return;
+    var display = trimmed.replace(/^https?:\/\/(www\.)?/, '');
+    if (display.length > 40) display = display.substring(0, 40) + '…';
+    urlEl.textContent = display;
+    banner.classList.remove('hidden');
+    var iosHintEl = document.getElementById('iosLinkHint');
+    if (iosHintEl) iosHintEl.classList.add('hidden');
+    var iosPasteBtn = document.getElementById('iosPasteBtn');
+    if (iosPasteBtn) iosPasteBtn.classList.add('hidden');
+    if (useBtn) {
+        useBtn.onclick = function() {
+            banner.classList.add('hidden');
+            selectEntryChip('link');
+            var urlInput = document.getElementById('url');
+            if (urlInput) urlInput.value = trimmed;
+            _lastOGFetchedUrl = trimmed;
+            fetchAndPrefillOG(trimmed);
+        };
+    }
+    if (dismissBtn) {
+        dismissBtn.onclick = function() { banner.classList.add('hidden'); };
+    }
+}
+
+function _checkClipboardForUrl() {
+    // iOS always shows a system "Paste" confirmation banner for any clipboard read.
+    // Skip readText() on iOS — the document-level paste listener handles it instead.
+    if (/iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) return;
+    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+    navigator.clipboard.readText()
+        .then(function(text) {
+            if (!text) return;
+            var trimmed = text.trim();
+            if (!/^https?:\/\//i.test(trimmed)) return;
+            _showClipBanner(trimmed);
+        })
+        .catch(function() {
+            // Clipboard permission denied — silent fail
+        });
+}
+
+function handlePhotoOptLink(val) {
+    const trimmed = (val || '').trim();
+    if (/^https?:\/\//i.test(trimmed)) {
+        // Prefill title/desc but do NOT replace the photo
+        fetchAndPrefillOG(trimmed);
+    }
+}
+
+// ===== PROGRESSIVE STEP REVEAL =====
+// ── ADD STEP INDICATOR ──────────────────────────────────────────
+// Steps: 1=How, 2=Your Take, 3=Details, 4=Save
+// Steps < n get a checkmark (done); step n gets active style; steps > n are muted
+const _STEP_ICONS = [
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+];
+const _STEP_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+function updateAddStep(n) {
+    for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById('addStep' + i);
+        if (!el) continue;
+        const circle = el.querySelector('.add-step-circle');
+        if (i < n) {
+            // Completed — green check
+            el.classList.add('active');
+            el.classList.add('done');
+            if (circle) circle.innerHTML = _STEP_CHECK;
+        } else if (i === n) {
+            // Current — active colour, original icon
+            el.classList.add('active');
+            el.classList.remove('done');
+            if (circle) circle.innerHTML = _STEP_ICONS[i - 1];
+        } else {
+            // Future — muted
+            el.classList.remove('active');
+            el.classList.remove('done');
+            if (circle) circle.innerHTML = _STEP_ICONS[i - 1];
+        }
+    }
+}
+
+// Reveal a wizard section with fade-in and scroll
+function _revealWizardStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+// Called by "Next" buttons — advances to a given step number
+function wizardAdvance(toStep) {
+    if (toStep === 3) {
+        // Validate Your Take before advancing
+        const takeVal = document.getElementById('personalNote').value.trim();
+        if (!takeVal) {
+            const textarea = document.getElementById('personalNote');
+            textarea.focus();
+            textarea.style.borderColor = '#7B2D45';
+            textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+            const formMsg = document.getElementById('formMessage');
+            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your take first — even one line helps.</p>';
+            setTimeout(() => {
+                textarea.style.borderColor = '';
+                textarea.style.boxShadow = '';
+            }, 2500);
+            return;
+        }
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) formMsg.innerHTML = '';
+        _revealWizardStep('wStep3');
+        updateAddStep(3);
+    } else if (toStep === 4) {
+        _revealWizardStep('wStep4');
+        updateAddStep(4);
+        // Scroll to Save button
+        setTimeout(() => {
+            const saveBtn = document.getElementById('submitBtn');
+            if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+    }
+}
+
+function _revealStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    // Scroll to newly revealed section smoothly
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+function _resetSteps() {
+    // Reset wizard steps 2-4 back to hidden; step 1 (How) always stays visible
+    ['wStep2', 'wStep3', 'wStep4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('step-hidden');
+            el.classList.remove('step-reveal');
+        }
+    });
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -6036,9 +6511,12 @@ function prefillCaptureLocation() {
     });
 })();
 
-// ===== CAPTURE: URL OG PREFILL =====
+/// ===== CAPTURE: URL OG PREFILL =====
+let _ogFetchInFlight = false;
 async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
+    if (_ogFetchInFlight) return;  // iOS duplicate-call guard
+    _ogFetchInFlight = true;
 
     const titleField = document.getElementById('title');
     // personalNote is now the single user-facing field (merged with description)
@@ -6077,11 +6555,13 @@ async function fetchAndPrefillOG(url) {
         }
 
         // Fill form fields if empty
-        if (og.title && titleField && !titleField.value.trim()) {
+        const didFillTitle = !!(og.title && titleField && !titleField.value.trim());
+        if (didFillTitle) {
             titleField.value = og.title;
-            // Auto-open the details section so user can see/edit the prefilled title
-            _openDetailsAfterOG();
+            if (titleField._autoGrow) titleField._autoGrow();
         }
+        // Always open Details after fetch so user can see/fill the name field
+        _openDetailsAfterOG(didFillTitle);
         // Never auto-fill "Your Take" — it's the user's personal voice, not OG copy.
         // og.description is kept in memory for the preview card only.
 
@@ -6200,19 +6680,28 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // Auto-scroll to "Your Take" and focus it — the user's voice is the whole point.
-        // Small delay so the OG card animation finishes first.
+        // OG fetch complete — reveal Step 2 (Your Take) so user can add their note.
+        // Step 3 (Details) is pre-filled and will be revealed when user taps "Next".
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
+
+        // Focus Your Take — the user's voice is the whole point.
         setTimeout(() => {
             const takeField = document.getElementById('personalNote');
             if (takeField) {
                 takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 takeField.focus();
             }
-        }, 400);
+        }, 300);
 
     } catch (e) {
         if (ogLoading) ogLoading.classList.add('hidden');
         if (heroHint) heroHint.style.display = 'flex';
+        // On error still reveal Step 2 so user can continue manually
+        _revealWizardStep('wStep2');
+        updateAddStep(2);
+    } finally {
+        _ogFetchInFlight = false;  // always release lock when done
     }
 }
 
@@ -6262,18 +6751,32 @@ function removePhoto() {
     if (ogUrlField) ogUrlField.value = '';
     if (photoInput) photoInput.value = '';
     _photoSource = 'none';
+    // Restore the tap-to-add zone in step 1
+    const heroZone = document.getElementById('photoHeroZone');
+    if (heroZone) heroZone.classList.remove('hidden');
 }
-
-// Track last fetched URL at module level so clearCaptureForm can reset it
-let _lastOGFetchedUrl = '';
 
 function resetOGFetchState() {
     _lastOGFetchedUrl = '';
+    _ogFetchInFlight = false;
     clearOGPreview();
 }
 
+
 // Attach URL paste/blur/input listener once DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    // Page-level paste listener: if the user pastes a URL anywhere on the Add
+    // page, show the "Found a link" banner. This is the primary detection path
+    // on iOS (where readText() is blocked) and a nice fallback everywhere else.
+    document.addEventListener('paste', function(e) {
+        if (_currentMode !== 'input') return;
+        var text = (e.clipboardData || window.clipboardData || '').getData('text');
+        if (!text) return;
+        var trimmed = text.trim();
+        if (!/^https?:\/\//i.test(trimmed)) return;
+        _showClipBanner(trimmed);
+    });
+
     const urlInput = document.getElementById('url');
     if (!urlInput) return;
 
@@ -6281,6 +6784,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const val = urlInput.value.trim();
         if (val && val !== _lastOGFetchedUrl && val.startsWith('http')) {
             _lastOGFetchedUrl = val;
+            selectEntryChip('link'); // highlight Link chip whenever a URL is entered
             fetchAndPrefillOG(val);
         }
     };
@@ -6311,169 +6815,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initAutoGrow(document.getElementById('title'), 44);
-    initAutoGrow(document.getElementById('personalNote'), 72);
+    initAutoGrow(document.getElementById('personalNote'), 120);
+
+    // Step indicator: no automatic advance from textarea — user taps "Next" to advance.
+    // (wizardAdvance handles the step indicator update)
 });
 
-// ===== CLIPBOARD PASTE =====
-// Strategy: try the Clipboard API first (works on Android Chrome + desktop).
-// On iOS Safari/PWA, navigator.clipboard.readText() silently fails because
-// iOS invalidates the user gesture after any async gap (await). We call
-// readText() synchronously inside the click event, chain .then() so the
-// gesture token stays alive, and only fall back to the overlay if it rejects.
-function pasteFromClipboard() {
-    const urlInput = document.getElementById('url');
-    const btn = document.getElementById('urlPasteBtn');
-    if (!urlInput) return;
-
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent);
-
-    // Must call readText() in the SAME synchronous tick as the user gesture.
-    if (navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText()
-            .then(text => {
-                if (text && text.trim()) {
-                    _applyPastedUrl(text.trim(), btn);
-                } else if (isIOS) {
-                    // iOS: clipboard empty or permission denied — show native paste overlay
-                    _showPasteOverlay(btn);
-                }
-                // Desktop: clipboard empty — do nothing, user hasn't copied anything yet
-            })
-            .catch(() => {
-                if (isIOS) {
-                    _showPasteOverlay(btn);
-                }
-                // Desktop: permission denied (e.g. focus not on page) — do nothing
-            });
-        return;
-    }
-
-    // No Clipboard API — iOS fallback only
-    if (isIOS) _showPasteOverlay(btn);
-}
-
-function _applyPastedUrl(trimmed, btn) {
-    const urlInput = document.getElementById('url');
-    if (!urlInput) return;
-    urlInput.value = trimmed;
-    if (trimmed.startsWith('http') && trimmed !== _lastOGFetchedUrl) {
-        _lastOGFetchedUrl = trimmed;
-        fetchAndPrefillOG(trimmed);
-    }
-    if (btn) {
-        const original = btn.innerHTML;
-        btn.innerHTML = '✓ Pasted';
-        btn.classList.add('url-paste-btn--success');
-        setTimeout(() => { btn.innerHTML = original; btn.classList.remove('url-paste-btn--success'); }, 1800);
-    }
-}
-
-function _showPasteOverlay(btn) {
-    // Remove any existing overlay
-    const existing = document.getElementById('pasteOverlay');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'pasteOverlay';
-    overlay.style.cssText = `
-        position: fixed; inset: 0; z-index: 9999;
-        background: rgba(0,0,0,0.45);
-        display: flex; align-items: flex-end;
-        padding: 16px;
-        box-sizing: border-box;
-    `;
-
-    const sheet = document.createElement('div');
-    sheet.style.cssText = `
-        background: #fff; border-radius: 16px; padding: 20px 16px 16px;
-        width: 100%; max-width: 480px; margin: 0 auto;
-        font-family: 'Inter', sans-serif;
-        box-shadow: 0 -4px 32px rgba(0,0,0,0.18);
-    `;
-
-    const label = document.createElement('p');
-    label.textContent = 'Tap and hold the field below, then tap Paste';
-    label.style.cssText = `margin: 0 0 10px; font-size: 13px; color: #666; text-align: center;`;
-
-    const input = document.createElement('input');
-    input.type = 'url';
-    input.placeholder = 'Tap and hold to paste a link…';
-    input.autocomplete = 'off';
-    input.style.cssText = `
-        width: 100%; padding: 13px 14px; font-size: 15px;
-        border: 2px solid #7B2D45; border-radius: 10px;
-        box-sizing: border-box; font-family: 'Inter', sans-serif;
-        color: #2A1E14; outline: none; background: #FAF6EE;
-    `;
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.style.cssText = `
-        display: block; width: 100%; margin-top: 10px; padding: 12px;
-        background: transparent; border: 1.5px solid #EAE0D2;
-        border-radius: 10px; font-size: 14px; color: #9A8A7A;
-        font-family: 'Inter', sans-serif; cursor: pointer;
-    `;
-
-    // Confirm when user types/pastes something and taps Enter or blurs with content
-    const confirm = () => {
-        const val = input.value.trim();
-        if (val) {
-            overlay.remove();
-            _applyPastedUrl(val, btn);
-        }
-    };
-
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } });
-    // Also watch for any input change — on iOS, paste fills value immediately
-    input.addEventListener('input', () => {
-        const val = input.value.trim();
-        if (val && val.startsWith('http')) {
-            setTimeout(() => { overlay.remove(); _applyPastedUrl(val, btn); }, 200);
-        }
-    });
-    cancelBtn.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-    sheet.appendChild(label);
-    sheet.appendChild(input);
-    sheet.appendChild(cancelBtn);
-    overlay.appendChild(sheet);
-    document.body.appendChild(overlay);
-
-    // Focus with a longer delay so iOS keyboard is fully ready before focus
-    // (80ms is too fast — iOS needs ~300ms to register the gesture + show keyboard)
-    setTimeout(() => { input.focus(); input.click(); }, 300);
-}
 
 // ===== DETAILS SECTION TOGGLE =====
-function toggleDetails() {
-    const body = document.getElementById('detailsBody');
-    const chevron = document.getElementById('detailsChevron');
-    const label = document.getElementById('detailsToggleLabel');
-    if (!body) return;
-    const isOpen = !body.classList.contains('hidden');
-    if (isOpen) {
-        body.classList.add('hidden');
-        if (chevron) chevron.style.transform = '';
-        if (label) label.textContent = 'Details';
-    } else {
-        body.classList.remove('hidden');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
-        if (label) label.textContent = 'Details';
-    }
-}
+// Details is now wizard step 3 — always visible when reached. No-op kept for safety.
+function toggleDetails() {}
 
-// Auto-open details section and show autofill hint after OG fills title
-function _openDetailsAfterOG() {
-    const body = document.getElementById('detailsBody');
-    const chevron = document.getElementById('detailsChevron');
+// Show autofill hint after OG fills title (Details is now wizard step 3, always revealed on Next)
+function _openDetailsAfterOG(hasTitle) {
     const hint = document.getElementById('titleAutofillHint');
-    if (body) {
-        body.classList.remove('hidden');
-        if (chevron) chevron.style.transform = 'rotate(180deg)';
+    if (hint) {
+        if (hasTitle) hint.classList.remove('hidden');
+        else hint.classList.add('hidden');
     }
-    if (hint) hint.classList.remove('hidden');
 }
 
 // ===== CLEAR TITLE ONLY =====
@@ -6501,21 +6860,39 @@ async function submitDiscovery(e) {
         return;
     }
 
-    // Validate title — open details section if empty so user can see the field
-    const titleVal = document.getElementById('title').value.trim();
+    // Auto-generate title if empty — no prompt shown, just silent fallback
+    const titleField = document.getElementById('title');
+    let titleVal = titleField ? titleField.value.trim() : '';
     if (!titleVal) {
-        const detailsBody = document.getElementById('detailsBody');
-        const detailsChevron = document.getElementById('detailsChevron');
-        if (detailsBody) detailsBody.classList.remove('hidden');
-        if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        const titleField = document.getElementById('title');
-        if (titleField) {
-            titleField.focus();
-            titleField.style.borderColor = '#7B2D45';
-            setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
+        const activeChip = document.querySelector('.entry-card.active');
+        const chipType = activeChip ? activeChip.dataset.chip : '';
+        if (chipType === 'photo') {
+            // "Photo — 5 Apr 2026"
+            const now = new Date();
+            const day = now.getDate();
+            const mon = now.toLocaleString('en-NZ', { month: 'short' });
+            const yr  = now.getFullYear();
+            titleVal = `Photo \u2014 ${day} ${mon} ${yr}`;
+        } else if (chipType === 'type') {
+            // First 6 words of Your Take
+            const takeText = document.getElementById('personalNote').value.trim();
+            const words = takeText.split(/\s+/).slice(0, 6).join(' ');
+            if (words) {
+                titleVal = words + (takeText.split(/\s+/).length > 6 ? '\u2026' : '');
+            }
         }
-        document.getElementById('submitBtn').disabled = false;
-        return;
+        // If still empty (link/here with no OG title), highlight the title field
+        if (!titleVal) {
+            if (titleField) {
+                titleField.focus();
+                titleField.style.borderColor = '#7B2D45';
+                setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
+            }
+            document.getElementById('submitBtn').disabled = false;
+            return;
+        }
+        // Write the generated title back into the field so it's picked up by the payload
+        if (titleField) titleField.value = titleVal;
     }
 
     // Validate "Your take" — required but no asterisk shown
@@ -6622,12 +6999,8 @@ async function submitDiscovery(e) {
     // Show URL hint again
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
-    // Close details section + hide autofill hint
-    const _detailsBody = document.getElementById('detailsBody');
-    const _detailsChevron = document.getElementById('detailsChevron');
+    // Hide autofill hint on successful save
     const _titleHint = document.getElementById('titleAutofillHint');
-    if (_detailsBody) _detailsBody.classList.add('hidden');
-    if (_detailsChevron) _detailsChevron.style.transform = '';
     if (_titleHint) _titleHint.classList.add('hidden');
 
     btn.disabled = false;
@@ -6662,25 +7035,13 @@ function selectCategory(el) {
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');
     const addressLabel = document.getElementById('addressLabel');
-    const detailsBody = document.getElementById('detailsBody');
-    const detailsChevron = document.getElementById('detailsChevron');
 
     if (val === 'place') {
         if (addressGroup) addressGroup.style.display = '';
         if (addressLabel) addressLabel.textContent = '— recommended for places';
-        // Auto-open Details so address field is visible
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
     } else if (val === 'service') {
         if (addressGroup) addressGroup.style.display = '';
         if (addressLabel) addressLabel.textContent = '— optional for services';
-        // Auto-open Details so address field is visible
-        if (detailsBody) {
-            detailsBody.classList.remove('hidden');
-            if (detailsChevron) detailsChevron.style.transform = 'rotate(180deg)';
-        }
     } else {
         if (addressGroup) addressGroup.style.display = 'none';
         // Clear address when hidden
@@ -6694,16 +7055,29 @@ document.getElementById('photo').addEventListener('change', function(e) {
     if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            document.getElementById('previewImg').src = ev.target.result;
-            document.getElementById('photoPreview').style.display = 'block';
+            // Show preview image
+            const previewImg = document.getElementById('previewImg');
+            const preview = document.getElementById('photoPreview');
+            if (previewImg) previewImg.src = ev.target.result;
+            if (preview) preview.style.display = 'block';
+
+            // Hide the tap-to-add zone (now replaced by the preview)
+            const heroZone = document.getElementById('photoHeroZone');
+            if (heroZone) heroZone.classList.add('hidden');
+
+            // Hide step 3 upload zone — photo is already chosen
             const uploadZone = document.getElementById('photoUploadZone');
             if (uploadZone) uploadZone.style.display = 'none';
-            // Mark as user photo, clear OG image, update badge
+
+            // Mark as user photo, clear any OG image URL
             _photoSource = 'user';
             const ogUrlField = document.getElementById('ogImageUrl');
             if (ogUrlField) ogUrlField.value = '';
             const badge = document.getElementById('photoSourceBadge');
             if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
+
+            // Title for photo flow is auto-generated at submit time ("Photo — D Mon YYYY")
+            // Do NOT prefill from filename.
         };
         reader.readAsDataURL(file);
     }
@@ -6809,7 +7183,7 @@ async function removeSavedItem(itemId) {
 }
 
 // ===== TOAST NOTIFICATIONS =====
-function showToast(message, duration = 3000) {
+function showToast(message, duration = 4500) {
     // Remove any existing toast
     const existing = document.getElementById('appToast');
     if (existing) existing.remove();
@@ -6817,7 +7191,10 @@ function showToast(message, duration = 3000) {
     const toast = document.createElement('div');
     toast.id = 'appToast';
     toast.className = 'app-toast';
-    toast.textContent = message;
+    toast.innerHTML = `
+        <span class="app-toast-text">${message}</span>
+        <span class="app-toast-dismiss" onclick="this.closest('#appToast').remove()">&#x2715;</span>
+    `;
     document.body.appendChild(toast);
 
     // Trigger animation
@@ -7502,38 +7879,6 @@ function dismissEmptyFriends() {
 })();
 
 // ===== NOTIFICATION DRAWER =====
-var _notifDrawerOpen = false;
-
-function toggleNotifDrawer() {
-    if (_notifDrawerOpen) {
-        closeNotifDrawer();
-    } else {
-        openNotifDrawer();
-    }
-}
-
-function openNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    // Load fresh notifications every time drawer opens
-    loadNotifications();
-
-    backdrop.style.display = 'block';
-    drawer.style.display   = 'flex'; // ensure it's rendered before transition
-    // Force reflow so transition fires
-    drawer.getBoundingClientRect();
-    drawer.style.transform = 'translateY(0)';
-    _notifDrawerOpen = true;
-}
-
-function closeNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    drawer.style.transform = 'translateY(-110%)';
-    backdrop.style.display = 'none';
-    _notifDrawerOpen = false;
-}
+// openNotifDrawer / closeNotifDrawer are defined in index.html inline script
+// using the profile-drawer / is-open CSS pattern. This block just ensures
+// loadNotifications() is called on open so notifDrawerItems is populated.
