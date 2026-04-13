@@ -2083,9 +2083,12 @@
                 <div class="profile-drawer-handle"></div>
                 <div class="profile-drawer-header">
                     <h2 class="profile-drawer-title">Notifications</h2>
-                    <button class="profile-drawer-close" onclick="closeNotifDrawer()" aria-label="Close">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <a onclick="clearAllNotifications(); closeNotifDrawer();" style="font-size:13px;color:#8a7f72;cursor:pointer;">Clear all</a>
+                        <button class="profile-drawer-close" onclick="closeNotifDrawer()" aria-label="Close">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="profile-drawer-body">
                     <div id="notifDrawerItems" class="notif-list"></div>
@@ -2599,7 +2602,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=53"></script>
+    <script src="app.js?v=54"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings
