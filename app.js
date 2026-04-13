@@ -2153,8 +2153,6 @@ async function loadNotifications() {
         }
 
         if (emptyEl) emptyEl.style.display = 'none';
-        const badge = document.getElementById('notifBadge');
-        if (badge) badge.style.display = 'none';
 
         container.innerHTML = filtered.map(n => {
             let icon;
