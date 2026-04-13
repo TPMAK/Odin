@@ -2215,7 +2215,6 @@ async function deleteNotification(notifId) {
         if (container && container.children.length === 0) {
             const emptyEl = document.getElementById('notifEmpty');
             if (emptyEl) emptyEl.style.display = 'block';
-            localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
             const badge = document.getElementById('notifBadge');
             if (badge) badge.style.display = 'none';
         }
