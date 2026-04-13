@@ -1082,6 +1082,23 @@ async function toggleEndorsement(itemId, event) {
             const _variants = _toastVariants(_adderName);
             const _msg = _variants[Math.floor(Math.random() * _variants.length)];
             setTimeout(() => showToast(_msg), 300);
+
+            // Notify item owner that someone saved their item
+            const _ownerId = item?.added_by;
+            if (_ownerId && _ownerId !== currentUser.id) {
+                const _saverName = currentProfile?.display_name || currentUser.user_metadata?.full_name || 'Someone';
+                try {
+                    await supabaseClient.from('notifications').insert({
+                        user_id:  _ownerId,
+                        actor_id: currentUser.id,
+                        type:     'endorsement',
+                        item_id:  itemId,
+                        message:  `${_saverName} saved your item`
+                    });
+                } catch (_notifErr) {
+                    console.warn('Could not send save notification:', _notifErr);
+                }
+            }
         }
     }
 
