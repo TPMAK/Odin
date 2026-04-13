@@ -2154,7 +2154,7 @@ async function loadNotifications() {
 
         if (emptyEl) emptyEl.style.display = 'none';
 
-        container.innerHTML = filtered.map(n => {
+        const html = filtered.map(n => {
             let icon;
             if (n.type === 'endorsement') {
                 icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
@@ -2182,6 +2182,16 @@ async function loadNotifications() {
                 <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
             </div>`;
         }).join('');
+
+        container.innerHTML = html;
+
+        // Also populate the bell drawer (notifDrawerItems) with the same data
+        const drawerList = document.getElementById('notifDrawerItems');
+        const drawerEmpty = document.getElementById('notifDrawerEmpty');
+        if (drawerList) {
+            drawerList.innerHTML = html;
+            if (drawerEmpty) drawerEmpty.style.display = 'none';
+        }
     } catch (err) {
         console.error('Error in loadNotifications:', err);
     }
@@ -7844,38 +7854,6 @@ function dismissEmptyFriends() {
 })();
 
 // ===== NOTIFICATION DRAWER =====
-var _notifDrawerOpen = false;
-
-function toggleNotifDrawer() {
-    if (_notifDrawerOpen) {
-        closeNotifDrawer();
-    } else {
-        openNotifDrawer();
-    }
-}
-
-function openNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    // Load fresh notifications every time drawer opens
-    loadNotifications();
-
-    backdrop.style.display = 'block';
-    drawer.style.display   = 'flex'; // ensure it's rendered before transition
-    // Force reflow so transition fires
-    drawer.getBoundingClientRect();
-    drawer.style.transform = 'translateY(0)';
-    _notifDrawerOpen = true;
-}
-
-function closeNotifDrawer() {
-    var drawer   = document.getElementById('notifDrawer');
-    var backdrop = document.getElementById('notifBackdrop');
-    if (!drawer) return;
-
-    drawer.style.transform = 'translateY(-110%)';
-    backdrop.style.display = 'none';
-    _notifDrawerOpen = false;
-}
+// openNotifDrawer / closeNotifDrawer are defined in index.html inline script
+// using the profile-drawer / is-open CSS pattern. This block just ensures
+// loadNotifications() is called on open so notifDrawerItems is populated.

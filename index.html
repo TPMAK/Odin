@@ -4334,11 +4334,17 @@
         var container = document.getElementById('homeActivityItems');
         if (!container || typeof currentUser === 'undefined' || !currentUser) return;
         try {
-            var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
-            if (notifs.length === 0 && typeof loadNotifications === 'function') {
-                await loadNotifications();
-                notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
+            var result = await supabaseClient.rpc('get_user_notifications', { p_user_id: currentUser.id, p_limit: 10 });
+            var notifs = (result && result.data) ? result.data : [];
+
+            // Apply clearedAt filter
+            var clearedAt = localStorage.getItem('odin_notifs_cleared_at');
+            if (clearedAt) {
+                notifs = notifs.filter(function(n) {
+                    return new Date(n.created_at) > new Date(parseInt(clearedAt));
+                });
             }
+
             if (notifs.length === 0) {
                 if (section) section.style.display = 'none';
                 return;
@@ -4347,11 +4353,12 @@
             container.innerHTML = notifs.slice(0, 10).map(function(n) {
                 var initial = (n.actor_name || '?').charAt(0).toUpperCase();
                 var isUnread = !n.read;
+                var timeStr = (typeof getTimeAgo === 'function') ? getTimeAgo(n.created_at) : (n.created_at || '');
                 return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\')">'
                     + '<div class="activity-avatar">' + initial + '</div>'
                     + '<div class="activity-body">'
                     + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
-                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
+                    + '<div class="activity-time">' + escapeHtml(timeStr) + '</div>'
                     + '</div>'
                     + '</div>';
             }).join('');
@@ -4645,33 +4652,63 @@
         var sheet = _drawerSheet('notifDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
         _lockScroll();
-        // Load notifications and render
-        var notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
-        if (notifs.length === 0 && typeof loadNotifications === 'function') {
-            await loadNotifications();
-            notifs = (typeof notificationsCache !== 'undefined') ? notificationsCache : [];
-        }
+
         var list = document.getElementById('notifDrawerItems');
         var empty = document.getElementById('notifDrawerEmpty');
         if (!list) return;
-        if (notifs.length === 0) {
+
+        // Show loading state
+        list.innerHTML = '<div style="text-align:center;padding:32px 0;color:#8a7f72;font-size:14px;">Loading…</div>';
+        if (empty) empty.style.display = 'none';
+
+        // Fetch directly from Supabase so we always get fresh data
+        try {
+            var uid = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
+            if (!uid) {
+                list.innerHTML = '';
+                if (empty) empty.style.display = 'block';
+            } else {
+                var result = await supabaseClient.rpc('get_user_notifications', { p_user_id: uid, p_limit: 20 });
+                var notifs = (result && result.data) ? result.data : [];
+
+                // Apply clearedAt filter
+                var clearedAt = localStorage.getItem('odin_notifs_cleared_at');
+                if (clearedAt) {
+                    notifs = notifs.filter(function(n) {
+                        return new Date(n.created_at) > new Date(parseInt(clearedAt));
+                    });
+                }
+
+                if (notifs.length === 0) {
+                    list.innerHTML = '';
+                    if (empty) empty.style.display = 'block';
+                } else {
+                    if (empty) empty.style.display = 'none';
+                    list.innerHTML = notifs.slice(0, 20).map(function(n) {
+                        var initial = (n.actor_name || '?').charAt(0).toUpperCase();
+                        var isUnread = !n.read;
+                        var timeStr = (typeof getTimeAgo === 'function') ? getTimeAgo(n.created_at) : (n.created_at || '');
+                        var isFriendNotif = (n.type === 'friend_request' || n.type === 'friend_accepted');
+                        var clickFn = isFriendNotif
+                            ? 'handleFriendNotifClick(\'' + (n.id || '') + '\')'
+                            : 'handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\')';
+                        return '<div class="notif-item' + (isUnread ? ' unread' : '') + '" id="notif-drawer-' + (n.id || '') + '" onclick="' + clickFn + '; closeNotifDrawer();">'
+                            + '<div class="notif-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>'
+                            + '<div class="notif-body">'
+                            + '<div class="notif-message">' + escapeHtml(n.message || '') + '</div>'
+                            + '<div class="notif-time">' + escapeHtml(timeStr) + '</div>'
+                            + '</div>'
+                            + '</div>';
+                    }).join('');
+                }
+            }
+        } catch (err) {
+            console.error('Error loading notifications in drawer:', err);
             list.innerHTML = '';
             if (empty) empty.style.display = 'block';
-        } else {
-            if (empty) empty.style.display = 'none';
-            list.innerHTML = notifs.slice(0, 20).map(function(n) {
-                var initial = (n.actor_name || '?').charAt(0).toUpperCase();
-                var isUnread = !n.read;
-                return '<div class="activity-item' + (isUnread ? ' unread' : '') + '" onclick="handleNotifClick(\'' + (n.id || '') + '\', \'' + (n.item_id || '') + '\'); closeNotifDrawer();">'
-                    + '<div class="activity-avatar">' + initial + '</div>'
-                    + '<div class="activity-body">'
-                    + '<div class="activity-message">' + escapeHtml(n.message || '') + '</div>'
-                    + '<div class="activity-time">' + escapeHtml(n.time_ago || '') + '</div>'
-                    + '</div>'
-                    + '</div>';
-            }).join('');
         }
-        // Mark unread badge clear
+
+        // Clear unread badge
         var badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
     }
