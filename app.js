@@ -2081,6 +2081,10 @@ const _NOTIFS_CLEARED_KEY = 'odin_notifs_cleared_at';
 // Any notification created BEFORE this timestamp is permanently hidden,
 // even if the Supabase delete didn't fully propagate.
 
+// In-memory cache of the last successfully fetched notifications.
+// openNotifDrawer uses this so it never makes a second concurrent RPC call.
+let _notifCache = null;
+
 async function checkUnreadNotifications() {
     const badge = document.getElementById('notifBadge');
     if (!currentUser) {
@@ -2098,15 +2102,14 @@ async function checkUnreadNotifications() {
             return;
         }
         const clearedAt = localStorage.getItem(_NOTIFS_CLEARED_KEY);
-        let hasVisible = false;
-        if (data && data.length > 0) {
-            if (clearedAt) {
-                // Only count notifications created AFTER the clear timestamp
-                hasVisible = data.some(n => new Date(n.created_at) > new Date(parseInt(clearedAt)));
-            } else {
-                hasVisible = true;
-            }
+        let filtered = data || [];
+        if (clearedAt) {
+            const clearedDate = new Date(parseInt(clearedAt));
+            filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
+        // Update cache so loadNotifications() can render instantly without a new RPC
+        _notifCache = filtered;
+        let hasVisible = filtered.length > 0;
         if (badge) badge.style.display = hasVisible ? 'block' : 'none';
     } catch (err) {
         console.error('Error in checkUnreadNotifications:', err);
@@ -2132,12 +2135,65 @@ function stopNotifPolling() {
     }
 }
 
+function _renderNotifications(filtered) {
+    const container = document.getElementById('notifItems');
+    const emptyEl = document.getElementById('notifEmpty');
+    const drawerList = document.getElementById('notifDrawerItems');
+    const drawerEmpty = document.getElementById('notifDrawerEmpty');
+
+    if (filtered.length === 0) {
+        if (container) container.innerHTML = '';
+        if (emptyEl) emptyEl.style.display = 'block';
+        if (drawerList) drawerList.innerHTML = '';
+        if (drawerEmpty) drawerEmpty.style.display = 'block';
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+        return;
+    }
+
+    if (emptyEl) emptyEl.style.display = 'none';
+    if (drawerEmpty) drawerEmpty.style.display = 'none';
+
+    const html = filtered.map(n => {
+        let icon;
+        if (n.type === 'endorsement') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
+        } else if (n.type === 'friend_request') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
+        } else if (n.type === 'friend_accepted') {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
+        } else {
+            icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+        }
+        const timeAgo = getTimeAgo(n.created_at);
+        const unreadClass = n.read ? '' : ' unread';
+        const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
+            ? `handleFriendNotifClick('${n.id}')`
+            : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
+
+        return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
+            <div class="notif-icon">${icon}</div>
+            <div class="notif-body">
+                <div class="notif-message">${escapeHtml(n.message)}</div>
+                <div class="notif-time">${timeAgo}</div>
+            </div>
+            <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
+        </div>`;
+    }).join('');
+
+    if (container) container.innerHTML = html;
+    if (drawerList) drawerList.innerHTML = html;
+}
+
 async function loadNotifications() {
     if (!currentUser) return;
-    const container = document.getElementById('notifItems');
-    if (!container) return;
 
-    const emptyEl = document.getElementById('notifEmpty');
+    // If we have cached data, render immediately (no network call).
+    // The 30s poll and checkUnreadNotifications keep the cache fresh.
+    if (_notifCache) {
+        _renderNotifications(_notifCache);
+        return;
+    }
 
     try {
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
@@ -2158,54 +2214,8 @@ async function loadNotifications() {
             filtered = filtered.filter(n => new Date(n.created_at) > clearedDate);
         }
 
-        if (filtered.length === 0) {
-            container.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-            const badge = document.getElementById('notifBadge');
-            if (badge) badge.style.display = 'none';
-            return;
-        }
-
-        if (emptyEl) emptyEl.style.display = 'none';
-
-        const html = filtered.map(n => {
-            let icon;
-            if (n.type === 'endorsement') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`;
-            } else if (n.type === 'friend_request') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>`;
-            } else if (n.type === 'friend_accepted') {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`;
-            } else {
-                icon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-            }
-            const timeAgo = getTimeAgo(n.created_at);
-            const unreadClass = n.read ? '' : ' unread';
-
-            // Friend notifications click → go to profile (friend requests section)
-            const clickAction = (n.type === 'friend_request' || n.type === 'friend_accepted')
-                ? `handleFriendNotifClick('${n.id}')`
-                : `handleNotifClick('${n.id}', '${n.item_id || ''}')`;
-
-            return `<div class="notif-item${unreadClass}" id="notif-${n.id}" onclick="${clickAction}">
-                <div class="notif-icon">${icon}</div>
-                <div class="notif-body">
-                    <div class="notif-message">${escapeHtml(n.message)}</div>
-                    <div class="notif-time">${timeAgo}</div>
-                </div>
-                <button class="notif-delete" onclick="event.stopPropagation(); deleteNotification('${n.id}')" aria-label="Delete notification">&times;</button>
-            </div>`;
-        }).join('');
-
-        container.innerHTML = html;
-
-        // Also populate the bell drawer (notifDrawerItems) with the same data
-        const drawerList = document.getElementById('notifDrawerItems');
-        const drawerEmpty = document.getElementById('notifDrawerEmpty');
-        if (drawerList) {
-            drawerList.innerHTML = html;
-            if (drawerEmpty) drawerEmpty.style.display = 'none';
-        }
+        _notifCache = filtered;
+        _renderNotifications(filtered);
     } catch (err) {
         console.error('Error in loadNotifications:', err);
     }
@@ -2242,7 +2252,8 @@ async function clearAllNotifications() {
     if (!currentUser) return;
     // Store the cleared timestamp permanently — any notification created
     // before this time will never be shown again, even if the DB delete fails
-    localStorage.setItem(_NOTIFS_CLEARED_KEY, Date.now().toString());
+    localStorage.setItem(_NOTIFS_CLEARED_KEY, (Date.now() + 1).toString());
+    _notifCache = []; // Clear cache so next poll fetches fresh
     const container = document.getElementById('notifItems');
 
     // Fade out all items
