@@ -2544,6 +2544,27 @@ document.addEventListener('click', function(e) {
 const RELEVANCE_THRESHOLD = 0.28;
 
 let userLocation = { latitude: null, longitude: null, available: false };
+
+// ── Silent background geolocation — runs on app load, no prompt shown ──────
+// Coords are stored in userLocation and attached to every search payload.
+// If the user denies permission, search still works — just without proximity ranking.
+(function initSilentGeolocation() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            userLocation.latitude  = pos.coords.latitude;
+            userLocation.longitude = pos.coords.longitude;
+            userLocation.available = true;
+            console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
+        },
+        function(err) {
+            // Denied or unavailable — silent fail, search works without proximity
+            console.log('📍 Location unavailable:', err.message);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+})();
+
 let allDiscoveries = [];
 let filteredDiscoveries = [];
 let displayedCount = 0;
@@ -5255,11 +5276,12 @@ function sendMessage(text) {
         // only runs against the corpus this user is allowed to see.
         allowed_user_ids: allowedUserIds,   // search ONLY these users' items
         friend_ids: directFriendIds,        // subset: direct friends (for note visibility)
+        // Always send coordinates — null is handled gracefully by n8n.
+        // Silent geolocation on app load means these are usually populated
+        // before the first search. Proximity ranking depends on these being present.
+        user_latitude:  userLocation.latitude  ?? null,
+        user_longitude: userLocation.longitude ?? null,
     };
-    if (userLocation.available) {
-        body.user_latitude = userLocation.latitude;
-        body.user_longitude = userLocation.longitude;
-    }
 
     fetch(SEARCH_WEBHOOK, {
         method: 'POST',

@@ -3536,6 +3536,46 @@
             font-style: italic;
         }
 
+        /* ── Location nudge bar ───────────────────────────── */
+        #locationNudge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin: 0 16px 8px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.3;
+        }
+        #locationNudge.visible { display: flex; }
+        #locationNudge svg { flex-shrink: 0; }
+        #locationNudge span { flex: 1; }
+        #locationNudgeBtn {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--wb);
+            background: none;
+            border: none;
+            padding: 2px 0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        #locationNudgeBtn:hover { color: var(--wb-hover); }
+        #locationNudgeDismiss {
+            background: none;
+            border: none;
+            padding: 2px 0 2px 8px;
+            cursor: pointer;
+            color: var(--mason);
+            display: flex;
+            align-items: center;
+            line-height: 1;
+        }
+        #locationNudgeDismiss:hover { color: var(--muted); }
+
         /* Input Area - Only for Search Mode */
         .input-area {
             position: fixed;
