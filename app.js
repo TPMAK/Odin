@@ -2077,7 +2077,7 @@ async function checkUnreadNotifications() {
         // Fetch actual notifications to check if any exist after clearedAt
         const { data, error } = await supabaseClient.rpc('get_user_notifications', {
             p_user_id: currentUser.id,
-            p_limit: 1
+            p_limit: 20
         });
         if (error) {
             if (badge) badge.style.display = 'none';
@@ -2160,11 +2160,6 @@ async function loadNotifications() {
         if (emptyEl) emptyEl.style.display = 'none';
         const badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
-
-        // User is now viewing these notifications — stamp clearedAt to the
-        // most recent one so the badge only reappears for NEW notifications after this point
-        const latestTs = Math.max(...filtered.map(n => new Date(n.created_at).getTime()));
-        localStorage.setItem(_NOTIFS_CLEARED_KEY, latestTs.toString());
 
         container.innerHTML = filtered.map(n => {
             let icon;
