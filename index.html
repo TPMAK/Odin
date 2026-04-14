@@ -1774,10 +1774,29 @@
                             </button>
                         </div>
 
-                        <!-- Mobile: bottom card strip -->
-                        <div class="dmap-cards-wrap" id="dmapCardsWrap">
-                            <div class="dmap-cards-label">Vouched nearby</div>
-                            <div class="dmap-cards-strip" id="dmapCardsStrip"></div>
+                        <!-- Mobile: bottom preview card (shown on pin tap) -->
+                        <div class="dmap-preview-wrap" id="dmapPreviewWrap" style="display:none;">
+                            <div class="dmap-preview-dismiss" onclick="dismissMapPreview()">✕</div>
+                            <div class="dmap-preview-card" id="dmapPreviewCard" onclick="dmapPreviewOpen()">
+                                <div class="dmap-prev-image" id="dmapPrevImage">
+                                    <div class="dmap-prev-img-placeholder" id="dmapPrevImgPlaceholder"></div>
+                                    <img id="dmapPrevImg" src="" alt="" style="display:none; width:100%; height:100%; object-fit:cover; border-radius:12px 0 0 12px;">
+                                </div>
+                                <div class="dmap-prev-content">
+                                    <div class="dmap-prev-top">
+                                        <div class="dmap-prev-title" id="dmapPrevTitle"></div>
+                                        <div class="dmap-prev-note" id="dmapPrevNote"></div>
+                                        <div class="dmap-prev-badges">
+                                            <span class="dmap-prev-badge" id="dmapPrevType"></span>
+                                            <span class="dmap-prev-badge" id="dmapPrevDist"></span>
+                                        </div>
+                                    </div>
+                                    <div class="dmap-prev-saves" id="dmapPrevSaves">
+                                        <div class="dmap-prev-av-stack" id="dmapPrevAvStack"></div>
+                                        <span class="dmap-prev-saves-text" id="dmapPrevSavesText"></span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

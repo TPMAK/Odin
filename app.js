@@ -2891,6 +2891,8 @@ function switchDiscoverView(view) {
         if (discoverModeEl) discoverModeEl.style.height = '';
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
+        // Hide preview card when leaving map view
+        dismissMapPreview();
     } else {
         document.body.classList.add('map-view-open');
         if (collScreen) collScreen.style.display = 'none';
@@ -4127,21 +4129,109 @@ function buildMapCardStrip() {
     });
 }
 
+// Track which item is currently previewed
+var dmapActivePreviewIdx = null;
+
 function focusMapItem(idx) {
-    // Activate card strip
-    document.querySelectorAll('.dmap-card').forEach(function(c){ c.classList.remove('active-card'); });
-    var card = document.getElementById('dmc-' + idx);
-    if (card) { card.classList.add('active-card'); card.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }); }
-    // Activate panel item
+    // Activate panel item (desktop side panel)
     document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
     var pItem = document.getElementById('dpi-' + idx);
     if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
-    // Pan map to exact center, then open popup (autoPan disabled on popup so it won't fight setView)
+
+    // Pan map
     var m = dmapMarkers[idx];
     if (m && discoverMap) {
         discoverMap.setView([m.lat, m.lng], 16, { animate: true });
-        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
     }
+
+    // Show bottom preview card (mobile)
+    showMapPreviewCard(idx);
+}
+
+function showMapPreviewCard(idx) {
+    var m = dmapMarkers[idx];
+    if (!m || !m.data) return;
+    var d = m.data;
+    dmapActivePreviewIdx = idx;
+
+    // Title
+    var titleEl = document.getElementById('dmapPrevTitle');
+    if (titleEl) titleEl.textContent = d.title || '';
+
+    // Note/description
+    var noteEl = document.getElementById('dmapPrevNote');
+    if (noteEl) noteEl.textContent = d.notes || d.description || d.note || '';
+
+    // Type badge
+    var typeEl = document.getElementById('dmapPrevType');
+    if (typeEl) typeEl.textContent = d.category || d.type || '';
+
+    // Distance badge
+    var distEl = document.getElementById('dmapPrevDist');
+    if (distEl) {
+        var distText = d.distance_km
+            ? (d.distance_km < 1 ? Math.round(d.distance_km * 1000) + 'm' : d.distance_km.toFixed(1) + 'km')
+            : '';
+        distEl.textContent = distText ? '📍 ' + distText : '';
+        distEl.style.display = distText ? '' : 'none';
+    }
+
+    // Image
+    var imgEl = document.getElementById('dmapPrevImg');
+    var placeholderEl = document.getElementById('dmapPrevImgPlaceholder');
+    if (imgEl && placeholderEl) {
+        var imgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
+        if (imgUrl) {
+            imgEl.src = imgUrl;
+            imgEl.style.display = 'block';
+            placeholderEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none';
+            placeholderEl.style.display = 'flex';
+            // Category emoji fallback
+            var catEmoji = { 'Place': '📍', 'Food': '🍽', 'Café': '☕', 'Service': '🏥', 'Advice': '💡', 'Product': '📦' };
+            placeholderEl.textContent = catEmoji[d.category] || catEmoji[d.type] || '📍';
+        }
+    }
+
+    // Circle saves — show added_by avatar + save count
+    var avStack = document.getElementById('dmapPrevAvStack');
+    var savesText = document.getElementById('dmapPrevSavesText');
+    var savesRow = document.getElementById('dmapPrevSaves');
+    if (avStack && savesText) {
+        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
+        var saveCount = d.endorsement_count || 1;
+        avStack.innerHTML = '<div class="dmap-prev-av" style="background:' + avCol + ';">' + avInit + '</div>';
+        savesText.textContent = saveCount === 1
+            ? '1 in your circle saved this'
+            : saveCount + ' in your circle saved this';
+        if (savesRow) savesRow.style.display = 'flex';
+    }
+
+    // Show the wrap with slide-up animation
+    var wrap = document.getElementById('dmapPreviewWrap');
+    if (wrap) {
+        wrap.style.display = 'block';
+        // Re-trigger animation
+        wrap.style.animation = 'none';
+        wrap.offsetHeight; // reflow
+        wrap.style.animation = '';
+    }
+}
+
+function dismissMapPreview() {
+    var wrap = document.getElementById('dmapPreviewWrap');
+    if (wrap) wrap.style.display = 'none';
+    dmapActivePreviewIdx = null;
+    // Deactivate panel items
+    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+}
+
+function dmapPreviewOpen() {
+    if (dmapActivePreviewIdx === null) return;
+    var m = dmapMarkers[dmapActivePreviewIdx];
+    if (m && m.data) openItemDrawer(m.data);
 }
 
 // Opens the full detail drawer from a map popup "View" button
