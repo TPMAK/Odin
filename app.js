@@ -2933,21 +2933,21 @@ function switchDiscoverView(view) {
 }
 
 function setMapScreenHeight() {
-    var tabBar   = document.querySelector('.bottom-tab-bar');
-    var topbar   = document.querySelector('.dmap-topbar');
-    var topbarH  = topbar ? topbar.offsetHeight : 45;
-    var tabH     = tabBar ? tabBar.offsetHeight : 65;
+    var tabBar = document.querySelector('.bottom-tab-bar');
+    // dmap-topbar is now display:none — floating bar is inside map area, not a layout row
+    var tabH   = tabBar ? tabBar.offsetHeight : 0;
 
     // iOS Safari: use visualViewport.height for the actual visible area
-    // (window.innerHeight can include the address bar)
     var vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    // Map inner height = full viewport minus the topbar and bottom tab bar
-    var h = vh - topbarH - tabH;
-    if (h < 100) h = vh * 0.6; // fallback
+
+    // Map screen is position:fixed top:0 bottom:0 — it covers full viewport.
+    // The only thing taking space below the map on mobile is the bottom tab bar,
+    // but since discover-map-screen is fixed and covers it, h = full vh.
+    var h = vh;
+    if (h < 100) h = vh; // safety
 
     // Set explicit pixel height on EVERY element in the chain.
-    // On iOS Safari, flex:1 / height:100% chains collapse to 0 unless each
-    // ancestor has an explicit pixel height.
+    // On iOS Safari, flex:1 / height:100% chains collapse unless ancestors have pixel heights.
     var contentEl      = document.querySelector('.content');
     var discoverModeEl = document.getElementById('discoverMode');
     var mapView        = document.getElementById('discoverMapView');
@@ -2956,11 +2956,11 @@ function setMapScreenHeight() {
     var mapEl          = document.getElementById('discoverMap');
 
     if (contentEl)      contentEl.style.height      = vh + 'px';
-    if (discoverModeEl) discoverModeEl.style.height = h + 'px';
+    if (discoverModeEl) discoverModeEl.style.height = vh + 'px';
     if (mapView)        mapView.style.height        = vh + 'px';
-    if (inner)          inner.style.height          = h + 'px';
-    if (area)           area.style.height           = h + 'px';
-    if (mapEl)          mapEl.style.height          = h + 'px';
+    if (inner)          inner.style.height          = vh + 'px';
+    if (area)           area.style.height           = vh + 'px';
+    if (mapEl)          mapEl.style.height          = vh + 'px';
 
     // Leaflet redraws for the new size
     if (discoverMap) setTimeout(function(){ discoverMap.invalidateSize(); }, 50);
@@ -4070,24 +4070,48 @@ function buildMapPanelList() {
     list.innerHTML = '';
     located.forEach(function(d, i) {
         var col = catColour(d.category || d.type);
-        var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
-        var item = document.createElement('div');
-        item.className = 'dmap-panel-item';
-        item.id = 'dpi-' + i;
-        var piByText = d._trust_level === TRUST.EXTENDED
-            ? (d._via_friend_name ? ('Via ' + escapeHtml(d._via_friend_name)) : 'Your circle')
-            : ('by ' + escapeHtml(d.added_by_name || '?'));
-        item.innerHTML =
-            '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
-            '<div class="dmap-pi-info">' +
-                '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                '<div class="dmap-pi-meta">' + piByText + ' &middot; ' + escapeHtml(d.category || '') + '</div>' +
-            '</div>' +
-            '<div class="dmap-pi-right">' +
-                '<div class="dmap-pi-dist">' + distText + '</div>' +
+        var catLabel = d.category || d.type || '';
+        var distKm = d.distance_km;
+        var distText = distKm ? (distKm < 1 ? Math.round(distKm*1000)+'m' : distKm.toFixed(1)+'km') : '';
+        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
+        var saveCount = d.endorsement_count || 1;
+        var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
+        var imgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
+        var noteText = d.notes || d.description || d.note || '';
+
+        var distHtml = distText
+            ? '<span class="dmap-prev-badge">' +
+                '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                distText + '</span>'
+            : '';
+        var catHtml = catLabel
+            ? '<span class="dmap-prev-badge">' +
+                '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + col + ';flex-shrink:0;"></span>' +
+                escapeHtml(catLabel) + '</span>'
+            : '';
+        var imgHtml = imgUrl
+            ? '<img src="' + escapeHtml(imgUrl) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+            : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;">' +
+                ({'Place':'📍','Food':'🍽','Café':'☕','Service':'🏥','Advice':'💡','Product':'📦'}[catLabel] || '📍') +
+              '</div>';
+
+        var card = document.createElement('div');
+        card.className = 'dmap-panel-card';
+        card.id = 'dpi-' + i;
+        card.innerHTML =
+            '<div class="dmap-panel-card-img">' + imgHtml + '</div>' +
+            '<div class="dmap-panel-card-body">' +
+                '<div class="dmap-panel-card-title">' + escapeHtml(d.title) + '</div>' +
+                (noteText ? '<div class="dmap-panel-card-note">' + escapeHtml(noteText) + '</div>' : '') +
+                '<div class="dmap-prev-badges" style="margin-top:5px;">' + catHtml + distHtml + '</div>' +
+                '<div class="dmap-panel-card-saves">' +
+                    '<div class="dmap-prev-av" style="background:' + avCol + ';">' + avInit + '</div>' +
+                    '<span>' + escapeHtml(savesLabel) + '</span>' +
+                '</div>' +
             '</div>';
-        item.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
-        list.appendChild(item);
+        card.onclick = (function(idx){ return function(){ focusMapItem(idx); }; })(i);
+        list.appendChild(card);
     });
 }
 
@@ -4316,21 +4340,39 @@ function rebuildMapListsSorted(userLat, userLng) {
         (function(i){ m.marker.on('click', function(){ focusMapItem(i); }); })(idx);
 
         if (list) {
-            var pi = document.createElement('div');
-            pi.className = 'dmap-panel-item';
-            pi.id = 'dpi-' + idx;
-            var piDistIconHtml = distText
-                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+            var catLabel = d.category || d.type || '';
+            var avInit2 = (d.added_by_name || '?').charAt(0).toUpperCase();
+            var avCol2 = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
+            var saveCount2 = d.endorsement_count || 1;
+            var savesLabel2 = saveCount2 === 1 ? '1 in your circle saved this' : saveCount2 + ' in your circle saved this';
+            var imgUrl2 = d.image_url || d.thumbnail_url || d.photo_url || '';
+            var noteText2 = d.notes || d.description || d.note || '';
+            var distHtml2 = distText
+                ? '<span class="dmap-prev-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText + '</span>'
                 : '';
-            pi.innerHTML =
-                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
-                '<div class="dmap-pi-info">' +
-                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
-                '</div>' +
-                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + piDistIconHtml + '</div></div>';
-            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
-            list.appendChild(pi);
+            var catHtml2 = catLabel
+                ? '<span class="dmap-prev-badge"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + col + ';flex-shrink:0;"></span>' + escapeHtml(catLabel) + '</span>'
+                : '';
+            var imgHtml2 = imgUrl2
+                ? '<img src="' + escapeHtml(imgUrl2) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;">' +
+                    ({'Place':'📍','Food':'🍽','Café':'☕','Service':'🏥','Advice':'💡','Product':'📦'}[catLabel] || '📍') + '</div>';
+            var card2 = document.createElement('div');
+            card2.className = 'dmap-panel-card';
+            card2.id = 'dpi-' + idx;
+            card2.innerHTML =
+                '<div class="dmap-panel-card-img">' + imgHtml2 + '</div>' +
+                '<div class="dmap-panel-card-body">' +
+                    '<div class="dmap-panel-card-title">' + escapeHtml(d.title) + '</div>' +
+                    (noteText2 ? '<div class="dmap-panel-card-note">' + escapeHtml(noteText2) + '</div>' : '') +
+                    '<div class="dmap-prev-badges" style="margin-top:5px;">' + catHtml2 + distHtml2 + '</div>' +
+                    '<div class="dmap-panel-card-saves">' +
+                        '<div class="dmap-prev-av" style="background:' + avCol2 + ';">' + avInit2 + '</div>' +
+                        '<span>' + escapeHtml(savesLabel2) + '</span>' +
+                    '</div>' +
+                '</div>';
+            (function(i){ card2.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(card2);
         }
     });
     if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
@@ -4458,26 +4500,42 @@ function initDiscoverMap() {
         })(idx);
         dmapMarkers.push({ lat: lat, lng: lng, marker: marker, data: d });
 
-        // ── Build panel item inline (same loop = guaranteed index match) ──
+        // ── Build panel preview card inline (same loop = guaranteed index match) ──
         var list  = document.getElementById('dmapPanelList');
         if (list) {
-            var pi = document.createElement('div');
-            pi.className = 'dmap-panel-item';
-            pi.id = 'dpi-' + idx;
-            var piDistHtml = distText
-                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+            var pCatLabel = d.category || d.type || '';
+            var pAvInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+            var pAvCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
+            var pSaveCount = d.endorsement_count || 1;
+            var pSavesLabel = pSaveCount === 1 ? '1 in your circle saved this' : pSaveCount + ' in your circle saved this';
+            var pImgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
+            var pNote = d.notes || d.description || d.note || '';
+            var pDistHtml = distText
+                ? '<span class="dmap-prev-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText + '</span>'
                 : '';
-            pi.innerHTML =
-                '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
-                '<div class="dmap-pi-info">' +
-                    '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
-                '</div>' +
-                '<div class="dmap-pi-right">' +
-                    '<div class="dmap-pi-dist">' + piDistHtml + '</div>' +
+            var pCatHtml = pCatLabel
+                ? '<span class="dmap-prev-badge"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + col + ';flex-shrink:0;"></span>' + escapeHtml(pCatLabel) + '</span>'
+                : '';
+            var pImgHtml = pImgUrl
+                ? '<img src="' + escapeHtml(pImgUrl) + '" alt="" style="width:100%;height:100%;object-fit:cover;">'
+                : '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;">' +
+                    ({'Place':'📍','Food':'🍽','Café':'☕','Service':'🏥','Advice':'💡','Product':'📦'}[pCatLabel] || '📍') + '</div>';
+            var pc = document.createElement('div');
+            pc.className = 'dmap-panel-card';
+            pc.id = 'dpi-' + idx;
+            pc.innerHTML =
+                '<div class="dmap-panel-card-img">' + pImgHtml + '</div>' +
+                '<div class="dmap-panel-card-body">' +
+                    '<div class="dmap-panel-card-title">' + escapeHtml(d.title) + '</div>' +
+                    (pNote ? '<div class="dmap-panel-card-note">' + escapeHtml(pNote) + '</div>' : '') +
+                    '<div class="dmap-prev-badges" style="margin-top:5px;">' + pCatHtml + pDistHtml + '</div>' +
+                    '<div class="dmap-panel-card-saves">' +
+                        '<div class="dmap-prev-av" style="background:' + pAvCol + ';">' + pAvInit + '</div>' +
+                        '<span>' + escapeHtml(pSavesLabel) + '</span>' +
+                    '</div>' +
                 '</div>';
-            (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
-            list.appendChild(pi);
+            (function(i){ pc.onclick = function(){ focusMapItem(i); }; })(idx);
+            list.appendChild(pc);
         }
 
         // ── Build card strip item inline ──
