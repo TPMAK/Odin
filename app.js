@@ -4162,18 +4162,33 @@ function showMapPreviewCard(idx) {
     var noteEl = document.getElementById('dmapPrevNote');
     if (noteEl) noteEl.textContent = d.notes || d.description || d.note || '';
 
-    // Type badge
+    // Type badge — coloured dot + category label
     var typeEl = document.getElementById('dmapPrevType');
-    if (typeEl) typeEl.textContent = d.category || d.type || '';
+    if (typeEl) {
+        var catLabel = d.category || d.type || '';
+        var catCol = catColour ? catColour(catLabel) : '#7B2D45';
+        typeEl.innerHTML = catLabel
+            ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + catCol + ';margin-right:4px;vertical-align:middle;"></span>' + escapeHtml(catLabel)
+            : '';
+        typeEl.style.display = catLabel ? '' : 'none';
+    }
 
-    // Distance badge
+    // Distance badge — SVG pin icon, no emoji
     var distEl = document.getElementById('dmapPrevDist');
     if (distEl) {
-        var distText = d.distance_km
-            ? (d.distance_km < 1 ? Math.round(d.distance_km * 1000) + 'm' : d.distance_km.toFixed(1) + 'km')
+        var distKm = d.distance_km;
+        var distText = distKm
+            ? (distKm < 1 ? Math.round(distKm * 1000) + 'm' : distKm.toFixed(1) + 'km')
             : '';
-        distEl.textContent = distText ? '📍 ' + distText : '';
-        distEl.style.display = distText ? '' : 'none';
+        if (distText) {
+            distEl.innerHTML =
+                '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                distText;
+            distEl.style.display = '';
+        } else {
+            distEl.innerHTML = '';
+            distEl.style.display = 'none';
+        }
     }
 
     // Image
@@ -4304,38 +4319,18 @@ function rebuildMapListsSorted(userLat, userLng) {
             var pi = document.createElement('div');
             pi.className = 'dmap-panel-item';
             pi.id = 'dpi-' + idx;
+            var piDistIconHtml = distText
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+                : '';
             pi.innerHTML =
                 '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
                 '<div class="dmap-pi-info">' +
                     '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
                     '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
                 '</div>' +
-                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + distText + '</div></div>';
+                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + piDistIconHtml + '</div></div>';
             (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
             list.appendChild(pi);
-        }
-        if (strip) {
-            var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-            var avCol  = strColour(d.added_by_name || '?');
-            var card = document.createElement('div');
-            card.className = 'dmap-card';
-            card.id = 'dmc-' + idx;
-            card.innerHTML =
-                '<div class="dmc-header">' +
-                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
-                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmc-dist">' + distText + '</div>' +
-                '</div>' +
-                '<div class="dmc-by">' +
-                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<div class="dmc-odin-row">' +
-                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
-                '</div>';
-            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
-            strip.appendChild(card);
         }
     });
     if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
@@ -4426,17 +4421,29 @@ function initDiscoverMap() {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
+        var saveCount = d.endorsement_count || 1;
+        var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
+        var popDistText = distText
+            ? '<span class="odin-pop-chip">' +
+                  '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                  distText +
+              '</span>'
+            : '';
         var popHtml =
             '<div class="odin-pop">' +
                 '<div class="odin-pop-cat">' +
-                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
+                    '<span class="odin-pop-chip odin-pop-chip-cat">' +
+                        '<span class="odin-pop-dot" style="background:' + col + ';"></span>' +
+                        escapeHtml(d.category || '') +
+                    '</span>' +
+                    popDistText +
                 '</div>' +
                 '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
                 '<div class="odin-pop-by">' +
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
+                '<div class="odin-pop-saves">' + escapeHtml(savesLabel) + '</div>' +
                 '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
             '</div>';
 
@@ -4457,6 +4464,9 @@ function initDiscoverMap() {
             var pi = document.createElement('div');
             pi.className = 'dmap-panel-item';
             pi.id = 'dpi-' + idx;
+            var piDistHtml = distText
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+                : '';
             pi.innerHTML =
                 '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
                 '<div class="dmap-pi-info">' +
@@ -4464,7 +4474,7 @@ function initDiscoverMap() {
                     '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
                 '</div>' +
                 '<div class="dmap-pi-right">' +
-                    '<div class="dmap-pi-dist">' + distText + '</div>' +
+                    '<div class="dmap-pi-dist">' + piDistHtml + '</div>' +
                 '</div>';
             (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
             list.appendChild(pi);
