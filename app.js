@@ -6194,9 +6194,9 @@ function clearCaptureForm() {
     resetOGFetchState();
     // Reset category pills
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
+    const defaultPill = document.querySelector('.category-pill[data-value="advice"]');
     if (defaultPill) defaultPill.classList.add('active');
-    document.getElementById('category').value = 'place';
+    document.getElementById('category').value = 'advice';
     // Reset address label hint
     const addressLabel = document.getElementById('addressLabel');
     if (addressLabel) addressLabel.textContent = '— recommended for places';
@@ -7199,9 +7199,9 @@ async function submitDiscovery(e) {
     removePhoto();
     // Reset category pills to default
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
+    const defaultPill = document.querySelector('.category-pill[data-value="advice"]');
     if (defaultPill) defaultPill.classList.add('active');
-    document.getElementById('category').value = 'place';
+    document.getElementById('category').value = 'advice';
     // Show URL hint again
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
