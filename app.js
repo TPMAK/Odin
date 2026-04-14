@@ -4300,10 +4300,18 @@ function filterMapList(query) {
     var count = 0;
 
     dmapMarkers.forEach(function(m, idx) {
-        var title = (m.data.title || '').toLowerCase();
-        var cat   = (m.data.category || m.data.type || '').toLowerCase();
-        var by    = (m.data.added_by_name || '').toLowerCase();
-        var match = !q || title.includes(q) || cat.includes(q) || by.includes(q);
+        var d = m.data;
+        var title   = (d.title || '').toLowerCase();
+        var cat     = (d.category || d.type || '').toLowerCase();
+        var by      = (d.added_by_name || '').toLowerCase();
+        var notes   = (d.notes || d.personal_note || d.note || '').toLowerCase();
+        var desc    = (d.description || '').toLowerCase();
+        var tags    = (d.tags || '').toLowerCase();
+        var address = (d.address || d.location || '').toLowerCase();
+        var url     = (d.url || d.link || '').toLowerCase();
+        var match = !q || title.includes(q) || cat.includes(q) || by.includes(q)
+                      || notes.includes(q) || desc.includes(q) || tags.includes(q)
+                      || address.includes(q) || url.includes(q);
 
         // Show/hide panel item
         var pi = document.getElementById('dpi-' + idx);
