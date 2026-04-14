@@ -1,3 +1,17 @@
+// ===== SHARE TARGET — capture incoming shared URL on every page load =====
+// Runs before auth so the shared URL survives the login redirect if needed.
+(function _captureShareTarget() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const sharedUrl = params.get('url') || params.get('text');
+        const sharedTitle = params.get('title');
+        if (sharedUrl) {
+            sessionStorage.setItem('odin_shared_url', sharedUrl);
+            if (sharedTitle) sessionStorage.setItem('odin_shared_title', sharedTitle);
+        }
+    } catch (e) { /* storage unavailable — safe to ignore */ }
+})();
+
 // ===== INVITE TOKEN — save immediately on every page load =====
 // Must run BEFORE any auth check so the token survives whether the user
 // is a brand-new visitor, mid-OAuth-redirect, or an already-logged-in user
@@ -155,6 +169,26 @@ async function showMainApp() {
 
     // Navigate to home so header and layout match the Home tab state
     showHome();
+
+    // ===== SHARE TARGET — route to Add tab if app was opened via share sheet =====
+    (function _handleShareTarget() {
+        try {
+            const sharedUrl = sessionStorage.getItem('odin_shared_url');
+            if (!sharedUrl) return;
+            sessionStorage.removeItem('odin_shared_url');
+            sessionStorage.removeItem('odin_shared_title');
+            // Small delay to let the home tab render first
+            setTimeout(() => {
+                setMode('input');
+                const urlField = document.getElementById('url');
+                if (urlField) {
+                    urlField.value = sharedUrl;
+                    // Trigger your existing URL enrichment
+                    if (typeof pasteFromClipboard === 'function') pasteFromClipboard();
+                }
+            }, 400);
+        } catch (e) { /* safe to ignore */ }
+    })();
 }
 
 async function handleLogout() {
