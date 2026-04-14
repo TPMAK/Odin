@@ -9765,13 +9765,19 @@ body.map-view-open .content {
 /* dmap-topbar no longer used — floating bar overlays map instead */
 .dmap-topbar { display: none; }
 
+/* Mobile: hide tab bar when map opens, and let map go full screen */
+@media (max-width: 767px) {
+    body.map-view-open .bottom-tab-bar { display: none !important; }
+    .discover-map-screen { bottom: 0 !important; }
+}
+
 .discover-map-screen {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    z-index: 20;
+    bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+    z-index: 1100;
     background: #FAF6EE;
     display: flex;
     flex-direction: column;

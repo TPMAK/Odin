@@ -4157,15 +4157,24 @@ function buildMapCardStrip() {
 var dmapActivePreviewIdx = null;
 
 function focusMapItem(idx) {
-    // Activate panel item (desktop side panel)
-    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+    // Highlight active panel card (desktop) — works for both .dmap-panel-card and .dmap-panel-item
+    document.querySelectorAll('.dmap-panel-card, .dmap-panel-item').forEach(function(el){ el.classList.remove('active-item'); });
     var pItem = document.getElementById('dpi-' + idx);
     if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
 
-    // Pan map
+    // Highlight active pin — bounce it slightly and bring to front
+    dmapMarkers.forEach(function(m, i) {
+        if (m.marker && m.marker._icon) {
+            m.marker._icon.style.opacity = i === idx ? '1' : '0.5';
+            m.marker._icon.style.zIndex  = i === idx ? '1000' : '';
+        }
+    });
+
+    // Pan map and open popup
     var m = dmapMarkers[idx];
     if (m && discoverMap) {
         discoverMap.setView([m.lat, m.lng], 16, { animate: true });
+        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
     }
 
     // Show bottom preview card (mobile)
@@ -4263,8 +4272,15 @@ function dismissMapPreview() {
     var wrap = document.getElementById('dmapPreviewWrap');
     if (wrap) wrap.style.display = 'none';
     dmapActivePreviewIdx = null;
-    // Deactivate panel items
-    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+    // Deactivate panel cards
+    document.querySelectorAll('.dmap-panel-card, .dmap-panel-item').forEach(function(el){ el.classList.remove('active-item'); });
+    // Reset all pin opacity
+    dmapMarkers.forEach(function(m) {
+        if (m.marker && m.marker._icon) {
+            m.marker._icon.style.opacity = '1';
+            m.marker._icon.style.zIndex  = '';
+        }
+    });
 }
 
 function dmapPreviewOpen() {
