@@ -2544,6 +2544,27 @@ document.addEventListener('click', function(e) {
 const RELEVANCE_THRESHOLD = 0.28;
 
 let userLocation = { latitude: null, longitude: null, available: false };
+
+// ── Silent background geolocation — runs on app load, no prompt shown ──────
+// Coords are stored in userLocation and attached to every search payload.
+// If the user denies permission, search still works — just without proximity ranking.
+(function initSilentGeolocation() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            userLocation.latitude  = pos.coords.latitude;
+            userLocation.longitude = pos.coords.longitude;
+            userLocation.available = true;
+            console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
+        },
+        function(err) {
+            // Denied or unavailable — silent fail, search works without proximity
+            console.log('📍 Location unavailable:', err.message);
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+    );
+})();
+
 let allDiscoveries = [];
 let filteredDiscoveries = [];
 let displayedCount = 0;
@@ -2870,6 +2891,8 @@ function switchDiscoverView(view) {
         if (discoverModeEl) discoverModeEl.style.height = '';
         if (collScreen) collScreen.style.display = '';
         if (mapScreen)  mapScreen.style.display  = 'none';
+        // Hide preview card when leaving map view
+        dismissMapPreview();
     } else {
         document.body.classList.add('map-view-open');
         if (collScreen) collScreen.style.display = 'none';
@@ -4106,21 +4129,124 @@ function buildMapCardStrip() {
     });
 }
 
+// Track which item is currently previewed
+var dmapActivePreviewIdx = null;
+
 function focusMapItem(idx) {
-    // Activate card strip
-    document.querySelectorAll('.dmap-card').forEach(function(c){ c.classList.remove('active-card'); });
-    var card = document.getElementById('dmc-' + idx);
-    if (card) { card.classList.add('active-card'); card.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' }); }
-    // Activate panel item
+    // Activate panel item (desktop side panel)
     document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
     var pItem = document.getElementById('dpi-' + idx);
     if (pItem) { pItem.classList.add('active-item'); pItem.scrollIntoView({ behavior:'smooth', block:'nearest' }); }
-    // Pan map to exact center, then open popup (autoPan disabled on popup so it won't fight setView)
+
+    // Pan map
     var m = dmapMarkers[idx];
     if (m && discoverMap) {
         discoverMap.setView([m.lat, m.lng], 16, { animate: true });
-        setTimeout(function(){ if (m.marker) m.marker.openPopup(); }, 350);
     }
+
+    // Show bottom preview card (mobile)
+    showMapPreviewCard(idx);
+}
+
+function showMapPreviewCard(idx) {
+    var m = dmapMarkers[idx];
+    if (!m || !m.data) return;
+    var d = m.data;
+    dmapActivePreviewIdx = idx;
+
+    // Title
+    var titleEl = document.getElementById('dmapPrevTitle');
+    if (titleEl) titleEl.textContent = d.title || '';
+
+    // Note/description
+    var noteEl = document.getElementById('dmapPrevNote');
+    if (noteEl) noteEl.textContent = d.notes || d.description || d.note || '';
+
+    // Type badge — coloured dot + category label
+    var typeEl = document.getElementById('dmapPrevType');
+    if (typeEl) {
+        var catLabel = d.category || d.type || '';
+        var catCol = catColour ? catColour(catLabel) : '#7B2D45';
+        typeEl.innerHTML = catLabel
+            ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + catCol + ';margin-right:4px;vertical-align:middle;"></span>' + escapeHtml(catLabel)
+            : '';
+        typeEl.style.display = catLabel ? '' : 'none';
+    }
+
+    // Distance badge — SVG pin icon, no emoji
+    var distEl = document.getElementById('dmapPrevDist');
+    if (distEl) {
+        var distKm = d.distance_km;
+        var distText = distKm
+            ? (distKm < 1 ? Math.round(distKm * 1000) + 'm' : distKm.toFixed(1) + 'km')
+            : '';
+        if (distText) {
+            distEl.innerHTML =
+                '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                distText;
+            distEl.style.display = '';
+        } else {
+            distEl.innerHTML = '';
+            distEl.style.display = 'none';
+        }
+    }
+
+    // Image
+    var imgEl = document.getElementById('dmapPrevImg');
+    var placeholderEl = document.getElementById('dmapPrevImgPlaceholder');
+    if (imgEl && placeholderEl) {
+        var imgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
+        if (imgUrl) {
+            imgEl.src = imgUrl;
+            imgEl.style.display = 'block';
+            placeholderEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none';
+            placeholderEl.style.display = 'flex';
+            // Category emoji fallback
+            var catEmoji = { 'Place': '📍', 'Food': '🍽', 'Café': '☕', 'Service': '🏥', 'Advice': '💡', 'Product': '📦' };
+            placeholderEl.textContent = catEmoji[d.category] || catEmoji[d.type] || '📍';
+        }
+    }
+
+    // Circle saves — show added_by avatar + save count
+    var avStack = document.getElementById('dmapPrevAvStack');
+    var savesText = document.getElementById('dmapPrevSavesText');
+    var savesRow = document.getElementById('dmapPrevSaves');
+    if (avStack && savesText) {
+        var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
+        var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
+        var saveCount = d.endorsement_count || 1;
+        avStack.innerHTML = '<div class="dmap-prev-av" style="background:' + avCol + ';">' + avInit + '</div>';
+        savesText.textContent = saveCount === 1
+            ? '1 in your circle saved this'
+            : saveCount + ' in your circle saved this';
+        if (savesRow) savesRow.style.display = 'flex';
+    }
+
+    // Show the wrap with slide-up animation
+    var wrap = document.getElementById('dmapPreviewWrap');
+    if (wrap) {
+        wrap.style.display = 'block';
+        // Re-trigger animation
+        wrap.style.animation = 'none';
+        wrap.offsetHeight; // reflow
+        wrap.style.animation = '';
+    }
+}
+
+function dismissMapPreview() {
+    var wrap = document.getElementById('dmapPreviewWrap');
+    if (wrap) wrap.style.display = 'none';
+    dmapActivePreviewIdx = null;
+    // Deactivate panel items
+    document.querySelectorAll('.dmap-panel-item').forEach(function(i){ i.classList.remove('active-item'); });
+}
+
+function dmapPreviewOpen() {
+    if (dmapActivePreviewIdx === null) return;
+    var m = dmapMarkers[dmapActivePreviewIdx];
+    if (m && m.data) openItemDrawer(m.data);
 }
 
 // Opens the full detail drawer from a map popup "View" button
@@ -4193,38 +4319,18 @@ function rebuildMapListsSorted(userLat, userLng) {
             var pi = document.createElement('div');
             pi.className = 'dmap-panel-item';
             pi.id = 'dpi-' + idx;
+            var piDistIconHtml = distText
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+                : '';
             pi.innerHTML =
                 '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
                 '<div class="dmap-pi-info">' +
                     '<div class="dmap-pi-name">' + escapeHtml(d.title) + '</div>' +
                     '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
                 '</div>' +
-                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + distText + '</div></div>';
+                '<div class="dmap-pi-right"><div class="dmap-pi-dist">' + piDistIconHtml + '</div></div>';
             (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
             list.appendChild(pi);
-        }
-        if (strip) {
-            var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
-            var avCol  = strColour(d.added_by_name || '?');
-            var card = document.createElement('div');
-            card.className = 'dmap-card';
-            card.id = 'dmc-' + idx;
-            card.innerHTML =
-                '<div class="dmc-header">' +
-                    '<div class="dmc-dot" style="background:' + col + ';"></div>' +
-                    '<div class="dmc-name">' + escapeHtml(d.title) + '</div>' +
-                    '<div class="dmc-dist">' + distText + '</div>' +
-                '</div>' +
-                '<div class="dmc-by">' +
-                    '<div class="dmc-avatar" style="background:' + avCol + ';">' + avInit + '</div>' +
-                    '<div class="dmc-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
-                '</div>' +
-                '<div class="dmc-odin-row">' +
-                    '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
-                '</div>';
-            (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
-            strip.appendChild(card);
         }
     });
     if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
@@ -4315,17 +4421,29 @@ function initDiscoverMap() {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
+        var saveCount = d.endorsement_count || 1;
+        var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
+        var popDistText = distText
+            ? '<span class="odin-pop-chip">' +
+                  '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+                  distText +
+              '</span>'
+            : '';
         var popHtml =
             '<div class="odin-pop">' +
                 '<div class="odin-pop-cat">' +
-                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(d.category || '') + '</span>' +
+                    '<span class="odin-pop-chip odin-pop-chip-cat">' +
+                        '<span class="odin-pop-dot" style="background:' + col + ';"></span>' +
+                        escapeHtml(d.category || '') +
+                    '</span>' +
+                    popDistText +
                 '</div>' +
                 '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
                 '<div class="odin-pop-by">' +
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
+                '<div class="odin-pop-saves">' + escapeHtml(savesLabel) + '</div>' +
                 '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
             '</div>';
 
@@ -4346,6 +4464,9 @@ function initDiscoverMap() {
             var pi = document.createElement('div');
             pi.className = 'dmap-panel-item';
             pi.id = 'dpi-' + idx;
+            var piDistHtml = distText
+                ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:2px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' + distText
+                : '';
             pi.innerHTML =
                 '<div class="dmap-pi-dot" style="background:' + col + ';"></div>' +
                 '<div class="dmap-pi-info">' +
@@ -4353,7 +4474,7 @@ function initDiscoverMap() {
                     '<div class="dmap-pi-meta">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>&nbsp;&middot;&nbsp;' + escapeHtml(d.category || '') + '</div>' +
                 '</div>' +
                 '<div class="dmap-pi-right">' +
-                    '<div class="dmap-pi-dist">' + distText + '</div>' +
+                    '<div class="dmap-pi-dist">' + piDistHtml + '</div>' +
                 '</div>';
             (function(i){ pi.onclick = function(){ focusMapItem(i); }; })(idx);
             list.appendChild(pi);
@@ -5255,11 +5376,12 @@ function sendMessage(text) {
         // only runs against the corpus this user is allowed to see.
         allowed_user_ids: allowedUserIds,   // search ONLY these users' items
         friend_ids: directFriendIds,        // subset: direct friends (for note visibility)
+        // Always send coordinates — null is handled gracefully by n8n.
+        // Silent geolocation on app load means these are usually populated
+        // before the first search. Proximity ranking depends on these being present.
+        user_latitude:  userLocation.latitude  ?? null,
+        user_longitude: userLocation.longitude ?? null,
     };
-    if (userLocation.available) {
-        body.user_latitude = userLocation.latitude;
-        body.user_longitude = userLocation.longitude;
-    }
 
     fetch(SEARCH_WEBHOOK, {
         method: 'POST',
