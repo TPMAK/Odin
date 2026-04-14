@@ -9772,6 +9772,7 @@ body.map-view-open .content {
     border-bottom: 1px solid #EAE0D2;
     flex-shrink: 0;
     z-index: 25;
+    position: relative;
 }
 .dmap-back-btn {
     display: flex;
@@ -9784,12 +9785,18 @@ body.map-view-open .content {
     font-weight: 500;
     color: #7B2D45;
     padding: 4px 8px 4px 2px;
+    position: relative;
+    z-index: 2;
 }
 .dmap-back-btn:hover { color: #5A1F30; }
 .dmap-topbar-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 14px;
     font-weight: 600;
     color: #2A1E14;
+    pointer-events: none;
 }
 .dmap-topbar-filter-btn {
     position: relative;
@@ -10114,11 +10121,12 @@ body.map-view-open .content {
     overflow: hidden;
 }
 
-.dmap-prev-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 3px; align-items: center; }
+.dmap-prev-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; align-items: center; }
 .dmap-prev-badge {
-    font-size: 10px; font-weight: 600; color: #7a6550;
-    background: #f0ece6; border-radius: 20px;
-    padding: 2px 8px; display: inline-flex; align-items: center; gap: 3px; line-height: 1.6;
+    font-size: 10px; font-weight: 600; color: #5a4535;
+    background: #ede7de; border-radius: 20px;
+    border: 1px solid rgba(90,69,53,0.12);
+    padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px; line-height: 1.5;
 }
 
 .dmap-prev-saves {
@@ -10161,15 +10169,16 @@ body.map-view-open .content {
 
 /* Chip style for category + distance in popup */
 .odin-pop-chip {
-    display: inline-flex; align-items: center;
-    background: #f0ece6; border-radius: 20px;
-    padding: 2px 8px;
-    font-size: 10px; font-weight: 600; color: #7a6550;
-    line-height: 1.6;
+    display: inline-flex; align-items: center; gap: 4px;
+    background: #ede7de; border-radius: 20px;
+    border: 1px solid rgba(90,69,53,0.12);
+    padding: 3px 9px;
+    font-size: 10px; font-weight: 600; color: #5a4535;
+    line-height: 1.5;
     white-space: nowrap;
 }
-.odin-pop-chip svg { display: inline-block; vertical-align: middle; margin-right: 3px; color: #7a6550; }
-.odin-pop-chip-cat .odin-pop-dot { margin-right: 4px; }
+.odin-pop-chip svg { flex-shrink: 0; color: #7a6550; }
+.odin-pop-chip-cat .odin-pop-dot { flex-shrink: 0; }
 
 .odin-pop-name {
     font-family: 'DM Serif Display', Georgia, serif;

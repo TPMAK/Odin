@@ -4168,7 +4168,7 @@ function showMapPreviewCard(idx) {
         var catLabel = d.category || d.type || '';
         var catCol = catColour ? catColour(catLabel) : '#7B2D45';
         typeEl.innerHTML = catLabel
-            ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + catCol + ';margin-right:4px;vertical-align:middle;"></span>' + escapeHtml(catLabel)
+            ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + catCol + ';flex-shrink:0;"></span>' + escapeHtml(catLabel)
             : '';
         typeEl.style.display = catLabel ? '' : 'none';
     }
