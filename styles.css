@@ -9762,42 +9762,54 @@ body.map-view-open .content {
     flex: 1 1 auto;
 }
 
-/* Map topbar: back button + title + filter */
+/* Map topbar: back + search + filter in one row */
 .dmap-topbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px 8px;
+    gap: 8px;
+    padding: 10px 12px;
     background: #FAF6EE;
     border-bottom: 1px solid #EAE0D2;
     flex-shrink: 0;
     z-index: 25;
-    position: relative;
 }
 .dmap-back-btn {
     display: flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px; height: 36px;
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
     color: #7B2D45;
-    padding: 4px 8px 4px 2px;
-    position: relative;
-    z-index: 2;
+    border-radius: 10px;
+    transition: background 0.15s;
+    padding: 0;
 }
-.dmap-back-btn:hover { color: #5A1F30; }
-.dmap-topbar-title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 14px;
-    font-weight: 600;
-    color: #2A1E14;
-    pointer-events: none;
+.dmap-back-btn:hover { background: #f0e8df; color: #5A1F30; }
+.dmap-back-btn svg { display: block; }
+
+/* Inline search bar in topbar */
+.dmap-topbar-search {
+    flex: 1;
+    display: flex; align-items: center; gap: 8px;
+    background: #fff;
+    border: 1px solid #EAE0D2;
+    border-radius: 10px;
+    padding: 8px 12px;
+    box-shadow: 0 1px 4px rgba(42,30,20,0.07);
 }
+.dmap-topbar-search svg {
+    width: 15px; height: 15px;
+    stroke: var(--text-secondary); fill: none; flex-shrink: 0;
+}
+.dmap-topbar-search input {
+    flex: 1; border: none; background: transparent;
+    font-family: inherit; font-size: 13px; color: #2A1E14; outline: none;
+}
+.dmap-topbar-search input::placeholder { color: var(--text-secondary); }
+
 .dmap-topbar-filter-btn {
     position: relative;
     display: flex;
@@ -9805,24 +9817,26 @@ body.map-view-open .content {
     background: none;
     border: none;
     cursor: pointer;
+    flex-shrink: 0;
+    width: 36px; height: 36px;
+    background: none; border: none;
+    cursor: pointer;
     color: #7B2D45;
-    padding: 4px 2px 4px 8px;
+    border-radius: 10px;
+    transition: background 0.15s;
+    padding: 0;
+    justify-content: center;
 }
-.dmap-topbar-filter-btn:hover { color: #5A1F30; }
+.dmap-topbar-filter-btn:hover { background: #f0e8df; color: #5A1F30; }
+.dmap-topbar-filter-btn svg { display: block; }
 .dmap-topbar-filter-badge {
     position: absolute;
-    top: 0;
-    right: -2px;
-    background: #7B2D45;
-    color: #fff;
+    top: 0; right: -2px;
+    background: #7B2D45; color: #fff;
     border-radius: 50%;
-    width: 16px;
-    height: 16px;
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 15px; height: 15px;
+    font-size: 9px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
 }
 
 .discover-map-screen {
@@ -9891,8 +9905,9 @@ body.map-view-open .content {
     display: flex; align-items: center; justify-content: space-between;
 }
 .dmap-panel-count { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+/* Panel filter button hidden — filter is now in the shared topbar */
 .dmap-panel-filter-btn {
-    display: flex; align-items: center; gap: 5px;
+    display: none;
     padding: 5px 10px;
     border-radius: 8px;
     border: 1.5px solid var(--border-light);
@@ -9958,15 +9973,8 @@ body.map-view-open .content {
     transform: translateZ(0);
 }
 
-/* Floating search bar — mobile only */
-.dmap-float-search {
-    position: absolute;
-    top: 0; left: 8px; right: 8px;
-    z-index: 400;
-    display: flex; align-items: center; gap: 8px;
-    padding-top: 6px;
-}
-@media(min-width: 768px) { .dmap-float-search { display: none; } }
+/* Floating search bar — removed, now handled by topbar */
+.dmap-float-search { display: none !important; }
 
 .dmap-float-bar {
     flex: 1;
