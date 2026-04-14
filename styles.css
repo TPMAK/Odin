@@ -10060,13 +10060,13 @@ body.map-view-open .content {
 
 .dmap-preview-dismiss {
     position: absolute;
-    top: -36px; right: 20px;
-    width: 28px; height: 28px;
-    background: rgba(255,255,255,0.92);
+    top: 8px; right: 8px;
+    width: 24px; height: 24px;
+    background: rgba(42,30,20,0.10);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 13px; color: #7B2D45; font-weight: 700;
-    cursor: pointer; pointer-events: all;
+    font-size: 11px; color: #5a3a28; font-weight: 700;
+    cursor: pointer; pointer-events: all; z-index: 10;
     box-shadow: 0 2px 8px rgba(42,30,20,0.18);
 }
 
