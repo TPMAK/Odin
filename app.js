@@ -4328,6 +4328,8 @@ function filterMapList(query) {
                 count++;
             } else {
                 if (discoverMap.hasLayer(m.marker)) discoverMap.removeLayer(m.marker);
+                // If the currently previewed card's pin is filtered out, dismiss the card
+                if (dmapActivePreviewIdx === idx) dismissMapPreview();
             }
         }
     });
