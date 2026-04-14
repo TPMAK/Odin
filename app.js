@@ -1,17 +1,3 @@
-// ===== SHARE TARGET — capture incoming shared URL on every page load =====
-// Runs before auth so the shared URL survives the login redirect if needed.
-(function _captureShareTarget() {
-    try {
-        const params = new URLSearchParams(window.location.search);
-        const sharedUrl = params.get('url') || params.get('text');
-        const sharedTitle = params.get('title');
-        if (sharedUrl) {
-            sessionStorage.setItem('odin_shared_url', sharedUrl);
-            if (sharedTitle) sessionStorage.setItem('odin_shared_title', sharedTitle);
-        }
-    } catch (e) { /* storage unavailable — safe to ignore */ }
-})();
-
 // ===== INVITE TOKEN — save immediately on every page load =====
 // Must run BEFORE any auth check so the token survives whether the user
 // is a brand-new visitor, mid-OAuth-redirect, or an already-logged-in user
@@ -169,26 +155,6 @@ async function showMainApp() {
 
     // Navigate to home so header and layout match the Home tab state
     showHome();
-
-    // ===== SHARE TARGET — route to Add tab if app was opened via share sheet =====
-    (function _handleShareTarget() {
-        try {
-            const sharedUrl = sessionStorage.getItem('odin_shared_url');
-            if (!sharedUrl) return;
-            sessionStorage.removeItem('odin_shared_url');
-            sessionStorage.removeItem('odin_shared_title');
-            // Small delay to let the home tab render first
-            setTimeout(() => {
-                setMode('input');
-                const urlField = document.getElementById('url');
-                if (urlField) {
-                    urlField.value = sharedUrl;
-                    // Trigger your existing URL enrichment
-                    if (typeof pasteFromClipboard === 'function') pasteFromClipboard();
-                }
-            }, 400);
-        } catch (e) { /* safe to ignore */ }
-    })();
 }
 
 async function handleLogout() {
@@ -5966,19 +5932,19 @@ function initSearchMap(mapId, results) {
         var distText = r.distance_km
             ? (r.distance_km < 1 ? Math.round(r.distance_km * 1000) + 'm' : r.distance_km.toFixed(1) + 'km')
             : '';
+        var catChipText = escapeHtml(r.category || r.type || '');
         var popHtml =
-            '<div class="odin-pop">' +
+            '<div class="odin-pop" style="cursor:pointer;" onclick="showSearchDrawer(' + oi + ')">' +
                 '<div class="odin-pop-cat">' +
-                    '<div class="odin-pop-dot" style="background:' + col + ';"></div>' +
-                    '<span class="odin-pop-label" style="color:' + col + ';">' + escapeHtml(r.category || r.type || '') + '</span>' +
-                    (distText ? '<span class="odin-pop-label" style="color:#888;margin-left:6px;">&middot; ' + distText + '</span>' : '') +
+                    (catChipText ? '<span class="odin-pop-chip odin-pop-chip-cat">' + catChipText + '</span>' : '') +
+                    (distText ? '<span class="odin-pop-chip">' + distText + '</span>' : '') +
                 '</div>' +
                 '<div class="odin-pop-name">' + escapeHtml(r.title) + '</div>' +
                 '<div class="odin-pop-by">' +
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(r.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<button class="odin-pop-view" onclick="showSearchDrawer(' + oi + ')">View details &rsaquo;</button>' +
+                '<div class="odin-pop-tap-hint">Tap to view details &rsaquo;</div>' +
             '</div>';
 
         var marker = L.marker([lat, lng], { icon: icon })
@@ -6228,9 +6194,9 @@ function clearCaptureForm() {
     resetOGFetchState();
     // Reset category pills
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const defaultPill = document.querySelector('.category-pill[data-value="advice"]');
+    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
     if (defaultPill) defaultPill.classList.add('active');
-    document.getElementById('category').value = 'advice';
+    document.getElementById('category').value = 'place';
     // Reset address label hint
     const addressLabel = document.getElementById('addressLabel');
     if (addressLabel) addressLabel.textContent = '— recommended for places';
@@ -7233,9 +7199,9 @@ async function submitDiscovery(e) {
     removePhoto();
     // Reset category pills to default
     document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const defaultPill = document.querySelector('.category-pill[data-value="advice"]');
+    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
     if (defaultPill) defaultPill.classList.add('active');
-    document.getElementById('category').value = 'advice';
+    document.getElementById('category').value = 'place';
     // Show URL hint again
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
