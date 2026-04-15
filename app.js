@@ -2893,6 +2893,10 @@ function switchDiscoverView(view) {
         if (mapScreen)  mapScreen.style.display  = 'none';
         // Hide preview card when leaving map view
         dismissMapPreview();
+        // Reset search nudge counter so it can show again next visit
+        _dmapSearchCount = 0;
+        _dmapSearchBannerShown = false;
+        dismissAISearchNudge();
     } else {
         document.body.classList.add('map-view-open');
         if (collScreen) collScreen.style.display = 'none';
@@ -2922,9 +2926,25 @@ function switchDiscoverView(view) {
             }, delay);
             discoverMapInitialized = true;
         } else if (discoverMap) {
-            // Map already exists — just fix its size
-            setTimeout(function(){ if (discoverMap) { setMapScreenHeight(); discoverMap.invalidateSize(); } }, 150);
+            // Map already exists — fix its size and re-add any missing markers
+            setTimeout(function(){
+                if (discoverMap) {
+                    setMapScreenHeight();
+                    discoverMap.invalidateSize();
+                    // Re-add markers that may have been dropped when map was hidden
+                    if (dmapMarkers && dmapMarkers.length > 0) {
+                        dmapMarkers.forEach(function(m) {
+                            if (m.marker && !discoverMap.hasLayer(m.marker)) {
+                                m.marker.addTo(discoverMap);
+                            }
+                        });
+                    }
+                }
+            }, 150);
             setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 400);
+            if (isIOS) {
+                setTimeout(function(){ if (discoverMap) discoverMap.invalidateSize(); }, 800);
+            }
         } else {
             discoverMapInitialized = false;
             switchDiscoverView('map');
@@ -4295,9 +4315,21 @@ function openMapItemDrawer(idx) {
     if (m && m.data) openItemDrawer(m.data);
 }
 
+var _dmapSearchCount = 0;
+var _dmapSearchBannerShown = false;
+
 function filterMapList(query) {
     var q = query.toLowerCase().trim();
     var count = 0;
+
+    // Track search attempts and show AI search nudge banner after 2 searches
+    if (q.length > 1) {
+        _dmapSearchCount++;
+        if (_dmapSearchCount >= 2 && !_dmapSearchBannerShown) {
+            _dmapSearchBannerShown = true;
+            setTimeout(function() { showAISearchNudge(); }, 600);
+        }
+    }
 
     dmapMarkers.forEach(function(m, idx) {
         var d = m.data;
@@ -4337,6 +4369,40 @@ function filterMapList(query) {
     // Update count label
     var countEl = document.getElementById('dmapPanelCount');
     if (countEl) countEl.textContent = (q ? count : dmapMarkers.length) + ' place' + ((q ? count : dmapMarkers.length) !== 1 ? 's' : '') + (q ? ' found' : ' nearby');
+}
+
+function showAISearchNudge() {
+    var existing = document.getElementById('aiSearchNudge');
+    if (existing) return;
+    var banner = document.createElement('div');
+    banner.id = 'aiSearchNudge';
+    banner.className = 'ai-search-nudge';
+    banner.innerHTML =
+        '<div class="ai-search-nudge-inner">' +
+            '<span class="ai-search-nudge-icon">✦</span>' +
+            '<span class="ai-search-nudge-text">Can\'t find what you\'re looking for? Try our <strong>AI Search</strong> page</span>' +
+            '<button class="ai-search-nudge-go" onclick="setMode(\'search\');dismissAISearchNudge();">Search →</button>' +
+            '<button class="ai-search-nudge-close" onclick="dismissAISearchNudge()" aria-label="Dismiss">✕</button>' +
+        '</div>';
+    // Insert into the dmap-float-search area (mobile) or dmap-panel-search (desktop)
+    var target = document.querySelector('.dmap-float-search') || document.querySelector('.dmap-panel-search');
+    if (target && target.parentNode) {
+        target.parentNode.insertBefore(banner, target.nextSibling);
+    } else {
+        var area = document.getElementById('discoverMap');
+        if (area && area.parentNode) area.parentNode.insertBefore(banner, area);
+    }
+    // Animate in
+    requestAnimationFrame(function() { banner.classList.add('ai-search-nudge-visible'); });
+    // Auto-dismiss after 12 seconds
+    setTimeout(function() { dismissAISearchNudge(); }, 12000);
+}
+
+function dismissAISearchNudge() {
+    var banner = document.getElementById('aiSearchNudge');
+    if (!banner) return;
+    banner.classList.remove('ai-search-nudge-visible');
+    setTimeout(function() { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 320);
 }
 
 // Rebuild panel list and card strip sorted by distance from (lat, lng).
@@ -4500,7 +4566,7 @@ function initDiscoverMap() {
         var popHtml =
             '<div class="odin-pop">' +
                 '<div class="odin-pop-cat">' +
-                    '<span class="odin-pop-chip odin-pop-chip-cat">' +
+                    '<span class="odin-pop-cat-text">' +
                         '<span class="odin-pop-dot" style="background:' + col + ';"></span>' +
                         escapeHtml(d.category || '') +
                     '</span>' +
@@ -5928,22 +5994,23 @@ function initSearchMap(mapId, results) {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:11px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + num + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
-        // Popup — same odin-pop structure as Discover
+        // Popup — title → added by → saves → distance
         var distText = r.distance_km
             ? (r.distance_km < 1 ? Math.round(r.distance_km * 1000) + 'm' : r.distance_km.toFixed(1) + 'km')
             : '';
-        var catChipText = escapeHtml(r.category || r.type || '');
+        var encR     = (typeof endorsementsCache !== 'undefined' && endorsementsCache[r.id]) ? endorsementsCache[r.id] : { count: 0, ids: [] };
+        var fSet     = new Set((typeof friendsCache !== 'undefined' ? friendsCache : []).map(function(f){ return f.out_user_id; }));
+        if (typeof currentUser !== 'undefined' && currentUser) fSet.add(currentUser.id);
+        var saveN    = Math.max(((encR.ids || []).filter(function(id){ return fSet.has(id); }).length), 1);
+        var savesText = saveN === 1 ? '1 save in your circle' : saveN + ' saves in your circle';
         var popHtml =
             '<div class="odin-pop" style="cursor:pointer;" onclick="showSearchDrawer(' + oi + ')">' +
-                '<div class="odin-pop-cat">' +
-                    (catChipText ? '<span class="odin-pop-chip odin-pop-chip-cat">' + catChipText + '</span>' : '') +
-                    (distText ? '<span class="odin-pop-chip">' + distText + '</span>' : '') +
-                '</div>' +
                 '<div class="odin-pop-name">' + escapeHtml(r.title) + '</div>' +
                 '<div class="odin-pop-by">' +
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(r.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
+                '<div class="odin-pop-saves">' + escapeHtml(savesText) + (distText ? ' · ' + distText : '') + '</div>' +
                 '<div class="odin-pop-tap-hint">Tap to view details &rsaquo;</div>' +
             '</div>';
 

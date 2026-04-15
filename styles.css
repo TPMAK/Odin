@@ -10164,8 +10164,14 @@ body.map-view-open .content {
     padding: 10px 13px; min-width: 175px; max-width: 220px;
     font-family: 'Inter', sans-serif;
 }
-.odin-pop-cat { display: flex; align-items: center; gap: 5px; margin-bottom: 6px; flex-wrap: wrap; }
+.odin-pop-cat { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
 .odin-pop-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; vertical-align: middle; margin-right: 3px; }
+/* Plain text category label (matches left panel card style) */
+.odin-pop-cat-text {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; color: #7a6550;
+    text-transform: uppercase; letter-spacing: 0.04em;
+}
 
 /* Chip style for category + distance in popup */
 .odin-pop-chip {
@@ -10235,6 +10241,54 @@ body.map-view-open .content {
     transition: color 0.15s;
 }
 .odin-pop-view:hover { color: #5a1e32; }
+
+/* ── AI Search Nudge Banner ── */
+.ai-search-nudge {
+    position: fixed;
+    bottom: 80px; left: 50%; transform: translateX(-50%) translateY(12px);
+    z-index: 1200;
+    width: calc(100% - 32px); max-width: 420px;
+    opacity: 0;
+    transition: opacity 0.28s ease, transform 0.28s ease;
+    pointer-events: none;
+}
+.ai-search-nudge.ai-search-nudge-visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+}
+.ai-search-nudge-inner {
+    display: flex; align-items: center; gap: 8px;
+    background: #2A1E14;
+    border-radius: 14px;
+    padding: 10px 12px 10px 14px;
+    box-shadow: 0 6px 24px rgba(42,30,20,0.28);
+}
+.ai-search-nudge-icon {
+    font-size: 14px; color: #C9A227; flex-shrink: 0; line-height: 1;
+}
+.ai-search-nudge-text {
+    flex: 1; font-size: 12px; color: rgba(255,255,255,0.88);
+    font-family: 'Inter', sans-serif; line-height: 1.4;
+}
+.ai-search-nudge-text strong { color: #C9A227; }
+.ai-search-nudge-go {
+    flex-shrink: 0;
+    background: #7B2D45; color: #fff;
+    border: none; border-radius: 8px;
+    padding: 6px 11px;
+    font-size: 11px; font-weight: 700; font-family: 'Inter', sans-serif;
+    cursor: pointer; white-space: nowrap;
+    transition: background 0.15s;
+}
+.ai-search-nudge-go:hover { background: #5a1e32; }
+.ai-search-nudge-close {
+    flex-shrink: 0; background: none; border: none;
+    color: rgba(255,255,255,0.45); font-size: 13px;
+    cursor: pointer; padding: 2px 4px; line-height: 1;
+    transition: color 0.15s;
+}
+.ai-search-nudge-close:hover { color: rgba(255,255,255,0.85); }
 
 /* ── Mobile drawer: slide up from bottom ── */
 @media (max-width: 767px) {
