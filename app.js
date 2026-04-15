@@ -2544,25 +2544,55 @@ document.addEventListener('click', function(e) {
 const RELEVANCE_THRESHOLD = 0.28;
 
 let userLocation = { latitude: null, longitude: null, available: false };
+let locationPromise = null; // resolves once, shared by all callers
 
-// ── Silent background geolocation — runs on app load, no prompt shown ──────
-// Coords are stored in userLocation and attached to every search payload.
-// If the user denies permission, search still works — just without proximity ranking.
-(function initSilentGeolocation() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            userLocation.latitude  = pos.coords.latitude;
-            userLocation.longitude = pos.coords.longitude;
-            userLocation.available = true;
-            console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
-        },
-        function(err) {
-            // Denied or unavailable — silent fail, search works without proximity
-            console.log('📍 Location unavailable:', err.message);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
+// ── Geolocation (awaitable) ────────────────────────────────────────────────
+// Fires on page load AND on first user gesture (whichever succeeds first).
+// Silent page-load calls often fail without a user gesture on iOS/Safari,
+// so we retry on gesture. Search awaits this with a short timeout.
+function requestLocation() {
+    if (userLocation.available) return Promise.resolve(userLocation);
+    if (locationPromise) return locationPromise;
+    if (!navigator.geolocation) {
+        locationPromise = Promise.resolve(userLocation);
+        return locationPromise;
+    }
+    locationPromise = new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                userLocation.latitude  = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
+                resolve(userLocation);
+            },
+            function(err) {
+                console.log('📍 Location unavailable:', err.message);
+                // Reset so a future gesture-driven call can retry
+                locationPromise = null;
+                resolve(userLocation);
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        );
+    });
+    return locationPromise;
+}
+
+// Fire once on app load (may fail silently on iOS without gesture)
+requestLocation();
+
+// Retry on first user gesture — this usually succeeds where page-load failed
+(function armGestureRetry() {
+    const tryAgain = () => {
+        if (!userLocation.available) {
+            locationPromise = null;
+            requestLocation();
+        }
+        window.removeEventListener('pointerdown', tryAgain);
+        window.removeEventListener('keydown', tryAgain);
+    };
+    window.addEventListener('pointerdown', tryAgain, { once: true });
+    window.addEventListener('keydown', tryAgain, { once: true });
 })();
 
 let allDiscoveries = [];
@@ -5467,13 +5497,25 @@ function stopSearchMessages() {
     }
 }
 
-function sendMessage(text) {
+async function sendMessage(text) {
     const input = document.getElementById('messageInput');
     const query = text || input.value.trim();
     if (!query) return;
 
     // Reset translation cache for new search
     translationCache = {};
+
+    // Wait up to 2s for location on first search. If it resolves, great.
+    // If not (denied/slow), request proceeds with null — n8n's anchorless
+    // cluster filter handles the "no coords" case.
+    if (!userLocation.available) {
+        try {
+            await Promise.race([
+                requestLocation(),
+                new Promise(resolve => setTimeout(resolve, 2000))
+            ]);
+        } catch (e) { /* non-fatal */ }
+    }
 
     // Save to recent searches history
     if (typeof saveRecentSearch === 'function') saveRecentSearch(query);
