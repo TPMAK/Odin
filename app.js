@@ -5667,7 +5667,7 @@ function sendMessage(text) {
                             ` : ''}
                             <div class="top-pick-footer">
                                 <span class="result-save-count">${saveLabel}</span>
-                                ${distText ? `<span class="meta-tag meta-distance">${distText}</span>` : ''}
+                                ${distText ? `<span class="result-save-count" style="color:#7a6550;">${distText}</span>` : ''}
                                 <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                             </div>
                         </div>
@@ -5715,11 +5715,10 @@ function sendMessage(text) {
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
-                        <div class="hf-card-chips-row cc-chips-row">${catChip}${privateChip}</div>
+                        <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
-                            ${distText ? `<span class="hf-card-dist cc-dist-chip">${distText}</span>` : ''}
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                         </div>
                     </div>

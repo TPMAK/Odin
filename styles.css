@@ -11128,10 +11128,8 @@ body.map-view-open .content {
     color: #7B2D45;
     font-weight: 600;
     white-space: nowrap;
-}
-.cc-dist-chip {
-    margin-left: auto;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
 }
 
 /* ── Discover section tabs + "See all" wrapper ── */
