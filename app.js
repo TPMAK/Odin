@@ -2431,6 +2431,95 @@ const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
+const FEEDBACK_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search-feedback';
+
+// ===== SEARCH EVENT / FEEDBACK LOOP =====
+// Client-generated UUID v4 for each search, sent as search_event_id in the
+// search request body AND used as the row PK for public.search_events.
+// This lets the frontend log feedback (thumbs, click, save) against the
+// search without waiting for a server round-trip.
+let currentSearchEventId = null;
+// Ordered list of item ids as shown in the last result render — position is
+// this array's index when logging feedback events.
+let currentResultPositions = [];
+// Which items have already received thumbs feedback this session, keyed by
+// `${search_event_id}:${item_id}` to avoid double-logging.
+const feedbackSent = new Set();
+
+function uuidv4() {
+    // Prefer the native crypto UUID if available (all modern browsers).
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        try { return crypto.randomUUID(); } catch (e) { /* fall through */ }
+    }
+    // Fallback — RFC 4122 v4 from crypto.getRandomValues.
+    const b = new Uint8Array(16);
+    (crypto && crypto.getRandomValues ? crypto : { getRandomValues: (a) => { for (let i=0;i<a.length;i++) a[i]=Math.floor(Math.random()*256); return a; } }).getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map(x => x.toString(16).padStart(2,'0'));
+    return `${h.slice(0,4).join('')}-${h.slice(4,6).join('')}-${h.slice(6,8).join('')}-${h.slice(8,10).join('')}-${h.slice(10,16).join('')}`;
+}
+
+// Fire-and-forget feedback logger. Never blocks UI; swallows errors.
+// action: 'thumbs_up' | 'thumbs_down' | 'click' | 'save'
+function logSearchFeedback(itemId, position, action, extraMeta) {
+    if (!currentSearchEventId || !itemId || !action) return;
+    // Prevent double-thumbs on the same (event, item)
+    if (action === 'thumbs_up' || action === 'thumbs_down') {
+        const key = `${currentSearchEventId}:${itemId}`;
+        if (feedbackSent.has(key)) return;
+        feedbackSent.add(key);
+    }
+    const body = {
+        search_event_id: currentSearchEventId,
+        item_id: itemId,
+        position: (typeof position === 'number' ? position : null),
+        action,
+        user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
+        metadata: Object.assign({
+            ts: new Date().toISOString(),
+            lang: (typeof userPreferredLanguage !== 'undefined' ? userPreferredLanguage : 'en')
+        }, extraMeta || {})
+    };
+    try {
+        fetch(FEEDBACK_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            keepalive: true  // survive page unload on link taps
+        }).catch(() => {});
+    } catch (e) { /* non-fatal */ }
+}
+
+// Called from thumbs buttons on result cards.
+window.onSearchThumb = function(btn, idx, up) {
+    try {
+        const itemId = currentResultPositions[idx];
+        if (!itemId) return;
+        // UI: toggle active state; disable pair
+        const parent = btn.closest('.search-thumbs');
+        if (parent) {
+            parent.querySelectorAll('.search-thumb').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            parent.querySelectorAll('.search-thumb').forEach(b => { b.disabled = true; });
+        }
+        logSearchFeedback(itemId, idx, up ? 'thumbs_up' : 'thumbs_down');
+    } catch (e) { /* non-fatal */ }
+};
+
+// Called when a user taps a result card / URL / save button — fire-and-forget.
+window.onSearchResultClick = function(idx) {
+    try {
+        const itemId = currentResultPositions[idx];
+        if (itemId) logSearchFeedback(itemId, idx, 'click');
+    } catch (e) {}
+};
+window.onSearchResultSave = function(idx) {
+    try {
+        const itemId = currentResultPositions[idx];
+        if (itemId) logSearchFeedback(itemId, idx, 'save');
+    } catch (e) {}
+};
 
 // ── LANGUAGE SYSTEM ──────────────────────────────────────────────
 // ISO 639-1 code of the user's preferred display/translation language.
@@ -5552,11 +5641,18 @@ async function sendMessage(text) {
         ? [currentUser.id, ...directFriendIds]
         : [];
 
+    // Generate a fresh search_event_id for this search. n8n uses this as
+    // the PK on search_events, and the frontend uses it to attach feedback.
+    currentSearchEventId = uuidv4();
+    currentResultPositions = [];
+
     const body = {
         query,
         session_id: currentSessionId,
         conversation_history: sessionMessages,
         user_id: currentUser ? currentUser.id : null,
+        // Client-supplied search event id — server writes it as the row PK.
+        search_event_id: currentSearchEventId,
         // Visibility filter context sent to n8n so the semantic search
         // only runs against the corpus this user is allowed to see.
         allowed_user_ids: allowedUserIds,   // search ONLY these users' items
@@ -5658,6 +5754,10 @@ async function sendMessage(text) {
                 && (topScore >= RELEVANCE_THRESHOLD || currentResults.length === 1)
                 && !allResultsDropped;
 
+            // Record the display order of result ids for feedback logging.
+            // Thumbs / click handlers look up the item by index into this array.
+            currentResultPositions = currentResults.map(r => r.id || null);
+
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
 
@@ -5695,7 +5795,7 @@ async function sendMessage(text) {
                 const saveLabel = getCircleSaveCount(r);
 
                 return `
-                    <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
+                    <div class="top-pick-card" onclick="onSearchResultClick(${idx}); showSearchDrawer(${idx})">
                         <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
@@ -5711,6 +5811,10 @@ async function sendMessage(text) {
                                 <span class="result-save-count">${saveLabel}</span>
                                 ${distText ? `<span class="result-save-count" style="color:#7a6550;">${distText}</span>` : ''}
                                 <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
+                                <span class="search-thumbs" onclick="event.stopPropagation();" style="display:inline-flex;gap:6px;margin-left:auto;">
+                                    <button class="search-thumb search-thumb-up" title="Helpful" aria-label="Helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, true)" style="background:none;border:1px solid #e5ddd0;border-radius:14px;padding:3px 8px;cursor:pointer;font-size:13px;line-height:1;">👍</button>
+                                    <button class="search-thumb search-thumb-down" title="Not helpful" aria-label="Not helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, false)" style="background:none;border:1px solid #e5ddd0;border-radius:14px;padding:3px 8px;cursor:pointer;font-size:13px;line-height:1;">👎</button>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -5753,7 +5857,7 @@ async function sendMessage(text) {
                 }
 
                 return `
-                    <div class="compact-card" onclick="showSearchDrawer(${idx})">
+                    <div class="compact-card" onclick="onSearchResultClick(${idx}); showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
@@ -5762,6 +5866,10 @@ async function sendMessage(text) {
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
+                            <span class="search-thumbs" onclick="event.stopPropagation();" style="display:inline-flex;gap:4px;margin-left:auto;">
+                                <button class="search-thumb search-thumb-up" title="Helpful" aria-label="Helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, true)" style="background:none;border:1px solid #e5ddd0;border-radius:12px;padding:2px 6px;cursor:pointer;font-size:11px;line-height:1;">👍</button>
+                                <button class="search-thumb search-thumb-down" title="Not helpful" aria-label="Not helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, false)" style="background:none;border:1px solid #e5ddd0;border-radius:12px;padding:2px 6px;cursor:pointer;font-size:11px;line-height:1;">👎</button>
+                            </span>
                         </div>
                     </div>
                 `;
