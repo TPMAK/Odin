@@ -5994,7 +5994,10 @@ function initSearchMap(mapId, results) {
         var fSet     = new Set((typeof friendsCache !== 'undefined' ? friendsCache : []).map(function(f){ return f.out_user_id; }));
         if (typeof currentUser !== 'undefined' && currentUser) fSet.add(currentUser.id);
         var saveN    = Math.max(((encR.ids || []).filter(function(id){ return fSet.has(id); }).length), 1);
-        var savesText = saveN === 1 ? '1 save in your circle' : saveN + ' saves in your circle';
+        var savesText = saveN === 1 ? '1 save' : saveN + ' saves';
+        var distChipS = distText
+            ? '<span class="odin-pop-dist-chip">' + distText + '</span>'
+            : '';
         var popHtml =
             '<div class="odin-pop" style="cursor:pointer;" onclick="showSearchDrawer(' + oi + ')">' +
                 '<div class="odin-pop-name">' + escapeHtml(r.title) + '</div>' +
@@ -6002,7 +6005,7 @@ function initSearchMap(mapId, results) {
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(r.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<div class="odin-pop-saves">' + escapeHtml(savesText) + (distText ? ' · ' + distText : '') + '</div>' +
+                '<div class="odin-pop-saves"><span>' + escapeHtml(savesText) + '</span>' + distChipS + '</div>' +
                 '<div class="odin-pop-tap-hint">Tap to view details &rsaquo;</div>' +
             '</div>';
 
