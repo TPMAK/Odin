@@ -2461,19 +2461,19 @@ function uuidv4() {
 }
 
 // Fire-and-forget feedback logger. Never blocks UI; swallows errors.
-// action: 'thumbs_up' | 'thumbs_down' | 'click' | 'save'
-function logSearchFeedback(itemId, position, action, extraMeta) {
-    if (!currentSearchEventId || !itemId || !action) return;
-    // Prevent double-thumbs on the same (event, item)
-    if (action === 'thumbs_up' || action === 'thumbs_down') {
-        const key = `${currentSearchEventId}:${itemId}`;
-        if (feedbackSent.has(key)) return;
-        feedbackSent.add(key);
-    }
+// action: 'search_helpful' | 'search_unhelpful' (search-level)
+//       | 'click' | 'save' (item-level, reserved for future use)
+function logSearchFeedback(action, itemId, extraMeta) {
+    if (!currentSearchEventId || !action) return;
+    // Dedupe per (event, action) so a single search can't double-log Yes/No.
+    const key = `${currentSearchEventId}:${action}:${itemId || ''}`;
+    if (feedbackSent.has(key)) return;
+    feedbackSent.add(key);
+
     const body = {
         search_event_id: currentSearchEventId,
-        item_id: itemId,
-        position: (typeof position === 'number' ? position : null),
+        item_id: itemId || null,
+        position: null,
         action,
         user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
         metadata: Object.assign({
@@ -2486,39 +2486,25 @@ function logSearchFeedback(itemId, position, action, extraMeta) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
-            keepalive: true  // survive page unload on link taps
+            keepalive: true
         }).catch(() => {});
     } catch (e) { /* non-fatal */ }
 }
 
-// Called from thumbs buttons on result cards.
-window.onSearchThumb = function(btn, idx, up) {
+// Called from the single "Was this helpful?" bar under each result set.
+// `helpful` is true for Yes, false for No. Replaces the bar with a thank-you.
+window.onSearchHelpful = function(btn, helpful) {
     try {
-        const itemId = currentResultPositions[idx];
-        if (!itemId) return;
-        // UI: toggle active state; disable pair
-        const parent = btn.closest('.search-thumbs');
-        if (parent) {
-            parent.querySelectorAll('.search-thumb').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            parent.querySelectorAll('.search-thumb').forEach(b => { b.disabled = true; });
+        const bar = btn.closest('.search-helpful-bar');
+        logSearchFeedback(helpful ? 'search_helpful' : 'search_unhelpful', null, {
+            query: (typeof sessionMessages !== 'undefined' && sessionMessages.length)
+                ? (sessionMessages[sessionMessages.length - 2] || {}).content || null
+                : null
+        });
+        if (bar) {
+            bar.innerHTML = '<span class="search-helpful-thanks">Thanks for the feedback.</span>';
         }
-        logSearchFeedback(itemId, idx, up ? 'thumbs_up' : 'thumbs_down');
     } catch (e) { /* non-fatal */ }
-};
-
-// Called when a user taps a result card / URL / save button — fire-and-forget.
-window.onSearchResultClick = function(idx) {
-    try {
-        const itemId = currentResultPositions[idx];
-        if (itemId) logSearchFeedback(itemId, idx, 'click');
-    } catch (e) {}
-};
-window.onSearchResultSave = function(idx) {
-    try {
-        const itemId = currentResultPositions[idx];
-        if (itemId) logSearchFeedback(itemId, idx, 'save');
-    } catch (e) {}
 };
 
 // ── LANGUAGE SYSTEM ──────────────────────────────────────────────
@@ -5795,7 +5781,7 @@ async function sendMessage(text) {
                 const saveLabel = getCircleSaveCount(r);
 
                 return `
-                    <div class="top-pick-card" onclick="onSearchResultClick(${idx}); showSearchDrawer(${idx})">
+                    <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
                         <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
@@ -5811,10 +5797,6 @@ async function sendMessage(text) {
                                 <span class="result-save-count">${saveLabel}</span>
                                 ${distText ? `<span class="result-save-count" style="color:#7a6550;">${distText}</span>` : ''}
                                 <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
-                                <span class="search-thumbs" onclick="event.stopPropagation();" style="display:inline-flex;gap:6px;margin-left:auto;">
-                                    <button class="search-thumb search-thumb-up" title="Helpful" aria-label="Helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, true)" style="background:none;border:1px solid #e5ddd0;border-radius:14px;padding:3px 8px;cursor:pointer;font-size:13px;line-height:1;">👍</button>
-                                    <button class="search-thumb search-thumb-down" title="Not helpful" aria-label="Not helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, false)" style="background:none;border:1px solid #e5ddd0;border-radius:14px;padding:3px 8px;cursor:pointer;font-size:13px;line-height:1;">👎</button>
-                                </span>
                             </div>
                         </div>
                     </div>
@@ -5857,7 +5839,7 @@ async function sendMessage(text) {
                 }
 
                 return `
-                    <div class="compact-card" onclick="onSearchResultClick(${idx}); showSearchDrawer(${idx})">
+                    <div class="compact-card" onclick="showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
@@ -5866,10 +5848,6 @@ async function sendMessage(text) {
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
-                            <span class="search-thumbs" onclick="event.stopPropagation();" style="display:inline-flex;gap:4px;margin-left:auto;">
-                                <button class="search-thumb search-thumb-up" title="Helpful" aria-label="Helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, true)" style="background:none;border:1px solid #e5ddd0;border-radius:12px;padding:2px 6px;cursor:pointer;font-size:11px;line-height:1;">👍</button>
-                                <button class="search-thumb search-thumb-down" title="Not helpful" aria-label="Not helpful" onclick="event.stopPropagation(); onSearchThumb(this, ${idx}, false)" style="background:none;border:1px solid #e5ddd0;border-radius:12px;padding:2px 6px;cursor:pointer;font-size:11px;line-height:1;">👎</button>
-                            </span>
                         </div>
                     </div>
                 `;
@@ -5927,7 +5905,15 @@ async function sendMessage(text) {
                     html += `<div class="search-map-container"><div id="${mapId}" style="width:100%;height:100%;"></div></div>`;
                 }
 
-                html += '</div></div>';
+                html += '</div>';
+                // Single search-level feedback bar. One tap per search.
+                html += `
+                    <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                        <span>Was this helpful?</span>
+                        <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                        <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                    </div>`;
+                html += '</div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
                 var moreScroll = container.querySelector('.more-options-scroll');
@@ -6010,6 +5996,11 @@ async function sendMessage(text) {
                                 </div>
                             </div>
                         </div>` : ''}
+                        <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                            <span>Was this helpful?</span>
+                            <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                            <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                        </div>
                     </div>`;
 
                 container.innerHTML += noMatchHtml;
@@ -6064,6 +6055,11 @@ async function sendMessage(text) {
                             ＋ Add a recommendation
                         </button>
                     </div>` : ''}
+                    <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                        <span>Was this helpful?</span>
+                        <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                        <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                    </div>
                 </div>`;
 
             sessionMessages.push({
