@@ -4095,7 +4095,7 @@ function buildMapPanelList() {
         var distText = distKm ? (distKm < 1 ? Math.round(distKm*1000)+'m' : distKm.toFixed(1)+'km') : '';
         var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-        var saveCount = d.endorsement_count || 1;
+        var saveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
         var imgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
         var noteText = d.notes || d.description || d.note || '';
@@ -4149,7 +4149,7 @@ function buildMapCardStrip() {
         var byText = isExtCard
             ? '<strong>Extended circle</strong>'
             : 'by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>';
-        var totalSaves = isExtCard ? ((endorsementsCache[d.id] || {}).count || 0) : (d.endorsement_count || 1);
+        var totalSaves = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
         var card = document.createElement('div');
         card.className = 'dmap-card';
@@ -4269,7 +4269,7 @@ function showMapPreviewCard(idx) {
     if (avStack && savesText) {
         var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-        var saveCount = d.endorsement_count || 1;
+        var saveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         avStack.innerHTML = '<div class="dmap-prev-av" style="background:' + avCol + ';">' + avInit + '</div>';
         savesText.textContent = saveCount === 1
             ? '1 in your circle saved this'
@@ -4435,7 +4435,7 @@ function rebuildMapListsSorted(userLat, userLng) {
             var catLabel = d.category || d.type || '';
             var avInit2 = (d.added_by_name || '?').charAt(0).toUpperCase();
             var avCol2 = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-            var saveCount2 = d.endorsement_count || 1;
+            var saveCount2 = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
             var savesLabel2 = saveCount2 === 1 ? '1 in your circle saved this' : saveCount2 + ' in your circle saved this';
             var imgUrl2 = d.image_url || d.thumbnail_url || d.photo_url || '';
             var noteText2 = d.notes || d.description || d.note || '';
@@ -4555,7 +4555,7 @@ function initDiscoverMap() {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
-        var saveCount  = d.endorsement_count || 1;
+        var saveCount  = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var savesLabel = saveCount === 1 ? '1 save' : saveCount + ' saves';
         var distChip   = distText
             ? '<span class="odin-pop-chip odin-pop-dist-chip">' + distText + '</span>'
@@ -4591,7 +4591,7 @@ function initDiscoverMap() {
             var pCatLabel = d.category || d.type || '';
             var pAvInit = (d.added_by_name || '?').charAt(0).toUpperCase();
             var pAvCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-            var pSaveCount = d.endorsement_count || 1;
+            var pSaveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
             var pSavesLabel = pSaveCount === 1 ? '1 in your circle saved this' : pSaveCount + ' in your circle saved this';
             var pImgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
             var pNote = d.notes || d.description || d.note || '';
@@ -4641,7 +4641,7 @@ function initDiscoverMap() {
                 '</div>' +
                 '<div class="dmc-odin-row">' +
                     '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
+                    ((endorsementsCache[d.id] || {}).count || d.saves_count || 0) + ' save' + (((endorsementsCache[d.id] || {}).count || d.saves_count || 0) !== 1 ? 's' : '') +
                 '</div>';
             (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
             strip.appendChild(card);
