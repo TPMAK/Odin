@@ -4555,30 +4555,23 @@ function initDiscoverMap() {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
-        var saveCount = d.endorsement_count || 1;
-        var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
-        var popDistText = distText
-            ? '<span class="odin-pop-chip">' +
-                  '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
-                  distText +
-              '</span>'
+        var saveCount  = d.endorsement_count || 1;
+        var savesLabel = saveCount === 1 ? '1 save' : saveCount + ' saves';
+        var distChip   = distText
+            ? '<span class="odin-pop-chip odin-pop-dist-chip">' + distText + '</span>'
             : '';
         var popHtml =
             '<div class="odin-pop">' +
-                '<div class="odin-pop-cat">' +
-                    '<span class="odin-pop-cat-text">' +
-                        '<span class="odin-pop-dot" style="background:' + col + ';"></span>' +
-                        escapeHtml(d.category || '') +
-                    '</span>' +
-                    popDistText +
-                '</div>' +
                 '<div class="odin-pop-name">' + escapeHtml(d.title) + '</div>' +
                 '<div class="odin-pop-by">' +
                     '<div class="odin-pop-av" style="background:' + avCol + ';">' + avInit + '</div>' +
                     '<div class="odin-pop-by-text">by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong></div>' +
                 '</div>' +
-                '<div class="odin-pop-saves">' + escapeHtml(savesLabel) + '</div>' +
-                '<button class="odin-pop-view" onclick="openMapItemDrawer(' + idx + ')">View details ›</button>' +
+                '<div class="odin-pop-saves">' +
+                    '<span>' + escapeHtml(savesLabel) + '</span>' +
+                    distChip +
+                '</div>' +
+                '<div class="odin-pop-tap-hint" onclick="openMapItemDrawer(' + idx + ')">Tap to view details &rsaquo;</div>' +
             '</div>';
 
         var marker = L.marker([lat, lng], { icon: icon })
@@ -5639,7 +5632,7 @@ function sendMessage(text) {
                 const friendIdSet = new Set(friendsCache.map(f => f.out_user_id));
                 if (currentUser) friendIdSet.add(currentUser.id);
                 const n = Math.max((enc.ids || []).filter(id => friendIdSet.has(id)).length, 1);
-                return n === 1 ? '1 save in your circle' : `${n} saves in your circle`;
+                return n === 1 ? '1 save' : `${n} saves`;
             };
 
             const buildTopPick = (r, idx) => {
@@ -5665,10 +5658,7 @@ function sendMessage(text) {
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
                             <div class="top-pick-title">${escapeHtml(r.title)}</div>
-                            <div class="top-pick-meta">
-                                ${distText ? `<span class="meta-tag meta-distance">📍 ${distText}</span>` : ''}
-                                ${byLine}
-                            </div>
+                            <div class="top-pick-meta">${byLine}</div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
                                     <div class="top-pick-reason-label">${snippetLabel}</div>
@@ -5677,6 +5667,7 @@ function sendMessage(text) {
                             ` : ''}
                             <div class="top-pick-footer">
                                 <span class="result-save-count">${saveLabel}</span>
+                                ${distText ? `<span class="meta-tag meta-distance">${distText}</span>` : ''}
                                 <button class="card-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                             </div>
                         </div>
@@ -5724,10 +5715,11 @@ function sendMessage(text) {
                         <div class="compact-photo">${photo}</div>
                         <div class="compact-title">${escapeHtml(r.title)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
-                        <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
+                        <div class="hf-card-chips-row cc-chips-row">${catChip}${privateChip}</div>
                         ${adderRow}
                         <div class="cc-saves-row">
                             <span class="hf-card-save-count">${saveLabel}</span>
+                            ${distText ? `<span class="hf-card-dist cc-dist-chip">${distText}</span>` : ''}
                             <button class="card-translate-btn compact-translate-btn" data-idx="${idx}" data-state="original" onclick="event.stopPropagation(); toggleCardTranslate(this, ${idx})">${'Translate ' + TRANSLATE_ICON}</button>
                         </div>
                     </div>

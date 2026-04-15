@@ -2421,7 +2421,8 @@
 
         .result-save-count {
             font-size: 10px;
-            color: var(--text-muted, #9ca3af);
+            font-weight: 600;
+            color: #7B2D45;
             white-space: nowrap;
         }
 
@@ -10203,11 +10204,19 @@ body.map-view-open .content {
 
 /* Circle saves row in popup */
 .odin-pop-saves {
+    display: flex; align-items: center; justify-content: space-between; gap: 6px;
     font-size: 11px; font-weight: 600; color: #7B2D45;
     padding: 5px 0 0;
     border-top: 1px solid var(--border-light, #e8e0d5);
-    margin-top: 2px;
+    margin-top: 4px;
     margin-bottom: 0;
+}
+.odin-pop-dist-chip {
+    font-size: 10px; font-weight: 600;
+    background: #ede7de; border-radius: 20px;
+    border: 1px solid rgba(90,69,53,0.12);
+    padding: 2px 7px; color: #5a4535;
+    white-space: nowrap; flex-shrink: 0;
 }
 
 /* ── Popup tap hint (replaces "View details" button) ── */
@@ -11117,12 +11126,12 @@ body.map-view-open .content {
 .hf-card-save-count {
     font-size: 11px;
     color: #7B2D45;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex: 1;
-    min-width: 0;
+}
+.cc-dist-chip {
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 /* ── Discover section tabs + "See all" wrapper ── */
