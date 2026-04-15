@@ -2671,11 +2671,11 @@
             background: linear-gradient(135deg, #ffffff 0%, #F5EDE8 100%);
             border: 2px solid #7B2D45;
             border-radius: 16px;
-            padding: 16px;
+            padding: 14px 12px;
             margin-bottom: 12px;
             cursor: pointer;
             display: flex;
-            gap: 14px;
+            gap: 12px;
             position: relative;
             transition: all 0.2s;
         }
@@ -2701,9 +2701,9 @@
         }
 
         .top-pick-photo {
-            width: 100px;
-            height: 100px;
-            border-radius: 12px;
+            width: 76px;
+            height: 76px;
+            border-radius: 10px;
             overflow: hidden;
             flex-shrink: 0;
             background: var(--mason);
@@ -2726,8 +2726,8 @@
         .top-pick-title {
             font-weight: 700;
             color: var(--ink);
-            font-size: 17px;
-            margin-bottom: 4px;
+            font-size: 15px;
+            margin-bottom: 3px;
         }
 
         .top-pick-meta {
@@ -2761,10 +2761,10 @@
         }
 
         .top-pick-reason {
-            background: rgba(123, 45, 69, 0.1);
+            background: rgba(123, 45, 69, 0.08);
             border-radius: 8px;
-            padding: 8px 10px;
-            font-size: 13px;
+            padding: 6px 9px;
+            font-size: 12px;
             color: #5A1F30;
             line-height: 1.4;
         }
@@ -5088,14 +5088,15 @@
 
             /* New card styles for mobile */
             .top-pick-card {
-                flex-direction: column;
-                padding: 14px;
+                flex-direction: row;
+                padding: 14px 12px;
             }
 
             .top-pick-photo {
-                width: 100%;
-                height: 120px;
-                margin-bottom: 10px;
+                width: 76px;
+                height: 76px;
+                margin-bottom: 0;
+                flex-shrink: 0;
             }
 
             .top-pick-badge {
