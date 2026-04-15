@@ -2431,6 +2431,81 @@ const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
+const FEEDBACK_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search-feedback';
+
+// ===== SEARCH EVENT / FEEDBACK LOOP =====
+// Client-generated UUID v4 for each search, sent as search_event_id in the
+// search request body AND used as the row PK for public.search_events.
+// This lets the frontend log feedback (thumbs, click, save) against the
+// search without waiting for a server round-trip.
+let currentSearchEventId = null;
+// Ordered list of item ids as shown in the last result render — position is
+// this array's index when logging feedback events.
+let currentResultPositions = [];
+// Which items have already received thumbs feedback this session, keyed by
+// `${search_event_id}:${item_id}` to avoid double-logging.
+const feedbackSent = new Set();
+
+function uuidv4() {
+    // Prefer the native crypto UUID if available (all modern browsers).
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        try { return crypto.randomUUID(); } catch (e) { /* fall through */ }
+    }
+    // Fallback — RFC 4122 v4 from crypto.getRandomValues.
+    const b = new Uint8Array(16);
+    (crypto && crypto.getRandomValues ? crypto : { getRandomValues: (a) => { for (let i=0;i<a.length;i++) a[i]=Math.floor(Math.random()*256); return a; } }).getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = [...b].map(x => x.toString(16).padStart(2,'0'));
+    return `${h.slice(0,4).join('')}-${h.slice(4,6).join('')}-${h.slice(6,8).join('')}-${h.slice(8,10).join('')}-${h.slice(10,16).join('')}`;
+}
+
+// Fire-and-forget feedback logger. Never blocks UI; swallows errors.
+// action: 'search_helpful' | 'search_unhelpful' (search-level)
+//       | 'click' | 'save' (item-level, reserved for future use)
+function logSearchFeedback(action, itemId, extraMeta) {
+    if (!currentSearchEventId || !action) return;
+    // Dedupe per (event, action) so a single search can't double-log Yes/No.
+    const key = `${currentSearchEventId}:${action}:${itemId || ''}`;
+    if (feedbackSent.has(key)) return;
+    feedbackSent.add(key);
+
+    const body = {
+        search_event_id: currentSearchEventId,
+        item_id: itemId || null,
+        position: null,
+        action,
+        user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
+        metadata: Object.assign({
+            ts: new Date().toISOString(),
+            lang: (typeof userPreferredLanguage !== 'undefined' ? userPreferredLanguage : 'en')
+        }, extraMeta || {})
+    };
+    try {
+        fetch(FEEDBACK_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            keepalive: true
+        }).catch(() => {});
+    } catch (e) { /* non-fatal */ }
+}
+
+// Called from the single "Was this helpful?" bar under each result set.
+// `helpful` is true for Yes, false for No. Replaces the bar with a thank-you.
+window.onSearchHelpful = function(btn, helpful) {
+    try {
+        const bar = btn.closest('.search-helpful-bar');
+        logSearchFeedback(helpful ? 'search_helpful' : 'search_unhelpful', null, {
+            query: (typeof sessionMessages !== 'undefined' && sessionMessages.length)
+                ? (sessionMessages[sessionMessages.length - 2] || {}).content || null
+                : null
+        });
+        if (bar) {
+            bar.innerHTML = '<span class="search-helpful-thanks">Thanks for the feedback.</span>';
+        }
+    } catch (e) { /* non-fatal */ }
+};
 
 // ── LANGUAGE SYSTEM ──────────────────────────────────────────────
 // ISO 639-1 code of the user's preferred display/translation language.
@@ -2544,25 +2619,55 @@ document.addEventListener('click', function(e) {
 const RELEVANCE_THRESHOLD = 0.28;
 
 let userLocation = { latitude: null, longitude: null, available: false };
+let locationPromise = null; // resolves once, shared by all callers
 
-// ── Silent background geolocation — runs on app load, no prompt shown ──────
-// Coords are stored in userLocation and attached to every search payload.
-// If the user denies permission, search still works — just without proximity ranking.
-(function initSilentGeolocation() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            userLocation.latitude  = pos.coords.latitude;
-            userLocation.longitude = pos.coords.longitude;
-            userLocation.available = true;
-            console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
-        },
-        function(err) {
-            // Denied or unavailable — silent fail, search works without proximity
-            console.log('📍 Location unavailable:', err.message);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
-    );
+// ── Geolocation (awaitable) ────────────────────────────────────────────────
+// Fires on page load AND on first user gesture (whichever succeeds first).
+// Silent page-load calls often fail without a user gesture on iOS/Safari,
+// so we retry on gesture. Search awaits this with a short timeout.
+function requestLocation() {
+    if (userLocation.available) return Promise.resolve(userLocation);
+    if (locationPromise) return locationPromise;
+    if (!navigator.geolocation) {
+        locationPromise = Promise.resolve(userLocation);
+        return locationPromise;
+    }
+    locationPromise = new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                userLocation.latitude  = pos.coords.latitude;
+                userLocation.longitude = pos.coords.longitude;
+                userLocation.available = true;
+                console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
+                resolve(userLocation);
+            },
+            function(err) {
+                console.log('📍 Location unavailable:', err.message);
+                // Reset so a future gesture-driven call can retry
+                locationPromise = null;
+                resolve(userLocation);
+            },
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+        );
+    });
+    return locationPromise;
+}
+
+// Fire once on app load (may fail silently on iOS without gesture)
+requestLocation();
+
+// Retry on first user gesture — this usually succeeds where page-load failed
+(function armGestureRetry() {
+    const tryAgain = () => {
+        if (!userLocation.available) {
+            locationPromise = null;
+            requestLocation();
+        }
+        window.removeEventListener('pointerdown', tryAgain);
+        window.removeEventListener('keydown', tryAgain);
+    };
+    window.addEventListener('pointerdown', tryAgain, { once: true });
+    window.addEventListener('keydown', tryAgain, { once: true });
 })();
 
 let allDiscoveries = [];
@@ -4095,7 +4200,7 @@ function buildMapPanelList() {
         var distText = distKm ? (distKm < 1 ? Math.round(distKm*1000)+'m' : distKm.toFixed(1)+'km') : '';
         var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-        var saveCount = d.endorsement_count || 1;
+        var saveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var savesLabel = saveCount === 1 ? '1 in your circle saved this' : saveCount + ' in your circle saved this';
         var imgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
         var noteText = d.notes || d.description || d.note || '';
@@ -4149,7 +4254,7 @@ function buildMapCardStrip() {
         var byText = isExtCard
             ? '<strong>Extended circle</strong>'
             : 'by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>';
-        var totalSaves = isExtCard ? ((endorsementsCache[d.id] || {}).count || 0) : (d.endorsement_count || 1);
+        var totalSaves = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var distText = d.distance_km ? (d.distance_km < 1 ? Math.round(d.distance_km*1000)+'m' : d.distance_km.toFixed(1)+'km') : '';
         var card = document.createElement('div');
         card.className = 'dmap-card';
@@ -4269,7 +4374,7 @@ function showMapPreviewCard(idx) {
     if (avStack && savesText) {
         var avInit = (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-        var saveCount = d.endorsement_count || 1;
+        var saveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         avStack.innerHTML = '<div class="dmap-prev-av" style="background:' + avCol + ';">' + avInit + '</div>';
         savesText.textContent = saveCount === 1
             ? '1 in your circle saved this'
@@ -4435,7 +4540,7 @@ function rebuildMapListsSorted(userLat, userLng) {
             var catLabel = d.category || d.type || '';
             var avInit2 = (d.added_by_name || '?').charAt(0).toUpperCase();
             var avCol2 = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-            var saveCount2 = d.endorsement_count || 1;
+            var saveCount2 = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
             var savesLabel2 = saveCount2 === 1 ? '1 in your circle saved this' : saveCount2 + ' in your circle saved this';
             var imgUrl2 = d.image_url || d.thumbnail_url || d.photo_url || '';
             var noteText2 = d.notes || d.description || d.note || '';
@@ -4555,7 +4660,7 @@ function initDiscoverMap() {
         var pinHtml = '<div style="width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:' + col + ';display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(42,30,20,0.28);border:2.5px solid rgba(250,246,238,0.92);"><span style="transform:rotate(45deg);font-size:10px;font-weight:700;color:white;font-family:Inter,sans-serif;line-height:1;">' + catInitial + '</span></div>';
         var icon = L.divIcon({ html: pinHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -34] });
 
-        var saveCount  = d.endorsement_count || 1;
+        var saveCount  = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
         var savesLabel = saveCount === 1 ? '1 save' : saveCount + ' saves';
         var distChip   = distText
             ? '<span class="odin-pop-chip odin-pop-dist-chip">' + distText + '</span>'
@@ -4591,7 +4696,7 @@ function initDiscoverMap() {
             var pCatLabel = d.category || d.type || '';
             var pAvInit = (d.added_by_name || '?').charAt(0).toUpperCase();
             var pAvCol = strColour ? strColour(d.added_by_name || '?') : '#7B2D45';
-            var pSaveCount = d.endorsement_count || 1;
+            var pSaveCount = (endorsementsCache[d.id] || {}).count || d.saves_count || 0;
             var pSavesLabel = pSaveCount === 1 ? '1 in your circle saved this' : pSaveCount + ' in your circle saved this';
             var pImgUrl = d.image_url || d.thumbnail_url || d.photo_url || '';
             var pNote = d.notes || d.description || d.note || '';
@@ -4641,7 +4746,7 @@ function initDiscoverMap() {
                 '</div>' +
                 '<div class="dmc-odin-row">' +
                     '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>' +
-                    (d.endorsement_count || 1) + ' save' + ((d.endorsement_count || 1) !== 1 ? 's' : '') +
+                    ((endorsementsCache[d.id] || {}).count || d.saves_count || 0) + ' save' + (((endorsementsCache[d.id] || {}).count || d.saves_count || 0) !== 1 ? 's' : '') +
                 '</div>';
             (function(i){ card.onclick = function(){ focusMapItem(i); }; })(idx);
             strip.appendChild(card);
@@ -5467,13 +5572,25 @@ function stopSearchMessages() {
     }
 }
 
-function sendMessage(text) {
+async function sendMessage(text) {
     const input = document.getElementById('messageInput');
     const query = text || input.value.trim();
     if (!query) return;
 
     // Reset translation cache for new search
     translationCache = {};
+
+    // Wait up to 2s for location on first search. If it resolves, great.
+    // If not (denied/slow), request proceeds with null — n8n's anchorless
+    // cluster filter handles the "no coords" case.
+    if (!userLocation.available) {
+        try {
+            await Promise.race([
+                requestLocation(),
+                new Promise(resolve => setTimeout(resolve, 2000))
+            ]);
+        } catch (e) { /* non-fatal */ }
+    }
 
     // Save to recent searches history
     if (typeof saveRecentSearch === 'function') saveRecentSearch(query);
@@ -5510,11 +5627,18 @@ function sendMessage(text) {
         ? [currentUser.id, ...directFriendIds]
         : [];
 
+    // Generate a fresh search_event_id for this search. n8n uses this as
+    // the PK on search_events, and the frontend uses it to attach feedback.
+    currentSearchEventId = uuidv4();
+    currentResultPositions = [];
+
     const body = {
         query,
         session_id: currentSessionId,
         conversation_history: sessionMessages,
         user_id: currentUser ? currentUser.id : null,
+        // Client-supplied search event id — server writes it as the row PK.
+        search_event_id: currentSearchEventId,
         // Visibility filter context sent to n8n so the semantic search
         // only runs against the corpus this user is allowed to see.
         allowed_user_ids: allowedUserIds,   // search ONLY these users' items
@@ -5615,6 +5739,10 @@ function sendMessage(text) {
             const hasRelevantResults = currentResults.length > 0
                 && (topScore >= RELEVANCE_THRESHOLD || currentResults.length === 1)
                 && !allResultsDropped;
+
+            // Record the display order of result ids for feedback logging.
+            // Thumbs / click handlers look up the item by index into this array.
+            currentResultPositions = currentResults.map(r => r.id || null);
 
             // Load endorsements for search results
             await loadEndorsementsForItems(currentResults);
@@ -5777,7 +5905,15 @@ function sendMessage(text) {
                     html += `<div class="search-map-container"><div id="${mapId}" style="width:100%;height:100%;"></div></div>`;
                 }
 
-                html += '</div></div>';
+                html += '</div>';
+                // Single search-level feedback bar. One tap per search.
+                html += `
+                    <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                        <span>Was this helpful?</span>
+                        <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                        <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                    </div>`;
+                html += '</div>';
                 container.innerHTML += html;
                 container.scrollTop = container.scrollHeight;
                 var moreScroll = container.querySelector('.more-options-scroll');
@@ -5860,6 +5996,11 @@ function sendMessage(text) {
                                 </div>
                             </div>
                         </div>` : ''}
+                        <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                            <span>Was this helpful?</span>
+                            <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                            <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                        </div>
                     </div>`;
 
                 container.innerHTML += noMatchHtml;
@@ -5914,6 +6055,11 @@ function sendMessage(text) {
                             ＋ Add a recommendation
                         </button>
                     </div>` : ''}
+                    <div class="search-helpful-bar" style="display:flex;align-items:center;gap:10px;padding:10px 12px;margin-top:10px;border-top:1px solid #efe7d8;font-size:13px;color:#6b5a45;">
+                        <span>Was this helpful?</span>
+                        <button type="button" onclick="onSearchHelpful(this, true)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">Yes</button>
+                        <button type="button" onclick="onSearchHelpful(this, false)" style="background:#fff;border:1px solid #d9cdb5;border-radius:14px;padding:4px 12px;cursor:pointer;font-size:13px;color:#3d2f1c;">No</button>
+                    </div>
                 </div>`;
 
             sessionMessages.push({
