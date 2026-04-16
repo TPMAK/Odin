@@ -6453,90 +6453,127 @@ let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
 // Resets UI state on every Add tab entry — hides URL bar, photo section,
 // clears active card, hides banner. Does NOT clear form field values.
 function _resetAddState() {
+    // Deactivate all entry cards
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
     try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
+    // Hide URL bar and photo section — both start hidden until a card is chosen
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    const photoSection = document.getElementById('photoChipSection');
+    if (photoSection) photoSection.classList.add('hidden');
     // Hide clipboard banner
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
     // Hide any leftover paste overlay
     const pasteOverlay = document.getElementById('pasteOverlay');
     if (pasteOverlay) pasteOverlay.remove();
-    // Reset photo preview + restore add photo button
-    const preview = document.getElementById('photoPreview');
-    if (preview) preview.style.display = 'none';
-    const addPhotoBtn = document.getElementById('addPhotoBtn');
-    if (addPhotoBtn) addPhotoBtn.style.display = '';
-    const orDivider = document.querySelector('.add-or-divider');
-    if (orDivider) orDivider.style.display = '';
-    _photoSource = 'none';
-    // Clear URL field
-    const urlInput = document.getElementById('url');
-    if (urlInput) urlInput.value = '';
     // Collapse progressive form steps
     _resetSteps();
     // Reset step indicator back to Step 1
     updateAddStep(1);
     // Reset OG fetch dedup guard
     _lastOGFetchedUrl = '';
-    // Init iOS paste button / clipboard detection
-    _initUnifiedInput();
 }
 
-// Legacy stub — entry chips removed in simplified flow
 function selectEntryChip(chip) {
-    // No-op: unified input flow handles link/photo automatically
-}
+    // Update active state
+    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+    const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
+    if (activeChip) activeChip.classList.add('active');
+    // Persist selection
+    try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
 
-// "No link? Just type it" — skip straight to Details step
-function skipToDetails() {
-    try { localStorage.setItem('odin_entry_chip', 'type'); } catch(e) {}
-    _revealWizardStep('wStep2');
-    updateAddStep(2);
-    setTimeout(() => {
-        const titleField = document.getElementById('title');
-        if (titleField) {
-            titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            titleField.focus();
+    // Show/hide photo hero section and url bar
+    const photoSection = document.getElementById('photoChipSection');
+    const urlHeroBar = document.getElementById('urlHeroBar');
+    if (chip === 'photo') {
+        if (photoSection) photoSection.classList.remove('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    } else if (chip === 'link') {
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+    } else {
+        if (photoSection) photoSection.classList.add('hidden');
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+    }
+
+    // Chip-specific: handle URL input focus, location prefill
+    if (chip === 'link') {
+        const urlInput = document.getElementById('url');
+        if (urlInput) setTimeout(() => urlInput.focus(), 50);
+        var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+        var pasteBtn = document.getElementById('iosPasteBtn');
+        if (_iosDevice) {
+            if (pasteBtn) {
+                pasteBtn.classList.remove('hidden');
+                pasteBtn.onclick = function() {
+                    if (!navigator.clipboard || !navigator.clipboard.readText) return;
+                    navigator.clipboard.readText()
+                        .then(function(text) {
+                            if (!text) return;
+                            var trimmed = text.trim();
+                            if (!urlInput) return;
+                            urlInput.value = trimmed;
+                            urlInput.focus();
+                            pasteBtn.classList.add('hidden');
+                            if (/^https?:\/\//i.test(trimmed)) {
+                                _lastOGFetchedUrl = trimmed;
+                                fetchAndPrefillOG(trimmed);
+                            }
+                        })
+                        .catch(function() {});
+                };
+            }
+        } else {
+            if (pasteBtn) pasteBtn.classList.add('hidden');
+            if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
+                navigator.clipboard.readText()
+                    .then(function(text) {
+                        if (!text) return;
+                        var trimmed = text.trim();
+                        if (!/^https?:\/\//i.test(trimmed)) return;
+                        _showClipBanner(trimmed);
+                    })
+                    .catch(function() {});
+            }
         }
-    }, 200);
-}
+    } else if (chip === 'here') {
+        prefillCaptureLocation();
+    }
 
-// New flow: initialise iOS paste button on load
-function _initUnifiedInput() {
-    var urlInput = document.getElementById('url');
-    var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    var pasteBtn = document.getElementById('iosPasteBtn');
-    if (_iosDevice && pasteBtn && urlInput) {
-        pasteBtn.classList.remove('hidden');
-        pasteBtn.onclick = function() {
-            if (!navigator.clipboard || !navigator.clipboard.readText) return;
-            navigator.clipboard.readText()
-                .then(function(text) {
-                    if (!text) return;
-                    var trimmed = text.trim();
-                    urlInput.value = trimmed;
-                    urlInput.focus();
-                    pasteBtn.classList.add('hidden');
-                    if (/^https?:\/\//i.test(trimmed)) {
-                        _lastOGFetchedUrl = trimmed;
-                        fetchAndPrefillOG(trimmed);
-                    }
-                })
-                .catch(function() {});
-        };
-    } else if (!_iosDevice && urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
-        navigator.clipboard.readText()
-            .then(function(text) {
-                if (!text) return;
-                var trimmed = text.trim();
-                if (!/^https?:\/\//i.test(trimmed)) return;
-                _showClipBanner(trimmed);
-            })
-            .catch(function() {});
+    // For non-link chips, auto-advance to Step 2 (Details) after chip selection
+    // Link chip waits for OG fetch to complete before advancing
+    if (chip !== 'link') {
+        setTimeout(() => {
+            _revealWizardStep('wStep2');
+            updateAddStep(2);
+            const titleField = document.getElementById('title');
+            if (titleField) titleField.focus();
+        }, 200);
     }
 }
 
 function _restoreEntryChip() {
-    // No-op: entry chips removed in simplified flow
+    try {
+        const saved = localStorage.getItem('odin_entry_chip');
+        if (saved) {
+            document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+            const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
+            if (chip) chip.classList.add('active');
+            const photoSection = document.getElementById('photoChipSection');
+            const urlHeroBar = document.getElementById('urlHeroBar');
+            if (saved === 'photo') {
+                if (photoSection) photoSection.classList.remove('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            } else if (saved === 'link') {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            } else {
+                if (photoSection) photoSection.classList.add('hidden');
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            }
+        }
+    } catch(e) {}
 }
 
 // Show the "Found a link" banner for a given URL string
@@ -6557,6 +6594,7 @@ function _showClipBanner(trimmed) {
     if (useBtn) {
         useBtn.onclick = function() {
             banner.classList.add('hidden');
+            selectEntryChip('link');
             var urlInput = document.getElementById('url');
             if (urlInput) urlInput.value = trimmed;
             _lastOGFetchedUrl = trimmed;
@@ -6595,12 +6633,12 @@ function handlePhotoOptLink(val) {
 
 // ===== PROGRESSIVE STEP REVEAL =====
 // ── ADD STEP INDICATOR ──────────────────────────────────────────
-// Steps: 1=How, 2=Your Take, 3=Details, 4=Save
+// Steps: 1=How, 2=Details, 3=Your Note, 4=Save
 // Steps < n get a checkmark (done); step n gets active style; steps > n are muted
 const _STEP_ICONS = [
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
-    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
 ];
 const _STEP_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -7093,6 +7131,7 @@ let _photoSource = 'none'; // 'none' | 'og' | 'user'
 function preloadOGPhoto(imageUrl) {
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('previewImg');
+    const uploadZone = document.getElementById('photoUploadZone');
     const badge = document.getElementById('photoSourceBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
 
@@ -7100,11 +7139,7 @@ function preloadOGPhoto(imageUrl) {
 
     previewImg.src = imageUrl;
     preview.style.display = 'block';
-    // Hide "Add a photo instead" button + OR divider since OG photo is shown
-    const addPhotoBtn = document.getElementById('addPhotoBtn');
-    if (addPhotoBtn) addPhotoBtn.style.display = 'none';
-    const orDivider = document.querySelector('.add-or-divider');
-    if (orDivider) orDivider.style.display = 'none';
+    if (uploadZone) uploadZone.style.display = 'none';
     if (badge) { badge.textContent = 'From link'; badge.style.display = 'block'; }
     if (ogUrlField) ogUrlField.value = imageUrl;
     _photoSource = 'og';
@@ -7127,11 +7162,9 @@ function removePhoto() {
     if (ogUrlField) ogUrlField.value = '';
     if (photoInput) photoInput.value = '';
     _photoSource = 'none';
-    // Restore the "Add a photo instead" button and OR divider
-    const addPhotoBtn = document.getElementById('addPhotoBtn');
-    if (addPhotoBtn) addPhotoBtn.style.display = '';
-    const orDivider = document.querySelector('.add-or-divider');
-    if (orDivider) orDivider.style.display = '';
+    // Restore the tap-to-add zone in step 1
+    const heroZone = document.getElementById('photoHeroZone');
+    if (heroZone) heroZone.classList.remove('hidden');
 }
 
 function resetOGFetchState() {
@@ -7441,12 +7474,9 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (previewImg) previewImg.src = ev.target.result;
             if (preview) preview.style.display = 'block';
 
-            // Hide the "Add a photo instead" button (replaced by the preview)
-            const addPhotoBtn = document.getElementById('addPhotoBtn');
-            if (addPhotoBtn) addPhotoBtn.style.display = 'none';
-            // Hide the OR divider
-            const orDivider = document.querySelector('.add-or-divider');
-            if (orDivider) orDivider.style.display = 'none';
+            // Hide the tap-to-add zone (now replaced by the preview)
+            const heroZone = document.getElementById('photoHeroZone');
+            if (heroZone) heroZone.classList.add('hidden');
 
             // Mark as user photo, clear any OG image URL
             _photoSource = 'user';
@@ -7454,9 +7484,6 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (ogUrlField) ogUrlField.value = '';
             const badge = document.getElementById('photoSourceBadge');
             if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
-
-            // Store entry method for submit
-            try { localStorage.setItem('odin_entry_chip', 'photo'); } catch(e) {}
 
             // Reveal Step 2 (Details) so user can name it + pick category
             _revealWizardStep('wStep2');

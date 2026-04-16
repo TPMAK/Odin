@@ -4045,11 +4045,19 @@
 
         /* ===== TAKE SUBLABEL ===== */
         .take-sublabel {
-            font-size: 11px;
-            color: #9A8A8E;
-            margin: 2px 0 8px;
+            font-size: 14px;
+            color: #7B6B6E;
+            margin: 4px 0 10px;
             font-weight: 400;
             line-height: 1.4;
+        }
+        /* Make YOUR NOTE label large and prominent as a step heading */
+        .form-group-take .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
         }
 
         /* ===== ENTRY CARDS ===== */
@@ -4661,7 +4669,7 @@
 
         .field-label-inline {
             display: block;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--muted);
             text-transform: uppercase;
@@ -4679,11 +4687,11 @@
 
         .your-take-textarea {
             width: 100%;
-            padding: 10px 13px;
-            border: 1.5px solid var(--border);
+            padding: 14px 16px;
+            border: 2px solid var(--border);
             background: var(--surface);
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 12px;
+            font-size: 16px;
             font-family: inherit;
             color: var(--ink);
             resize: none;           /* remove manual resize — JS handles growth */
@@ -4696,7 +4704,7 @@
             line-height: 1.5;
         }
         .your-take-textarea::placeholder {
-            font-size: 15px;
+            font-size: 16px;
             color: #9A8B7C;
             line-height: 1.5;
         }
