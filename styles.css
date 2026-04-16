@@ -3976,7 +3976,7 @@
 
         /* Labels under each icon */
         .add-step-label {
-            font-size: 10px;
+            font-size: 13px;
             font-weight: 500;
             color: #B08090;
             letter-spacing: 0.01em;
@@ -4106,7 +4106,7 @@
         .entry-card-icon--here  { background: #EBF5EC; color: #2D7B3A; }
         .entry-card-icon--type  { background: #EDE8F5; color: #4B2D7B; }
         .entry-card-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--ink);
             line-height: 1.2;
@@ -4241,7 +4241,7 @@
             min-width: 0;
             border: none;
             background: transparent;
-            font-size: 14px;
+            font-size: 15px;
             padding: 2px 2px 2px 32px;
             color: var(--ink);
             font-family: 'Inter', sans-serif;
@@ -4249,7 +4249,7 @@
         }
 
         .url-hero-bar input::placeholder {
-            color: #B8A99A;
+            color: #9A8B7C;
         }
 
         .url-hero-input-row {
@@ -4516,7 +4516,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: #7B2D45;
             text-transform: uppercase;
@@ -4563,7 +4563,7 @@
             border-color: #7B2D45;
             box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
         }
-        .title-input-large::placeholder { color: #C4B9AD; }
+        .title-input-large::placeholder { color: #9A8B7C; }
 
         /* Clear prefill button — shown after OG auto-fill */
         .clear-prefill-btn {
@@ -4617,7 +4617,7 @@
             border: 1.5px solid var(--border);
             background: var(--surface);
             border-radius: 10px;
-            font-size: 13px;
+            font-size: 15px;
             font-family: inherit;
             color: var(--ink);
             resize: none;           /* remove manual resize — JS handles growth */
@@ -4630,8 +4630,8 @@
             line-height: 1.5;
         }
         .your-take-textarea::placeholder {
-            font-size: 13px;
-            color: #C4B9AD;
+            font-size: 15px;
+            color: #9A8B7C;
             line-height: 1.5;
         }
         .your-take-textarea:focus {
@@ -4639,7 +4639,7 @@
             border-color: #7B2D45;
             box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
         }
-        .your-take-textarea::placeholder { color: #C4B9AD; }
+        .your-take-textarea::placeholder { color: #9A8B7C; }
 
         .address-group { margin-bottom: 10px; }
 
@@ -4654,7 +4654,7 @@
 
         /* ── Category Pills ── */
         .category-pills-label {
-            font-size: 12px;
+            font-size: 14px;
             color: var(--muted);
             margin-bottom: 8px;
             font-family: 'DM Sans', sans-serif;

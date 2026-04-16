@@ -3052,8 +3052,10 @@
         }
 
         // Also handle input focus/blur on messageInput for safety
+        // Only treat as keyboard-open on touch devices (not desktop)
+        var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         document.addEventListener('focusin', function(e) {
-            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+            if (isTouchDevice && e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
                 document.body.classList.add('keyboard-open');
             }
         });
