@@ -6453,133 +6453,90 @@ let _lastOGFetchedUrl = ''; // declared here so clipboard handler can access it
 // Resets UI state on every Add tab entry — hides URL bar, photo section,
 // clears active card, hides banner. Does NOT clear form field values.
 function _resetAddState() {
-    // Deactivate all entry cards
-    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
     try { localStorage.removeItem('odin_entry_chip'); } catch(e) {}
-    // Hide URL bar and photo section — both start hidden until a card is chosen
-    const urlHeroBar = document.getElementById('urlHeroBar');
-    if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    const photoSection = document.getElementById('photoChipSection');
-    if (photoSection) photoSection.classList.add('hidden');
     // Hide clipboard banner
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
     // Hide any leftover paste overlay
     const pasteOverlay = document.getElementById('pasteOverlay');
     if (pasteOverlay) pasteOverlay.remove();
+    // Reset photo preview + restore add photo button
+    const preview = document.getElementById('photoPreview');
+    if (preview) preview.style.display = 'none';
+    const addPhotoBtn = document.getElementById('addPhotoBtn');
+    if (addPhotoBtn) addPhotoBtn.style.display = '';
+    const orDivider = document.querySelector('.add-or-divider');
+    if (orDivider) orDivider.style.display = '';
+    _photoSource = 'none';
+    // Clear URL field
+    const urlInput = document.getElementById('url');
+    if (urlInput) urlInput.value = '';
     // Collapse progressive form steps
     _resetSteps();
     // Reset step indicator back to Step 1
     updateAddStep(1);
     // Reset OG fetch dedup guard
     _lastOGFetchedUrl = '';
+    // Init iOS paste button / clipboard detection
+    _initUnifiedInput();
 }
 
+// Legacy stub — entry chips removed in simplified flow
 function selectEntryChip(chip) {
-    // Update active state
-    document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
-    const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
-    if (activeChip) activeChip.classList.add('active');
-    // Persist selection
-    try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+    // No-op: unified input flow handles link/photo automatically
+}
 
-    // Show/hide photo hero section and url bar
-    const photoSection = document.getElementById('photoChipSection');
-    const urlHeroBar = document.getElementById('urlHeroBar');
-    const detailsPhotoGroup = document.getElementById('detailsPhotoGroup');
-    if (chip === 'photo') {
-        if (photoSection) photoSection.classList.remove('hidden');
-        if (urlHeroBar) urlHeroBar.classList.add('hidden');
-        // Photo chosen in step 1 — hide the duplicate upload zone in step 3
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = 'none';
-    } else if (chip === 'link') {
-        if (photoSection) photoSection.classList.add('hidden');
-        if (urlHeroBar) urlHeroBar.classList.remove('hidden');
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
-    } else {
-        if (photoSection) photoSection.classList.add('hidden');
-        if (urlHeroBar) urlHeroBar.classList.add('hidden');
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
-    }
-
-    // Chip-specific: handle URL input focus, location prefill
-    if (chip === 'link') {
-        const urlInput = document.getElementById('url');
-        if (urlInput) setTimeout(() => urlInput.focus(), 50);
-        var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-        var pasteBtn = document.getElementById('iosPasteBtn');
-        if (_iosDevice) {
-            if (pasteBtn) {
-                pasteBtn.classList.remove('hidden');
-                pasteBtn.onclick = function() {
-                    if (!navigator.clipboard || !navigator.clipboard.readText) return;
-                    navigator.clipboard.readText()
-                        .then(function(text) {
-                            if (!text) return;
-                            var trimmed = text.trim();
-                            if (!urlInput) return;
-                            urlInput.value = trimmed;
-                            urlInput.focus();
-                            pasteBtn.classList.add('hidden');
-                            if (/^https?:\/\//i.test(trimmed)) {
-                                _lastOGFetchedUrl = trimmed;
-                                fetchAndPrefillOG(trimmed);
-                            }
-                        })
-                        .catch(function() {});
-                };
-            }
-        } else {
-            if (pasteBtn) pasteBtn.classList.add('hidden');
-            if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
-                navigator.clipboard.readText()
-                    .then(function(text) {
-                        if (!text) return;
-                        var trimmed = text.trim();
-                        if (!/^https?:\/\//i.test(trimmed)) return;
-                        _showClipBanner(trimmed);
-                    })
-                    .catch(function() {});
-            }
-        }
-    } else if (chip === 'here') {
-        prefillCaptureLocation();
-    }
-
-    // Auto-advance to Step 2 (Your Take) after chip selection
-    // Small delay so the chip section animation plays first
+// "No link? Just type it" — skip straight to Details step
+function skipToDetails() {
+    try { localStorage.setItem('odin_entry_chip', 'type'); } catch(e) {}
+    _revealWizardStep('wStep2');
+    updateAddStep(2);
     setTimeout(() => {
-        _revealWizardStep('wStep2');
-        updateAddStep(2);
-        // Focus the textarea
-        const takeField = document.getElementById('personalNote');
-        if (takeField) takeField.focus();
+        const titleField = document.getElementById('title');
+        if (titleField) {
+            titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            titleField.focus();
+        }
     }, 200);
 }
 
+// New flow: initialise iOS paste button on load
+function _initUnifiedInput() {
+    var urlInput = document.getElementById('url');
+    var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+    var pasteBtn = document.getElementById('iosPasteBtn');
+    if (_iosDevice && pasteBtn && urlInput) {
+        pasteBtn.classList.remove('hidden');
+        pasteBtn.onclick = function() {
+            if (!navigator.clipboard || !navigator.clipboard.readText) return;
+            navigator.clipboard.readText()
+                .then(function(text) {
+                    if (!text) return;
+                    var trimmed = text.trim();
+                    urlInput.value = trimmed;
+                    urlInput.focus();
+                    pasteBtn.classList.add('hidden');
+                    if (/^https?:\/\//i.test(trimmed)) {
+                        _lastOGFetchedUrl = trimmed;
+                        fetchAndPrefillOG(trimmed);
+                    }
+                })
+                .catch(function() {});
+        };
+    } else if (!_iosDevice && urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText()
+            .then(function(text) {
+                if (!text) return;
+                var trimmed = text.trim();
+                if (!/^https?:\/\//i.test(trimmed)) return;
+                _showClipBanner(trimmed);
+            })
+            .catch(function() {});
+    }
+}
+
 function _restoreEntryChip() {
-    try {
-        const saved = localStorage.getItem('odin_entry_chip');
-        if (saved) {
-            // Just restore visual active state, don't re-trigger side effects
-            document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
-            const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
-            if (chip) chip.classList.add('active');
-            // Re-show appropriate sections based on saved selection
-            const photoSection = document.getElementById('photoChipSection');
-            const urlHeroBar = document.getElementById('urlHeroBar');
-            if (saved === 'photo') {
-                if (photoSection) photoSection.classList.remove('hidden');
-                if (urlHeroBar) urlHeroBar.classList.add('hidden');
-            } else if (saved === 'link') {
-                if (photoSection) photoSection.classList.add('hidden');
-                if (urlHeroBar) urlHeroBar.classList.remove('hidden');
-            } else {
-                if (photoSection) photoSection.classList.add('hidden');
-                if (urlHeroBar) urlHeroBar.classList.add('hidden');
-            }
-        }
-    } catch(e) {}
+    // No-op: entry chips removed in simplified flow
 }
 
 // Show the "Found a link" banner for a given URL string
@@ -6600,7 +6557,6 @@ function _showClipBanner(trimmed) {
     if (useBtn) {
         useBtn.onclick = function() {
             banner.classList.add('hidden');
-            selectEntryChip('link');
             var urlInput = document.getElementById('url');
             if (urlInput) urlInput.value = trimmed;
             _lastOGFetchedUrl = trimmed;
@@ -6683,9 +6639,17 @@ function _revealWizardStep(id) {
 }
 
 // Called by "Next" buttons — advances to a given step number
+// New flow: 1=Link/Photo, 2=Details(title+category), 3=Your Note, 4=Privacy+Save
 function wizardAdvance(toStep) {
     if (toStep === 3) {
-        // Validate Your Take before advancing
+        // Advancing from Details to Your Note — no validation needed
+        _revealWizardStep('wStep3');
+        updateAddStep(3);
+        // Focus the note textarea
+        const takeField = document.getElementById('personalNote');
+        if (takeField) takeField.focus();
+    } else if (toStep === 4) {
+        // Validate Your Note before advancing to Save
         const takeVal = document.getElementById('personalNote').value.trim();
         if (!takeVal) {
             const textarea = document.getElementById('personalNote');
@@ -6693,7 +6657,7 @@ function wizardAdvance(toStep) {
             textarea.style.borderColor = '#7B2D45';
             textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
             const formMsg = document.getElementById('formMessage');
-            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your take first — even one line helps.</p>';
+            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your note first — even one line helps.</p>';
             setTimeout(() => {
                 textarea.style.borderColor = '';
                 textarea.style.boxShadow = '';
@@ -6702,9 +6666,6 @@ function wizardAdvance(toStep) {
         }
         const formMsg = document.getElementById('formMessage');
         if (formMsg) formMsg.innerHTML = '';
-        _revealWizardStep('wStep3');
-        updateAddStep(3);
-    } else if (toStep === 4) {
         _revealWizardStep('wStep4');
         updateAddStep(4);
         // Scroll to Save button
@@ -6930,6 +6891,8 @@ async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
     if (_ogFetchInFlight) return;  // iOS duplicate-call guard
     _ogFetchInFlight = true;
+    // Mark entry type as link for submit logic
+    try { localStorage.setItem('odin_entry_chip', 'link'); } catch(e) {}
 
     const titleField = document.getElementById('title');
     // personalNote is now the single user-facing field (merged with description)
@@ -7093,17 +7056,16 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // OG fetch complete — reveal Step 2 (Your Take) so user can add their note.
-        // Step 3 (Details) is pre-filled and will be revealed when user taps "Next".
+        // OG fetch complete — reveal Step 2 (Details: title + category).
         _revealWizardStep('wStep2');
         updateAddStep(2);
 
-        // Focus Your Take — the user's voice is the whole point.
+        // Focus title field so user can review/edit the auto-filled name.
         setTimeout(() => {
-            const takeField = document.getElementById('personalNote');
-            if (takeField) {
-                takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                takeField.focus();
+            const titleField = document.getElementById('title');
+            if (titleField) {
+                titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                titleField.focus();
             }
         }, 300);
 
@@ -7131,7 +7093,6 @@ let _photoSource = 'none'; // 'none' | 'og' | 'user'
 function preloadOGPhoto(imageUrl) {
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('previewImg');
-    const uploadZone = document.getElementById('photoUploadZone');
     const badge = document.getElementById('photoSourceBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
 
@@ -7139,7 +7100,11 @@ function preloadOGPhoto(imageUrl) {
 
     previewImg.src = imageUrl;
     preview.style.display = 'block';
-    if (uploadZone) uploadZone.style.display = 'none';
+    // Hide "Add a photo instead" button + OR divider since OG photo is shown
+    const addPhotoBtn = document.getElementById('addPhotoBtn');
+    if (addPhotoBtn) addPhotoBtn.style.display = 'none';
+    const orDivider = document.querySelector('.add-or-divider');
+    if (orDivider) orDivider.style.display = 'none';
     if (badge) { badge.textContent = 'From link'; badge.style.display = 'block'; }
     if (ogUrlField) ogUrlField.value = imageUrl;
     _photoSource = 'og';
@@ -7152,21 +7117,21 @@ function replacePhoto() {
 function removePhoto() {
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('previewImg');
-    const uploadZone = document.getElementById('photoUploadZone');
     const badge = document.getElementById('photoSourceBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
     const photoInput = document.getElementById('photo');
 
     if (preview) preview.style.display = 'none';
     if (previewImg) previewImg.src = '';
-    if (uploadZone) uploadZone.style.display = 'flex';
     if (badge) badge.style.display = 'none';
     if (ogUrlField) ogUrlField.value = '';
     if (photoInput) photoInput.value = '';
     _photoSource = 'none';
-    // Restore the tap-to-add zone in step 1
-    const heroZone = document.getElementById('photoHeroZone');
-    if (heroZone) heroZone.classList.remove('hidden');
+    // Restore the "Add a photo instead" button and OR divider
+    const addPhotoBtn = document.getElementById('addPhotoBtn');
+    if (addPhotoBtn) addPhotoBtn.style.display = '';
+    const orDivider = document.querySelector('.add-or-divider');
+    if (orDivider) orDivider.style.display = '';
 }
 
 function resetOGFetchState() {
@@ -7277,8 +7242,10 @@ async function submitDiscovery(e) {
     const titleField = document.getElementById('title');
     let titleVal = titleField ? titleField.value.trim() : '';
     if (!titleVal) {
-        const activeChip = document.querySelector('.entry-card.active');
-        const chipType = activeChip ? activeChip.dataset.chip : '';
+        let chipType = '';
+        try { chipType = localStorage.getItem('odin_entry_chip') || ''; } catch(e) {}
+        // If user uploaded a photo, auto-detect
+        if (!chipType && _photoSource === 'user') chipType = 'photo';
         if (chipType === 'photo') {
             // "Photo — 5 Apr 2026"
             const now = new Date();
@@ -7474,13 +7441,12 @@ document.getElementById('photo').addEventListener('change', function(e) {
             if (previewImg) previewImg.src = ev.target.result;
             if (preview) preview.style.display = 'block';
 
-            // Hide the tap-to-add zone (now replaced by the preview)
-            const heroZone = document.getElementById('photoHeroZone');
-            if (heroZone) heroZone.classList.add('hidden');
-
-            // Hide step 3 upload zone — photo is already chosen
-            const uploadZone = document.getElementById('photoUploadZone');
-            if (uploadZone) uploadZone.style.display = 'none';
+            // Hide the "Add a photo instead" button (replaced by the preview)
+            const addPhotoBtn = document.getElementById('addPhotoBtn');
+            if (addPhotoBtn) addPhotoBtn.style.display = 'none';
+            // Hide the OR divider
+            const orDivider = document.querySelector('.add-or-divider');
+            if (orDivider) orDivider.style.display = 'none';
 
             // Mark as user photo, clear any OG image URL
             _photoSource = 'user';
@@ -7489,8 +7455,19 @@ document.getElementById('photo').addEventListener('change', function(e) {
             const badge = document.getElementById('photoSourceBadge');
             if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
 
-            // Title for photo flow is auto-generated at submit time ("Photo — D Mon YYYY")
-            // Do NOT prefill from filename.
+            // Store entry method for submit
+            try { localStorage.setItem('odin_entry_chip', 'photo'); } catch(e) {}
+
+            // Reveal Step 2 (Details) so user can name it + pick category
+            _revealWizardStep('wStep2');
+            updateAddStep(2);
+            setTimeout(() => {
+                const titleField = document.getElementById('title');
+                if (titleField) {
+                    titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    titleField.focus();
+                }
+            }, 300);
         };
         reader.readAsDataURL(file);
     }

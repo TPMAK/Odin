@@ -4121,6 +4121,72 @@
             color: #7B2D45;
         }
 
+        /* ===== UNIFIED INPUT: OR DIVIDER + PHOTO BUTTON ===== */
+        .unified-input-wrap {
+            margin-bottom: 8px;
+        }
+        .add-or-divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 14px 0;
+            color: var(--muted);
+            font-size: 13px;
+            font-family: 'DM Sans', sans-serif;
+        }
+        .add-or-divider::before,
+        .add-or-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .add-photo-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 13px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+        }
+        .add-photo-btn:hover {
+            border-color: #7B2D45;
+            color: #7B2D45;
+        }
+        .add-photo-btn:active {
+            transform: scale(0.98);
+        }
+
+        .skip-link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .skip-link-btn:hover {
+            color: #7B2D45;
+        }
+
         /* ===== PROGRESSIVE FADE-IN ===== */
         @keyframes odin-fadein {
             from { opacity: 0; transform: translateY(8px); }
