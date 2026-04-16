@@ -6766,6 +6766,11 @@ function _resetSteps() {
     _categoryRevealed = false;
     _noteRevealed = false;
     _privacyRevealed = false;
+    // Reset autofill hint and clear button (leftover from link flow)
+    const _afHint = document.getElementById('titleAutofillHint');
+    if (_afHint) _afHint.classList.add('hidden');
+    const _cpBtn = document.getElementById('clearPrefillBtn');
+    if (_cpBtn) _cpBtn.classList.add('hidden');
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====

@@ -3841,12 +3841,12 @@
 
         .submit-btn {
             width: 100%;
-            padding: 13px;
+            padding: 15px;
             background: linear-gradient(135deg, #7B2D45 0%, #9B3A5A 100%);
             color: #ffffff;
             border: none;
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.25s;
@@ -3888,12 +3888,12 @@
         }
         .clip-detect-inner { flex: 1; min-width: 0; }
         .clip-detect-head {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: #1a1208;
         }
         .clip-detect-url {
-            font-size: 11px;
+            font-size: 13px;
             color: #9a8f82;
             margin-top: 1px;
             white-space: nowrap;
@@ -3901,10 +3901,10 @@
             text-overflow: ellipsis;
         }
         .clip-detect-use {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             color: #7B2D45;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border: 1px solid #7B2D45;
             border-radius: 8px;
             background: transparent;
@@ -4059,6 +4059,30 @@
             letter-spacing: 0.5px;
             margin-bottom: 2px;
         }
+        /* ADDRESS label — same prominent step heading style */
+        .address-group > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        /* WHO CAN SEE THIS label — same prominent step heading style */
+        .visibility-group > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        /* TITLE label — same prominent step heading style */
+        .form-group-title > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
 
         /* ===== ENTRY CARDS ===== */
         .entry-cards-wrap {
@@ -4129,72 +4153,6 @@
             color: #7B2D45;
         }
 
-        /* ===== UNIFIED INPUT: OR DIVIDER + PHOTO BUTTON ===== */
-        .unified-input-wrap {
-            margin-bottom: 8px;
-        }
-        .add-or-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 14px 0;
-            color: var(--muted);
-            font-size: 13px;
-            font-family: 'DM Sans', sans-serif;
-        }
-        .add-or-divider::before,
-        .add-or-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-        .add-photo-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 13px 16px;
-            border: 1.5px solid var(--border);
-            border-radius: 12px;
-            background: var(--surface);
-            color: var(--muted);
-            font-size: 14px;
-            font-weight: 500;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            transition: border-color 0.2s, color 0.2s;
-        }
-        .add-photo-btn:hover {
-            border-color: #7B2D45;
-            color: #7B2D45;
-        }
-        .add-photo-btn:active {
-            transform: scale(0.98);
-        }
-
-        .skip-link-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            width: 100%;
-            margin-top: 12px;
-            padding: 8px;
-            background: transparent;
-            border: none;
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 500;
-            font-family: 'DM Sans', sans-serif;
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .skip-link-btn:hover {
-            color: #7B2D45;
-        }
-
         /* ===== PROGRESSIVE FADE-IN ===== */
         @keyframes odin-fadein {
             from { opacity: 0; transform: translateY(8px); }
@@ -4206,6 +4164,10 @@
         .step-reveal {
             display: block;
             animation: odin-fadein 0.28s ease both;
+        }
+        /* Sub-step spacing — clear visual separation between progressive sections */
+        .sub-step.step-reveal {
+            margin-top: 16px;
         }
 
         /* ===== PHOTO CHIP SECTION ===== */
@@ -4243,7 +4205,7 @@
             gap: 8px;
         }
         .photo-hero-filename {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: #6b5e52;
             flex: 1;
@@ -4257,7 +4219,7 @@
             flex-shrink: 0;
         }
         .photo-hero-actions button {
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             background: none;
             border: none;
@@ -4279,7 +4241,7 @@
             flex: 1;
             border: none;
             background: transparent;
-            font-size: 12px;
+            font-size: 13px;
             color: #6b5e52;
             font-family: inherit;
             outline: none;
@@ -4351,7 +4313,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             opacity: 0.7;
             margin-top: 8px;
@@ -4407,7 +4369,7 @@
         }
 
         .og-preview-desc {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 3px;
             display: -webkit-box;
@@ -4417,7 +4379,7 @@
         }
 
         .og-preview-url {
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             margin-top: 4px;
             opacity: 0.7;
@@ -4515,7 +4477,7 @@
         }
 
         .url-hero-divider span {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -4556,12 +4518,12 @@
             background: var(--surface);
         }
         .autofill-hint {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
-            margin: 4px 0 0;
+            margin: 6px 0 0;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
         .autofill-hint::before {
             content: '';
@@ -4650,7 +4612,7 @@
             border: 1.5px solid var(--border);
             border-radius: 8px;
             color: var(--muted);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
@@ -4681,7 +4643,7 @@
             font-weight: 400;
             text-transform: none;
             letter-spacing: 0;
-            font-size: 11px;
+            font-size: 13px;
             color: #aaa;
         }
 
@@ -4856,7 +4818,7 @@
             padding: 10px;
             background: var(--surface);
             border: none;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--muted);
             cursor: pointer;
@@ -4876,6 +4838,25 @@
         .photo-action-remove:hover {
             background: rgba(220, 38, 38, 0.05);
             color: #dc2626;
+        }
+
+        /* ── Mobile tweaks for Add flow ── */
+        @media (max-width: 414px) {
+            .category-pills {
+                gap: 6px;
+            }
+            .category-pill {
+                padding: 10px 8px;
+                font-size: 13px;
+                gap: 4px;
+            }
+            .entry-card {
+                padding: 12px 6px;
+                min-height: 80px;
+            }
+            .entry-card-label {
+                font-size: 12px;
+            }
         }
 
         /* ── Save Success Overlay ── */
@@ -5036,7 +5017,7 @@
             transition: background 0.2s, border-color 0.2s;
         }
         .detect-loc-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             font-family: 'Inter', sans-serif;
             color: #7B2D45;
@@ -5094,7 +5075,7 @@
         }
 
         .address-option-sub {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 2px;
         }
@@ -10526,9 +10507,9 @@ body.map-view-open .content {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 10px;
+    padding: 12px 10px;
     border: 1.5px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--bg);
     cursor: pointer;
     transition: all 0.18s;
@@ -10542,7 +10523,7 @@ body.map-view-open .content {
     background: rgba(123,45,69,0.07);
 }
 .vis-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--muted);
     transition: color 0.18s;
@@ -10552,9 +10533,9 @@ body.map-view-open .content {
     font-weight: 600;
 }
 .vis-hint {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
-    margin: 5px 0 0;
+    margin: 6px 0 0;
     line-height: 1.4;
     transition: color 0.2s, background 0.2s;
 }
