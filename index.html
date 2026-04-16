@@ -1347,16 +1347,16 @@
             <div class="add-step-line"></div>
             <div class="add-step" id="addStep2" data-step="2">
                 <div class="add-step-circle">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                 </div>
-                <span class="add-step-label">Your Note</span>
+                <span class="add-step-label">Details</span>
             </div>
             <div class="add-step-line"></div>
             <div class="add-step" id="addStep3" data-step="3">
                 <div class="add-step-circle">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </div>
-                <span class="add-step-label">Details</span>
+                <span class="add-step-label">Your Note</span>
             </div>
             <div class="add-step-line"></div>
             <div class="add-step" id="addStep4" data-step="4">
@@ -2185,13 +2185,11 @@
 
                     <!-- Photo hero (shown when Photo chip selected) -->
                     <div class="photo-chip-section hidden" id="photoChipSection">
-                        <!-- Tap zone (before photo chosen) -->
                         <div class="photo-hero-zone" id="photoHeroZone" onclick="document.getElementById('photo').click()">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                             <span class="photo-hero-tap">Tap to add a photo</span>
                             <span class="photo-hero-sub">Camera roll or take one now</span>
                         </div>
-                        <!-- Inline preview (after photo chosen) — replaces the tap zone -->
                         <div id="photoPreview" class="photo-preview-wrap photo-preview-hero" style="display: none;">
                             <img id="previewImg" />
                             <div class="photo-preview-badge" id="photoSourceBadge">Your photo</div>
@@ -2207,10 +2205,6 @@
                             </div>
                         </div>
                         <input type="file" id="photo" accept="image/*" style="display: none;">
-                        <div class="photo-opt-link">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                            <input type="url" id="photoOptLink" class="photo-opt-link-input" placeholder="Got a link too? Paste to prefill title (optional)" autocomplete="off" oninput="handlePhotoOptLink(this.value)">
-                        </div>
                     </div>
 
                     <!-- Link URL bar (shown when Link chip selected) -->
@@ -2226,7 +2220,7 @@
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                             Auto-fills title, description &amp; more
                         </div>
-                        <small id="urlFetchStatus" style="color: #6b7280; font-size: 12px; display: none;"></small>
+                        <small id="urlFetchStatus" style="color: #6b7280; font-size: 13px; display: none;"></small>
                     </div>
 
                     <!-- OG loading shimmer -->
@@ -2243,10 +2237,10 @@
                 <form id="addForm" onsubmit="submitDiscovery(event)">
 
                 <!-- ══════════════════════════════════════════ -->
-                <!-- WIZARD STEP 2 — Your Note                 -->
+                <!-- WIZARD STEP 2 — Preview + Details          -->
                 <!-- ══════════════════════════════════════════ -->
                 <div id="wStep2" class="wizard-step step-hidden">
-                    <!-- OG Preview Card — shown here after link fetch so user sees it immediately -->
+                    <!-- OG Preview Card — shown after link fetch -->
                     <div class="og-preview-card hidden" id="ogPreviewCard">
                         <img id="ogPreviewImg" class="og-preview-img" src="" alt="">
                         <div class="og-preview-body">
@@ -2257,26 +2251,22 @@
                         <button type="button" class="og-preview-close" onclick="clearOGPreview()" title="Remove preview">&times;</button>
                     </div>
 
-                    <div class="form-group form-group-take">
-                        <label class="field-label-inline">YOUR NOTE</label>
-                        <p class="take-sublabel">This is the part your circle actually needs.</p>
-                        <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
-                        <input type="hidden" id="description">
+                    <!-- Sub-step 2a: Title -->
+                    <div class="form-group form-group-title" id="subTitle">
+                        <label class="field-label-inline">Title or name of this discovery</label>
+                        <div class="title-field-row">
+                            <textarea id="title" class="title-input-large" placeholder="Name — or leave blank to auto-generate" rows="1"></textarea>
+                            <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                Clear
+                            </button>
+                        </div>
+                        <p class="autofill-hint hidden" id="titleAutofillHint">Auto-filled from link — edit if needed</p>
                     </div>
-                    <button type="button" class="wizard-next-btn" id="nextToDetails" onclick="wizardAdvance(3)">
-                        Next — Details
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div><!-- /wStep2 -->
 
-                <!-- ══════════════════════════════════════════ -->
-                <!-- WIZARD STEP 3 — Details                   -->
-                <!-- ══════════════════════════════════════════ -->
-                <div id="wStep3" class="wizard-step step-hidden">
-
-                    <!-- Category -->
-                    <div class="form-group form-group-category">
-                        <p class="category-pills-label">What kind of thing is it?</p>
+                    <!-- Sub-step 2b: Category (reveals after title interaction) -->
+                    <div class="form-group form-group-category sub-step step-hidden" id="subCategory">
+                        <p class="category-pills-label">Category</p>
                         <div class="category-pills" id="categoryPills">
                             <button type="button" class="category-pill active" data-value="place" onclick="selectCategory(this)">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -2303,81 +2293,64 @@
                         </select>
                     </div>
 
-                    <!-- Title -->
-                    <div class="form-group form-group-title">
-                        <div class="title-field-row">
-                            <textarea id="title" class="title-input-large" placeholder="Name — or leave blank to auto-generate" rows="1"></textarea>
-                            <button type="button" class="clear-prefill-btn hidden" id="clearPrefillBtn" onclick="clearPrefillFields()" title="Clear auto-filled fields">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                Clear
-                            </button>
+                    <!-- Sub-step 2c: Your Note (reveals after category selection) -->
+                    <div class="sub-step step-hidden" id="subNote">
+                        <div class="form-group form-group-take">
+                            <label class="field-label-inline">YOUR NOTE</label>
+                            <p class="take-sublabel">This is the part your circle actually needs.</p>
+                            <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
+                            <input type="hidden" id="description">
                         </div>
-                        <p class="autofill-hint hidden" id="titleAutofillHint">Auto-filled from link — edit if needed</p>
                     </div>
 
-                    <!-- Address -->
-                    <div class="form-group address-group" style="position: relative;">
-                        <label class="field-label-inline">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                            Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
-                        </label>
-                        <div class="address-input-row">
-                            <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
-                            <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                <span class="detect-loc-label">Here</span>
-                            </button>
+                    <!-- Sub-step 2d: Address (reveals after note, only for place/service) -->
+                    <div class="sub-step step-hidden" id="subAddress">
+                        <div class="form-group address-group" style="position: relative;">
+                            <label class="field-label-inline">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
+                            </label>
+                            <div class="address-input-row">
+                                <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
+                                <button type="button" class="detect-loc-btn" onclick="prefillCaptureLocation()" title="Use my current location">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    <span class="detect-loc-label">Here</span>
+                                </button>
+                            </div>
+                            <div id="addressDropdown" class="address-dropdown hidden"></div>
+                            <small id="locationStatus" style="color: #6b7280; font-size: 13px;"></small>
+                            <input type="hidden" id="userLat" value="">
+                            <input type="hidden" id="userLng" value="">
                         </div>
-                        <div id="addressDropdown" class="address-dropdown hidden"></div>
-                        <small id="locationStatus" style="color: #6b7280; font-size: 12px;"></small>
-                        <input type="hidden" id="userLat" value="">
-                        <input type="hidden" id="userLng" value="">
                     </div>
 
-                    <!-- Photo upload for non-photo flows (link/here/type) -->
-                    <!-- Hidden when photo chip is active (photo is already in step 1) -->
-                    <div class="form-group form-group-photo" id="detailsPhotoGroup">
-                        <label class="field-label-inline">Photo <span class="field-label-optional">— optional</span></label>
-                        <div class="photo-upload-zone photo-upload-compact" id="photoUploadZone" onclick="document.getElementById('photo').click()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                            <span>Add a photo</span>
+                    <input type="hidden" id="ogImageUrl" value="">
+
+                    <!-- Sub-step 2e: Privacy + Save (reveals after note) -->
+                    <div class="sub-step step-hidden" id="subPrivacy">
+                        <input type="hidden" id="addedBy" value="">
+                        <div class="form-group visibility-group" style="margin-top: 4px;">
+                            <label class="field-label-inline">Who can see this</label>
+                            <div class="vis-selector" id="visSelector">
+                                <button type="button" class="vis-option active" data-value="private" onclick="selectVisibility(this)">
+                                    <span class="vis-label">Only me</span>
+                                </button>
+                                <button type="button" class="vis-option" data-value="friends" onclick="selectVisibility(this)">
+                                    <span class="vis-label">Friends</span>
+                                </button>
+                            </div>
+                            <p class="vis-hint" id="visHint">Saved privately — only you can see this. Change to Friends when you're ready to share.</p>
+                            <input type="hidden" id="privateToggle" value="true">
+                            <input type="hidden" id="visibilityValue" value="private">
                         </div>
-                        <input type="hidden" id="ogImageUrl" value="">
+
+                        <button type="submit" class="submit-btn" id="submitBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            Save Discovery
+                        </button>
                     </div>
 
-                    <button type="button" class="wizard-next-btn" id="nextToSave" onclick="wizardAdvance(4)">
-                        Next — Privacy &amp; Save
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
-                </div><!-- /wStep3 -->
-
-                <!-- ══════════════════════════════════════════ -->
-                <!-- WIZARD STEP 4 — Privacy + Save            -->
-                <!-- ══════════════════════════════════════════ -->
-                <div id="wStep4" class="wizard-step step-hidden">
-                    <input type="hidden" id="addedBy" value="">
-
-                    <!-- Visibility -->
-                    <div class="form-group visibility-group" style="margin-top: 4px;">
-                        <label class="field-label-inline">Who can see this</label>
-                        <div class="vis-selector" id="visSelector">
-                            <button type="button" class="vis-option active" data-value="private" onclick="selectVisibility(this)">
-                                <span class="vis-label">Only me</span>
-                            </button>
-                            <button type="button" class="vis-option" data-value="friends" onclick="selectVisibility(this)">
-                                <span class="vis-label">Friends</span>
-                            </button>
-                        </div>
-                        <p class="vis-hint" id="visHint">Saved privately — only you can see this. Change to Friends when you're ready to share.</p>
-                        <input type="hidden" id="privateToggle" value="true">
-                        <input type="hidden" id="visibilityValue" value="private">
-                    </div>
-
-                    <button type="submit" class="submit-btn" id="submitBtn">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                        Save Discovery
-                    </button>
-                </div><!-- /wStep4 -->
+                </div><!-- /wStep2 -->
 
                 </form>
 
@@ -3052,8 +3025,10 @@
         }
 
         // Also handle input focus/blur on messageInput for safety
+        // Only treat as keyboard-open on touch devices (not desktop)
+        var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         document.addEventListener('focusin', function(e) {
-            if (e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
+            if (isTouchDevice && e.target && (e.target.id === 'messageInput' || e.target.id === 'homeSearchInput')) {
                 document.body.classList.add('keyboard-open');
             }
         });

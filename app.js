@@ -6486,20 +6486,15 @@ function selectEntryChip(chip) {
     // Show/hide photo hero section and url bar
     const photoSection = document.getElementById('photoChipSection');
     const urlHeroBar = document.getElementById('urlHeroBar');
-    const detailsPhotoGroup = document.getElementById('detailsPhotoGroup');
     if (chip === 'photo') {
         if (photoSection) photoSection.classList.remove('hidden');
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
-        // Photo chosen in step 1 — hide the duplicate upload zone in step 3
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = 'none';
     } else if (chip === 'link') {
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
     } else {
         if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
-        if (detailsPhotoGroup) detailsPhotoGroup.style.display = '';
     }
 
     // Chip-specific: handle URL input focus, location prefill
@@ -6546,26 +6541,26 @@ function selectEntryChip(chip) {
         prefillCaptureLocation();
     }
 
-    // Auto-advance to Step 2 (Your Take) after chip selection
-    // Small delay so the chip section animation plays first
-    setTimeout(() => {
-        _revealWizardStep('wStep2');
-        updateAddStep(2);
-        // Focus the textarea
-        const takeField = document.getElementById('personalNote');
-        if (takeField) takeField.focus();
-    }, 200);
+    // Photo chip: don't advance yet — wait for photo upload
+    // Link chip: don't advance yet — wait for OG fetch
+    // Here / Type: advance to step 2 (title) immediately
+    if (chip === 'here' || chip === 'type') {
+        setTimeout(() => {
+            _revealWizardStep('wStep2');
+            updateAddStep(2);
+            const titleField = document.getElementById('title');
+            if (titleField) titleField.focus();
+        }, 200);
+    }
 }
 
 function _restoreEntryChip() {
     try {
         const saved = localStorage.getItem('odin_entry_chip');
         if (saved) {
-            // Just restore visual active state, don't re-trigger side effects
             document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
             const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
             if (chip) chip.classList.add('active');
-            // Re-show appropriate sections based on saved selection
             const photoSection = document.getElementById('photoChipSection');
             const urlHeroBar = document.getElementById('urlHeroBar');
             if (saved === 'photo') {
@@ -6639,12 +6634,12 @@ function handlePhotoOptLink(val) {
 
 // ===== PROGRESSIVE STEP REVEAL =====
 // ── ADD STEP INDICATOR ──────────────────────────────────────────
-// Steps: 1=How, 2=Your Take, 3=Details, 4=Save
+// Steps: 1=How, 2=Details, 3=Your Note, 4=Save
 // Steps < n get a checkmark (done); step n gets active style; steps > n are muted
 const _STEP_ICONS = [
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
-    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
     `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
 ];
 const _STEP_CHECK = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
@@ -6682,37 +6677,63 @@ function _revealWizardStep(id) {
     setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
 }
 
-// Called by "Next" buttons — advances to a given step number
-function wizardAdvance(toStep) {
-    if (toStep === 3) {
-        // Validate Your Take before advancing
-        const takeVal = document.getElementById('personalNote').value.trim();
-        if (!takeVal) {
-            const textarea = document.getElementById('personalNote');
-            textarea.focus();
-            textarea.style.borderColor = '#7B2D45';
-            textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
-            const formMsg = document.getElementById('formMessage');
-            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your take first — even one line helps.</p>';
-            setTimeout(() => {
-                textarea.style.borderColor = '';
-                textarea.style.boxShadow = '';
-            }, 2500);
-            return;
+// Sub-step reveal helper — reveals a sub-step within wStep2
+function _revealSubStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+// Reveal category pills after title is interacted with
+let _categoryRevealed = false;
+function _onTitleInteract() {
+    if (_categoryRevealed) return;
+    _categoryRevealed = true;
+    _revealSubStep('subCategory');
+    updateAddStep(2);
+}
+
+// Reveal Your Note after category is selected
+let _noteRevealed = false;
+function _revealNoteStep() {
+    if (_noteRevealed) return;
+    _noteRevealed = true;
+    _revealSubStep('subNote');
+    updateAddStep(3);
+    setTimeout(() => {
+        const takeField = document.getElementById('personalNote');
+        if (takeField) {
+            takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            takeField.focus();
         }
-        const formMsg = document.getElementById('formMessage');
-        if (formMsg) formMsg.innerHTML = '';
-        _revealWizardStep('wStep3');
-        updateAddStep(3);
-    } else if (toStep === 4) {
-        _revealWizardStep('wStep4');
-        updateAddStep(4);
-        // Scroll to Save button
-        setTimeout(() => {
-            const saveBtn = document.getElementById('submitBtn');
-            if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
+    }, 200);
+}
+
+// Reveal address (if place/service) + privacy + save after note is written
+let _privacyRevealed = false;
+function _revealPrivacyStep() {
+    if (_privacyRevealed) return;
+    const takeVal = document.getElementById('personalNote').value.trim();
+    if (!takeVal) return; // need at least something
+    _privacyRevealed = true;
+    // Show address if category is place or service
+    const cat = document.getElementById('category').value;
+    if (cat === 'place' || cat === 'service') {
+        _revealSubStep('subAddress');
     }
+    _revealSubStep('subPrivacy');
+    updateAddStep(4);
+    setTimeout(() => {
+        const saveBtn = document.getElementById('submitBtn');
+        if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 200);
+}
+
+// Legacy wizardAdvance — still called by old "Next" buttons if any remain
+function wizardAdvance(toStep) {
+    // No-op — progressive sub-steps handle everything now
 }
 
 function _revealStep(id) {
@@ -6725,14 +6746,31 @@ function _revealStep(id) {
 }
 
 function _resetSteps() {
-    // Reset wizard steps 2-4 back to hidden; step 1 (How) always stays visible
-    ['wStep2', 'wStep3', 'wStep4'].forEach(id => {
+    // Reset wizard step 2 back to hidden; step 1 (How) always stays visible
+    ['wStep2'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add('step-hidden');
             el.classList.remove('step-reveal');
         }
     });
+    // Reset all sub-steps within step 2
+    ['subCategory', 'subNote', 'subAddress', 'subPrivacy'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('step-hidden');
+            el.classList.remove('step-reveal');
+        }
+    });
+    // Reset sub-step progression flags
+    _categoryRevealed = false;
+    _noteRevealed = false;
+    _privacyRevealed = false;
+    // Reset autofill hint and clear button (leftover from link flow)
+    const _afHint = document.getElementById('titleAutofillHint');
+    if (_afHint) _afHint.classList.add('hidden');
+    const _cpBtn = document.getElementById('clearPrefillBtn');
+    if (_cpBtn) _cpBtn.classList.add('hidden');
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -6930,6 +6968,8 @@ async function fetchAndPrefillOG(url) {
     if (!url || !url.startsWith('http')) return;
     if (_ogFetchInFlight) return;  // iOS duplicate-call guard
     _ogFetchInFlight = true;
+    // Mark entry type as link for submit logic
+    try { localStorage.setItem('odin_entry_chip', 'link'); } catch(e) {}
 
     const titleField = document.getElementById('title');
     // personalNote is now the single user-facing field (merged with description)
@@ -7093,17 +7133,24 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // OG fetch complete — reveal Step 2 (Your Take) so user can add their note.
-        // Step 3 (Details) is pre-filled and will be revealed when user taps "Next".
+        // OG fetch complete — reveal Step 2 with title, then auto-reveal category
+        // since OG data already auto-detected it.
         _revealWizardStep('wStep2');
         updateAddStep(2);
 
-        // Focus Your Take — the user's voice is the whole point.
+        // Auto-reveal category since OG pre-filled title
         setTimeout(() => {
-            const takeField = document.getElementById('personalNote');
-            if (takeField) {
-                takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                takeField.focus();
+            _onTitleInteract(); // reveals category
+            // OG auto-selected category — reveal note after a beat so user sees the category first
+            setTimeout(() => _revealNoteStep(), 600);
+        }, 200);
+
+        // Focus title field so user can review/edit the auto-filled name.
+        setTimeout(() => {
+            const titleField = document.getElementById('title');
+            if (titleField) {
+                titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                titleField.focus();
             }
         }, 300);
 
@@ -7152,14 +7199,12 @@ function replacePhoto() {
 function removePhoto() {
     const preview = document.getElementById('photoPreview');
     const previewImg = document.getElementById('previewImg');
-    const uploadZone = document.getElementById('photoUploadZone');
     const badge = document.getElementById('photoSourceBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
     const photoInput = document.getElementById('photo');
 
     if (preview) preview.style.display = 'none';
     if (previewImg) previewImg.src = '';
-    if (uploadZone) uploadZone.style.display = 'flex';
     if (badge) badge.style.display = 'none';
     if (ogUrlField) ogUrlField.value = '';
     if (photoInput) photoInput.value = '';
@@ -7230,8 +7275,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initAutoGrow(document.getElementById('title'), 44);
     initAutoGrow(document.getElementById('personalNote'), 120);
 
-    // Step indicator: no automatic advance from textarea — user taps "Next" to advance.
-    // (wizardAdvance handles the step indicator update)
+    // ── Progressive sub-step reveals ──
+    // Title input → reveal category pills
+    const titleEl = document.getElementById('title');
+    if (titleEl) {
+        titleEl.addEventListener('input', _onTitleInteract);
+        titleEl.addEventListener('focus', _onTitleInteract);
+    }
+
+    // Note input → reveal address + privacy + save
+    const noteEl = document.getElementById('personalNote');
+    if (noteEl) {
+        noteEl.addEventListener('input', _revealPrivacyStep);
+    }
 });
 
 
@@ -7277,8 +7333,10 @@ async function submitDiscovery(e) {
     const titleField = document.getElementById('title');
     let titleVal = titleField ? titleField.value.trim() : '';
     if (!titleVal) {
-        const activeChip = document.querySelector('.entry-card.active');
-        const chipType = activeChip ? activeChip.dataset.chip : '';
+        let chipType = '';
+        try { chipType = localStorage.getItem('odin_entry_chip') || ''; } catch(e) {}
+        // If user uploaded a photo, auto-detect
+        if (!chipType && _photoSource === 'user') chipType = 'photo';
         if (chipType === 'photo') {
             // "Photo — 5 Apr 2026"
             const now = new Date();
@@ -7445,6 +7503,9 @@ function selectCategory(el) {
     // Category-aware rotating placeholders
     startTakePlaceholder(val);
 
+    // Reveal Your Note sub-step after category is selected
+    _revealNoteStep();
+
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');
     const addressLabel = document.getElementById('addressLabel');
@@ -7478,10 +7539,6 @@ document.getElementById('photo').addEventListener('change', function(e) {
             const heroZone = document.getElementById('photoHeroZone');
             if (heroZone) heroZone.classList.add('hidden');
 
-            // Hide step 3 upload zone — photo is already chosen
-            const uploadZone = document.getElementById('photoUploadZone');
-            if (uploadZone) uploadZone.style.display = 'none';
-
             // Mark as user photo, clear any OG image URL
             _photoSource = 'user';
             const ogUrlField = document.getElementById('ogImageUrl');
@@ -7489,8 +7546,16 @@ document.getElementById('photo').addEventListener('change', function(e) {
             const badge = document.getElementById('photoSourceBadge');
             if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
 
-            // Title for photo flow is auto-generated at submit time ("Photo — D Mon YYYY")
-            // Do NOT prefill from filename.
+            // Reveal Step 2 (Details) so user can name it + pick category
+            _revealWizardStep('wStep2');
+            updateAddStep(2);
+            setTimeout(() => {
+                const titleField = document.getElementById('title');
+                if (titleField) {
+                    titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    titleField.focus();
+                }
+            }, 300);
         };
         reader.readAsDataURL(file);
     }

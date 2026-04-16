@@ -3841,12 +3841,12 @@
 
         .submit-btn {
             width: 100%;
-            padding: 13px;
+            padding: 15px;
             background: linear-gradient(135deg, #7B2D45 0%, #9B3A5A 100%);
             color: #ffffff;
             border: none;
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.25s;
@@ -3888,12 +3888,12 @@
         }
         .clip-detect-inner { flex: 1; min-width: 0; }
         .clip-detect-head {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: #1a1208;
         }
         .clip-detect-url {
-            font-size: 11px;
+            font-size: 13px;
             color: #9a8f82;
             margin-top: 1px;
             white-space: nowrap;
@@ -3901,10 +3901,10 @@
             text-overflow: ellipsis;
         }
         .clip-detect-use {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             color: #7B2D45;
-            padding: 4px 10px;
+            padding: 5px 12px;
             border: 1px solid #7B2D45;
             border-radius: 8px;
             background: transparent;
@@ -3976,7 +3976,7 @@
 
         /* Labels under each icon */
         .add-step-label {
-            font-size: 10px;
+            font-size: 13px;
             font-weight: 500;
             color: #B08090;
             letter-spacing: 0.01em;
@@ -4045,11 +4045,43 @@
 
         /* ===== TAKE SUBLABEL ===== */
         .take-sublabel {
-            font-size: 11px;
-            color: #9A8A8E;
-            margin: 2px 0 8px;
+            font-size: 14px;
+            color: #7B6B6E;
+            margin: 4px 0 10px;
             font-weight: 400;
             line-height: 1.4;
+        }
+        /* Make YOUR NOTE label large and prominent as a step heading */
+        .form-group-take .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+        /* ADDRESS label — same prominent step heading style */
+        .address-group > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        /* WHO CAN SEE THIS label — same prominent step heading style */
+        .visibility-group > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        /* TITLE label — same prominent step heading style */
+        .form-group-title > .field-label-inline {
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
         }
 
         /* ===== ENTRY CARDS ===== */
@@ -4106,7 +4138,7 @@
         .entry-card-icon--here  { background: #EBF5EC; color: #2D7B3A; }
         .entry-card-icon--type  { background: #EDE8F5; color: #4B2D7B; }
         .entry-card-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--ink);
             line-height: 1.2;
@@ -4133,6 +4165,10 @@
             display: block;
             animation: odin-fadein 0.28s ease both;
         }
+        /* Sub-step spacing — clear visual separation between progressive sections */
+        .sub-step.step-reveal {
+            margin-top: 16px;
+        }
 
         /* ===== PHOTO CHIP SECTION ===== */
         .photo-chip-section {
@@ -4156,8 +4192,8 @@
             transition: border-color 0.2s;
         }
         .photo-hero-zone:hover { border-color: #7B2D45; }
-        .photo-hero-tap { font-size: 13px; }
-        .photo-hero-sub { font-size: 11px; color: #CCC4BC; }
+        .photo-hero-tap { font-size: 17px; font-weight: 600; }
+        .photo-hero-sub { font-size: 14px; color: #9A8B7C; }
         .photo-hero-filled {
             background: #EDE5DB;
             border: 1px solid #DDD5CC;
@@ -4169,7 +4205,7 @@
             gap: 8px;
         }
         .photo-hero-filename {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: #6b5e52;
             flex: 1;
@@ -4183,7 +4219,7 @@
             flex-shrink: 0;
         }
         .photo-hero-actions button {
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             background: none;
             border: none;
@@ -4205,7 +4241,7 @@
             flex: 1;
             border: none;
             background: transparent;
-            font-size: 12px;
+            font-size: 13px;
             color: #6b5e52;
             font-family: inherit;
             outline: none;
@@ -4241,7 +4277,7 @@
             min-width: 0;
             border: none;
             background: transparent;
-            font-size: 14px;
+            font-size: 15px;
             padding: 2px 2px 2px 32px;
             color: var(--ink);
             font-family: 'Inter', sans-serif;
@@ -4249,7 +4285,7 @@
         }
 
         .url-hero-bar input::placeholder {
-            color: #B8A99A;
+            color: #9A8B7C;
         }
 
         .url-hero-input-row {
@@ -4277,7 +4313,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             opacity: 0.7;
             margin-top: 8px;
@@ -4333,7 +4369,7 @@
         }
 
         .og-preview-desc {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 3px;
             display: -webkit-box;
@@ -4343,7 +4379,7 @@
         }
 
         .og-preview-url {
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             margin-top: 4px;
             opacity: 0.7;
@@ -4441,7 +4477,7 @@
         }
 
         .url-hero-divider span {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -4482,12 +4518,12 @@
             background: var(--surface);
         }
         .autofill-hint {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
-            margin: 4px 0 0;
+            margin: 6px 0 0;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 5px;
         }
         .autofill-hint::before {
             content: '';
@@ -4516,7 +4552,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: #7B2D45;
             text-transform: uppercase;
@@ -4563,7 +4599,7 @@
             border-color: #7B2D45;
             box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
         }
-        .title-input-large::placeholder { color: #C4B9AD; }
+        .title-input-large::placeholder { color: #9A8B7C; }
 
         /* Clear prefill button — shown after OG auto-fill */
         .clear-prefill-btn {
@@ -4576,7 +4612,7 @@
             border: 1.5px solid var(--border);
             border-radius: 8px;
             color: var(--muted);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             font-family: 'Inter', sans-serif;
             cursor: pointer;
@@ -4595,7 +4631,7 @@
 
         .field-label-inline {
             display: block;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--muted);
             text-transform: uppercase;
@@ -4607,17 +4643,17 @@
             font-weight: 400;
             text-transform: none;
             letter-spacing: 0;
-            font-size: 11px;
+            font-size: 13px;
             color: #aaa;
         }
 
         .your-take-textarea {
             width: 100%;
-            padding: 10px 13px;
-            border: 1.5px solid var(--border);
+            padding: 14px 16px;
+            border: 2px solid var(--border);
             background: var(--surface);
-            border-radius: 10px;
-            font-size: 13px;
+            border-radius: 12px;
+            font-size: 16px;
             font-family: inherit;
             color: var(--ink);
             resize: none;           /* remove manual resize — JS handles growth */
@@ -4630,8 +4666,8 @@
             line-height: 1.5;
         }
         .your-take-textarea::placeholder {
-            font-size: 13px;
-            color: #C4B9AD;
+            font-size: 16px;
+            color: #9A8B7C;
             line-height: 1.5;
         }
         .your-take-textarea:focus {
@@ -4639,7 +4675,7 @@
             border-color: #7B2D45;
             box-shadow: 0 0 0 3px rgba(123, 45, 69, 0.1);
         }
-        .your-take-textarea::placeholder { color: #C4B9AD; }
+        .your-take-textarea::placeholder { color: #9A8B7C; }
 
         .address-group { margin-bottom: 10px; }
 
@@ -4654,8 +4690,11 @@
 
         /* ── Category Pills ── */
         .category-pills-label {
-            font-size: 12px;
-            color: var(--muted);
+            font-size: 16px;
+            font-weight: 700;
+            color: #7B2D45;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             margin-bottom: 8px;
             font-family: 'DM Sans', sans-serif;
         }
@@ -4779,7 +4818,7 @@
             padding: 10px;
             background: var(--surface);
             border: none;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--muted);
             cursor: pointer;
@@ -4799,6 +4838,25 @@
         .photo-action-remove:hover {
             background: rgba(220, 38, 38, 0.05);
             color: #dc2626;
+        }
+
+        /* ── Mobile tweaks for Add flow ── */
+        @media (max-width: 414px) {
+            .category-pills {
+                gap: 6px;
+            }
+            .category-pill {
+                padding: 10px 8px;
+                font-size: 13px;
+                gap: 4px;
+            }
+            .entry-card {
+                padding: 12px 6px;
+                min-height: 80px;
+            }
+            .entry-card-label {
+                font-size: 12px;
+            }
         }
 
         /* ── Save Success Overlay ── */
@@ -4959,7 +5017,7 @@
             transition: background 0.2s, border-color 0.2s;
         }
         .detect-loc-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             font-family: 'Inter', sans-serif;
             color: #7B2D45;
@@ -5017,7 +5075,7 @@
         }
 
         .address-option-sub {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 2px;
         }
@@ -10449,9 +10507,9 @@ body.map-view-open .content {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px 10px;
+    padding: 12px 10px;
     border: 1.5px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--bg);
     cursor: pointer;
     transition: all 0.18s;
@@ -10465,7 +10523,7 @@ body.map-view-open .content {
     background: rgba(123,45,69,0.07);
 }
 .vis-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--muted);
     transition: color 0.18s;
@@ -10475,9 +10533,9 @@ body.map-view-open .content {
     font-weight: 600;
 }
 .vis-hint {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
-    margin: 5px 0 0;
+    margin: 6px 0 0;
     line-height: 1.4;
     transition: color 0.2s, background 0.2s;
 }
