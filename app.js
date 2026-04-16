@@ -6541,9 +6541,10 @@ function selectEntryChip(chip) {
         prefillCaptureLocation();
     }
 
-    // For non-link chips, auto-advance to Step 2 (Details) after chip selection
-    // Link chip waits for OG fetch to complete before advancing
-    if (chip !== 'link') {
+    // Photo chip: don't advance yet — wait for photo upload
+    // Link chip: don't advance yet — wait for OG fetch
+    // Here / Type: advance to step 2 (title) immediately
+    if (chip === 'here' || chip === 'type') {
         setTimeout(() => {
             _revealWizardStep('wStep2');
             updateAddStep(2);
@@ -6676,42 +6677,63 @@ function _revealWizardStep(id) {
     setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
 }
 
-// Called by "Next" buttons — advances to a given step number
-// New flow: 1=Link/Photo, 2=Details(title+category), 3=Your Note, 4=Privacy+Save
-function wizardAdvance(toStep) {
-    if (toStep === 3) {
-        // Advancing from Details to Your Note — no validation needed
-        _revealWizardStep('wStep3');
-        updateAddStep(3);
-        // Focus the note textarea
+// Sub-step reveal helper — reveals a sub-step within wStep2
+function _revealSubStep(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.classList.contains('step-hidden')) return;
+    el.classList.remove('step-hidden');
+    el.classList.add('step-reveal');
+    setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+}
+
+// Reveal category pills after title is interacted with
+let _categoryRevealed = false;
+function _onTitleInteract() {
+    if (_categoryRevealed) return;
+    _categoryRevealed = true;
+    _revealSubStep('subCategory');
+    updateAddStep(2);
+}
+
+// Reveal Your Note after category is selected
+let _noteRevealed = false;
+function _revealNoteStep() {
+    if (_noteRevealed) return;
+    _noteRevealed = true;
+    _revealSubStep('subNote');
+    updateAddStep(3);
+    setTimeout(() => {
         const takeField = document.getElementById('personalNote');
-        if (takeField) takeField.focus();
-    } else if (toStep === 4) {
-        // Validate Your Note before advancing to Save
-        const takeVal = document.getElementById('personalNote').value.trim();
-        if (!takeVal) {
-            const textarea = document.getElementById('personalNote');
-            textarea.focus();
-            textarea.style.borderColor = '#7B2D45';
-            textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
-            const formMsg = document.getElementById('formMessage');
-            if (formMsg) formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add your note first — even one line helps.</p>';
-            setTimeout(() => {
-                textarea.style.borderColor = '';
-                textarea.style.boxShadow = '';
-            }, 2500);
-            return;
+        if (takeField) {
+            takeField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            takeField.focus();
         }
-        const formMsg = document.getElementById('formMessage');
-        if (formMsg) formMsg.innerHTML = '';
-        _revealWizardStep('wStep4');
-        updateAddStep(4);
-        // Scroll to Save button
-        setTimeout(() => {
-            const saveBtn = document.getElementById('submitBtn');
-            if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 100);
+    }, 200);
+}
+
+// Reveal address (if place/service) + privacy + save after note is written
+let _privacyRevealed = false;
+function _revealPrivacyStep() {
+    if (_privacyRevealed) return;
+    const takeVal = document.getElementById('personalNote').value.trim();
+    if (!takeVal) return; // need at least something
+    _privacyRevealed = true;
+    // Show address if category is place or service
+    const cat = document.getElementById('category').value;
+    if (cat === 'place' || cat === 'service') {
+        _revealSubStep('subAddress');
     }
+    _revealSubStep('subPrivacy');
+    updateAddStep(4);
+    setTimeout(() => {
+        const saveBtn = document.getElementById('submitBtn');
+        if (saveBtn) saveBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 200);
+}
+
+// Legacy wizardAdvance — still called by old "Next" buttons if any remain
+function wizardAdvance(toStep) {
+    // No-op — progressive sub-steps handle everything now
 }
 
 function _revealStep(id) {
@@ -6724,14 +6746,26 @@ function _revealStep(id) {
 }
 
 function _resetSteps() {
-    // Reset wizard steps 2-4 back to hidden; step 1 (How) always stays visible
-    ['wStep2', 'wStep3', 'wStep4'].forEach(id => {
+    // Reset wizard step 2 back to hidden; step 1 (How) always stays visible
+    ['wStep2'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add('step-hidden');
             el.classList.remove('step-reveal');
         }
     });
+    // Reset all sub-steps within step 2
+    ['subCategory', 'subNote', 'subAddress', 'subPrivacy'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('step-hidden');
+            el.classList.remove('step-reveal');
+        }
+    });
+    // Reset sub-step progression flags
+    _categoryRevealed = false;
+    _noteRevealed = false;
+    _privacyRevealed = false;
 }
 
 // ===== CAPTURE: LOCATION PREFILL =====
@@ -7094,9 +7128,17 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // OG fetch complete — reveal Step 2 (Details: title + category).
+        // OG fetch complete — reveal Step 2 with title, then auto-reveal category
+        // since OG data already auto-detected it.
         _revealWizardStep('wStep2');
         updateAddStep(2);
+
+        // Auto-reveal category since OG pre-filled it
+        setTimeout(() => {
+            _onTitleInteract(); // reveals category
+            // If category was auto-selected, also reveal note
+            setTimeout(() => _revealNoteStep(), 300);
+        }, 200);
 
         // Focus title field so user can review/edit the auto-filled name.
         setTimeout(() => {
@@ -7228,8 +7270,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initAutoGrow(document.getElementById('title'), 44);
     initAutoGrow(document.getElementById('personalNote'), 120);
 
-    // Step indicator: no automatic advance from textarea — user taps "Next" to advance.
-    // (wizardAdvance handles the step indicator update)
+    // ── Progressive sub-step reveals ──
+    // Title input → reveal category pills
+    const titleEl = document.getElementById('title');
+    if (titleEl) {
+        titleEl.addEventListener('input', _onTitleInteract);
+        titleEl.addEventListener('focus', _onTitleInteract);
+    }
+
+    // Note input → reveal address + privacy + save
+    const noteEl = document.getElementById('personalNote');
+    if (noteEl) {
+        noteEl.addEventListener('input', _revealPrivacyStep);
+    }
 });
 
 
@@ -7444,6 +7497,9 @@ function selectCategory(el) {
 
     // Category-aware rotating placeholders
     startTakePlaceholder(val);
+
+    // Reveal Your Note sub-step after category is selected
+    _revealNoteStep();
 
     // Show/hide address field based on category
     const addressGroup = document.querySelector('.address-group');

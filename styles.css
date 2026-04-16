@@ -4230,8 +4230,8 @@
             transition: border-color 0.2s;
         }
         .photo-hero-zone:hover { border-color: #7B2D45; }
-        .photo-hero-tap { font-size: 13px; }
-        .photo-hero-sub { font-size: 11px; color: #CCC4BC; }
+        .photo-hero-tap { font-size: 17px; font-weight: 600; }
+        .photo-hero-sub { font-size: 14px; color: #9A8B7C; }
         .photo-hero-filled {
             background: #EDE5DB;
             border: 1px solid #DDD5CC;
