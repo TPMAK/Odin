@@ -7133,11 +7133,11 @@ async function fetchAndPrefillOG(url) {
         _revealWizardStep('wStep2');
         updateAddStep(2);
 
-        // Auto-reveal category since OG pre-filled it
+        // Auto-reveal category since OG pre-filled title
         setTimeout(() => {
             _onTitleInteract(); // reveals category
-            // If category was auto-selected, also reveal note
-            setTimeout(() => _revealNoteStep(), 300);
+            // OG auto-selected category — reveal note after a beat so user sees the category first
+            setTimeout(() => _revealNoteStep(), 600);
         }, 200);
 
         // Focus title field so user can review/edit the auto-filled name.
