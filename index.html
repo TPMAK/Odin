@@ -982,6 +982,96 @@
     .profile-stat-col[data-tooltip]:hover::before {
         opacity: 1;
     }
+
+    /* ── Story Section ── */
+    .ls-story-wrap { margin: 2.5rem 0 1.5rem; }
+    .ls-story-trigger {
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; background: none; border: none;
+      width: 100%; padding: 0; text-align: left;
+    }
+    .ls-story-line { flex: 1; height: 1px; background: rgba(221,208,184,0.2); }
+    .ls-story-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.14em;
+      text-transform: uppercase; color: rgba(221,208,184,0.45);
+      white-space: nowrap; transition: color 0.2s;
+    }
+    .ls-story-trigger:hover .ls-story-label { color: #D4622A; }
+    .ls-story-arrow {
+      width: 15px; height: 15px; color: rgba(221,208,184,0.35);
+      transition: transform 0.35s ease, color 0.2s; flex-shrink: 0;
+    }
+    .ls-story-trigger:hover .ls-story-arrow { color: #D4622A; }
+    .ls-story-arrow.open { transform: rotate(180deg); }
+    .ls-story-body {
+      overflow: hidden; max-height: 0;
+      transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease;
+      opacity: 0;
+    }
+    .ls-story-body.open { max-height: 3000px; opacity: 1; }
+    .ls-story-inner { padding-top: 2rem; }
+    .ls-story-kicker {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: #D4622A; margin-bottom: 0.75rem;
+    }
+    .ls-story-headline {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: clamp(22px, 4vw, 32px); font-weight: 300;
+      line-height: 1.25; color: #F0EBE3;
+      margin-bottom: 1.5rem; letter-spacing: -0.01em;
+    }
+    .ls-story-headline em { font-style: italic; color: #D4622A; }
+    .ls-story-p {
+      font-size: 15px; line-height: 1.75;
+      color: rgba(240,235,227,0.75); margin-bottom: 1.25rem;
+    }
+    .ls-story-pull {
+      border-left: 2px solid #D4622A; padding-left: 1.1rem;
+      margin: 1.5rem 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 17px; font-weight: 300; font-style: italic;
+      line-height: 1.5; color: #F0EBE3;
+    }
+    .ls-story-divider {
+      border: none; border-top: 1px solid rgba(221,208,184,0.15);
+      margin: 2rem 0;
+    }
+    .ls-story-how-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
+      text-transform: uppercase; color: rgba(221,208,184,0.4);
+      margin-bottom: 1.25rem;
+    }
+    .ls-story-steps { display: flex; flex-direction: column; gap: 1.1rem; }
+    .ls-story-step { display: flex; gap: 0.875rem; align-items: flex-start; }
+    .ls-story-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(212,98,42,0.12); border: 1px solid rgba(212,98,42,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: #D4622A;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .ls-story-text { font-size: 14px; line-height: 1.65; color: rgba(240,235,227,0.75); }
+    .ls-story-text strong { font-weight: 700; color: #F0EBE3; }
+    .ls-story-sign {
+      margin-top: 2rem; padding-top: 1.5rem;
+      border-top: 1px solid rgba(221,208,184,0.15);
+      display: flex; align-items: center; gap: 0.875rem;
+    }
+    .ls-story-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #D4622A; display: flex; align-items: center;
+      justify-content: center; font-size: 14px; font-weight: 700;
+      color: white; flex-shrink: 0;
+    }
+    .ls-story-sign-name { font-size: 13px; font-weight: 700; color: #F0EBE3; }
+    .ls-story-sign-role { font-size: 12px; color: rgba(240,235,227,0.45); margin-top: 2px; }
+    @media (max-width: 768px) {
+      .ls-story-wrap { margin: 2rem 0 1rem; }
+      .ls-story-headline { font-size: clamp(20px, 6vw, 26px); }
+      .ls-story-pull { font-size: 15px; }
+      .ls-story-p, .ls-story-text { font-size: 14px; }
+    }
+    /* ── End Story Section ── */
     </style>
 </head>
 <body>
@@ -1081,6 +1171,41 @@
                             <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
                         </div>
                     </div>
+
+                    <!-- ── Story Section ── -->
+                    <div class="ls-story-wrap">
+                      <button class="ls-story-trigger" onclick="toggleOdinStory()" id="storyTrigger" aria-expanded="false">
+                        <div class="ls-story-line"></div>
+                        <span class="ls-story-label">The story behind Odin</span>
+                        <svg class="ls-story-arrow" id="storyArrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div class="ls-story-body" id="storyBody">
+                        <div class="ls-story-inner">
+                          <div class="ls-story-kicker">Why I built this</div>
+                          <h3 class="ls-story-headline">Things worth sharing<br>kept <em>getting lost.</em></h3>
+                          <p class="ls-story-p">A friend mentioned a physio she loved. My mum passed on a restaurant worth trying. A colleague said "you have to check this place out." All real, all from people I trusted — and all gone. Buried in texts, group chats, conversations I'd never find again when I actually needed them.</p>
+                          <p class="ls-story-p">I wasn't frustrated with Google. I was frustrated with forgetting. The people around me knew things — and were quietly passing them on all the time. It just kept disappearing.</p>
+                          <blockquote class="ls-story-pull">I didn't want another review platform. I wanted a way to hold onto what the people I trust actually pass on.</blockquote>
+                          <p class="ls-story-p">So I built Odin. Quietly, on evenings and weekends. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
+                          <div class="ls-story-divider"></div>
+                          <div class="ls-story-how-label">How it works</div>
+                          <div class="ls-story-steps">
+                            <div class="ls-story-step"><div class="ls-story-num">1</div><div class="ls-story-text"><strong>Save what's worth passing on.</strong> A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</div></div>
+                            <div class="ls-story-step"><div class="ls-story-num">2</div><div class="ls-story-text"><strong>Your circle grows your knowledge base.</strong> When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</div></div>
+                            <div class="ls-story-step"><div class="ls-story-num">3</div><div class="ls-story-text"><strong>Search like you're asking a friend.</strong> Type "good dentist near me" or "where to take my parents for dinner" — Odin finds what your circle actually knows. In any language.</div></div>
+                            <div class="ls-story-step"><div class="ls-story-num">4</div><div class="ls-story-text"><strong>No algorithms. No ads. No noise.</strong> Every result comes from someone you chose to trust. That's the only signal that matters.</div></div>
+                          </div>
+                          <div class="ls-story-sign">
+                            <div class="ls-story-avatar">S</div>
+                            <div>
+                              <div class="ls-story-sign-name">Stanley Mak</div>
+                              <div class="ls-story-sign-role">Founder, Odin — Auckland, New Zealand</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- ── End Story Section ── -->
 
                     <!-- Back to top — desktop -->
                     <button class="ls-back-top" onclick="document.querySelector('#loginScreen .ls-left').scrollTo({top:0, behavior:'smooth'})">
@@ -3126,6 +3251,15 @@
         var backdrop = document.getElementById('lsBackdrop');
         if (sheet)    sheet.classList.remove('open');
         if (backdrop) backdrop.classList.remove('open');
+    }
+    function toggleOdinStory() {
+        var body    = document.getElementById('storyBody');
+        var arrow   = document.getElementById('storyArrow');
+        var trigger = document.getElementById('storyTrigger');
+        var isOpen  = body.classList.contains('open');
+        body.classList.toggle('open', !isOpen);
+        arrow.classList.toggle('open', !isOpen);
+        trigger.setAttribute('aria-expanded', String(!isOpen));
     }
     // Swipe-down to dismiss Learn More sheet
     (function() {
