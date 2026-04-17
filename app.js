@@ -4250,7 +4250,7 @@ function buildMapCardStrip() {
         var isExtCard = d._trust_level === TRUST.EXTENDED;
         var avInit = isExtCard ? '🔵' : (d.added_by_name || '?').charAt(0).toUpperCase();
         var avCol  = isExtCard ? '#3b82f6' : strColour(d.added_by_name || '?');
-        var avStyle = isExtCard ? 'background:' + avCol + ';font-size:12px;' : 'background:' + avCol + ';';
+        var avStyle = isExtCard ? 'background:' + avCol + ';font-size:13px;' : 'background:' + avCol + ';';
         var byText = isExtCard
             ? '<strong>Extended circle</strong>'
             : 'by <strong>' + escapeHtml(d.added_by_name || '?') + '</strong>';
@@ -7449,7 +7449,7 @@ async function submitDiscovery(e) {
     const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
     if (overlayBody) {
         overlayBody.innerHTML = isThinNote
-            ? 'Saved! <span style="display:block;font-size:12px;color:#9CA3AF;margin-top:4px;">Next time, add one more detail — your circle will love you for it.</span>'
+            ? 'Saved! <span style="display:block;font-size:13px;color:#9CA3AF;margin-top:4px;">Next time, add one more detail — your circle will love you for it.</span>'
             : 'Your discovery has been added';
     }
 

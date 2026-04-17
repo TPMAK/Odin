@@ -143,7 +143,7 @@
             border: 1.5px solid var(--border);
             background: var(--surface);
             color: var(--ink);
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.18s, border-color 0.18s;
@@ -271,7 +271,7 @@
         }
 
         .location-indicator {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             padding: 6px 12px;
             background: var(--mason);
@@ -608,7 +608,7 @@
         }
 
         .hsl-meta {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 2px;
             white-space: nowrap;
@@ -995,7 +995,7 @@
 
         /* Summary — quoted, muted */
         .hf-card-summary {
-            font-size: 12px;
+            font-size: 13px;
             color: #6B6B6B;
             line-height: 1.4;
             display: -webkit-box;
@@ -1016,7 +1016,7 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 500;
             padding: 3px 8px;
             border-radius: 50px;
@@ -1036,7 +1036,7 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 500;
             padding: 3px 8px;
             border-radius: 50px;
@@ -1058,25 +1058,25 @@
         }
         .drawer-chips .hf-card-cat {
             padding: 6px 12px;
-            font-size: 12px;
+            font-size: 13px;
             background: #7B2D45;
             color: #fff;
             border-color: #7B2D45;
         }
         .drawer-chips .hf-card-dist {
             padding: 6px 12px;
-            font-size: 12px;
+            font-size: 13px;
         }
         .drawer-chips .hf-card-private {
             padding: 6px 12px;
-            font-size: 12px;
+            font-size: 13px;
         }
 
         .hf-card-private {
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 500;
             padding: 3px 8px;
             border-radius: 50px;
@@ -1125,7 +1125,7 @@
         }
 
         .hf-card-name {
-            font-size: 11px;
+            font-size: 13px;
             color: #6B6B6B;
             font-weight: 500;
             white-space: nowrap;
@@ -1358,7 +1358,7 @@
         }
 
         .hr-card-title {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--ink);
             line-height: 1.3;
@@ -1368,7 +1368,7 @@
         }
 
         .hr-card-type {
-            font-size: 10px;
+            font-size: 11px;
             color: var(--muted);
             margin-top: 2px;
             text-transform: capitalize;
@@ -1454,7 +1454,7 @@
 
         .home-save-addedby {
             padding: 2px 12px 10px;
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
@@ -1517,7 +1517,7 @@
         }
 
         .activity-time {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-top: 2px;
         }
@@ -1986,7 +1986,7 @@
         }
 
         .discovery-tag {
-            font-size: 10px;
+            font-size: 11px;
             padding: 3px 8px;
             border-radius: 50px;
             font-weight: 500;
@@ -2008,7 +2008,7 @@
         }
 
         .discovery-card-snippet {
-            font-size: 12px;
+            font-size: 13px;
             color: #6B6B6B;
             line-height: 1.4;
             display: -webkit-box;
@@ -2025,7 +2025,7 @@
         /* Legacy support */
         .discovery-card-distance-text {
             color: #7B2D45;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             margin-bottom: 8px;
         }
@@ -2036,7 +2036,7 @@
             padding: 10px;
             margin-bottom: 10px;
             border-radius: 8px;
-            font-size: 12px;
+            font-size: 13px;
             color: #374151;
             line-height: 1.4;
             display: -webkit-box;
@@ -2047,7 +2047,7 @@
         }
 
         .discovery-card-note-label {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 600;
             color: #7B2D45;
             text-transform: uppercase;
@@ -2072,7 +2072,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             padding-top: 10px;
             border-top: 1px solid var(--mason);
@@ -2319,7 +2319,7 @@
         }
 
         .suggestions-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.04em;
             text-transform: uppercase;
@@ -2338,9 +2338,9 @@
         .suggestion-chip {
             background: var(--surface);
             border: 1px solid var(--border);
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 16px;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--ink);
             cursor: pointer;
             font-family: 'Inter', sans-serif;
@@ -2368,7 +2368,7 @@
             background: none;
             border: none;
             color: rgba(123,45,69,0.6);
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 500;
             padding: 2px 6px 2px 4px;
             border-radius: 8px;
@@ -2384,7 +2384,7 @@
 
         /* Translated snippet shown below The Word on feed cards */
         .feed-card-translation {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--text-muted, #888);
             font-style: italic;
             margin-top: 2px;
@@ -2420,7 +2420,7 @@
         }
 
         .result-save-count {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             color: #7B2D45;
             white-space: nowrap;
@@ -2433,7 +2433,7 @@
             background: none;
             border: 1px solid rgba(123,45,69,0.25);
             color: #7B2D45;
-            font-size: 11px;
+            font-size: 13px;
             font-family: 'Inter', sans-serif;
             padding: 3px 9px;
             border-radius: 12px;
@@ -2448,7 +2448,7 @@
 
         .compact-translate-btn {
             margin-top: 6px;
-            font-size: 10px;
+            font-size: 12px;
             padding: 2px 8px;
         }
 
@@ -2507,7 +2507,7 @@
         .recent-clear-all-btn {
             background: none;
             border: none;
-            font-size: 11px;
+            font-size: 13px;
             color: #7B2D45;
             cursor: pointer;
             font-family: 'Inter', sans-serif;
@@ -2559,8 +2559,8 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 16px;
-            padding: 4px 8px 4px 10px;
-            font-size: 12px;
+            padding: 5px 10px 5px 12px;
+            font-size: 13px;
             color: var(--ink);
             font-family: 'Inter', sans-serif;
             white-space: nowrap;
@@ -2658,7 +2658,7 @@
         }
 
         .results-header-count {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             margin-left: auto;
         }
@@ -2740,7 +2740,7 @@
         }
 
         .meta-tag {
-            font-size: 11px;
+            font-size: 13px;
             padding: 3px 8px;
             border-radius: 10px;
             font-weight: 500;
@@ -2765,13 +2765,13 @@
             background: rgba(123, 45, 69, 0.08);
             border-radius: 8px;
             padding: 6px 9px;
-            font-size: 12px;
+            font-size: 13px;
             color: #5A1F30;
             line-height: 1.4;
         }
 
         .top-pick-reason-label {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             color: #7B2D45;
             text-transform: uppercase;
@@ -2783,7 +2783,7 @@
             background: none;
             border: none;
             color: #7B2D45;
-            font-size: 12px;
+            font-size: 13px;
             padding: 4px 0;
             cursor: pointer;
             text-decoration: underline;
@@ -2957,13 +2957,13 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
             margin-bottom: 6px;
         }
 
         .compact-snippet {
-            font-size: 11px;
+            font-size: 13px;
             color: var(--muted);
             line-height: 1.35;
             margin-bottom: 4px;
@@ -3004,7 +3004,7 @@
         }
 
         .cc-adder-name {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: #2A1E14;
             white-space: nowrap;
@@ -3074,7 +3074,7 @@
 
         .result-meta-line {
             color: var(--muted);
-            font-size: 12px;
+            font-size: 13px;
             margin-bottom: 10px;
             font-weight: 500;
         }
@@ -3099,7 +3099,7 @@
         }
 
         .relevance-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: #7A3B10;
             text-transform: uppercase;
@@ -3136,7 +3136,7 @@
         }
 
         .result-personal-note-label {
-            font-size: 9px;
+            font-size: 11px;
             font-weight: 700;
             color: #7B2D45;
             text-transform: uppercase;
@@ -3405,7 +3405,7 @@
             border-radius: 0 10px 10px 0;
         }
         .drawer-quote-label {
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--wb);
             text-transform: uppercase;
@@ -3427,7 +3427,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--muted);
             background: none;
             border: none;
@@ -3526,7 +3526,7 @@
             border-radius: 12px;
         }
         .drawer-story-label {
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 700;
             color: #b45309;
             text-transform: uppercase;
@@ -3558,7 +3558,7 @@
         #locationNudge svg { flex-shrink: 0; }
         #locationNudge span { flex: 1; }
         #locationNudgeBtn {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--wb);
             background: none;
@@ -3717,7 +3717,7 @@
         }
 
         .input-btn-label {
-            font-size: 12px;
+            font-size: 13px;
             font-weight: 500;
             letter-spacing: 0.01em;
             line-height: 1;
@@ -3792,7 +3792,7 @@
 
         .form-group label {
             display: block;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: 600;
             color: var(--muted);
             text-transform: uppercase;
@@ -4855,7 +4855,7 @@
                 min-height: 80px;
             }
             .entry-card-label {
-                font-size: 12px;
+                font-size: 13px;
             }
         }
 
@@ -5522,7 +5522,7 @@
 /* Footer */
 .auth-footer {
     margin-top: 32px;
-    font-size: 12px;
+    font-size: 13px;
     color: #c7c7cc;
     text-align: center;
 }
@@ -5617,7 +5617,7 @@
 }
 
 .profile-bio {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     text-align: center;
     line-height: 1.3;
@@ -5625,7 +5625,7 @@
 }
 
 .profile-email {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     margin-top: 1px;
 }
@@ -5725,7 +5725,7 @@
 }
 
 .tier-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 12px;
     line-height: 1.4;
@@ -5910,7 +5910,7 @@
 
 .pcv2-identity .profile-bio {
     text-align: left;
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     line-height: 1.4;
     white-space: nowrap;
@@ -5983,7 +5983,7 @@
 }
 
 .pbox-count {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
 }
@@ -6207,7 +6207,7 @@
 }
 
 .close-account-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     margin-bottom: 6px;
 }
@@ -6216,7 +6216,7 @@
     background: none;
     border: none;
     color: #9ca3af;
-    font-size: 12px;
+    font-size: 13px;
     cursor: pointer;
     font-family: inherit;
     text-decoration: underline;
@@ -6512,7 +6512,7 @@
 
 .edit-label {
     display: block;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--muted);
     margin: 12px 0 4px;
@@ -6673,7 +6673,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     padding: 0 4px;
     opacity: 0.6;
 }
@@ -6709,7 +6709,7 @@
 .note-edit-save {
     padding: 4px 12px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     border: none;
@@ -6848,7 +6848,7 @@
 
 .my-endorse-card-title {
     padding: 8px 10px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--ink);
     white-space: nowrap;
@@ -7118,7 +7118,7 @@
 }
 
 .community-notes-label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: #9ca3af;
     text-transform: uppercase;
@@ -7367,7 +7367,7 @@
 }
 
 .notif-time {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     margin-top: 2px;
 }
@@ -7477,7 +7477,7 @@
 }
 
 .search-result-email {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     white-space: nowrap;
     overflow: hidden;
@@ -7492,7 +7492,7 @@
     padding: 6px 14px;
     border-radius: 20px;
     border: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -7515,7 +7515,7 @@
 .search-result-status {
     padding: 4px 10px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -7580,12 +7580,12 @@
 }
 
 .friend-request-time {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
 }
 
 .friend-request-email {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
 }
 
@@ -7599,7 +7599,7 @@
     padding: 6px 14px;
     border-radius: 20px;
     border: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -7704,7 +7704,7 @@
 }
 
 .friend-card-common {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
     line-height: 1.2;
     min-height: 14px;
@@ -7737,7 +7737,7 @@
 .privacy-teaser-card {
     font-style: italic;
     color: #9ca3af !important;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 /* ===== PHASE D: Polish ===== */
@@ -7844,7 +7844,7 @@
 }
 
 .app-toast-dismiss {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted, #9A8A7A);
     flex-shrink: 0;
     cursor: pointer;
@@ -7957,7 +7957,7 @@
 }
 
 .friend-common-name {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--ink);
     white-space: nowrap;
@@ -8059,7 +8059,7 @@
 
 .friend-item-type {
     display: inline-block;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: #7B2D45;
     background: #F5EDE8;
@@ -8322,7 +8322,7 @@
 }
 /* Founding note */
 .onb-founding-note {
-    font-size: 11px;
+    font-size: 12px;
     color: #9A8A7A;
     line-height: 1.65;
     margin-bottom: 20px;
@@ -8350,7 +8350,7 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    font-size: 11.5px;
+    font-size: 12px;
     color: #9A8A7A;
     line-height: 1.6;
     margin-bottom: 26px;
@@ -8623,7 +8623,7 @@
 }
 
 .saved-item-meta {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     display: flex;
     gap: 8px;
@@ -8678,7 +8678,7 @@
     .friends-list { flex-direction: column; }
     .friend-card { padding: 10px 0; }
     .friend-card-avatar { width: 40px; height: 40px; font-size: 14px; }
-    .friend-request-actions button { padding: 5px 10px; font-size: 11px; }
+    .friend-request-actions button { padding: 5px 10px; font-size: 12px; }
     .onboarding-banner { padding: 14px; }
     .home-save-card { width: 140px; }
     .home-save-delete { opacity: 0.7; }
@@ -8780,7 +8780,7 @@
     color: #ffffff;
 }
 .tile-search .launcher-tile-sub {
-    font-size: 12px;
+    font-size: 13px;
     color: rgba(255,255,255,0.72);
 }
 .tile-search .launcher-tile-arrow {
@@ -8839,7 +8839,7 @@
 }
 .tile-add .launcher-tile-sub,
 .tile-browse .launcher-tile-sub {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted);
 }
 
@@ -8903,7 +8903,7 @@
 }
 
 .style-picker-sub {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     margin-bottom: 16px;
 }
@@ -8939,7 +8939,7 @@
     color: var(--ink);
 }
 .style-option-desc {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--muted);
 }
 
@@ -8968,7 +8968,7 @@
 }
 
 .profile-style-label {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     font-weight: 500;
     letter-spacing: 0.03em;
@@ -8988,7 +8988,7 @@
     padding: 4px 14px;
     border-radius: 16px;
     border: none;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
@@ -9228,7 +9228,7 @@
     border-radius: 8px;
     padding: 5px 28px 5px 10px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #6A5A4A;
     cursor: pointer;
@@ -9304,7 +9304,7 @@
     border-radius: 6px;
     border: none;
     font-family: inherit;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     color: var(--text-secondary);
@@ -9452,7 +9452,7 @@
     border: 1.5px solid rgba(123,45,69,0.3);
     border-radius: 999px;
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #7B2D45;
     cursor: pointer;
@@ -9666,7 +9666,7 @@
     border: 1.5px solid var(--border);
     border-radius: 20px;
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: #6A5A4A;
     cursor: pointer;
@@ -9794,7 +9794,7 @@
     backdrop-filter: blur(4px);
     padding: 3px 10px;
     border-radius: 50px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: white;
 }
@@ -9896,7 +9896,7 @@ body.map-view-open .content {
 .dmap-panel-filter-row {
     display: flex; align-items: center; justify-content: space-between;
 }
-.dmap-panel-count { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.dmap-panel-count { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 /* Panel filter button hidden — filter is now in the shared topbar */
 .dmap-panel-filter-btn {
     display: none;
@@ -9958,7 +9958,7 @@ body.map-view-open .content {
     margin-bottom: 2px;
 }
 .dmap-panel-card-note {
-    font-size: 11px; color: var(--text-secondary);
+    font-size: 13px; color: var(--text-secondary);
     line-height: 1.4;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden;
@@ -9968,7 +9968,7 @@ body.map-view-open .content {
     display: flex; align-items: center; gap: 5px;
     margin-top: 6px; padding-top: 6px;
     border-top: 1px solid var(--border-light, #e8e0d5);
-    font-size: 10px; font-weight: 600; color: #7B2D45;
+    font-size: 12px; font-weight: 600; color: #7B2D45;
 }
 
 /* Map area — position:relative so children can use position:absolute */
@@ -10176,7 +10176,7 @@ body.map-view-open .content {
 }
 
 .dmap-prev-note {
-    font-size: 12px; color: var(--text-secondary, #7a6550); line-height: 1.4;
+    font-size: 13px; color: var(--text-secondary, #7a6550); line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -10185,7 +10185,7 @@ body.map-view-open .content {
 
 .dmap-prev-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; align-items: center; }
 .dmap-prev-badge {
-    font-size: 10px; font-weight: 600; color: #5a4535;
+    font-size: 11px; font-weight: 600; color: #5a4535;
     background: #ede7de; border-radius: 20px;
     border: 1px solid rgba(90,69,53,0.12);
     padding: 3px 9px; display: inline-flex; align-items: center; gap: 4px; line-height: 1.5;
@@ -10209,7 +10209,7 @@ body.map-view-open .content {
 .dmap-prev-av:first-child { margin-left: 0; }
 
 .dmap-prev-saves-text {
-    font-size: 11px; font-weight: 600; color: #7B2D45;
+    font-size: 13px; font-weight: 600; color: #7B2D45;
 }
 
 /* Leaflet popup override */
@@ -10259,13 +10259,13 @@ body.map-view-open .content {
     font-size: 7px; font-weight: 700; color: white;
     border: 1.5px solid #C9A227; flex-shrink: 0;
 }
-.odin-pop-by-text { font-size: 11px; color: var(--text-secondary); }
+.odin-pop-by-text { font-size: 12px; color: var(--text-secondary); }
 .odin-pop-by-text strong { color: #2A1E14; }
 
 /* Circle saves row in popup */
 .odin-pop-saves {
     display: flex; align-items: center; justify-content: space-between; gap: 6px;
-    font-size: 11px; font-weight: 600; color: #7B2D45;
+    font-size: 12px; font-weight: 600; color: #7B2D45;
     padding: 5px 0 0;
     border-top: 1px solid var(--border-light, #e8e0d5);
     margin-top: 4px;
@@ -10285,7 +10285,7 @@ body.map-view-open .content {
     padding-top: 7px;
     border-top: 1px solid var(--border);
     color: #7B2D45;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     text-align: center;
     letter-spacing: 0.01em;
@@ -10303,7 +10303,7 @@ body.map-view-open .content {
     background: transparent;
     color: #7B2D45;
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     text-align: center;
@@ -10338,7 +10338,7 @@ body.map-view-open .content {
     font-size: 14px; color: #C9A227; flex-shrink: 0; line-height: 1;
 }
 .ai-search-nudge-text {
-    flex: 1; font-size: 12px; color: rgba(255,255,255,0.88);
+    flex: 1; font-size: 13px; color: rgba(255,255,255,0.88);
     font-family: 'Inter', sans-serif; line-height: 1.4;
 }
 .ai-search-nudge-text strong { color: #C9A227; }
@@ -10414,7 +10414,7 @@ body.map-view-open .content {
     margin-bottom: 6px;
 }
 .visibility-section-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.07em;
     color: var(--muted);
@@ -10447,7 +10447,7 @@ body.map-view-open .content {
     transition: color 0.2s;
 }
 .visibility-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--muted);
     transition: color 0.2s;
 }
@@ -10576,7 +10576,7 @@ body.map-view-open .content {
 @media (max-width: 780px) {
     .auth-form { gap: 12px; }
     .auth-field { gap: 4px; }
-    .auth-field label { font-size: 12px; }
+    .auth-field label { font-size: 13px; }
     .auth-field input { padding: 10px 12px; font-size: 14px; }
     .auth-btn-primary { padding: 12px 16px; font-size: 14px; margin-top: 2px; }
     .auth-btn-google { padding: 11px 16px; font-size: 14px; }
@@ -10694,7 +10694,7 @@ body.map-view-open .content {
 }
 
 .extended-circle-notice-sub {
-    font-size: 12px;
+    font-size: 13px;
     color: #c4b5b5;
     display: block;
     margin-top: 4px;
@@ -10786,7 +10786,7 @@ body.map-view-open .content {
 }
 .invite-link-url {
     flex: 1;
-    font-size: 12px;
+    font-size: 13px;
     color: #2A1E14;
     font-family: 'Inter', monospace;
     word-break: break-all;
@@ -10799,7 +10799,7 @@ body.map-view-open .content {
     border: none;
     border-radius: 6px;
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     font-family: 'Inter', sans-serif;
     cursor: pointer;
@@ -10807,7 +10807,7 @@ body.map-view-open .content {
 }
 .invite-link-copy:hover { background: #5A1F30; }
 .invite-link-hint {
-    font-size: 11px;
+    font-size: 13px;
     color: #9A8A7A;
     margin: 0;
     line-height: 1.4;
@@ -10819,7 +10819,7 @@ body.map-view-open .content {
 
 /* Distance inline with title */
 .fc-dist {
-    font-size: 11px;
+    font-size: 13px;
     color: #9A8A7A;
     font-weight: 400;
     white-space: nowrap;
@@ -10828,7 +10828,7 @@ body.map-view-open .content {
 
 /* Attribution line: "Saved by X · Xd" */
 .fc-attribution {
-    font-size: 12px;
+    font-size: 13px;
     color: #7A6A5A;
     margin: 2px 0 4px;
     line-height: 1.4;
@@ -10839,7 +10839,7 @@ body.map-view-open .content {
     display: flex;
     align-items: center;
     gap: 5px;
-    font-size: 12px;
+    font-size: 13px;
     color: #7A6A5A;
     margin: 2px 0 4px;
 }
@@ -10873,7 +10873,7 @@ body.map-view-open .content {
     flex-wrap: wrap;
 }
 .fc-category-chip {
-    font-size: 11px;
+    font-size: 13px;
     color: #7A6A5A;
     background: #F0E8DC;
     border-radius: 10px;
@@ -10881,7 +10881,7 @@ body.map-view-open .content {
     font-weight: 500;
 }
 .fc-saves-chip {
-    font-size: 11px;
+    font-size: 13px;
     color: #9A8A7A;
     padding: 2px 0;
 }
@@ -10910,7 +10910,7 @@ body.map-view-open .content {
 
 /* Quote attribution "— [Name]" under THE WORD */
 .drawer-quote-attribution {
-    font-size: 12px;
+    font-size: 13px;
     color: #9A8A7A;
     margin-top: 4px;
     font-style: normal;
@@ -10924,7 +10924,7 @@ body.map-view-open .content {
     border-radius: 8px;
 }
 .drawer-summary-label {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     color: #9A8A7A;
     text-transform: uppercase;
@@ -10947,7 +10947,7 @@ body.map-view-open .content {
     border-top: 1px solid #EDE6DC;
 }
 .drawer-saved-by {
-    font-size: 12px;
+    font-size: 13px;
     color: #7A6A5A;
     flex: 1;
 }
@@ -11006,7 +11006,7 @@ body.map-view-open .content {
     color: var(--ink, #2C1A0E);
 }
 .drawer-attr-sub {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted, #9A8A7A);
     margin-top: 1px;
 }
@@ -11015,7 +11015,7 @@ body.map-view-open .content {
     align-items: center;
     gap: 8px;
     margin-top: 8px;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--muted, #9A8A7A);
 }
 .drawer-save-avatars {
@@ -11084,7 +11084,7 @@ body.map-view-open .content {
     min-width: 0;
 }
 .drawer-contact-text {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink, #2A1E14);
     line-height: 1.45;
     font-family: 'DM Sans', sans-serif;
@@ -11129,7 +11129,7 @@ body.map-view-open .content {
 
 /* ── The Word — italic personal note snippet (Home + Discover) ── */
 .hf-card-word {
-    font-size: 11px;
+    font-size: 13px;
     font-style: italic;
     color: #4A3828;
     line-height: 1.3;
@@ -11142,7 +11142,7 @@ body.map-view-open .content {
 .hf-card-word--gated {
     font-style: normal;
     color: #9A8A7A;
-    font-size: 11px;
+    font-size: 13px;
 }
 
 /* ── Discover card: "Added by" row (above divider) ── */
@@ -11162,7 +11162,7 @@ body.map-view-open .content {
 }
 
 .hf-card-person-name {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 600;
     color: #2A1E14;
     white-space: nowrap;
@@ -11184,7 +11184,7 @@ body.map-view-open .content {
 }
 
 .hf-card-save-count {
-    font-size: 11px;
+    font-size: 13px;
     color: #7B2D45;
     font-weight: 600;
     white-space: nowrap;
