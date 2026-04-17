@@ -169,8 +169,8 @@
         }
         #loginScreen .ls-logo {
             font-family: 'Inter', sans-serif;
-            font-weight: 300; font-size: 46px;
-            letter-spacing: -0.03em; line-height: 1;
+            font-weight: 800; font-size: 46px;
+            letter-spacing: -0.06em; line-height: 1;
             margin-bottom: 36px;
         }
         #loginScreen .ls-logo .lsv { color: var(--wb); }
@@ -991,57 +991,87 @@
     .ls-mslide--hidden { display: none; }
     @keyframes lsFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Shared headline for both slides */
+    /* Section label — matches existing ls-s2-label style */
+    .ls-slide .ls-s2-label,
+    .ls-mslide .ls-s2-label { margin-bottom: 16px; }
+
+    /* Headline — large, serif, matches landing tone */
     .ls-slide-headline {
       font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(22px, 3.5vw, 30px);
-      font-weight: 400; font-style: italic;
-      line-height: 1.25; color: var(--wb);
-      margin-bottom: 1.25rem; letter-spacing: -0.01em;
+      font-size: clamp(26px, 3.5vw, 36px);
+      font-weight: 400;
+      line-height: 1.2; color: var(--wb);
+      margin-bottom: 1.5rem; letter-spacing: -0.02em;
     }
-    .ls-slide-headline em { font-style: normal; color: var(--mason); }
+    .ls-slide-headline em { font-style: italic; color: var(--mason); }
+
+    /* Body paragraphs — match ls-explain */
+    .ls-slide p.ls-explain { margin-bottom: 1rem; }
 
     /* Pull quote */
     .ls-slide-pull {
       border-left: 2px solid var(--mason); padding-left: 1rem;
       margin: 1.25rem 0;
-      font-size: 15px; font-style: italic;
-      line-height: 1.55; color: rgba(221,208,184,0.75);
+      font-size: 16px; font-style: italic;
+      line-height: 1.6; color: rgba(221,208,184,0.82);
+    }
+    #lsLearnSheet .ls-slide-pull {
+      font-size: 15px;
     }
 
     /* Founder sign-off */
     .ls-slide-sign {
-      margin-top: 1.5rem; padding-top: 1.25rem;
+      margin-top: 1.75rem; padding-top: 1.25rem;
       border-top: 1px solid rgba(221,208,184,0.1);
       display: flex; align-items: center; gap: 0.75rem;
     }
     .ls-slide-avatar {
-      width: 32px; height: 32px; border-radius: 50%;
+      width: 34px; height: 34px; border-radius: 50%;
       background: var(--mason); display: flex; align-items: center;
-      justify-content: center; font-size: 13px; font-weight: 700;
+      justify-content: center; font-size: 14px; font-weight: 700;
       color: white; flex-shrink: 0;
     }
     .ls-slide-sign-name { font-size: 13px; font-weight: 600; color: var(--wb); }
-    .ls-slide-sign-role { font-size: 11px; color: rgba(221,208,184,0.4); margin-top: 2px; }
+    .ls-slide-sign-role { font-size: 12px; color: rgba(221,208,184,0.4); margin-top: 2px; }
 
-    /* Next / Back nav button — desktop */
+    /* "How it works →" nav — desktop: styled like scroll hint / learn-more */
     .ls-slide-next {
-      margin-top: 1.75rem;
-      display: flex; align-items: center; gap: 6px;
-      background: none; border: none; cursor: pointer;
-      font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
-      text-transform: uppercase; color: rgba(221,208,184,0.4);
-      padding: 0; transition: color 0.2s;
+      margin-top: 2rem;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+      background: none; border: none; cursor: pointer; padding: 0;
+      font-family: 'Inter', sans-serif;
     }
-    .ls-slide-next:hover { color: var(--mason); }
-    .ls-slide-back { margin-top: 1rem; }
+    .ls-slide-next .lsnav-label {
+      display: flex; align-items: center; gap: 7px;
+      font-size: 13px; font-weight: 500;
+      color: rgba(221,208,184,0.45);
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .ls-slide-next:hover .lsnav-label { color: var(--mason); }
+    .ls-slide-next .lsnav-line {
+      width: 1px; height: 28px;
+      background: linear-gradient(to bottom, rgba(221,208,184,0.35), transparent);
+      margin-left: 1px;
+    }
+
+    /* Back link — desktop */
+    .ls-slide-back {
+      margin-top: 1.5rem;
+      display: flex; align-items: center; gap: 6px;
+      background: none; border: none; cursor: pointer; padding: 0;
+      font-size: 12px; font-weight: 500; letter-spacing: 0.06em;
+      text-transform: uppercase; color: rgba(221,208,184,0.3);
+      font-family: 'Inter', sans-serif; transition: color 0.2s;
+    }
+    .ls-slide-back:hover { color: rgba(221,208,184,0.6); }
 
     /* Mobile back button */
     .ls-mslide-back {
       display: block; background: none; border: none;
       font-size: 13px; color: rgba(221,208,184,0.35);
-      cursor: pointer; margin-top: 12px; padding: 0;
+      cursor: pointer; margin-top: 12px; padding: 8px 0;
       text-align: center; width: 100%;
+      font-family: 'Inter', sans-serif;
     }
     </style>
 </head>
@@ -1127,47 +1157,49 @@
                         <div class="ls-slide" id="lsSlide1">
                             <div class="ls-s2-label">Why I built this</div>
                             <h3 class="ls-slide-headline">Things worth sharing<br>kept <em>getting lost.</em></h3>
-                            <p class="ls-explain">A friend mentioned a physio she loved. My mum passed on a restaurant worth trying. A colleague said "you have to check this place out." All real, all from people I trusted — buried in texts I'd never find again.</p>
+                            <p class="ls-explain">A friend mentioned a physio she loved. My mum passed on a restaurant worth trying. A colleague said "you have to check this place out." All real, all from people I trusted — and all gone. Buried in texts, group chats, conversations I'd never find again when I actually needed them.</p>
+                            <p class="ls-explain">I wasn't frustrated with Google. I was frustrated with forgetting. The people around me knew things — and were quietly passing them on all the time. It just kept disappearing.</p>
                             <blockquote class="ls-slide-pull">I didn't want another review platform. I wanted a way to hold onto what the people I trust actually pass on.</blockquote>
-                            <p class="ls-explain">So I built Odin. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
-                            <div class="ls-slide-sign">
-                                <div class="ls-slide-avatar">S</div>
-                                <div>
-                                    <div class="ls-slide-sign-name">Stanley Mak</div>
-                                    <div class="ls-slide-sign-role">Founder, Odin — Auckland, NZ</div>
-                                </div>
-                            </div>
+                            <p class="ls-explain">So I built Odin. Quietly, on evenings and weekends. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
                             <button class="ls-slide-next" onclick="lsShowSlide(2)">
-                                How it works
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7l6 6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <span class="lsnav-label">
+                                    How it works
+                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5l4 4 4-4" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </span>
+                                <div class="lsnav-line"></div>
                             </button>
                         </div>
 
                         <!-- Slide 2: How it works -->
                         <div class="ls-slide ls-slide--hidden" id="lsSlide2">
                             <div class="ls-s2-label">How it works</div>
-                            <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
                             <div class="ls-features">
                                 <div class="ls-feature-row">
                                     <span class="ls-feature-num">01</span>
-                                    <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
+                                    <span class="ls-feature-text"><b>Save what's worth passing on.</b> A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</span>
                                 </div>
                                 <div class="ls-feature-row">
                                     <span class="ls-feature-num">02</span>
-                                    <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
+                                    <span class="ls-feature-text"><b>Your circle grows your knowledge base.</b> When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</span>
                                 </div>
                                 <div class="ls-feature-row">
                                     <span class="ls-feature-num">03</span>
-                                    <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+                                    <span class="ls-feature-text"><b>Search like you're asking a friend.</b> Type "good dentist near me" or "where to take my parents for dinner" — Odin finds what your circle actually knows. In any language.</span>
                                 </div>
                                 <div class="ls-feature-row">
                                     <span class="ls-feature-num">04</span>
-                                    <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
+                                    <span class="ls-feature-text"><b>No algorithms. No ads. No noise.</b> Every result comes from someone you chose to trust. That's the only signal that matters.</span>
                                 </div>
                             </div>
-                            <button class="ls-slide-next ls-slide-back" onclick="lsShowSlide(1)">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="transform:rotate(180deg)"><path d="M7 1v12M1 7l6 6 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Back
+                            <div class="ls-slide-sign">
+                                <div class="ls-slide-avatar">S</div>
+                                <div>
+                                    <div class="ls-slide-sign-name">Stanley Mak</div>
+                                    <div class="ls-slide-sign-role">Founder, Odin — Auckland, New Zealand</div>
+                                </div>
+                            </div>
+                            <button class="ls-slide-back" onclick="lsShowSlide(1)">
+                                ← Back
                             </button>
                         </div>
 
@@ -1239,17 +1271,11 @@
             <div class="ls-mslide" id="lsMSlide1">
                 <div class="ls-s2-label">Why I built this</div>
                 <h3 class="ls-slide-headline">Things worth sharing<br>kept <em>getting lost.</em></h3>
-                <p class="ls-explain">A friend mentioned a physio she loved. My mum passed on a restaurant worth trying. A colleague said "you have to check this place out." All real, all from people I trusted — buried in texts I'd never find again.</p>
+                <p class="ls-explain">A friend mentioned a physio she loved. My mum passed on a restaurant worth trying. A colleague said "you have to check this place out." All real, all from people I trusted — and all gone. Buried in texts, group chats, conversations I'd never find again when I actually needed them.</p>
+                <p class="ls-explain">I wasn't frustrated with Google. I was frustrated with forgetting. The people around me knew things — and were quietly passing them on all the time. It just kept disappearing.</p>
                 <blockquote class="ls-slide-pull">I didn't want another review platform. I wanted a way to hold onto what the people I trust actually pass on.</blockquote>
-                <p class="ls-explain">So I built Odin. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
-                <div class="ls-slide-sign">
-                    <div class="ls-slide-avatar">S</div>
-                    <div>
-                        <div class="ls-slide-sign-name">Stanley Mak</div>
-                        <div class="ls-slide-sign-role">Founder, Odin — Auckland, NZ</div>
-                    </div>
-                </div>
-                <button class="ls-learn-cta" onclick="lsMShowSlide(2)">
+                <p class="ls-explain">So I built Odin. Quietly, on evenings and weekends. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
+                <button class="ls-learn-cta" onclick="lsMShowSlide(2)" style="margin-top:28px;">
                     How it works →
                 </button>
             </div>
@@ -1257,24 +1283,30 @@
             <!-- Mobile Slide 2: How -->
             <div class="ls-mslide ls-mslide--hidden" id="lsMSlide2">
                 <div class="ls-s2-label">How it works</div>
-                <p class="ls-explain">Odin turns your circle's discoveries into a library you can search anytime — no algorithms, just people you trust.</p>
                 <div class="ls-feature-row">
                     <span class="ls-feature-num">01</span>
-                    <span class="ls-feature-text"><b>Search like you'd ask a friend.</b> "Good coffee near work" — not just keywords. Odin searches what your circle has saved.</span>
+                    <span class="ls-feature-text"><b>Save what's worth passing on.</b> A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</span>
                 </div>
                 <div class="ls-feature-row">
                     <span class="ls-feature-num">02</span>
-                    <span class="ls-feature-text"><b>Save the little discoveries from real life.</b> Places, products, services — the small things worth remembering, all in one place.</span>
+                    <span class="ls-feature-text"><b>Your circle grows your knowledge base.</b> When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</span>
                 </div>
                 <div class="ls-feature-row">
                     <span class="ls-feature-num">03</span>
-                    <span class="ls-feature-text"><b>Works across languages.</b> Your circle may speak different languages — Odin understands them all.</span>
+                    <span class="ls-feature-text"><b>Search like you're asking a friend.</b> Type "good dentist near me" or "where to take my parents for dinner" — Odin finds what your circle actually knows. In any language.</span>
                 </div>
                 <div class="ls-feature-row">
                     <span class="ls-feature-num">04</span>
-                    <span class="ls-feature-text"><b>Private by default.</b> Only friends you approve can see your saves. Your circle, your rules.</span>
+                    <span class="ls-feature-text"><b>No algorithms. No ads. No noise.</b> Every result comes from someone you chose to trust. That's the only signal that matters.</span>
                 </div>
-                <button class="ls-learn-cta" onclick="lsCloseLearnMore(); lsOpenSheet('signup');">Get Started — it's free</button>
+                <div class="ls-slide-sign" style="margin-top:24px;">
+                    <div class="ls-slide-avatar">S</div>
+                    <div>
+                        <div class="ls-slide-sign-name">Stanley Mak</div>
+                        <div class="ls-slide-sign-role">Founder, Odin — Auckland, New Zealand</div>
+                    </div>
+                </div>
+                <button class="ls-learn-cta" onclick="lsCloseLearnMore(); lsOpenSheet('signup');" style="margin-top:24px;">Get Started — it's free</button>
                 <button class="ls-mslide-back" onclick="lsMShowSlide(1)">← Back</button>
             </div>
         </div>
