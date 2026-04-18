@@ -1106,6 +1106,33 @@
 
     /* Mobile sheet — allow full scroll for longer content */
     #lsLearnSheet { max-height: 88dvh !important; }
+
+    /* ── How it works list — clean number / title / desc layout ── */
+    .ls-how-list { display: flex; flex-direction: column; }
+    .ls-how-item {
+        display: flex; gap: 18px; align-items: flex-start;
+        padding: 18px 0;
+        border-bottom: 1px solid rgba(221,208,184,0.06);
+    }
+    .ls-how-item:first-child { border-top: 1px solid rgba(221,208,184,0.06); }
+    .ls-how-num {
+        font-family: 'DM Serif Display', Georgia, serif;
+        font-size: 13px; font-style: italic;
+        color: rgba(221,208,184,0.35);
+        flex-shrink: 0; width: 22px; padding-top: 2px;
+        line-height: 1;
+    }
+    .ls-how-body { display: flex; flex-direction: column; gap: 5px; }
+    .ls-how-title {
+        font-size: 15px; font-weight: 500;
+        color: rgba(221,208,184,0.92);
+        line-height: 1.4; letter-spacing: -0.01em;
+    }
+    .ls-how-desc {
+        font-size: 14px; font-weight: 300;
+        color: rgba(221,208,184,0.60);
+        line-height: 1.65;
+    }
     </style>
 </head>
 <body>
@@ -1206,29 +1233,34 @@
                         <!-- Slide 2: How it works -->
                         <div class="ls-slide ls-slide--hidden" id="lsSlide2">
                             <div class="ls-s2-label">How it works</div>
-                            <div class="ls-features">
-                                <div class="ls-feature-row">
-                                    <span class="ls-feature-num">01</span>
-                                    <span class="ls-feature-text"><b>Save what's worth passing on.</b> A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</span>
+                            <div class="ls-how-list">
+                                <div class="ls-how-item">
+                                    <span class="ls-how-num">01</span>
+                                    <div class="ls-how-body">
+                                        <div class="ls-how-title">Save what's worth passing on.</div>
+                                        <div class="ls-how-desc">A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</div>
+                                    </div>
                                 </div>
-                                <div class="ls-feature-row">
-                                    <span class="ls-feature-num">02</span>
-                                    <span class="ls-feature-text"><b>Your circle grows your knowledge base.</b> When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</span>
+                                <div class="ls-how-item">
+                                    <span class="ls-how-num">02</span>
+                                    <div class="ls-how-body">
+                                        <div class="ls-how-title">Your circle grows your knowledge base.</div>
+                                        <div class="ls-how-desc">When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</div>
+                                    </div>
                                 </div>
-                                <div class="ls-feature-row">
-                                    <span class="ls-feature-num">03</span>
-                                    <span class="ls-feature-text"><b>Search like you're asking a friend.</b> Type "good dentist near me" or "where to take my parents for dinner" — Odin finds what your circle actually knows. In any language.</span>
+                                <div class="ls-how-item">
+                                    <span class="ls-how-num">03</span>
+                                    <div class="ls-how-body">
+                                        <div class="ls-how-title">Search like you're asking a friend.</div>
+                                        <div class="ls-how-desc">Ask naturally — "good dentist near me" or "where to take my parents for dinner." Odin understands different languages and finds what your circle actually knows. Translate any result instantly to your language.</div>
+                                    </div>
                                 </div>
-                                <div class="ls-feature-row">
-                                    <span class="ls-feature-num">04</span>
-                                    <span class="ls-feature-text"><b>No algorithms. No ads. No noise.</b> Every result comes from someone you chose to trust. That's the only signal that matters.</span>
-                                </div>
-                            </div>
-                            <div class="ls-slide-sign">
-                                <div class="ls-slide-avatar">S</div>
-                                <div>
-                                    <div class="ls-slide-sign-name">Stanley Mak</div>
-                                    <div class="ls-slide-sign-role">Founder, Odin — Auckland, New Zealand</div>
+                                <div class="ls-how-item">
+                                    <span class="ls-how-num">04</span>
+                                    <div class="ls-how-body">
+                                        <div class="ls-how-title">No algorithms. No ads. No noise.</div>
+                                        <div class="ls-how-desc">Every result comes from someone you chose to trust. That's the only signal that matters.</div>
+                                    </div>
                                 </div>
                             </div>
                             <button class="ls-slide-back" onclick="lsShowSlide(1)">
@@ -1316,27 +1348,34 @@
             <!-- Mobile Slide 2: How -->
             <div class="ls-mslide ls-mslide--hidden" id="lsMSlide2">
                 <div class="ls-s2-label">How it works</div>
-                <div class="ls-feature-row">
-                    <span class="ls-feature-num">01</span>
-                    <span class="ls-feature-text"><b>Save what's worth passing on.</b> A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</span>
-                </div>
-                <div class="ls-feature-row">
-                    <span class="ls-feature-num">02</span>
-                    <span class="ls-feature-text"><b>Your circle grows your knowledge base.</b> When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</span>
-                </div>
-                <div class="ls-feature-row">
-                    <span class="ls-feature-num">03</span>
-                    <span class="ls-feature-text"><b>Search like you're asking a friend.</b> Type "good dentist near me" or "where to take my parents for dinner" — Odin finds what your circle actually knows. In any language.</span>
-                </div>
-                <div class="ls-feature-row">
-                    <span class="ls-feature-num">04</span>
-                    <span class="ls-feature-text"><b>No algorithms. No ads. No noise.</b> Every result comes from someone you chose to trust. That's the only signal that matters.</span>
-                </div>
-                <div class="ls-slide-sign" style="margin-top:24px;">
-                    <div class="ls-slide-avatar">S</div>
-                    <div>
-                        <div class="ls-slide-sign-name">Stanley Mak</div>
-                        <div class="ls-slide-sign-role">Founder, Odin — Auckland, New Zealand</div>
+                <div class="ls-how-list">
+                    <div class="ls-how-item">
+                        <span class="ls-how-num">01</span>
+                        <div class="ls-how-body">
+                            <div class="ls-how-title">Save what's worth passing on.</div>
+                            <div class="ls-how-desc">A place someone told you about. A service you tried and loved. Something you think a friend should know. Add your own note — just your take on it.</div>
+                        </div>
+                    </div>
+                    <div class="ls-how-item">
+                        <span class="ls-how-num">02</span>
+                        <div class="ls-how-body">
+                            <div class="ls-how-title">Your circle grows your knowledge base.</div>
+                            <div class="ls-how-desc">When a friend saves something, you see it. When you save something, it reaches their circle too — anonymously. The good stuff travels. The identity doesn't.</div>
+                        </div>
+                    </div>
+                    <div class="ls-how-item">
+                        <span class="ls-how-num">03</span>
+                        <div class="ls-how-body">
+                            <div class="ls-how-title">Search like you're asking a friend.</div>
+                            <div class="ls-how-desc">Ask naturally — "good dentist near me" or "where to take my parents for dinner." Odin understands different languages and finds what your circle actually knows. Translate any result instantly to your language.</div>
+                        </div>
+                    </div>
+                    <div class="ls-how-item">
+                        <span class="ls-how-num">04</span>
+                        <div class="ls-how-body">
+                            <div class="ls-how-title">No algorithms. No ads. No noise.</div>
+                            <div class="ls-how-desc">Every result comes from someone you chose to trust. That's the only signal that matters.</div>
+                        </div>
                     </div>
                 </div>
                 <button class="ls-learn-cta" onclick="lsCloseLearnMore(); lsOpenSheet('signup');" style="margin-top:24px;">Get Started — it's free</button>
