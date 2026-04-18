@@ -1906,14 +1906,49 @@ async function loadNotesForItem(itemId) {
 }
 
 function renderNotesSection(itemId, notes, trustLevel) {
-    // Extended circle: comments are hidden — identity must not travel more than one hop
+    // Extended circle: show comments from direct friends only; hide all others
     if (trustLevel === TRUST.EXTENDED) {
-        return `<div class="community-notes community-notes--hidden" id="communityNotes">
+        const visibleNotes = (notes || []).filter(n =>
+            (currentUser && n.out_user_id === currentUser.id) || isFriend(n.out_user_id)
+        );
+        if (visibleNotes.length === 0) {
+            return `<div class="community-notes community-notes--hidden" id="communityNotes">
             <div class="extended-circle-notice">
                 💬 Comments are only visible between direct friends.
                 <br><span class="extended-circle-notice-sub">Add this place to connect with the people who saved it.</span>
             </div>
         </div>`;
+        }
+        // Has comments from direct friends — render those only, no input box
+        notes = visibleNotes;
+        const friendNotesList = notes.map(n => {
+            const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
+            const timeAgo = getTimeAgo(n.out_created_at);
+            const isOwn = currentUser && n.out_user_id === currentUser.id;
+            const editBtn = isOwn ? `<button class="note-edit" onclick="startEditNote('${n.out_id}', '${itemId}', \`${escapeHtml(n.out_note_text).replace(/`/g, '\\`')}\`)" title="Edit">✏️</button>` : '';
+            const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
+            return `<div class="note-item" data-note-id="${n.out_id}">
+            <div class="note-avatar">${initial}</div>
+            <div class="note-body">
+                <div class="note-header">
+                    <span class="note-author">${escapeHtml(n.out_user_name)}</span>
+                    <span class="note-time">${timeAgo}</span>
+                    ${editBtn}${deleteBtn}
+                </div>
+                <div class="note-text">${escapeHtml(n.out_note_text)}</div>
+            </div>
+        </div>`;
+        }).join('');
+        const commentLabel = `Comments · ${notes.length}`;
+        return `<div class="community-notes" id="communityNotes">
+        <button class="community-notes-toggle" onclick="toggleCommentsSection(this)" aria-expanded="false">
+            <span class="community-notes-label">${commentLabel}</span>
+            <svg class="comments-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="community-notes-body" id="communityNotesBody" style="display:none;">
+            <div class="notes-list" id="notesList">${friendNotesList}</div>
+        </div>
+    </div>`;
     }
 
     const notesList = notes.map(n => {
