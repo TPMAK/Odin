@@ -1022,18 +1022,18 @@
       color: #F0EBE3;
       margin-bottom: 2rem;
       letter-spacing: -0.025em;
-      max-width: 600px;
+      max-width: 720px;
     }
     .ls-slide-headline em { font-style: italic; color: #D4622A; }
 
-    /* Body paragraphs */
-    .ls-slide p.ls-explain,
-    .ls-mslide p.ls-explain { margin-bottom: 1rem; max-width: 580px; }
+    /* Body paragraphs — override the 460px cap from #loginScreen .ls-explain */
+    #loginScreen .ls-slide .ls-explain,
+    .ls-mslide p.ls-explain { margin-bottom: 1rem; max-width: 720px !important; }
 
     /* Content max-width for readability */
     .ls-slide .ls-how-list,
     .ls-slide .ls-slide-pull,
-    .ls-slide .ls-slide-back { max-width: 580px; }
+    .ls-slide .ls-slide-back { max-width: 720px; }
 
     /* Pull quote */
     .ls-slide-pull {
