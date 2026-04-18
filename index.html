@@ -146,7 +146,6 @@
         #loginScreen .ls-section2 {
             padding: 72px 80px 100px;
             position: relative; z-index: 2;
-            max-width: 560px;
         }
         /* Section 2 label */
         #loginScreen .ls-s2-label {
@@ -992,32 +991,49 @@
     .ls-mslide--hidden { display: none; }
     @keyframes lsFadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Section label override — cream on dark (needs #loginScreen prefix to beat specificity) */
+    /* Section label — styled as a real section title, cream on dark */
     #loginScreen .ls-slide .ls-s2-label,
     #lsLearnSheet .ls-mslide .ls-s2-label {
-      color: rgba(221,208,184,0.45) !important;
-      margin-bottom: 16px;
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      color: rgba(221,208,184,0.38) !important;
+      margin-bottom: 20px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
     }
     #loginScreen .ls-slide .ls-s2-label::after,
     #lsLearnSheet .ls-mslide .ls-s2-label::after {
-      background: rgba(221,208,184,0.15) !important;
+      content: '' !important;
+      flex: 1 !important;
+      max-width: none !important;
+      height: 1px !important;
+      background: rgba(221,208,184,0.1) !important;
     }
 
-    /* Headline — cream, large serif */
+    /* Headline — large serif, same weight as main hero headline */
     .ls-slide-headline {
       font-family: 'DM Serif Display', Georgia, serif;
-      font-size: clamp(26px, 3.5vw, 36px);
+      font-size: clamp(32px, 4vw, 48px);
       font-weight: 400;
-      line-height: 1.2;
+      line-height: 1.15;
       color: #F0EBE3;
-      margin-bottom: 1.5rem;
-      letter-spacing: -0.02em;
+      margin-bottom: 2rem;
+      letter-spacing: -0.025em;
+      max-width: 720px;
     }
     .ls-slide-headline em { font-style: italic; color: #D4622A; }
 
-    /* Body paragraphs */
-    .ls-slide p.ls-explain,
-    .ls-mslide p.ls-explain { margin-bottom: 1rem; }
+    /* Body paragraphs — override the 460px cap from #loginScreen .ls-explain */
+    #loginScreen .ls-slide .ls-explain,
+    .ls-mslide p.ls-explain { margin-bottom: 1rem; max-width: 720px !important; }
+
+    /* Content max-width for readability */
+    .ls-slide .ls-how-list,
+    .ls-slide .ls-slide-pull,
+    .ls-slide .ls-slide-back { max-width: 720px; }
 
     /* Pull quote */
     .ls-slide-pull {
@@ -1064,24 +1080,30 @@
     .ls-slide-sign-name { font-size: 13px; font-weight: 600; color: #F0EBE3; }
     .ls-slide-sign-role { font-size: 12px; color: rgba(221,208,184,0.4); margin-top: 2px; }
 
-    /* "How it works ↓" nav button — styled like existing Learn More drip */
+    /* "How it works" nav — centred, matches Learn More scroll hint exactly */
     .ls-slide-next {
-      margin-top: 2rem;
-      display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+      margin-top: 2.5rem;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
       background: none; border: none; cursor: pointer; padding: 0;
       font-family: 'Inter', sans-serif;
+      width: 100%;
     }
     .ls-slide-next .lsnav-label {
-      display: flex; align-items: center; gap: 7px;
-      font-size: 13px; font-weight: 500;
-      color: rgba(221,208,184,0.45);
-      letter-spacing: 0.05em; text-transform: uppercase;
+      font-size: 11px; font-weight: 500;
+      color: rgba(221,208,184,0.4);
+      letter-spacing: 0.1em; text-transform: uppercase;
     }
-    .ls-slide-next:hover .lsnav-label { color: #D4622A; }
+    .ls-slide-next:hover .lsnav-label { color: rgba(221,208,184,0.7); }
     .ls-slide-next .lsnav-line {
-      width: 1px; height: 28px;
-      background: linear-gradient(to bottom, rgba(221,208,184,0.35), transparent);
-      margin-left: 1px;
+      width: 1px; height: 32px;
+      background: linear-gradient(to bottom, rgba(221,208,184,0.4), transparent);
+      position: relative; overflow: hidden;
+    }
+    .ls-slide-next .lsnav-line::after {
+      content: '';
+      position: absolute; top: -100%; left: 0; right: 0; height: 100%;
+      background: linear-gradient(to bottom, transparent, rgba(123,45,69,0.9), transparent);
+      animation: ls-drip 2.2s ease-in-out infinite;
     }
 
     /* Back link — desktop */
@@ -1222,10 +1244,7 @@
                             <blockquote class="ls-slide-pull">I didn't want another review platform. I wanted a way to hold onto what the people I trust actually pass on.</blockquote>
                             <p class="ls-explain">So I built Odin. Quietly, on evenings and weekends. Not to compete with algorithms — but to replace them with something better: the people you already trust.</p>
                             <button class="ls-slide-next" onclick="lsShowSlide(2)">
-                                <span class="lsnav-label">
-                                    How it works
-                                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 1v8M1 5l4 4 4-4" stroke="rgba(221,208,184,0.45)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </span>
+                                <span class="lsnav-label">How it works</span>
                                 <div class="lsnav-line"></div>
                             </button>
                         </div>
