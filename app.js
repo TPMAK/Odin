@@ -5104,19 +5104,15 @@ function openItemDrawer(item) {
     document.getElementById('drawerBackdrop').classList.add('active');
     document.getElementById('detailDrawer').classList.add('open');
 
-    // Load community notes asynchronously (extended circle sees locked message)
+    // Load community notes asynchronously
+    // Always fetch — renderNotesSection filters by trust level and friendship
     if (item.id) {
-        if (isExtendedCircle) {
+        loadNotesForItem(item.id).then(notes => {
             const container = document.getElementById('communityNotesContainer');
-            if (container) container.innerHTML = renderNotesSection(item.id, [], TRUST.EXTENDED);
-        } else {
-            loadNotesForItem(item.id).then(notes => {
-                const container = document.getElementById('communityNotesContainer');
-                if (container) {
-                    container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
-                }
-            });
-        }
+            if (container) {
+                container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
+            }
+        });
     }
 
     // Re-fetch endorsement state for this item to ensure save button is accurate
