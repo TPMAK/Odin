@@ -5042,7 +5042,7 @@
             border: 1.5px solid var(--border);
             border-top: none;
             border-radius: 0 0 12px 12px;
-            z-index: 100;
+            z-index: 9999;
             box-shadow: 0 6px 20px rgba(0,0,0,0.12);
             overflow: hidden;
         }
