@@ -1906,49 +1906,14 @@ async function loadNotesForItem(itemId) {
 }
 
 function renderNotesSection(itemId, notes, trustLevel) {
-    // Extended circle: show comments from direct friends only; hide all others
+    // Extended circle: comments are hidden — identity must not travel more than one hop
     if (trustLevel === TRUST.EXTENDED) {
-        const visibleNotes = (notes || []).filter(n =>
-            (currentUser && n.out_user_id === currentUser.id) || isFriend(n.out_user_id)
-        );
-        if (visibleNotes.length === 0) {
-            return `<div class="community-notes community-notes--hidden" id="communityNotes">
+        return `<div class="community-notes community-notes--hidden" id="communityNotes">
             <div class="extended-circle-notice">
                 💬 Comments are only visible between direct friends.
                 <br><span class="extended-circle-notice-sub">Add this place to connect with the people who saved it.</span>
             </div>
         </div>`;
-        }
-        // Has comments from direct friends — render those only, no input box
-        notes = visibleNotes;
-        const friendNotesList = notes.map(n => {
-            const initial = (n.out_user_name || '?').charAt(0).toUpperCase();
-            const timeAgo = getTimeAgo(n.out_created_at);
-            const isOwn = currentUser && n.out_user_id === currentUser.id;
-            const editBtn = isOwn ? `<button class="note-edit" onclick="startEditNote('${n.out_id}', '${itemId}', \`${escapeHtml(n.out_note_text).replace(/`/g, '\\`')}\`)" title="Edit">✏️</button>` : '';
-            const deleteBtn = isOwn ? `<button class="note-delete" onclick="deleteNote('${n.out_id}', '${itemId}', event)" title="Delete">×</button>` : '';
-            return `<div class="note-item" data-note-id="${n.out_id}">
-            <div class="note-avatar">${initial}</div>
-            <div class="note-body">
-                <div class="note-header">
-                    <span class="note-author">${escapeHtml(n.out_user_name)}</span>
-                    <span class="note-time">${timeAgo}</span>
-                    ${editBtn}${deleteBtn}
-                </div>
-                <div class="note-text">${escapeHtml(n.out_note_text)}</div>
-            </div>
-        </div>`;
-        }).join('');
-        const commentLabel = `Comments · ${notes.length}`;
-        return `<div class="community-notes" id="communityNotes">
-        <button class="community-notes-toggle" onclick="toggleCommentsSection(this)" aria-expanded="false">
-            <span class="community-notes-label">${commentLabel}</span>
-            <svg class="comments-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div class="community-notes-body" id="communityNotesBody" style="display:none;">
-            <div class="notes-list" id="notesList">${friendNotesList}</div>
-        </div>
-    </div>`;
     }
 
     const notesList = notes.map(n => {
@@ -5104,15 +5069,19 @@ function openItemDrawer(item) {
     document.getElementById('drawerBackdrop').classList.add('active');
     document.getElementById('detailDrawer').classList.add('open');
 
-    // Load community notes asynchronously
-    // Always fetch — renderNotesSection filters by trust level and friendship
+    // Load community notes asynchronously (extended circle sees locked message)
     if (item.id) {
-        loadNotesForItem(item.id).then(notes => {
+        if (isExtendedCircle) {
             const container = document.getElementById('communityNotesContainer');
-            if (container) {
-                container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
-            }
-        });
+            if (container) container.innerHTML = renderNotesSection(item.id, [], TRUST.EXTENDED);
+        } else {
+            loadNotesForItem(item.id).then(notes => {
+                const container = document.getElementById('communityNotesContainer');
+                if (container) {
+                    container.innerHTML = renderNotesSection(item.id, notes, trustLevel);
+                }
+            });
+        }
     }
 
     // Re-fetch endorsement state for this item to ensure save button is accurate
@@ -5305,7 +5274,7 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
-    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'private' : 'friends';
+    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'only_me' : 'friends';
 
     if (!newTitle) {
         document.getElementById('editMessage').innerHTML = '<div class="error-msg">Title is required</div>';
@@ -7472,7 +7441,7 @@ async function submitDiscovery(e) {
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: visibilityVal
+        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal
     };
 
     // Post-save nudge: if note is thin, show a gentle prompt in the overlay
