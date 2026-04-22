@@ -7487,14 +7487,29 @@ async function submitDiscovery(e) {
         setMode('discover');
     }, 1500);
 
-    // Send to backend in the background (fire-and-forget)
+    // Send to backend in the background — now with failure feedback
     fetch(CAPTURE_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
+    }).then(async (resp) => {
+        if (!resp.ok) {
+            const errText = await resp.text().catch(() => '');
+            console.error('Save failed — HTTP', resp.status, errText);
+            showToast('Save failed — please try again. Your entry was not stored.', 6000);
+            return;
+        }
+        try {
+            const data = await resp.json();
+            if (!data || data.success === false) {
+                showToast('Save failed — please try again. Your entry was not stored.', 6000);
+            }
+        } catch (e) {
+            // Non-JSON response but status was OK — treat as success
+        }
     }).catch(err => {
         console.error('Background save failed:', err);
-        // Optionally show a subtle toast later if needed
+        showToast('Save failed — please check your connection and try again.', 6000);
     });
 }
 
