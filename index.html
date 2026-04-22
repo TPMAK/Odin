@@ -2495,6 +2495,25 @@
                         <button type="button" class="og-preview-close" onclick="clearOGPreview()" title="Remove preview">&times;</button>
                     </div>
 
+                    <!-- Link photo row — shown after OG fetch (with or without image) -->
+                    <div class="link-photo-row hidden" id="linkPhotoRow">
+                        <!-- No photo state -->
+                        <div id="linkPhotoEmpty" class="link-photo-empty">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            <button type="button" class="link-photo-add-btn" onclick="document.getElementById('linkPhotoGallery').click()">Add a photo</button>
+                        </div>
+                        <!-- Photo loaded state (OG or user) -->
+                        <div id="linkPhotoPreview" class="link-photo-preview" style="display:none;">
+                            <img id="linkPhotoImg" class="link-photo-thumb" src="" alt="">
+                            <span class="link-photo-badge" id="linkPhotoBadge">From link</span>
+                            <div class="link-photo-btns">
+                                <button type="button" class="link-photo-btn" onclick="document.getElementById('linkPhotoGallery').click()">Replace</button>
+                                <button type="button" class="link-photo-btn link-photo-btn--remove" onclick="removeLinkPhoto()">Remove</button>
+                            </div>
+                        </div>
+                        <input type="file" id="linkPhotoGallery" accept="image/*" style="display:none" onchange="onLinkPhotoSelected(this)">
+                    </div>
+
                     <!-- Sub-step 2a: Title -->
                     <div class="form-group form-group-title" id="subTitle">
                         <label class="field-label-inline">Title or name of this discovery</label>
@@ -2548,7 +2567,7 @@
                     </div>
 
                     <!-- Sub-step 2d: Address (reveals after note, only for place/service) -->
-                    <div class="sub-step step-hidden" id="subAddress">
+                    <div class="sub-step step-hidden" id="subAddress" style="position: relative; z-index: 10;">
                         <div class="form-group address-group" style="position: relative;">
                             <label class="field-label-inline">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>

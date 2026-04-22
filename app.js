@@ -7135,6 +7135,11 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
+        // For link chip: show inline photo row in Step 2 (with or without OG image)
+        if (document.querySelector('.entry-card[data-chip="link"]')?.classList.contains('active')) {
+            _showLinkPhotoRow(og.image || null);
+        }
+
         // OG fetch complete — reveal Step 2 with title, then auto-reveal category
         // since OG data already auto-detected it.
         _revealWizardStep('wStep2');
@@ -7162,6 +7167,10 @@ async function fetchAndPrefillOG(url) {
         // On error still reveal Step 2 so user can continue manually
         _revealWizardStep('wStep2');
         updateAddStep(2);
+        // Still show link photo row so user can add a photo manually
+        if (document.querySelector('.entry-card[data-chip="link"]')?.classList.contains('active')) {
+            _showLinkPhotoRow(null);
+        }
     } finally {
         _ogFetchInFlight = false;  // always release lock when done
     }
@@ -7172,6 +7181,62 @@ function clearOGPreview() {
     const heroHint = document.getElementById('urlHeroHint');
     if (ogCard) ogCard.classList.add('hidden');
     if (heroHint) heroHint.style.display = 'flex';
+}
+
+// ===== LINK PHOTO ROW (Step 2 inline photo for Link chip) =====
+let _linkPhotoFile = null; // File object if user uploaded, null if none/OG
+
+function _showLinkPhotoRow(ogImageUrl) {
+    const row = document.getElementById('linkPhotoRow');
+    const empty = document.getElementById('linkPhotoEmpty');
+    const preview = document.getElementById('linkPhotoPreview');
+    const img = document.getElementById('linkPhotoImg');
+    const badge = document.getElementById('linkPhotoBadge');
+    if (!row) return;
+    row.classList.remove('hidden');
+    if (ogImageUrl) {
+        img.src = ogImageUrl;
+        badge.textContent = 'From link';
+        empty.style.display = 'none';
+        preview.style.display = 'flex';
+    } else {
+        empty.style.display = 'flex';
+        preview.style.display = 'none';
+    }
+}
+
+function onLinkPhotoSelected(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    _linkPhotoFile = file;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = document.getElementById('linkPhotoImg');
+        const badge = document.getElementById('linkPhotoBadge');
+        const empty = document.getElementById('linkPhotoEmpty');
+        const preview = document.getElementById('linkPhotoPreview');
+        const ogUrlField = document.getElementById('ogImageUrl');
+        if (img) img.src = e.target.result;
+        if (badge) badge.textContent = 'Your photo';
+        if (empty) empty.style.display = 'none';
+        if (preview) preview.style.display = 'flex';
+        if (ogUrlField) ogUrlField.value = '';
+    };
+    reader.readAsDataURL(file);
+}
+
+function removeLinkPhoto() {
+    _linkPhotoFile = null;
+    const img = document.getElementById('linkPhotoImg');
+    const empty = document.getElementById('linkPhotoEmpty');
+    const preview = document.getElementById('linkPhotoPreview');
+    const ogUrlField = document.getElementById('ogImageUrl');
+    const gallery = document.getElementById('linkPhotoGallery');
+    if (img) img.src = '';
+    if (empty) empty.style.display = 'flex';
+    if (preview) preview.style.display = 'none';
+    if (ogUrlField) ogUrlField.value = '';
+    if (gallery) gallery.value = '';
 }
 
 // ===== PHOTO: OG image preload & controls =====
@@ -7221,6 +7286,12 @@ function resetOGFetchState() {
     _lastOGFetchedUrl = '';
     _ogFetchInFlight = false;
     clearOGPreview();
+    // Reset link photo row
+    _linkPhotoFile = null;
+    const linkPhotoRow = document.getElementById('linkPhotoRow');
+    if (linkPhotoRow) linkPhotoRow.classList.add('hidden');
+    const linkPhotoGallery = document.getElementById('linkPhotoGallery');
+    if (linkPhotoGallery) linkPhotoGallery.value = '';
 }
 
 
@@ -7398,7 +7469,8 @@ async function submitDiscovery(e) {
     let photoBase64 = null;
     const _pgEl = document.getElementById('photoGallery');
     const _pcEl = document.getElementById('photoCamera');
-    const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]);
+    // Also pick up a photo uploaded via the Link flow's inline photo row
+    const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || _linkPhotoFile || null;
     if (photoFile) {
         photoBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
