@@ -2417,9 +2417,21 @@
                         </div>
                     </div>
 
-                    <!-- Hidden file inputs for photo upload (used by unified subPhoto below) -->
+                    <!-- Hidden file inputs for photo upload (shared across all chips) -->
                     <input type="file" id="photoGallery" accept="image/*" style="display:none">
                     <input type="file" id="photoCamera" accept="image/*" capture="environment" style="display:none">
+
+                    <!-- Photo chip picker (shown when Photo chip selected) -->
+                    <div class="photo-pick-zone hidden" id="photoPickZone">
+                        <label for="photoGallery" class="add-photo-btn">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                            Gallery
+                        </label>
+                        <label for="photoCamera" class="add-photo-btn add-photo-btn--camera">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Camera
+                        </label>
+                    </div>
 
                     <!-- Link URL bar (shown when Link chip selected) -->
                     <div class="url-hero-bar hidden" id="urlHeroBar">

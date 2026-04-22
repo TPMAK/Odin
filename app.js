@@ -6409,6 +6409,9 @@ function clearCaptureForm() {
     if (addressLabel) addressLabel.textContent = '— recommended for places';
     // Reset unified photo sub-step
     removeUnifiedPhoto();
+    // Hide photo pick zone
+    const photoPickZone = document.getElementById('photoPickZone');
+    if (photoPickZone) photoPickZone.classList.add('hidden');
     // Show URL hint
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
@@ -6477,12 +6480,18 @@ function selectEntryChip(chip) {
     // Persist selection
     try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
 
-    // Show URL bar only for link chip; photo upload is handled in Step 2 uniformly
+    // Show relevant Step 1 zone for each chip
     const urlHeroBar = document.getElementById('urlHeroBar');
+    const photoPickZone = document.getElementById('photoPickZone');
     if (chip === 'link') {
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+        if (photoPickZone) photoPickZone.classList.add('hidden');
+    } else if (chip === 'photo') {
+        if (urlHeroBar) urlHeroBar.classList.add('hidden');
+        if (photoPickZone) photoPickZone.classList.remove('hidden');
     } else {
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
+        if (photoPickZone) photoPickZone.classList.add('hidden');
     }
 
     // Chip-specific: handle URL input focus, location prefill
@@ -6550,10 +6559,16 @@ function _restoreEntryChip() {
             const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
             if (chip) chip.classList.add('active');
             const urlHeroBar = document.getElementById('urlHeroBar');
+            const photoPickZone = document.getElementById('photoPickZone');
             if (saved === 'link') {
                 if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+                if (photoPickZone) photoPickZone.classList.add('hidden');
+            } else if (saved === 'photo') {
+                if (urlHeroBar) urlHeroBar.classList.add('hidden');
+                if (photoPickZone) photoPickZone.classList.remove('hidden');
             } else {
                 if (urlHeroBar) urlHeroBar.classList.add('hidden');
+                if (photoPickZone) photoPickZone.classList.add('hidden');
             }
         }
     } catch(e) {}
