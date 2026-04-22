@@ -7081,8 +7081,10 @@ async function fetchAndPrefillOG(url) {
 
         // Preload OG image into the photo section (if no user photo already)
         if (og.image) {
-            const photoFile = document.getElementById('photo');
-            const hasUserPhoto = photoFile && photoFile.files && photoFile.files.length > 0;
+            const photoFileG = document.getElementById('photoGallery');
+            const photoFileC = document.getElementById('photoCamera');
+            const hasUserPhoto = (photoFileG && photoFileG.files && photoFileG.files.length > 0) ||
+                                 (photoFileC && photoFileC.files && photoFileC.files.length > 0);
             if (!hasUserPhoto) {
                 preloadOGPhoto(og.image);
             }
@@ -7193,7 +7195,7 @@ function preloadOGPhoto(imageUrl) {
 }
 
 function replacePhoto() {
-    document.getElementById('photo').click();
+    document.getElementById('photoGallery').click();
 }
 
 function removePhoto() {
@@ -7201,13 +7203,14 @@ function removePhoto() {
     const previewImg = document.getElementById('previewImg');
     const badge = document.getElementById('photoSourceBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
-    const photoInput = document.getElementById('photo');
-
     if (preview) preview.style.display = 'none';
     if (previewImg) previewImg.src = '';
     if (badge) badge.style.display = 'none';
     if (ogUrlField) ogUrlField.value = '';
-    if (photoInput) photoInput.value = '';
+    const photoGallery = document.getElementById('photoGallery');
+    const photoCamera = document.getElementById('photoCamera');
+    if (photoGallery) photoGallery.value = '';
+    if (photoCamera) photoCamera.value = '';
     _photoSource = 'none';
     // Restore the tap-to-add zone in step 1
     const heroZone = document.getElementById('photoHeroZone');
@@ -7393,7 +7396,9 @@ async function submitDiscovery(e) {
 
     // Read + compress photo BEFORE showing success
     let photoBase64 = null;
-    const photoFile = document.getElementById('photo').files[0];
+    const _pgEl = document.getElementById('photoGallery');
+    const _pcEl = document.getElementById('photoCamera');
+    const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]);
     if (photoFile) {
         photoBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -7524,7 +7529,7 @@ function selectCategory(el) {
     }
 }
 
-document.getElementById('photo').addEventListener('change', function(e) {
+function _handlePhotoChange(e) {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
@@ -7559,7 +7564,9 @@ document.getElementById('photo').addEventListener('change', function(e) {
         };
         reader.readAsDataURL(file);
     }
-});
+}
+document.getElementById('photoGallery').addEventListener('change', _handlePhotoChange);
+document.getElementById('photoCamera').addEventListener('change', _handlePhotoChange);
 
 function applyRecentSearch(query) {
     document.getElementById('discoverSearch').value = query;
