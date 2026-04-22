@@ -6407,10 +6407,8 @@ function clearCaptureForm() {
     // Reset address label hint
     const addressLabel = document.getElementById('addressLabel');
     if (addressLabel) addressLabel.textContent = '— recommended for places';
-    // Reset photo
-    document.getElementById('photoPreview').style.display = 'none';
-    const uploadZone = document.getElementById('photoUploadZone');
-    if (uploadZone) uploadZone.style.display = 'flex';
+    // Reset unified photo sub-step
+    removeUnifiedPhoto();
     // Show URL hint
     const heroHint = document.getElementById('urlHeroHint');
     if (heroHint) heroHint.style.display = 'flex';
@@ -6438,11 +6436,9 @@ function clearCaptureForm() {
     // Reset all UI state (cards, URL bar, banner, steps, overlay)
     _resetAddState();
     // Clear photo opt link input
-    const photoOptLink = document.getElementById('photoOptLink');
-    if (photoOptLink) photoOptLink.value = '';
-    // Reset photo hero filled state
-    const heroFilled = document.getElementById('photoHeroFilled');
-    const heroZone = document.getElementById('photoHeroZone');
+    // legacy photo opt link removed
+    const heroFilled = null;
+    const heroZone = null;
     if (heroFilled) heroFilled.classList.add('hidden');
     if (heroZone) heroZone.classList.remove('hidden');
 }
@@ -6459,8 +6455,6 @@ function _resetAddState() {
     // Hide URL bar and photo section — both start hidden until a card is chosen
     const urlHeroBar = document.getElementById('urlHeroBar');
     if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    const photoSection = document.getElementById('photoChipSection');
-    if (photoSection) photoSection.classList.add('hidden');
     // Hide clipboard banner
     const clipBanner = document.getElementById('clipDetectBanner');
     if (clipBanner) clipBanner.classList.add('hidden');
@@ -6483,17 +6477,11 @@ function selectEntryChip(chip) {
     // Persist selection
     try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
 
-    // Show/hide photo hero section and url bar
-    const photoSection = document.getElementById('photoChipSection');
+    // Show URL bar only for link chip; photo upload is handled in Step 2 uniformly
     const urlHeroBar = document.getElementById('urlHeroBar');
-    if (chip === 'photo') {
-        if (photoSection) photoSection.classList.remove('hidden');
-        if (urlHeroBar) urlHeroBar.classList.add('hidden');
-    } else if (chip === 'link') {
-        if (photoSection) photoSection.classList.add('hidden');
+    if (chip === 'link') {
         if (urlHeroBar) urlHeroBar.classList.remove('hidden');
     } else {
-        if (photoSection) photoSection.classList.add('hidden');
         if (urlHeroBar) urlHeroBar.classList.add('hidden');
     }
 
@@ -6561,16 +6549,10 @@ function _restoreEntryChip() {
             document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
             const chip = document.querySelector(`.entry-card[data-chip="${saved}"]`);
             if (chip) chip.classList.add('active');
-            const photoSection = document.getElementById('photoChipSection');
             const urlHeroBar = document.getElementById('urlHeroBar');
-            if (saved === 'photo') {
-                if (photoSection) photoSection.classList.remove('hidden');
-                if (urlHeroBar) urlHeroBar.classList.add('hidden');
-            } else if (saved === 'link') {
-                if (photoSection) photoSection.classList.add('hidden');
+            if (saved === 'link') {
                 if (urlHeroBar) urlHeroBar.classList.remove('hidden');
             } else {
-                if (photoSection) photoSection.classList.add('hidden');
                 if (urlHeroBar) urlHeroBar.classList.add('hidden');
             }
         }
@@ -6723,6 +6705,7 @@ function _revealPrivacyStep() {
     if (cat === 'place' || cat === 'service') {
         _revealSubStep('subAddress');
     }
+    _revealSubStep('subPhoto');
     _revealSubStep('subPrivacy');
     updateAddStep(4);
     setTimeout(() => {
@@ -6755,7 +6738,7 @@ function _resetSteps() {
         }
     });
     // Reset all sub-steps within step 2
-    ['subCategory', 'subNote', 'subAddress', 'subPrivacy'].forEach(id => {
+    ['subCategory', 'subNote', 'subAddress', 'subPhoto', 'subPrivacy'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.classList.add('step-hidden');
@@ -7135,10 +7118,13 @@ async function fetchAndPrefillOG(url) {
         // Hide loading
         if (ogLoading) ogLoading.classList.add('hidden');
 
-        // For link chip: show inline photo row in Step 2 (with or without OG image)
-        if (document.querySelector('.entry-card[data-chip="link"]')?.classList.contains('active')) {
-            _showLinkPhotoRow(og.image || null);
+        // Show subPhoto step — photo row appears for all chips in step 2
+        // (OG image pre-loaded if available)
+        if (og.image) {
+            // OG image: reveal subPhoto with the image preloaded
+            preloadOGPhoto(og.image);
         }
+        _revealSubStep('subPhoto');
 
         // OG fetch complete — reveal Step 2 with title, then auto-reveal category
         // since OG data already auto-detected it.
@@ -7167,10 +7153,8 @@ async function fetchAndPrefillOG(url) {
         // On error still reveal Step 2 so user can continue manually
         _revealWizardStep('wStep2');
         updateAddStep(2);
-        // Still show link photo row so user can add a photo manually
-        if (document.querySelector('.entry-card[data-chip="link"]')?.classList.contains('active')) {
-            _showLinkPhotoRow(null);
-        }
+        // Still show subPhoto step so user can add a photo manually
+        _revealSubStep('subPhoto');
     } finally {
         _ogFetchInFlight = false;  // always release lock when done
     }
@@ -7183,115 +7167,53 @@ function clearOGPreview() {
     if (heroHint) heroHint.style.display = 'flex';
 }
 
-// ===== LINK PHOTO ROW (Step 2 inline photo for Link chip) =====
-let _linkPhotoFile = null; // File object if user uploaded, null if none/OG
-
-function _showLinkPhotoRow(ogImageUrl) {
-    const row = document.getElementById('linkPhotoRow');
-    const empty = document.getElementById('linkPhotoEmpty');
-    const preview = document.getElementById('linkPhotoPreview');
-    const img = document.getElementById('linkPhotoImg');
-    const badge = document.getElementById('linkPhotoBadge');
-    if (!row) return;
-    row.classList.remove('hidden');
-    if (ogImageUrl) {
-        img.src = ogImageUrl;
-        badge.textContent = 'From link';
-        empty.style.display = 'none';
-        preview.style.display = 'flex';
-    } else {
-        empty.style.display = 'flex';
-        preview.style.display = 'none';
-    }
-}
-
-function onLinkPhotoSelected(input) {
-    if (!input.files || !input.files[0]) return;
-    const file = input.files[0];
-    _linkPhotoFile = file;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = document.getElementById('linkPhotoImg');
-        const badge = document.getElementById('linkPhotoBadge');
-        const empty = document.getElementById('linkPhotoEmpty');
-        const preview = document.getElementById('linkPhotoPreview');
-        const ogUrlField = document.getElementById('ogImageUrl');
-        if (img) img.src = e.target.result;
-        if (badge) badge.textContent = 'Your photo';
-        if (empty) empty.style.display = 'none';
-        if (preview) preview.style.display = 'flex';
-        if (ogUrlField) ogUrlField.value = '';
-    };
-    reader.readAsDataURL(file);
-}
-
-function removeLinkPhoto() {
-    _linkPhotoFile = null;
-    const img = document.getElementById('linkPhotoImg');
-    const empty = document.getElementById('linkPhotoEmpty');
-    const preview = document.getElementById('linkPhotoPreview');
-    const ogUrlField = document.getElementById('ogImageUrl');
-    const gallery = document.getElementById('linkPhotoGallery');
-    if (img) img.src = '';
-    if (empty) empty.style.display = 'flex';
-    if (preview) preview.style.display = 'none';
-    if (ogUrlField) ogUrlField.value = '';
-    if (gallery) gallery.value = '';
-}
-
 // ===== PHOTO: OG image preload & controls =====
 let _photoSource = 'none'; // 'none' | 'og' | 'user'
 
 function preloadOGPhoto(imageUrl) {
-    const preview = document.getElementById('photoPreview');
-    const previewImg = document.getElementById('previewImg');
-    const uploadZone = document.getElementById('photoUploadZone');
-    const badge = document.getElementById('photoSourceBadge');
+    // Load an OG image into the unified photo sub-step
+    const img = document.getElementById('subPhotoImg');
+    const preview = document.getElementById('subPhotoPreview');
+    const empty = document.getElementById('subPhotoEmpty');
+    const badge = document.getElementById('subPhotoBadge');
     const ogUrlField = document.getElementById('ogImageUrl');
 
-    if (!preview || !previewImg) return;
+    if (!img) return;
 
-    previewImg.src = imageUrl;
-    preview.style.display = 'block';
-    if (uploadZone) uploadZone.style.display = 'none';
-    if (badge) { badge.textContent = 'From link'; badge.style.display = 'block'; }
+    img.src = imageUrl;
+    if (preview) preview.style.display = 'flex';
+    if (empty) empty.style.display = 'none';
+    if (badge) badge.textContent = 'From link';
+    // Reveal the subPhoto sub-step (it may be hidden if OG fetch ran before _revealPrivacyStep)
+    _revealSubStep('subPhoto');
     if (ogUrlField) ogUrlField.value = imageUrl;
     _photoSource = 'og';
 }
 
-function replacePhoto() {
-    document.getElementById('photoGallery').click();
+function removePhoto() {
+    removeUnifiedPhoto();
 }
 
-function removePhoto() {
-    const preview = document.getElementById('photoPreview');
-    const previewImg = document.getElementById('previewImg');
-    const badge = document.getElementById('photoSourceBadge');
+function removeUnifiedPhoto() {
+    const img = document.getElementById('subPhotoImg');
+    const preview = document.getElementById('subPhotoPreview');
+    const empty = document.getElementById('subPhotoEmpty');
     const ogUrlField = document.getElementById('ogImageUrl');
-    if (preview) preview.style.display = 'none';
-    if (previewImg) previewImg.src = '';
-    if (badge) badge.style.display = 'none';
-    if (ogUrlField) ogUrlField.value = '';
     const photoGallery = document.getElementById('photoGallery');
     const photoCamera = document.getElementById('photoCamera');
+    if (img) img.src = '';
+    if (preview) preview.style.display = 'none';
+    if (empty) empty.style.display = 'flex';
+    if (ogUrlField) ogUrlField.value = '';
     if (photoGallery) photoGallery.value = '';
     if (photoCamera) photoCamera.value = '';
     _photoSource = 'none';
-    // Restore the tap-to-add zone in step 1
-    const heroZone = document.getElementById('photoHeroZone');
-    if (heroZone) heroZone.classList.remove('hidden');
 }
 
 function resetOGFetchState() {
     _lastOGFetchedUrl = '';
     _ogFetchInFlight = false;
     clearOGPreview();
-    // Reset link photo row
-    _linkPhotoFile = null;
-    const linkPhotoRow = document.getElementById('linkPhotoRow');
-    if (linkPhotoRow) linkPhotoRow.classList.add('hidden');
-    const linkPhotoGallery = document.getElementById('linkPhotoGallery');
-    if (linkPhotoGallery) linkPhotoGallery.value = '';
 }
 
 
@@ -7469,8 +7391,7 @@ async function submitDiscovery(e) {
     let photoBase64 = null;
     const _pgEl = document.getElementById('photoGallery');
     const _pcEl = document.getElementById('photoCamera');
-    // Also pick up a photo uploaded via the Link flow's inline photo row
-    const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || _linkPhotoFile || null;
+    const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || null;
     if (photoFile) {
         photoBase64 = await new Promise((resolve) => {
             const reader = new FileReader();
@@ -7621,33 +7542,39 @@ function _handlePhotoChange(e) {
     if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            // Show preview image
-            const previewImg = document.getElementById('previewImg');
-            const preview = document.getElementById('photoPreview');
-            if (previewImg) previewImg.src = ev.target.result;
-            if (preview) preview.style.display = 'block';
-
-            // Hide the tap-to-add zone (now replaced by the preview)
-            const heroZone = document.getElementById('photoHeroZone');
-            if (heroZone) heroZone.classList.add('hidden');
+            // Show preview in unified subPhoto component
+            const img = document.getElementById('subPhotoImg');
+            const preview = document.getElementById('subPhotoPreview');
+            const empty = document.getElementById('subPhotoEmpty');
+            const badge = document.getElementById('subPhotoBadge');
+            if (img) img.src = ev.target.result;
+            if (preview) preview.style.display = 'flex';
+            if (empty) empty.style.display = 'none';
+            if (badge) badge.textContent = 'Your photo';
 
             // Mark as user photo, clear any OG image URL
             _photoSource = 'user';
             const ogUrlField = document.getElementById('ogImageUrl');
             if (ogUrlField) ogUrlField.value = '';
-            const badge = document.getElementById('photoSourceBadge');
-            if (badge) { badge.textContent = 'Your photo'; badge.style.display = 'block'; }
 
-            // Reveal Step 2 (Details) so user can name it + pick category
-            _revealWizardStep('wStep2');
-            updateAddStep(2);
-            setTimeout(() => {
-                const titleField = document.getElementById('title');
-                if (titleField) {
-                    titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    titleField.focus();
-                }
-            }, 300);
+            // For Photo chip: reveal Step 2 so user can name it + pick category
+            const activeChip = document.querySelector('.entry-card.active')?.dataset?.chip;
+            if (activeChip === 'photo') {
+                _revealWizardStep('wStep2');
+                _revealSubStep('subPhoto'); // ensure photo row visible
+                updateAddStep(2);
+                setTimeout(() => {
+                    const titleField = document.getElementById('title');
+                    if (titleField) {
+                        titleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        titleField.focus();
+                    }
+                }, 300);
+            } else {
+                // Non-photo chips: subPhoto is already visible from _revealPrivacyStep,
+                // but if user picks a photo via gallery/camera label, just update the preview
+                // (no step change needed)
+            }
         };
         reader.readAsDataURL(file);
     }
