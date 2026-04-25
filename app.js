@@ -8396,3 +8396,382 @@ function dismissEmptyFriends() {
 // openNotifDrawer / closeNotifDrawer are defined in index.html inline script
 // using the profile-drawer / is-open CSS pattern. This block just ensures
 // loadNotifications() is called on open so notifDrawerItems is populated.
+// ============================================================
+// ===== NEW CAPTURE FLOW (Apr 2026 redesign) =================
+// ============================================================
+// Driven by body.odin-newcapture. The 4 modes (photo/link/here/type)
+// each go straight to: Note -> (conditional address) -> Privacy -> Save.
+// Title and category are no longer user-facing; backend resolves them.
+// ============================================================
+(function odinNewCaptureFlow() {
+    if (!document.body || !document.body.classList.contains('odin-newcapture')) {
+        // Defer until DOMContentLoaded if body not ready yet
+        document.addEventListener('DOMContentLoaded', odinNewCaptureFlow);
+        return;
+    }
+
+    let _captureMode = null; // 'photo' | 'link' | 'here' | 'type'
+    window._odinGetCaptureMode = () => _captureMode;
+    window._odinSetCaptureMode = (m) => { _captureMode = m; };
+
+    // ---- Address reveal helpers (Photo + Type modes) ----------
+    function _ensureLocReveal(labelText) {
+        // Inject a small "Show / Add location" link below the note field
+        // that, on click, reveals the existing #subAddress block.
+        let host = document.getElementById('ncLocRevealHost');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'ncLocRevealHost';
+            const noteWrap = document.getElementById('subNote');
+            if (noteWrap) noteWrap.appendChild(host);
+        }
+        host.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nc-loc-reveal';
+        btn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+            '<span>' + labelText + '</span>';
+        btn.onclick = function() {
+            const sub = document.getElementById('subAddress');
+            if (sub) {
+                sub.classList.remove('step-hidden');
+                sub.classList.add('step-reveal');
+            }
+            host.style.display = 'none';
+            // For Photo mode, prefer geolocation pre-fill; for Type mode, just reveal manual
+            if (_captureMode === 'photo') {
+                try { prefillCaptureLocation(); } catch(e) {}
+            }
+            setTimeout(() => {
+                const inp = document.getElementById('address');
+                if (inp) inp.focus();
+            }, 100);
+        };
+        host.style.display = '';
+        host.appendChild(btn);
+    }
+
+    function _hideLocReveal() {
+        const host = document.getElementById('ncLocRevealHost');
+        if (host) host.style.display = 'none';
+    }
+
+    // ---- Geo chip for "I'm here" mode --------------------------
+    function _showGeoChip(addressText) {
+        const sub = document.getElementById('subAddress');
+        if (!sub) return;
+        let chip = document.getElementById('ncGeoChip');
+        if (!chip) {
+            chip = document.createElement('div');
+            chip.id = 'ncGeoChip';
+            chip.className = 'nc-geo-chip';
+            sub.insertBefore(chip, sub.firstChild);
+        }
+        chip.innerHTML = '<span>📍 Your location</span>' +
+            '<button type="button" class="nc-geo-edit">Edit</button>';
+        chip.querySelector('.nc-geo-edit').onclick = function() {
+            const inp = document.getElementById('address');
+            if (inp) { inp.removeAttribute('readonly'); inp.focus(); inp.select(); }
+            chip.remove();
+        };
+        const inp = document.getElementById('address');
+        if (inp && addressText) inp.value = addressText;
+        if (inp) inp.setAttribute('readonly', 'true');
+    }
+
+    function _hideGeoChip() {
+        const chip = document.getElementById('ncGeoChip');
+        if (chip) chip.remove();
+        const inp = document.getElementById('address');
+        if (inp) inp.removeAttribute('readonly');
+    }
+
+    // ---- Mode-specific address visibility ----------------------
+    function _applyModeAddressUI(mode) {
+        const subAddress = document.getElementById('subAddress');
+        _hideLocReveal();
+        _hideGeoChip();
+
+        if (mode === 'photo') {
+            // Hidden by default — show "Show location" link under note
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+            _ensureLocReveal('Show location');
+        } else if (mode === 'link') {
+            // No address UI at all — backend infers from OG
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+        } else if (mode === 'here') {
+            // Always visible, geolocation requested immediately
+            if (subAddress) { subAddress.classList.remove('step-hidden'); subAddress.classList.add('step-reveal'); }
+            _requestHereGeo();
+        } else if (mode === 'type') {
+            // Hidden by default — show "+ Add location" link
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+            _ensureLocReveal('+ Add location');
+        }
+    }
+
+    function _requestHereGeo() {
+        if (!navigator.geolocation) {
+            // No geo at all — fall back to manual input visible
+            return;
+        }
+        const locStatus = document.getElementById('locationStatus');
+        if (locStatus) locStatus.textContent = '📍 Detecting location...';
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            const latField = document.getElementById('userLat');
+            const lngField = document.getElementById('userLng');
+            if (latField) latField.value = lat;
+            if (lngField) lngField.value = lng;
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+                    { headers: { 'Accept-Language': 'en' } }
+                );
+                const data = await res.json();
+                const a = data.address || {};
+                const parts = [a.road, a.suburb || a.neighbourhood, a.city || a.town || a.village, a.country].filter(Boolean);
+                const formatted = parts.join(', ');
+                _showGeoChip(formatted);
+            } catch (e) {
+                _showGeoChip('Current location');
+            }
+            if (locStatus) locStatus.textContent = '';
+        }, () => {
+            // Permission denied — leave manual address input visible (no chip)
+            if (locStatus) locStatus.textContent = '';
+        }, { timeout: 8000 });
+    }
+
+    // ---- Override the entry-chip selection ---------------------
+    const _origSelectEntryChip = window.selectEntryChip;
+    window.selectEntryChip = function(chip) {
+        _captureMode = chip;
+        try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+
+        // Visual active state on the cards
+        document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+        const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
+        if (activeChip) activeChip.classList.add('active');
+
+        // Show/hide step 1 zones (URL bar / photo picker) — same as before
+        const urlHeroBar = document.getElementById('urlHeroBar');
+        const photoPickZone = document.getElementById('photoPickZone');
+        if (chip === 'link') {
+            if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            if (photoPickZone) photoPickZone.classList.add('hidden');
+            const urlInput = document.getElementById('url');
+            if (urlInput) setTimeout(() => urlInput.focus(), 50);
+        } else if (chip === 'photo') {
+            if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            if (photoPickZone) photoPickZone.classList.remove('hidden');
+        } else {
+            if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            if (photoPickZone) photoPickZone.classList.add('hidden');
+        }
+
+        // Reveal wStep2 + skip title/category — go straight to Note
+        const wStep2 = document.getElementById('wStep2');
+        if (wStep2) {
+            wStep2.classList.remove('step-hidden');
+            wStep2.classList.add('step-reveal');
+        }
+        const subNote = document.getElementById('subNote');
+        if (subNote) {
+            subNote.classList.remove('step-hidden');
+            subNote.classList.add('step-reveal');
+        }
+        const subPrivacy = document.getElementById('subPrivacy');
+        if (subPrivacy) {
+            subPrivacy.classList.remove('step-hidden');
+            subPrivacy.classList.add('step-reveal');
+        }
+        const subPhoto = document.getElementById('subPhoto');
+        if (subPhoto && chip !== 'link') {
+            subPhoto.classList.remove('step-hidden');
+            subPhoto.classList.add('step-reveal');
+        }
+
+        // Default privacy = Only me (re-assert in case user toggled before)
+        const privInput = document.getElementById('privateToggle');
+        const visField = document.getElementById('visibilityValue');
+        if (privInput) privInput.value = 'true';
+        if (visField) visField.value = 'private';
+        document.querySelectorAll('.vis-option').forEach(el => el.classList.remove('active'));
+        const privPill = document.querySelector('.vis-option[data-value="private"]');
+        if (privPill) privPill.classList.add('active');
+
+        // Apply mode-specific address UI
+        _applyModeAddressUI(chip);
+
+        // Focus the note for fast typing (except photo/link where user has another action first)
+        if (chip === 'here' || chip === 'type') {
+            setTimeout(() => {
+                const note = document.getElementById('personalNote');
+                if (note) note.focus();
+            }, 200);
+        }
+
+        // Update step indicator
+        if (typeof updateAddStep === 'function') updateAddStep(2);
+    };
+
+    // ---- Validate + inject capture_mode on submit --------------
+    const _origSubmit = window.submitDiscovery;
+    window.submitDiscovery = async function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!window.currentUser) { alert('Please login first'); return; }
+
+        // Resolve mode (fall back to localStorage / 'type')
+        if (!_captureMode) {
+            try { _captureMode = localStorage.getItem('odin_entry_chip') || 'type'; } catch(_) { _captureMode = 'type'; }
+        }
+        let mode = _captureMode;
+
+        // Note: required, min 10 chars
+        const noteEl = document.getElementById('personalNote');
+        const note = (noteEl?.value || '').trim();
+        if (note.length < 10) {
+            if (noteEl) {
+                noteEl.focus();
+                noteEl.style.borderColor = '#7B2D45';
+                noteEl.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+            }
+            const formMsg = document.getElementById('formMessage');
+            if (formMsg) formMsg.innerHTML =
+                '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add a few more words — at least 10 characters so your circle gets the gist.</p>';
+            setTimeout(() => {
+                if (noteEl) { noteEl.style.borderColor = ''; noteEl.style.boxShadow = ''; }
+            }, 2500);
+            return;
+        }
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) formMsg.innerHTML = '';
+
+        // "I'm here" with no address + no manual entry -> soft-fallback to 'type' mode
+        const addrVal = (document.getElementById('address')?.value || '').trim();
+        if (mode === 'here' && !addrVal) {
+            mode = 'type';
+            _captureMode = 'type';
+            try { localStorage.setItem('odin_entry_chip', 'type'); } catch(_) {}
+            if (typeof showToast === 'function') {
+                showToast('Saved without location — geo unavailable.', 4000);
+            }
+        }
+
+        // Title is no longer user-facing — backend resolves it.
+        // Force the field empty so the legacy auto-generate path doesn't fire either way.
+        const titleField = document.getElementById('title');
+        if (titleField) titleField.value = '';
+
+        // Read + compress photo (kept inline so we can shape the payload here)
+        let photoBase64 = null;
+        const _pgEl = document.getElementById('photoGallery');
+        const _pcEl = document.getElementById('photoCamera');
+        const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || null;
+        if (photoFile) {
+            photoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX = 1200;
+                        let w = img.width, h = img.height;
+                        if (w > MAX || h > MAX) {
+                            if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                            else        { w = Math.round(w * MAX / h); h = MAX; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        resolve(dataUrl.split(',')[1]);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(photoFile);
+            });
+        }
+
+        const visibilityVal = document.getElementById('visibilityValue')?.value || 'private';
+        const ogImageUrlEl = document.getElementById('ogImageUrl');
+        const _photoSrcGlobal = (typeof _photoSource !== 'undefined') ? _photoSource : null;
+
+        const payload = {
+            capture_mode: mode,                                  // NEW
+            personalNote: note,                                  // required
+            description: note,                                   // back-compat for n8n nodes still reading description
+            photo: photoBase64,
+            photoFilename: photoFile ? photoFile.name : null,
+            url: (document.getElementById('url')?.value || '').trim() || null,
+            ogImageUrl: (!photoBase64 && _photoSrcGlobal === 'og') ? (ogImageUrlEl?.value || null) : null,
+            address: addrVal || null,
+            user_latitude: document.getElementById('userLat')?.value ? parseFloat(document.getElementById('userLat').value) : null,
+            user_longitude: document.getElementById('userLng')?.value ? parseFloat(document.getElementById('userLng').value) : null,
+            UserID: window.currentUser.id,
+            familyId: window.currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
+            addedBy: window.currentProfile?.display_name || window.currentUser.user_metadata?.full_name || window.currentUser.email?.split('@')[0] || 'User',
+            visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
+            language: (window.currentProfile?.language || 'en')
+            // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
+        };
+
+        // Show success overlay immediately
+        const overlay = document.getElementById('saveSuccessOverlay');
+        const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
+        if (overlayBody) overlayBody.textContent = 'Your discovery has been added';
+        if (overlay) overlay.classList.remove('hidden');
+
+        // Reset form (preserve mode reset behaviour)
+        const addForm = document.getElementById('addForm');
+        if (addForm) addForm.reset();
+        const urlEl = document.getElementById('url');
+        if (urlEl) urlEl.value = '';
+        try { resetOGFetchState && resetOGFetchState(); } catch(_) {}
+        try { removePhoto && removePhoto(); } catch(_) {}
+        // Reset hidden category (backend ignores it but keep DOM consistent)
+        const catSel = document.getElementById('category');
+        if (catSel) catSel.value = 'place';
+        // Reset our flow state
+        _captureMode = null;
+        try { localStorage.removeItem('odin_entry_chip'); } catch(_) {}
+        _hideLocReveal();
+        _hideGeoChip();
+
+        setTimeout(() => {
+            if (overlay) overlay.classList.add('hidden');
+            try { setMode('discover'); } catch(_) {}
+        }, 1500);
+
+        // Background POST
+        try {
+            const resp = await fetch(CAPTURE_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) {
+                const errText = await resp.text().catch(() => '');
+                console.error('Save failed — HTTP', resp.status, errText);
+                if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
+                return;
+            }
+            try {
+                const data = await resp.json();
+                if (data && data.success === false) {
+                    if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
+                }
+            } catch (_) { /* non-JSON ok */ }
+        } catch (err) {
+            console.error('Background save failed:', err);
+            if (typeof showToast === 'function') showToast('Save failed — please check your connection and try again.', 6000);
+        }
+    };
+
+    // Re-init address autocomplete when address field becomes visible again.
+    // The existing autocomplete attaches once on DOMContentLoaded — show/hide
+    // doesn't break it because the input element itself isn't re-created.
+    // Nothing to do here, but if an issue surfaces during staging QA this is the spot.
+})();
