@@ -8622,7 +8622,7 @@ function dismissEmptyFriends() {
     const _origSubmit = window.submitDiscovery;
     window.submitDiscovery = async function(e) {
         if (e && e.preventDefault) e.preventDefault();
-        if (!window.currentUser) { alert('Please login first'); return; }
+        if (!currentUser) { alert('Please login first'); return; }
 
         // Resolve mode (fall back to localStorage / 'type')
         if (!_captureMode) {
@@ -8710,11 +8710,11 @@ function dismissEmptyFriends() {
             address: addrVal || null,
             user_latitude: document.getElementById('userLat')?.value ? parseFloat(document.getElementById('userLat').value) : null,
             user_longitude: document.getElementById('userLng')?.value ? parseFloat(document.getElementById('userLng').value) : null,
-            UserID: window.currentUser.id,
-            familyId: window.currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
-            addedBy: window.currentProfile?.display_name || window.currentUser.user_metadata?.full_name || window.currentUser.email?.split('@')[0] || 'User',
+            UserID: currentUser.id,
+            familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
+            addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
             visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
-            language: (window.currentProfile?.language || 'en')
+            language: (currentProfile?.language || 'en')
             // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
         };
 
