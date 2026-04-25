@@ -5278,7 +5278,9 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
-    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'only_me' : 'friends';
+    // DB constraint allows only 'private' or 'friends'. Edit writes direct to Supabase
+    // (no n8n converter), so we send the canonical value.
+    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'private' : 'friends';
 
     if (!newTitle) {
         document.getElementById('editMessage').innerHTML = '<div class="error-msg">Title is required</div>';
