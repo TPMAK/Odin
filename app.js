@@ -7065,6 +7065,9 @@ async function fetchAndPrefillOG(url) {
         const addressField = document.getElementById('address');
         if (og.address && addressField && !addressField.value.trim()) {
             addressField.value = og.address;
+            // In Link mode subAddress is hidden by default — reveal it now
+            // that we have a real address to show.
+            if (typeof window._odinRevealAddress === 'function') window._odinRevealAddress();
         }
         // Auto-fill lat/lng if returned
         if (og.lat && og.lng) {
@@ -8525,6 +8528,17 @@ function dismissEmptyFriends() {
         if (host) host.style.display = 'none';
     }
 
+    // Public helper: reveal the address sub-step (e.g. when OG fetch returns
+    // an address in Link mode). Hides the "+ Add address" link too.
+    window._odinRevealAddress = function() {
+        const sub = document.getElementById('subAddress');
+        if (sub) {
+            sub.classList.remove('step-hidden');
+            sub.classList.add('step-reveal');
+        }
+        _hideLocReveal();
+    };
+
     // ---- Geo chip for "I'm here" mode --------------------------
     function _showGeoChip(addressText) {
         const sub = document.getElementById('subAddress');
@@ -8566,8 +8580,10 @@ function dismissEmptyFriends() {
             if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
             _ensureLocReveal('Show location');
         } else if (mode === 'link') {
-            // No address UI at all — backend infers from OG
+            // Hidden by default; auto-revealed if OG fetch returns an address.
+            // Otherwise user can tap "+ Add address" to enter one manually.
             if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+            _ensureLocReveal('+ Add address');
         } else if (mode === 'here') {
             // Always visible, geolocation requested immediately
             if (subAddress) { subAddress.classList.remove('step-hidden'); subAddress.classList.add('step-reveal'); }
@@ -8670,7 +8686,11 @@ function dismissEmptyFriends() {
             subPrivacy.classList.add('step-reveal');
         }
         const subPhoto = document.getElementById('subPhoto');
-        if (subPhoto && chip !== 'link') {
+        // Photo mode already has its picker (photoPickZone) above — keep subPhoto
+        // hidden so we don't duplicate Gallery/Camera buttons. _handlePhotoChange
+        // will reveal subPhoto once a photo is selected, showing only the preview.
+        // Link mode: photo is OG-driven, no manual photo UI here.
+        if (subPhoto && chip !== 'link' && chip !== 'photo') {
             subPhoto.classList.remove('step-hidden');
             subPhoto.classList.add('step-reveal');
         }
