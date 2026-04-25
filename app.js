@@ -2427,7 +2427,7 @@ function getCategoryEmoji(type) {
 
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
-const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
+const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture-staging'; // STAGING — points at Odin — Discovery Capture (STAGING). Revert to /webhook/capture before merging to main.
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
