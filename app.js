@@ -6472,7 +6472,7 @@ function _resetAddState() {
     _lastOGFetchedUrl = '';
 }
 
-function selectEntryChip(chip) {
+var selectEntryChip = function(chip) {
     // Update active state
     document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
     const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
@@ -7332,7 +7332,7 @@ function clearPrefillFields() {
     if (titleHint) titleHint.classList.add('hidden');
 }
 
-async function submitDiscovery(e) {
+var submitDiscovery = async function(e) {
     e.preventDefault();
 
     if (!currentUser) {
