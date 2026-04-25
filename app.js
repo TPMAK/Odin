@@ -2614,9 +2614,10 @@ document.addEventListener('click', function(e) {
 });
 // ─────────────────────────────────────────────────────────────────
 
-// Minimum relevance score for a result to be shown as a real match.
-// Below this = honest "nothing found" state + suggestions instead.
-const RELEVANCE_THRESHOLD = 0.28;
+// Search v4 (sort-not-filter): the LLM groups results into top_picks + more_options.
+// We no longer apply a relevance threshold on the frontend — anything the backend returns is shown.
+// Kept as a deprecated constant for any legacy code path that still references it.
+const RELEVANCE_THRESHOLD = 0; // deprecated — search v4 groups in backend
 
 let userLocation = { latitude: null, longitude: null, available: false };
 let locationPromise = null; // resolves once, shared by all callers
@@ -4842,7 +4843,10 @@ function openItemDrawer(item) {
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
-    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(item.title)}</h1>`;
+    // v4: drawer heading uses feed_card_summary (canonical display name).
+    // title fallback for legacy rows that haven't been re-captured yet.
+    const drawerDisplayName = item.feed_card_summary || item.title || 'Untitled';
+    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(drawerDisplayName)}</h1>`;
     if (isOwner) {
         html += `<button class="drawer-edit-btn" onclick="enterEditMode()" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
     }
@@ -5662,8 +5666,19 @@ async function sendMessage(text) {
         stopSearchMessages();
         const typingEl = document.getElementById('typing');
         if (typingEl) typingEl.remove();
-        if (data.results && data.results.length > 0) {
-            currentResults = data.results;
+        // Search v4 response shape: { top_picks: [], more_options: [], results: [] (legacy alias) }
+        // Always prefer the structured arrays. Fall back to data.results for old responses.
+        const v4TopPicks = Array.isArray(data.top_picks) ? data.top_picks : [];
+        const v4MoreOptions = Array.isArray(data.more_options) ? data.more_options : [];
+        const v4Combined = (v4TopPicks.length || v4MoreOptions.length)
+            ? [...v4TopPicks, ...v4MoreOptions]
+            : (Array.isArray(data.results) ? data.results : []);
+
+        if (v4Combined.length > 0) {
+            currentResults = v4Combined;
+            // Tag each item with which group it came from, so the renderer can place it.
+            const topPickIds = new Set(v4TopPicks.map(r => r.id));
+            currentResults.forEach(r => { r._isTopPick = topPickIds.has(r.id); });
             const queryLanguage = data.query_language || 'en';
 
             // Tag each result with the query language for translation toggle
@@ -5729,16 +5744,9 @@ async function sendMessage(text) {
                 return r;
             });
 
-            // Relevance check — trust results if score meets threshold
-            const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
-            // Signal 2 — safety net: if every result title appears in _debug.dropped_titles,
-            // the AI explicitly rejected everything (catches the Merge Response fallback bug).
-            const debugDropped = (data._debug && data._debug.dropped_titles) || [];
-            const allResultsDropped = currentResults.length > 0
-                && currentResults.every(r => debugDropped.includes(r.title));
-            const hasRelevantResults = currentResults.length > 0
-                && (topScore >= RELEVANCE_THRESHOLD || currentResults.length === 1)
-                && !allResultsDropped;
+            // Search v4: trust whatever the backend returns. No threshold, no drop check.
+            // Backend already groups items into top_picks + more_options.
+            const hasRelevantResults = currentResults.length > 0;
 
             // Record the display order of result ids for feedback logging.
             // Thumbs / click handlers look up the item by index into this array.
@@ -5780,12 +5788,14 @@ async function sendMessage(text) {
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
                 const saveLabel = getCircleSaveCount(r);
 
+                // v4: prefer feed_card_summary as display name, title is fallback for old rows
+                const displayName = r.feed_card_summary || r.title || 'Untitled';
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
                         <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
-                            <div class="top-pick-title">${escapeHtml(r.title)}</div>
+                            <div class="top-pick-title">${escapeHtml(displayName)}</div>
                             <div class="top-pick-meta">${byLine}</div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
@@ -5838,10 +5848,12 @@ async function sendMessage(text) {
                     </div>`;
                 }
 
+                // v4: prefer feed_card_summary as display name, title is fallback for old rows
+                const displayName = r.feed_card_summary || r.title || 'Untitled';
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
-                        <div class="compact-title">${escapeHtml(r.title)}</div>
+                        <div class="compact-title">${escapeHtml(displayName)}</div>
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
                         <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
                         ${adderRow}
@@ -5855,9 +5867,21 @@ async function sendMessage(text) {
 
             if (hasRelevantResults) {
                 // ── Good matches found — show normal results ──
-                let html = `<div class="message message-assistant"><div class="message-content">Found ${currentResults.length} discoveries:</div><div class="results-section">`;
+                // v4: if backend grouped into top_picks + more_options, respect that.
+                // Else fall back to the old "first 2 = top picks" heuristic.
+                const v4Grouped = currentResults.some(r => r._isTopPick);
+                const topPickItems = v4Grouped
+                    ? currentResults.filter(r => r._isTopPick)
+                    : currentResults.slice(0, currentResults.length === 1 ? 1 : 2);
+                const moreResults = v4Grouped
+                    ? currentResults.filter(r => !r._isTopPick)
+                    : currentResults.slice(topPickItems.length);
 
-                const topPickCount = currentResults.length === 1 ? 1 : Math.min(2, currentResults.length);
+                const headerText = data.text && data.text.length
+                    ? data.text
+                    : `Found ${currentResults.length} ${currentResults.length === 1 ? 'discovery' : 'discoveries'}:`;
+                let html = `<div class="message message-assistant"><div class="message-content">${escapeHtml(headerText)}</div><div class="results-section">`;
+
                 html += `
                     <div class="top-picks-section">
                         <div class="results-header">
@@ -5865,12 +5889,12 @@ async function sendMessage(text) {
                         </div>
                 `;
 
-                for (let i = 0; i < topPickCount; i++) {
-                    html += buildTopPick(currentResults[i], i);
+                for (let i = 0; i < topPickItems.length; i++) {
+                    html += buildTopPick(topPickItems[i], i);
                 }
                 html += '</div>';
 
-                const moreResults = currentResults.slice(topPickCount);
+                const topPickCount = topPickItems.length;
                 if (moreResults.length > 0) {
                     const scrollId = 'moreScroll_' + Date.now();
                     html += `
@@ -5960,10 +5984,11 @@ async function sendMessage(text) {
                         const dist = item.distance_km
                             ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                             : '';
+                        const previewName = item.feed_card_summary || item.title || 'Untitled';
                         return `
                             <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
                                 <div class="compact-photo">${photo}</div>
-                                <div class="compact-title">${escapeHtml(item.title)}</div>
+                                <div class="compact-title">${escapeHtml(previewName)}</div>
                                 <div class="compact-meta">
                                     ${dist ? `<span>📍 ${dist}</span>` : ''}
                                     ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
@@ -8633,15 +8658,19 @@ function dismissEmptyFriends() {
         // Note: required, min 10 chars
         const noteEl = document.getElementById('personalNote');
         const note = (noteEl?.value || '').trim();
-        if (note.length < 10) {
+        if (note.length < 5) {
             if (noteEl) {
                 noteEl.focus();
                 noteEl.style.borderColor = '#7B2D45';
                 noteEl.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+                noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (typeof showToast === 'function') {
+                showToast('Add a few more words — even one line helps your circle.', 4000);
             }
             const formMsg = document.getElementById('formMessage');
             if (formMsg) formMsg.innerHTML =
-                '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add a few more words — at least 10 characters so your circle gets the gist.</p>';
+                '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add a few more words — even one line helps your circle.</p>';
             setTimeout(() => {
                 if (noteEl) { noteEl.style.borderColor = ''; noteEl.style.boxShadow = ''; }
             }, 2500);
