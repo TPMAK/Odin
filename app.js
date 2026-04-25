@@ -2427,7 +2427,7 @@ function getCategoryEmoji(type) {
 
 // ===== APP CONFIGURATION =====
 const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
-const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture';
+const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture-staging'; // STAGING — points at Odin — Discovery Capture (STAGING). Revert to /webhook/capture before merging to main.
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
@@ -2614,9 +2614,10 @@ document.addEventListener('click', function(e) {
 });
 // ─────────────────────────────────────────────────────────────────
 
-// Minimum relevance score for a result to be shown as a real match.
-// Below this = honest "nothing found" state + suggestions instead.
-const RELEVANCE_THRESHOLD = 0.28;
+// Search v4 (sort-not-filter): the LLM groups results into top_picks + more_options.
+// We no longer apply a relevance threshold on the frontend — anything the backend returns is shown.
+// Kept as a deprecated constant for any legacy code path that still references it.
+const RELEVANCE_THRESHOLD = 0; // deprecated — search v4 groups in backend
 
 let userLocation = { latitude: null, longitude: null, available: false };
 let locationPromise = null; // resolves once, shared by all callers
@@ -3962,7 +3963,7 @@ async function loadDiscoveries() {
                         // Fetch full item details for eligible IDs in one batched query
                         const { data: extData, error: extFetchError } = await supabaseClient
                             .from('knowledge_items')
-                            .select('id, title, photo_url, address, latitude, longitude, description, type, category, feed_card_summary, created_at, added_by, visibility')
+                            .select('id, title, photo_url, address, latitude, longitude, description, type, category, feed_card_summary, place_name, created_at, added_by, visibility')
                             .in('id', eligibleIds)
                             .gte('created_at', twoWeeksAgo.toISOString())
                             .order('created_at', { ascending: false });
@@ -4146,10 +4147,12 @@ function createCard(item, index) {
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
         ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
         : TRANSLATE_ICON;
+    const _hf = getDisplayHeading(item);
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}</div>
         <div class="hf-card-body">
-            <div class="hf-card-title">${escapeHtml(item.title)}</div>
+            <div class="hf-card-title">${escapeHtml(_hf.heading)}</div>
+            ${_hf.subtitle ? `<div class="hf-card-subtitle">${escapeHtml(_hf.subtitle)}</div>` : ''}
             ${wordHtml}
             <div class="hf-card-chips-row">${catChip}${distChip}${privateChip}</div>
             <div class="hf-card-adder">
@@ -4842,11 +4845,19 @@ function openItemDrawer(item) {
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
-    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(item.title)}</h1>`;
+    // v4 + place_name: heading uses place_name when type='place' + set,
+    // else feed_card_summary, else title fallback for legacy rows.
+    const _dh = getDisplayHeading(item);
+    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(_dh.heading)}</h1>`;
     if (isOwner) {
         html += `<button class="drawer-edit-btn" onclick="enterEditMode()" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
     }
     html += `</div>`;
+
+    // place_name subtitle: AI summary shown under the venue name
+    if (_dh.subtitle) {
+        html += `<div class="drawer-subtitle">${escapeHtml(_dh.subtitle)}</div>`;
+    }
 
     // Sub-line: address only (distance lives in the chips row)
     let subParts = [];
@@ -5211,6 +5222,9 @@ function enterEditMode() {
     </div>`;
 
     html += `<div class="drawer-body"><div class="edit-form" id="drawerEditForm">
+        <label class="edit-label">Place name <span class="edit-label-hint">— optional, shown for places</span></label>
+        <input class="edit-input" id="editPlaceName" value="${escapeHtml(item.place_name || '')}" maxlength="120" placeholder="e.g. Onslow, Hello Sailor, Lily Eatery">
+
         <label class="edit-label">Title</label>
         <input class="edit-input" id="editTitle" value="${escapeHtml(item.title)}" maxlength="200">
 
@@ -5274,7 +5288,12 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
-    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'only_me' : 'friends';
+    // place_name: optional venue name. Empty -> null. Approach A: silently kept on
+    // type change (no AI re-run on edit, no data loss).
+    const newPlaceName = (document.getElementById('editPlaceName')?.value || '').trim() || null;
+    // DB constraint allows only 'private' or 'friends'. Edit writes direct to Supabase
+    // (no n8n converter), so we send the canonical value.
+    const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'private' : 'friends';
 
     if (!newTitle) {
         document.getElementById('editMessage').innerHTML = '<div class="error-msg">Title is required</div>';
@@ -5322,6 +5341,7 @@ async function saveItemEdit(itemId) {
             address: newAddress || null,
             URL: newUrl ? [newUrl] : [],
             personal_note: newNote || null,
+            place_name: newPlaceName,
             visibility: newVisibility
         };
 
@@ -5662,8 +5682,19 @@ async function sendMessage(text) {
         stopSearchMessages();
         const typingEl = document.getElementById('typing');
         if (typingEl) typingEl.remove();
-        if (data.results && data.results.length > 0) {
-            currentResults = data.results;
+        // Search v4 response shape: { top_picks: [], more_options: [], results: [] (legacy alias) }
+        // Always prefer the structured arrays. Fall back to data.results for old responses.
+        const v4TopPicks = Array.isArray(data.top_picks) ? data.top_picks : [];
+        const v4MoreOptions = Array.isArray(data.more_options) ? data.more_options : [];
+        const v4Combined = (v4TopPicks.length || v4MoreOptions.length)
+            ? [...v4TopPicks, ...v4MoreOptions]
+            : (Array.isArray(data.results) ? data.results : []);
+
+        if (v4Combined.length > 0) {
+            currentResults = v4Combined;
+            // Tag each item with which group it came from, so the renderer can place it.
+            const topPickIds = new Set(v4TopPicks.map(r => r.id));
+            currentResults.forEach(r => { r._isTopPick = topPickIds.has(r.id); });
             const queryLanguage = data.query_language || 'en';
 
             // Tag each result with the query language for translation toggle
@@ -5729,16 +5760,9 @@ async function sendMessage(text) {
                 return r;
             });
 
-            // Relevance check — trust results if score meets threshold
-            const topScore = currentResults.length > 0 ? (currentResults[0].combined_score || 0) : 0;
-            // Signal 2 — safety net: if every result title appears in _debug.dropped_titles,
-            // the AI explicitly rejected everything (catches the Merge Response fallback bug).
-            const debugDropped = (data._debug && data._debug.dropped_titles) || [];
-            const allResultsDropped = currentResults.length > 0
-                && currentResults.every(r => debugDropped.includes(r.title));
-            const hasRelevantResults = currentResults.length > 0
-                && (topScore >= RELEVANCE_THRESHOLD || currentResults.length === 1)
-                && !allResultsDropped;
+            // Search v4: trust whatever the backend returns. No threshold, no drop check.
+            // Backend already groups items into top_picks + more_options.
+            const hasRelevantResults = currentResults.length > 0;
 
             // Record the display order of result ids for feedback logging.
             // Thumbs / click handlers look up the item by index into this array.
@@ -5780,12 +5804,15 @@ async function sendMessage(text) {
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
                 const saveLabel = getCircleSaveCount(r);
 
+                // v4 + place_name: heading uses place_name for type='place' when set
+                const _tp = getDisplayHeading(r);
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
                         <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
-                            <div class="top-pick-title">${escapeHtml(r.title)}</div>
+                            <div class="top-pick-title">${escapeHtml(_tp.heading)}</div>
+                            ${_tp.subtitle ? `<div class="top-pick-subtitle">${escapeHtml(_tp.subtitle)}</div>` : ''}
                             <div class="top-pick-meta">${byLine}</div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
@@ -5838,10 +5865,14 @@ async function sendMessage(text) {
                     </div>`;
                 }
 
+                // v4 + place_name: heading uses place_name for type='place' when set.
+                // For compact cards, prefer venue name; subtitle is suppressed (snippet already shown below).
+                const _cc = getDisplayHeading(r);
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
-                        <div class="compact-title">${escapeHtml(r.title)}</div>
+                        <div class="compact-title">${escapeHtml(_cc.heading)}</div>
+                        ${_cc.subtitle ? `<div class="compact-subtitle">${escapeHtml(_cc.subtitle).substring(0, 55)}${_cc.subtitle.length > 55 ? '…' : ''}</div>` : ''}
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
                         <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
                         ${adderRow}
@@ -5855,9 +5886,21 @@ async function sendMessage(text) {
 
             if (hasRelevantResults) {
                 // ── Good matches found — show normal results ──
-                let html = `<div class="message message-assistant"><div class="message-content">Found ${currentResults.length} discoveries:</div><div class="results-section">`;
+                // v4: if backend grouped into top_picks + more_options, respect that.
+                // Else fall back to the old "first 2 = top picks" heuristic.
+                const v4Grouped = currentResults.some(r => r._isTopPick);
+                const topPickItems = v4Grouped
+                    ? currentResults.filter(r => r._isTopPick)
+                    : currentResults.slice(0, currentResults.length === 1 ? 1 : 2);
+                const moreResults = v4Grouped
+                    ? currentResults.filter(r => !r._isTopPick)
+                    : currentResults.slice(topPickItems.length);
 
-                const topPickCount = currentResults.length === 1 ? 1 : Math.min(2, currentResults.length);
+                const headerText = data.text && data.text.length
+                    ? data.text
+                    : `Found ${currentResults.length} ${currentResults.length === 1 ? 'discovery' : 'discoveries'}:`;
+                let html = `<div class="message message-assistant"><div class="message-content">${escapeHtml(headerText)}</div><div class="results-section">`;
+
                 html += `
                     <div class="top-picks-section">
                         <div class="results-header">
@@ -5865,12 +5908,12 @@ async function sendMessage(text) {
                         </div>
                 `;
 
-                for (let i = 0; i < topPickCount; i++) {
-                    html += buildTopPick(currentResults[i], i);
+                for (let i = 0; i < topPickItems.length; i++) {
+                    html += buildTopPick(topPickItems[i], i);
                 }
                 html += '</div>';
 
-                const moreResults = currentResults.slice(topPickCount);
+                const topPickCount = topPickItems.length;
                 if (moreResults.length > 0) {
                     const scrollId = 'moreScroll_' + Date.now();
                     html += `
@@ -5960,10 +6003,12 @@ async function sendMessage(text) {
                         const dist = item.distance_km
                             ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                             : '';
+                        const _pv = getDisplayHeading(item);
                         return `
                             <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
                                 <div class="compact-photo">${photo}</div>
-                                <div class="compact-title">${escapeHtml(item.title)}</div>
+                                <div class="compact-title">${escapeHtml(_pv.heading)}</div>
+                                ${_pv.subtitle ? `<div class="compact-subtitle">${escapeHtml(_pv.subtitle).substring(0, 55)}${_pv.subtitle.length > 55 ? '…' : ''}</div>` : ''}
                                 <div class="compact-meta">
                                     ${dist ? `<span>📍 ${dist}</span>` : ''}
                                     ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
@@ -6472,7 +6517,7 @@ function _resetAddState() {
     _lastOGFetchedUrl = '';
 }
 
-function selectEntryChip(chip) {
+var selectEntryChip = function(chip) {
     // Update active state
     document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
     const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
@@ -7332,7 +7377,7 @@ function clearPrefillFields() {
     if (titleHint) titleHint.classList.add('hidden');
 }
 
-async function submitDiscovery(e) {
+var submitDiscovery = async function(e) {
     e.preventDefault();
 
     if (!currentUser) {
@@ -7447,14 +7492,15 @@ async function submitDiscovery(e) {
         addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
         address: document.getElementById('address').value.trim() || null,
         url: document.getElementById('url').value.trim() || null,
-        userLat: document.getElementById('userLat').value || null,
-        userLng: document.getElementById('userLng').value || null,
+        user_latitude: document.getElementById('userLat').value ? parseFloat(document.getElementById('userLat').value) : null,
+        user_longitude: document.getElementById('userLng').value ? parseFloat(document.getElementById('userLng').value) : null,
         UserID: currentUser.id,
         familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal
+        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
+        place_name: document.getElementById('placeName')?.value?.trim() || null
     };
 
     // Post-save nudge: if note is thin, show a gentle prompt in the overlay
@@ -7620,6 +7666,25 @@ function escapeHtml(t) {
     return d.innerHTML;
 }
 
+// ===== DISPLAY HEADING HELPER =====
+// Returns { heading, subtitle } for an item.
+// - type='place' + place_name set -> heading = place_name, subtitle = feed_card_summary
+//   (subtitle suppressed if it duplicates the heading)
+// - otherwise                     -> heading = feed_card_summary || title, subtitle = null
+// Centralised so all card builders use the same rule.
+function getDisplayHeading(item) {
+    if (!item) return { heading: 'Untitled', subtitle: null };
+    const placeName = (item.place_name || '').trim();
+    const fcs = (item.feed_card_summary || '').trim();
+    const fallback = fcs || item.title || 'Untitled';
+    if (item.type === 'place' && placeName) {
+        // Suppress subtitle if it's just the place name again (or fully contains it)
+        const sub = (fcs && fcs.toLowerCase() !== placeName.toLowerCase()) ? fcs : null;
+        return { heading: placeName, subtitle: sub };
+    }
+    return { heading: fallback, subtitle: null };
+}
+
 // ===== SAVED PAGE =====
 async function loadSavedPage() {
     const list = document.getElementById('savedItemsList');
@@ -7659,10 +7724,12 @@ async function loadSavedPage() {
             const distText = item.distance_km
                 ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                 : '';
+            const _sv = getDisplayHeading(item);
             return `<div class="saved-item-card" onclick="openItemDrawer(savedPageItems[${idx}])">
                 ${photo}
                 <div class="saved-item-content">
-                    <div class="saved-item-title">${escapeHtml(item.title)}</div>
+                    <div class="saved-item-title">${escapeHtml(_sv.heading)}</div>
+                    ${_sv.subtitle ? `<div class="saved-item-subtitle">${escapeHtml(_sv.subtitle)}</div>` : ''}
                     <div class="saved-item-meta">
                         ${item.added_by_name ? '<span>Added by ' + escapeHtml(item.added_by_name) + '</span>' : ''}
                         ${distText ? '<span>' + distText + '</span>' : ''}
@@ -8396,3 +8463,401 @@ function dismissEmptyFriends() {
 // openNotifDrawer / closeNotifDrawer are defined in index.html inline script
 // using the profile-drawer / is-open CSS pattern. This block just ensures
 // loadNotifications() is called on open so notifDrawerItems is populated.
+// ============================================================
+// ===== NEW CAPTURE FLOW (Apr 2026 redesign) =================
+// ============================================================
+// Driven by body.odin-newcapture. The 4 modes (photo/link/here/type)
+// each go straight to: Note -> (conditional address) -> Privacy -> Save.
+// Title and category are no longer user-facing; backend resolves them.
+// ============================================================
+(function odinNewCaptureFlow() {
+    if (!document.body || !document.body.classList.contains('odin-newcapture')) {
+        // Defer until DOMContentLoaded if body not ready yet
+        document.addEventListener('DOMContentLoaded', odinNewCaptureFlow);
+        return;
+    }
+
+    let _captureMode = null; // 'photo' | 'link' | 'here' | 'type'
+    window._odinGetCaptureMode = () => _captureMode;
+    window._odinSetCaptureMode = (m) => { _captureMode = m; };
+
+    // ---- Address reveal helpers (Photo + Type modes) ----------
+    function _ensureLocReveal(labelText) {
+        // Inject a small "Show / Add location" link below the note field
+        // that, on click, reveals the existing #subAddress block.
+        let host = document.getElementById('ncLocRevealHost');
+        if (!host) {
+            host = document.createElement('div');
+            host.id = 'ncLocRevealHost';
+            const noteWrap = document.getElementById('subNote');
+            if (noteWrap) noteWrap.appendChild(host);
+        }
+        host.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nc-loc-reveal';
+        btn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' +
+            '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>' +
+            '<span>' + labelText + '</span>';
+        btn.onclick = function() {
+            const sub = document.getElementById('subAddress');
+            if (sub) {
+                sub.classList.remove('step-hidden');
+                sub.classList.add('step-reveal');
+            }
+            host.style.display = 'none';
+            // For Photo mode, prefer geolocation pre-fill; for Type mode, just reveal manual
+            if (_captureMode === 'photo') {
+                try { prefillCaptureLocation(); } catch(e) {}
+            }
+            setTimeout(() => {
+                const inp = document.getElementById('address');
+                if (inp) inp.focus();
+            }, 100);
+        };
+        host.style.display = '';
+        host.appendChild(btn);
+    }
+
+    function _hideLocReveal() {
+        const host = document.getElementById('ncLocRevealHost');
+        if (host) host.style.display = 'none';
+    }
+
+    // ---- Geo chip for "I'm here" mode --------------------------
+    function _showGeoChip(addressText) {
+        const sub = document.getElementById('subAddress');
+        if (!sub) return;
+        let chip = document.getElementById('ncGeoChip');
+        if (!chip) {
+            chip = document.createElement('div');
+            chip.id = 'ncGeoChip';
+            chip.className = 'nc-geo-chip';
+            sub.insertBefore(chip, sub.firstChild);
+        }
+        chip.innerHTML = '<span>📍 Your location</span>' +
+            '<button type="button" class="nc-geo-edit">Edit</button>';
+        chip.querySelector('.nc-geo-edit').onclick = function() {
+            const inp = document.getElementById('address');
+            if (inp) { inp.removeAttribute('readonly'); inp.focus(); inp.select(); }
+            chip.remove();
+        };
+        const inp = document.getElementById('address');
+        if (inp && addressText) inp.value = addressText;
+        if (inp) inp.setAttribute('readonly', 'true');
+    }
+
+    function _hideGeoChip() {
+        const chip = document.getElementById('ncGeoChip');
+        if (chip) chip.remove();
+        const inp = document.getElementById('address');
+        if (inp) inp.removeAttribute('readonly');
+    }
+
+    // ---- Mode-specific address visibility ----------------------
+    function _applyModeAddressUI(mode) {
+        const subAddress = document.getElementById('subAddress');
+        _hideLocReveal();
+        _hideGeoChip();
+
+        if (mode === 'photo') {
+            // Hidden by default — show "Show location" link under note
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+            _ensureLocReveal('Show location');
+        } else if (mode === 'link') {
+            // No address UI at all — backend infers from OG
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+        } else if (mode === 'here') {
+            // Always visible, geolocation requested immediately
+            if (subAddress) { subAddress.classList.remove('step-hidden'); subAddress.classList.add('step-reveal'); }
+            _requestHereGeo();
+        } else if (mode === 'type') {
+            // Hidden by default — show "+ Add location" link
+            if (subAddress) { subAddress.classList.add('step-hidden'); subAddress.classList.remove('step-reveal'); }
+            _ensureLocReveal('+ Add location');
+        }
+    }
+
+    function _requestHereGeo() {
+        if (!navigator.geolocation) {
+            // No geo at all — fall back to manual input visible
+            return;
+        }
+        const locStatus = document.getElementById('locationStatus');
+        if (locStatus) locStatus.textContent = '📍 Detecting location...';
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            const latField = document.getElementById('userLat');
+            const lngField = document.getElementById('userLng');
+            if (latField) latField.value = lat;
+            if (lngField) lngField.value = lng;
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+                    { headers: { 'Accept-Language': 'en' } }
+                );
+                const data = await res.json();
+                const a = data.address || {};
+                const parts = [a.road, a.suburb || a.neighbourhood, a.city || a.town || a.village, a.country].filter(Boolean);
+                const formatted = parts.join(', ');
+                _showGeoChip(formatted);
+            } catch (e) {
+                _showGeoChip('Current location');
+            }
+            if (locStatus) locStatus.textContent = '';
+        }, () => {
+            // Permission denied — leave manual address input visible (no chip)
+            if (locStatus) locStatus.textContent = '';
+        }, { timeout: 8000 });
+    }
+
+    // ---- Override the entry-chip selection ---------------------
+    const _origSelectEntryChip = window.selectEntryChip;
+    window.selectEntryChip = function(chip) {
+        _captureMode = chip;
+        try { localStorage.setItem('odin_entry_chip', chip); } catch(e) {}
+
+        // Visual active state on the cards
+        document.querySelectorAll('.entry-card').forEach(el => el.classList.remove('active'));
+        const activeChip = document.querySelector(`.entry-card[data-chip="${chip}"]`);
+        if (activeChip) activeChip.classList.add('active');
+
+        // Show/hide step 1 zones (URL bar / photo picker) — same as before
+        const urlHeroBar = document.getElementById('urlHeroBar');
+        const photoPickZone = document.getElementById('photoPickZone');
+        if (chip === 'link') {
+            if (urlHeroBar) urlHeroBar.classList.remove('hidden');
+            if (photoPickZone) photoPickZone.classList.add('hidden');
+            const urlInput = document.getElementById('url');
+            if (urlInput) setTimeout(() => urlInput.focus(), 50);
+        } else if (chip === 'photo') {
+            if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            if (photoPickZone) photoPickZone.classList.remove('hidden');
+        } else {
+            if (urlHeroBar) urlHeroBar.classList.add('hidden');
+            if (photoPickZone) photoPickZone.classList.add('hidden');
+        }
+
+        // Reveal wStep2 + skip title/category — go straight to Note
+        const wStep2 = document.getElementById('wStep2');
+        if (wStep2) {
+            wStep2.classList.remove('step-hidden');
+            wStep2.classList.add('step-reveal');
+        }
+        // Place name field — Photo + I'm here only (where user is at a venue)
+        const subPlaceName = document.getElementById('subPlaceName');
+        if (subPlaceName) {
+            if (chip === 'photo' || chip === 'here') {
+                subPlaceName.classList.remove('step-hidden');
+                subPlaceName.classList.add('step-reveal');
+            } else {
+                subPlaceName.classList.add('step-hidden');
+                subPlaceName.classList.remove('step-reveal');
+                const pn = document.getElementById('placeName');
+                if (pn) pn.value = '';
+            }
+        }
+
+        const subNote = document.getElementById('subNote');
+        if (subNote) {
+            subNote.classList.remove('step-hidden');
+            subNote.classList.add('step-reveal');
+        }
+        const subPrivacy = document.getElementById('subPrivacy');
+        if (subPrivacy) {
+            subPrivacy.classList.remove('step-hidden');
+            subPrivacy.classList.add('step-reveal');
+        }
+        const subPhoto = document.getElementById('subPhoto');
+        if (subPhoto && chip !== 'link') {
+            subPhoto.classList.remove('step-hidden');
+            subPhoto.classList.add('step-reveal');
+        }
+
+        // Default privacy = Only me (re-assert in case user toggled before)
+        const privInput = document.getElementById('privateToggle');
+        const visField = document.getElementById('visibilityValue');
+        if (privInput) privInput.value = 'true';
+        if (visField) visField.value = 'private';
+        document.querySelectorAll('.vis-option').forEach(el => el.classList.remove('active'));
+        const privPill = document.querySelector('.vis-option[data-value="private"]');
+        if (privPill) privPill.classList.add('active');
+
+        // Apply mode-specific address UI
+        _applyModeAddressUI(chip);
+
+        // Focus the note for fast typing (except photo/link where user has another action first)
+        if (chip === 'here' || chip === 'type') {
+            setTimeout(() => {
+                const note = document.getElementById('personalNote');
+                if (note) note.focus();
+            }, 200);
+        }
+
+        // Update step indicator
+        if (typeof updateAddStep === 'function') updateAddStep(2);
+    };
+
+    // ---- Validate + inject capture_mode on submit --------------
+    const _origSubmit = window.submitDiscovery;
+    window.submitDiscovery = async function(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!currentUser) { alert('Please login first'); return; }
+
+        // Resolve mode (fall back to localStorage / 'type')
+        if (!_captureMode) {
+            try { _captureMode = localStorage.getItem('odin_entry_chip') || 'type'; } catch(_) { _captureMode = 'type'; }
+        }
+        let mode = _captureMode;
+
+        // Note: required, min 10 chars
+        const noteEl = document.getElementById('personalNote');
+        const note = (noteEl?.value || '').trim();
+        if (note.length < 5) {
+            if (noteEl) {
+                noteEl.focus();
+                noteEl.style.borderColor = '#7B2D45';
+                noteEl.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
+                noteEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (typeof showToast === 'function') {
+                showToast('Add a few more words — even one line helps your circle.', 4000);
+            }
+            const formMsg = document.getElementById('formMessage');
+            if (formMsg) formMsg.innerHTML =
+                '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Add a few more words — even one line helps your circle.</p>';
+            setTimeout(() => {
+                if (noteEl) { noteEl.style.borderColor = ''; noteEl.style.boxShadow = ''; }
+            }, 2500);
+            return;
+        }
+        const formMsg = document.getElementById('formMessage');
+        if (formMsg) formMsg.innerHTML = '';
+
+        // "I'm here" with no address + no manual entry -> soft-fallback to 'type' mode
+        const addrVal = (document.getElementById('address')?.value || '').trim();
+        if (mode === 'here' && !addrVal) {
+            mode = 'type';
+            _captureMode = 'type';
+            try { localStorage.setItem('odin_entry_chip', 'type'); } catch(_) {}
+            if (typeof showToast === 'function') {
+                showToast('Saved without location — geo unavailable.', 4000);
+            }
+        }
+
+        // Title is no longer user-facing — backend resolves it.
+        // Force the field empty so the legacy auto-generate path doesn't fire either way.
+        const titleField = document.getElementById('title');
+        if (titleField) titleField.value = '';
+
+        // Read + compress photo (kept inline so we can shape the payload here)
+        let photoBase64 = null;
+        const _pgEl = document.getElementById('photoGallery');
+        const _pcEl = document.getElementById('photoCamera');
+        const photoFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || null;
+        if (photoFile) {
+            photoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const MAX = 1200;
+                        let w = img.width, h = img.height;
+                        if (w > MAX || h > MAX) {
+                            if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+                            else        { w = Math.round(w * MAX / h); h = MAX; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                        resolve(dataUrl.split(',')[1]);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(photoFile);
+            });
+        }
+
+        const visibilityVal = document.getElementById('visibilityValue')?.value || 'private';
+        const ogImageUrlEl = document.getElementById('ogImageUrl');
+        const _photoSrcGlobal = (typeof _photoSource !== 'undefined') ? _photoSource : null;
+
+        const payload = {
+            capture_mode: mode,                                  // NEW
+            personalNote: note,                                  // required
+            description: note,                                   // back-compat for n8n nodes still reading description
+            photo: photoBase64,
+            photoFilename: photoFile ? photoFile.name : null,
+            url: (document.getElementById('url')?.value || '').trim() || null,
+            ogImageUrl: (!photoBase64 && _photoSrcGlobal === 'og') ? (ogImageUrlEl?.value || null) : null,
+            address: addrVal || null,
+            user_latitude: document.getElementById('userLat')?.value ? parseFloat(document.getElementById('userLat').value) : null,
+            user_longitude: document.getElementById('userLng')?.value ? parseFloat(document.getElementById('userLng').value) : null,
+            UserID: currentUser.id,
+            familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
+            addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
+            visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
+            place_name: document.getElementById('placeName')?.value?.trim() || null,
+            language: (currentProfile?.language || 'en')
+            // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
+        };
+
+        // Show success overlay immediately
+        const overlay = document.getElementById('saveSuccessOverlay');
+        const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
+        if (overlayBody) overlayBody.textContent = 'Your discovery has been added';
+        if (overlay) overlay.classList.remove('hidden');
+
+        // Reset form (preserve mode reset behaviour)
+        const addForm = document.getElementById('addForm');
+        if (addForm) addForm.reset();
+        const urlEl = document.getElementById('url');
+        if (urlEl) urlEl.value = '';
+        try { resetOGFetchState && resetOGFetchState(); } catch(_) {}
+        try { removePhoto && removePhoto(); } catch(_) {}
+        // Reset hidden category (backend ignores it but keep DOM consistent)
+        const catSel = document.getElementById('category');
+        if (catSel) catSel.value = 'place';
+        // Reset our flow state
+        _captureMode = null;
+        try { localStorage.removeItem('odin_entry_chip'); } catch(_) {}
+        _hideLocReveal();
+        _hideGeoChip();
+
+        setTimeout(() => {
+            if (overlay) overlay.classList.add('hidden');
+            try { setMode('discover'); } catch(_) {}
+        }, 1500);
+
+        // Background POST
+        try {
+            const resp = await fetch(CAPTURE_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!resp.ok) {
+                const errText = await resp.text().catch(() => '');
+                console.error('Save failed — HTTP', resp.status, errText);
+                if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
+                return;
+            }
+            try {
+                const data = await resp.json();
+                if (data && data.success === false) {
+                    if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
+                }
+            } catch (_) { /* non-JSON ok */ }
+        } catch (err) {
+            console.error('Background save failed:', err);
+            if (typeof showToast === 'function') showToast('Save failed — please check your connection and try again.', 6000);
+        }
+    };
+
+    // Re-init address autocomplete when address field becomes visible again.
+    // The existing autocomplete attaches once on DOMContentLoaded — show/hide
+    // doesn't break it because the input element itself isn't re-created.
+    // Nothing to do here, but if an issue surfaces during staging QA this is the spot.
+})();
