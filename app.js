@@ -2980,6 +2980,9 @@ function showHome() {
     var langWrap = document.getElementById('headerLangWrap');
     if (langWrap) langWrap.style.display = 'none';
     updateTabBar('home');
+    // Numbers strip — fires on every home render. Safe to call repeatedly;
+    // loadHomeStats() early-returns if currentUser isn't ready yet.
+    loadHomeStats();
 }
 
 // ── Discover pill management — show Discover|Map toggle in header when on Discover ──
@@ -3358,7 +3361,6 @@ function setMode(mode) {
     if (mode === 'home') {
         showHome();
         loadNotifications();
-        loadHomeStats();
     } else if (mode === 'search') {
         document.getElementById('searchMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.remove('hidden');
