@@ -1611,6 +1611,25 @@
                 <div class="launcher-page">
                     <div class="launcher-greeting">
                         <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
+
+                        <!-- Stat strip — Added · Friends · Knowledge (hero) -->
+                        <div class="home-stats-strip" id="homeStatsStrip">
+                            <button type="button" class="hstat hstat-sm" onclick="setMode('profile')" aria-label="Your saves">
+                                <span class="hstat-num" id="homeAddedCount">—</span>
+                                <span class="hstat-label">Added</span>
+                            </button>
+                            <span class="hstat-sep" aria-hidden="true">·</span>
+                            <button type="button" class="hstat hstat-sm" onclick="setMode('profile')" aria-label="Your friends">
+                                <span class="hstat-num" id="homeFriendsCount">—</span>
+                                <span class="hstat-label">Friends</span>
+                            </button>
+                            <span class="hstat-sep" aria-hidden="true">·</span>
+                            <button type="button" class="hstat hstat-hero" onclick="setMode('discover')" aria-label="Browse all knowledge in your circle">
+                                <span class="hstat-num" id="homeKnowledgeCount">—</span>
+                                <span class="hstat-label">Knowledge</span>
+                            </button>
+                        </div>
+
                         <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
                     </div>
 
@@ -2192,16 +2211,8 @@
                     </button>
                 </div>
                 <div class="profile-drawer-body">
-                    <div class="profile-saves-wrap">
-                        <button class="ps-scroll-arrow ps-scroll-left" id="psSaveLeft" onclick="scrollProfileSaves(-1)" style="display:none;" aria-label="Scroll left">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <div id="mySavesDrawerList" class="my-endorsements-list-horizontal">
-                            <p class="my-endorsements-empty">No saves yet. Save finds from your circle!</p>
-                        </div>
-                        <button class="ps-scroll-arrow ps-scroll-right" id="psSaveRight" onclick="scrollProfileSaves(1)" aria-label="Scroll right">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
+                    <div id="mySavesDrawerList" class="my-endorsements-grid">
+                        <p class="my-endorsements-empty">No saves yet. Save finds from your circle!</p>
                     </div>
                 </div>
             </div>

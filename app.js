@@ -2935,6 +2935,35 @@ function initApp() {
     showHome();
 }
 
+// Populate the Added · Friends · Knowledge strip on the launcher home.
+// Mirrors the profile-page counts but fetches independently so the numbers
+// appear on first load without requiring a profile visit first.
+async function loadHomeStats() {
+    if (!currentUser || typeof supabaseClient === 'undefined') return;
+    const addedEl = document.getElementById('homeAddedCount');
+    const friendsEl = document.getElementById('homeFriendsCount');
+    const kbEl = document.getElementById('homeKnowledgeCount');
+    if (!addedEl && !friendsEl && !kbEl) return;
+
+    try {
+        const [addedRes, friendsRes, kbRes] = await Promise.all([
+            supabaseClient.from('knowledge_items')
+                .select('*', { count: 'exact', head: true })
+                .eq('added_by', currentUser.id),
+            supabaseClient.from('friendships')
+                .select('*', { count: 'exact', head: true })
+                .or(`requester_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+                .eq('status', 'accepted'),
+            supabaseClient.rpc('get_kb_count', { p_user_id: currentUser.id })
+        ]);
+        if (addedEl)   addedEl.textContent   = addedRes.count   ?? 0;
+        if (friendsEl) friendsEl.textContent = friendsRes.count ?? 0;
+        if (kbEl)      kbEl.textContent      = (kbRes.data != null) ? kbRes.data : 0;
+    } catch (err) {
+        console.error('loadHomeStats error:', err);
+    }
+}
+
 function showHome() {
     document.getElementById('homePage').classList.remove('hidden');
     document.getElementById('searchMode').classList.add('hidden');
@@ -3329,6 +3358,7 @@ function setMode(mode) {
     if (mode === 'home') {
         showHome();
         loadNotifications();
+        loadHomeStats();
     } else if (mode === 'search') {
         document.getElementById('searchMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.remove('hidden');
