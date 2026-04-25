@@ -3963,7 +3963,7 @@ async function loadDiscoveries() {
                         // Fetch full item details for eligible IDs in one batched query
                         const { data: extData, error: extFetchError } = await supabaseClient
                             .from('knowledge_items')
-                            .select('id, title, photo_url, address, latitude, longitude, description, type, category, feed_card_summary, created_at, added_by, visibility')
+                            .select('id, title, photo_url, address, latitude, longitude, description, type, category, feed_card_summary, place_name, created_at, added_by, visibility')
                             .in('id', eligibleIds)
                             .gte('created_at', twoWeeksAgo.toISOString())
                             .order('created_at', { ascending: false });
@@ -4147,10 +4147,12 @@ function createCard(item, index) {
     const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
         ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
         : TRANSLATE_ICON;
+    const _hf = getDisplayHeading(item);
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}</div>
         <div class="hf-card-body">
-            <div class="hf-card-title">${escapeHtml(item.title)}</div>
+            <div class="hf-card-title">${escapeHtml(_hf.heading)}</div>
+            ${_hf.subtitle ? `<div class="hf-card-subtitle">${escapeHtml(_hf.subtitle)}</div>` : ''}
             ${wordHtml}
             <div class="hf-card-chips-row">${catChip}${distChip}${privateChip}</div>
             <div class="hf-card-adder">
@@ -4843,14 +4845,19 @@ function openItemDrawer(item) {
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
-    // v4: drawer heading uses feed_card_summary (canonical display name).
-    // title fallback for legacy rows that haven't been re-captured yet.
-    const drawerDisplayName = item.feed_card_summary || item.title || 'Untitled';
-    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(drawerDisplayName)}</h1>`;
+    // v4 + place_name: heading uses place_name when type='place' + set,
+    // else feed_card_summary, else title fallback for legacy rows.
+    const _dh = getDisplayHeading(item);
+    html += `<div class="drawer-title-row"><h1 class="drawer-title">${escapeHtml(_dh.heading)}</h1>`;
     if (isOwner) {
         html += `<button class="drawer-edit-btn" onclick="enterEditMode()" title="Edit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`;
     }
     html += `</div>`;
+
+    // place_name subtitle: AI summary shown under the venue name
+    if (_dh.subtitle) {
+        html += `<div class="drawer-subtitle">${escapeHtml(_dh.subtitle)}</div>`;
+    }
 
     // Sub-line: address only (distance lives in the chips row)
     let subParts = [];
@@ -5215,6 +5222,9 @@ function enterEditMode() {
     </div>`;
 
     html += `<div class="drawer-body"><div class="edit-form" id="drawerEditForm">
+        <label class="edit-label">Place name <span class="edit-label-hint">— optional, shown for places</span></label>
+        <input class="edit-input" id="editPlaceName" value="${escapeHtml(item.place_name || '')}" maxlength="120" placeholder="e.g. Onslow, Hello Sailor, Lily Eatery">
+
         <label class="edit-label">Title</label>
         <input class="edit-input" id="editTitle" value="${escapeHtml(item.title)}" maxlength="200">
 
@@ -5278,6 +5288,9 @@ async function saveItemEdit(itemId) {
     const newCategory = document.getElementById('editCategory').value;
     const newAddress = document.getElementById('editAddress').value.trim();
     const newUrl = document.getElementById('editUrl').value.trim();
+    // place_name: optional venue name. Empty -> null. Approach A: silently kept on
+    // type change (no AI re-run on edit, no data loss).
+    const newPlaceName = (document.getElementById('editPlaceName')?.value || '').trim() || null;
     // DB constraint allows only 'private' or 'friends'. Edit writes direct to Supabase
     // (no n8n converter), so we send the canonical value.
     const newVisibility = document.getElementById('editPrivateToggle').value === 'true' ? 'private' : 'friends';
@@ -5328,6 +5341,7 @@ async function saveItemEdit(itemId) {
             address: newAddress || null,
             URL: newUrl ? [newUrl] : [],
             personal_note: newNote || null,
+            place_name: newPlaceName,
             visibility: newVisibility
         };
 
@@ -5790,14 +5804,15 @@ async function sendMessage(text) {
                     : (r.added_by_name ? `<span class="meta-tag meta-added-by">by ${escapeHtml(r.added_by_name)}</span>` : '');
                 const saveLabel = getCircleSaveCount(r);
 
-                // v4: prefer feed_card_summary as display name, title is fallback for old rows
-                const displayName = r.feed_card_summary || r.title || 'Untitled';
+                // v4 + place_name: heading uses place_name for type='place' when set
+                const _tp = getDisplayHeading(r);
                 return `
                     <div class="top-pick-card" onclick="showSearchDrawer(${idx})">
                         <span class="top-pick-badge">Top Pick</span>
                         <div class="top-pick-photo">${photo}</div>
                         <div class="top-pick-content">
-                            <div class="top-pick-title">${escapeHtml(displayName)}</div>
+                            <div class="top-pick-title">${escapeHtml(_tp.heading)}</div>
+                            ${_tp.subtitle ? `<div class="top-pick-subtitle">${escapeHtml(_tp.subtitle)}</div>` : ''}
                             <div class="top-pick-meta">${byLine}</div>
                             ${snippet ? `
                                 <div class="top-pick-reason">
@@ -5850,12 +5865,14 @@ async function sendMessage(text) {
                     </div>`;
                 }
 
-                // v4: prefer feed_card_summary as display name, title is fallback for old rows
-                const displayName = r.feed_card_summary || r.title || 'Untitled';
+                // v4 + place_name: heading uses place_name for type='place' when set.
+                // For compact cards, prefer venue name; subtitle is suppressed (snippet already shown below).
+                const _cc = getDisplayHeading(r);
                 return `
                     <div class="compact-card" onclick="showSearchDrawer(${idx})">
                         <div class="compact-photo">${photo}</div>
-                        <div class="compact-title">${escapeHtml(displayName)}</div>
+                        <div class="compact-title">${escapeHtml(_cc.heading)}</div>
+                        ${_cc.subtitle ? `<div class="compact-subtitle">${escapeHtml(_cc.subtitle).substring(0, 55)}${_cc.subtitle.length > 55 ? '…' : ''}</div>` : ''}
                         ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 55)}${snippet.length > 55 ? '…' : ''}</div>` : ''}
                         <div class="hf-card-chips-row cc-chips-row">${catChip}${distChip}${privateChip}</div>
                         ${adderRow}
@@ -5986,11 +6003,12 @@ async function sendMessage(text) {
                         const dist = item.distance_km
                             ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                             : '';
-                        const previewName = item.feed_card_summary || item.title || 'Untitled';
+                        const _pv = getDisplayHeading(item);
                         return `
                             <div class="compact-card" onclick="openItemDrawer(window._searchPreviewItems[${idx}])">
                                 <div class="compact-photo">${photo}</div>
-                                <div class="compact-title">${escapeHtml(previewName)}</div>
+                                <div class="compact-title">${escapeHtml(_pv.heading)}</div>
+                                ${_pv.subtitle ? `<div class="compact-subtitle">${escapeHtml(_pv.subtitle).substring(0, 55)}${_pv.subtitle.length > 55 ? '…' : ''}</div>` : ''}
                                 <div class="compact-meta">
                                     ${dist ? `<span>📍 ${dist}</span>` : ''}
                                     ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
@@ -7481,7 +7499,8 @@ var submitDiscovery = async function(e) {
         photo: photoBase64,
         photoFilename: photoFile ? photoFile.name : null,
         ogImageUrl: (!photoBase64 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal
+        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
+        place_name: document.getElementById('placeName')?.value?.trim() || null
     };
 
     // Post-save nudge: if note is thin, show a gentle prompt in the overlay
@@ -7647,6 +7666,25 @@ function escapeHtml(t) {
     return d.innerHTML;
 }
 
+// ===== DISPLAY HEADING HELPER =====
+// Returns { heading, subtitle } for an item.
+// - type='place' + place_name set -> heading = place_name, subtitle = feed_card_summary
+//   (subtitle suppressed if it duplicates the heading)
+// - otherwise                     -> heading = feed_card_summary || title, subtitle = null
+// Centralised so all card builders use the same rule.
+function getDisplayHeading(item) {
+    if (!item) return { heading: 'Untitled', subtitle: null };
+    const placeName = (item.place_name || '').trim();
+    const fcs = (item.feed_card_summary || '').trim();
+    const fallback = fcs || item.title || 'Untitled';
+    if (item.type === 'place' && placeName) {
+        // Suppress subtitle if it's just the place name again (or fully contains it)
+        const sub = (fcs && fcs.toLowerCase() !== placeName.toLowerCase()) ? fcs : null;
+        return { heading: placeName, subtitle: sub };
+    }
+    return { heading: fallback, subtitle: null };
+}
+
 // ===== SAVED PAGE =====
 async function loadSavedPage() {
     const list = document.getElementById('savedItemsList');
@@ -7686,10 +7724,12 @@ async function loadSavedPage() {
             const distText = item.distance_km
                 ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
                 : '';
+            const _sv = getDisplayHeading(item);
             return `<div class="saved-item-card" onclick="openItemDrawer(savedPageItems[${idx}])">
                 ${photo}
                 <div class="saved-item-content">
-                    <div class="saved-item-title">${escapeHtml(item.title)}</div>
+                    <div class="saved-item-title">${escapeHtml(_sv.heading)}</div>
+                    ${_sv.subtitle ? `<div class="saved-item-subtitle">${escapeHtml(_sv.subtitle)}</div>` : ''}
                     <div class="saved-item-meta">
                         ${item.added_by_name ? '<span>Added by ' + escapeHtml(item.added_by_name) + '</span>' : ''}
                         ${distText ? '<span>' + distText + '</span>' : ''}
@@ -8605,6 +8645,20 @@ function dismissEmptyFriends() {
             wStep2.classList.remove('step-hidden');
             wStep2.classList.add('step-reveal');
         }
+        // Place name field — Photo + I'm here only (where user is at a venue)
+        const subPlaceName = document.getElementById('subPlaceName');
+        if (subPlaceName) {
+            if (chip === 'photo' || chip === 'here') {
+                subPlaceName.classList.remove('step-hidden');
+                subPlaceName.classList.add('step-reveal');
+            } else {
+                subPlaceName.classList.add('step-hidden');
+                subPlaceName.classList.remove('step-reveal');
+                const pn = document.getElementById('placeName');
+                if (pn) pn.value = '';
+            }
+        }
+
         const subNote = document.getElementById('subNote');
         if (subNote) {
             subNote.classList.remove('step-hidden');
@@ -8745,6 +8799,7 @@ function dismissEmptyFriends() {
             familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
             addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
             visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
+            place_name: document.getElementById('placeName')?.value?.trim() || null,
             language: (currentProfile?.language || 'en')
             // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
         };
