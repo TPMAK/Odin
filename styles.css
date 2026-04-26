@@ -2406,7 +2406,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-top: 8px;
+            margin-top: 4px;
             gap: 8px;
         }
 
@@ -2596,7 +2596,7 @@
         .recent-pill-delete:hover { opacity: 1; color: #7B2D45; }
 
         .message {
-            margin-bottom: 24px;
+            margin-bottom: 12px;
             animation: fadeIn 0.3s;
         }
 
@@ -2621,27 +2621,27 @@
         }
 
         .message-assistant {
-            margin-bottom: 24px;
+            margin-bottom: 12px;
         }
 
         .message-content {
             color: #374151;
-            font-size: 15px;
-            line-height: 1.7;
-            margin-bottom: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 8px;
         }
 
         /* Result Cards - NEW DESIGN */
         .results-section {
-            margin-top: 16px;
+            margin-top: 8px;
         }
 
         .results-header {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
+            margin-bottom: 6px;
+            padding-bottom: 4px;
             border-bottom: 1px solid var(--border);
         }
 
@@ -2665,18 +2665,18 @@
 
         /* TOP PICKS - Featured Cards */
         .top-picks-section {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .top-pick-card {
             background: linear-gradient(135deg, #ffffff 0%, #F5EDE8 100%);
             border: 2px solid #7B2D45;
-            border-radius: 16px;
-            padding: 14px 12px;
-            margin-bottom: 12px;
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
             cursor: pointer;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             position: relative;
             transition: all 0.2s;
         }
@@ -2702,9 +2702,9 @@
         }
 
         .top-pick-photo {
-            width: 76px;
-            height: 76px;
-            border-radius: 10px;
+            width: 60px;
+            height: 60px;
+            border-radius: 9px;
             overflow: hidden;
             flex-shrink: 0;
             background: var(--mason);
@@ -2728,14 +2728,14 @@
             font-weight: 700;
             color: var(--ink);
             font-size: 15px;
-            margin-bottom: 3px;
+            margin-bottom: 1px;
         }
 
         .top-pick-meta {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             flex-wrap: wrap;
         }
 
@@ -2763,11 +2763,11 @@
 
         .top-pick-reason {
             background: rgba(123, 45, 69, 0.08);
-            border-radius: 8px;
-            padding: 6px 9px;
+            border-radius: 7px;
+            padding: 5px 8px;
             font-size: 12px;
             color: #5A1F30;
-            line-height: 1.4;
+            line-height: 1.35;
         }
 
         .top-pick-reason-label {
@@ -2775,7 +2775,7 @@
             font-weight: 700;
             color: #7B2D45;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            margin-bottom: 1px;
         }
 
         /* Language toggle button */
@@ -5310,12 +5310,12 @@
             /* New card styles for mobile */
             .top-pick-card {
                 flex-direction: row;
-                padding: 14px 12px;
+                padding: 10px 12px;
             }
 
             .top-pick-photo {
-                width: 76px;
-                height: 76px;
+                width: 60px;
+                height: 60px;
                 margin-bottom: 0;
                 flex-shrink: 0;
             }
