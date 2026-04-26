@@ -6957,7 +6957,7 @@
     .ps-scroll-arrow { display: none !important; }
 }
 
-/* My Saves - Horizontal Scrolling Cards */
+/* My Saves - Horizontal Scrolling Cards (legacy — kept for safety) */
 .my-endorsements-list-horizontal {
     display: flex;
     gap: 12px;
@@ -6969,6 +6969,31 @@
 
 .my-endorsements-list-horizontal::-webkit-scrollbar {
     display: none;
+}
+
+/* My Saves - 3-column grid inside drawer (vertical scroll via drawer body) */
+.my-endorsements-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding-bottom: 8px;
+}
+
+@media (min-width: 768px) {
+    .my-endorsements-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+    }
+}
+
+.my-endorsements-grid .my-endorse-card {
+    width: auto;
+    flex-shrink: 1;
+    scroll-snap-align: none;
+}
+
+.my-endorsements-grid .my-endorsements-empty {
+    grid-column: 1 / -1;
 }
 
 .my-endorsements-empty {
@@ -8895,6 +8920,76 @@
     color: var(--muted);
     margin: 3px 0 0;
     letter-spacing: 0;
+}
+
+/* ── Home stat strip (between greeting and rotating subline) ── */
+.home-stats-strip {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    margin: 8px 0 0;
+}
+
+/* Even rhythm: H1 → stats → rotating subgreeting */
+.launcher-greeting .launcher-sub-greeting {
+    margin-top: 8px;
+}
+
+.hstat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 2px 4px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+    border-radius: 6px;
+    transition: background 0.15s;
+}
+
+.hstat:hover { background: rgba(123, 45, 69, 0.06); }
+.hstat:active { background: rgba(123, 45, 69, 0.12); }
+
+.hstat-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--ink, #1f1f1f);
+}
+
+.hstat-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.01em;
+}
+
+/* Knowledge — hero */
+.hstat-hero .hstat-num {
+    font-size: 26px;
+    color: #7B2D45;
+}
+
+.hstat-hero .hstat-label {
+    font-size: 13px;
+    color: #7B2D45;
+    font-weight: 500;
+}
+
+.hstat-sep {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+}
+
+@media (max-width: 360px) {
+    .hstat-num { font-size: 16px; }
+    .hstat-hero .hstat-num { font-size: 22px; }
 }
 
 .launcher-mode-toggle,
