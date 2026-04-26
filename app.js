@@ -3380,10 +3380,8 @@ function setMode(mode) {
     } else if (mode === 'input') {
         document.getElementById('inputMode').classList.remove('hidden');
         document.getElementById('inputArea').classList.add('hidden');
-        // Show step bar (fixed to top — never scrolls)
-        var stepBar = document.getElementById('addStepSticky');
-        if (stepBar) stepBar.classList.remove('hidden');
-        document.body.classList.add('add-tab-open');
+        // Step bar removed — Add page is now uncluttered like Discover.
+        // Bar element kept in DOM (stays hidden via the .hidden class on #addStepSticky).
         if (typeof _startPhraseRotation === 'function') _startPhraseRotation('addSubtitle', 'add', 7000);
         // Only reset when arriving from a different page. Re-tapping Add while
         // already on the Add page must not wipe the "Found a link" banner.
