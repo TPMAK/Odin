@@ -51,7 +51,12 @@
             saveFailed: 'Save failed. Your entry was not stored. Please try again.',
             saveOffline: 'Save failed. Check your connection and try again.',
             loginFirst: 'Please log in first.',
-            away: 'm away'
+            away: 'm away',
+            noVoiceText: "Couldn't catch your voice note. Type a line here instead.",
+            saving: 'Saving…',
+            savedTitle: 'Saved',
+            savedSub: 'Your circle can find it now.',
+            tryAgain: 'Try again'
         },
         'zh-TW': {
             heroTitle: '拍照＋講一句',
@@ -93,7 +98,12 @@
             saveFailed: '儲存失敗，未有記錄，請再試。',
             saveOffline: '儲存失敗，請檢查網絡再試。',
             loginFirst: '請先登入。',
-            away: '米'
+            away: '米',
+            noVoiceText: '聽唔清楚你把聲，請喺度打一句。',
+            saving: '儲存緊…',
+            savedTitle: '已儲存',
+            savedSub: '朋友而家搵得到。',
+            tryAgain: '再試'
         },
         'zh-CN': {
             heroTitle: '拍照＋说一句',
@@ -135,7 +145,12 @@
             saveFailed: '保存失败，未记录，请重试。',
             saveOffline: '保存失败，请检查网络后重试。',
             loginFirst: '请先登录。',
-            away: '米'
+            away: '米',
+            noVoiceText: '没听清你的语音，请在这里打一句。',
+            saving: '正在保存…',
+            savedTitle: '已保存',
+            savedSub: '朋友现在可以找到了。',
+            tryAgain: '重试'
         }
     };
     function lang() {
@@ -165,7 +180,7 @@
             photoB64: null, photoUrl: null, coords: null,
             audioB64: null, audioMime: null, recordSecs: 0,
             recorder: null, stream: null, chunks: [], timer: null,
-            suggestion: null, chosenPlace: null, visibility: 'private'
+            suggestion: null, chosenPlace: null, visibility: 'private', hadVoice: false
         });
     }
 
@@ -233,6 +248,13 @@
         .snap-pill { font: 600 13px 'Inter', sans-serif; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border);
             background: var(--surface); color: var(--ink); cursor: pointer; }
         .snap-pill.on { background: var(--wb); border-color: var(--wb); color: #fff; }
+        #appToast { z-index: 10060; }
+        .snap-err { font-size: 13px; color: var(--wb); font-weight: 500; }
+        .snap-hint { font-size: 13px; color: var(--muted); }
+        .snap-done { flex: 1; display: grid; place-items: center; text-align: center; gap: 10px; padding: 40px 20px; }
+        .snap-done-ic { width: 72px; height: 72px; border-radius: 50%; background: var(--wb); color: #fff; display: grid; place-items: center; font-size: 36px; margin: 0 auto; }
+        .snap-done h2 { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: 28px; margin: 0; color: var(--ink); }
+        .snap-done p { margin: 0; color: var(--muted); font-size: 15px; }
         .snap-ov button:focus-visible { outline: 2px solid var(--wb); outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) { .snap-mic.rec::before, .snap-spin { animation: none; } }
         `;
@@ -443,6 +465,7 @@
     }
 
     async function identify() {
+        state.hadVoice = !!state.audioB64;
         renderWorking();
         const photo = await waitForPhoto();
         if (!photo) { closeOverlay(); toast(t('identifyFailed')); return; }
@@ -514,11 +537,14 @@
                 <div class="snap-field">
                     <label for="snapName">${esc(t('nameLabel'))}${s.name ? `<span class="snap-tag">${esc(t('fromPhoto'))}</span>` : ''}</label>
                     <input id="snapName" type="text" maxlength="120" value="${esc(nameVal)}">
+                    <div class="snap-err" id="snapNameErr" hidden></div>
                 </div>
                 ${placeBlock}
                 <div class="snap-field">
                     <label for="snapNote">${esc(t('noteLabel'))}${s.note ? `<span class="snap-tag">${esc(t('fromVoice'))}</span>` : ''}</label>
                     <textarea id="snapNote" rows="3" maxlength="1000" placeholder="${esc(t('notePlaceholder'))}">${esc(noteVal)}</textarea>
+                    ${state.hadVoice && !noteVal ? `<div class="snap-hint">${esc(t('noVoiceText'))}</div>` : ''}
+                    <div class="snap-err" id="snapNoteErr" hidden></div>
                 </div>
                 <div class="snap-field">
                     <span class="snap-lbl">${esc(t('visLabel'))}</span>
@@ -563,11 +589,75 @@
         document.getElementById('snapSave').onclick = save;
     }
 
+    // Errors show inside the Snap screen, next to the field (a toast would sit behind it).
     function flagField(el, msg) {
+        const err = document.getElementById(el.id + 'Err');
+        if (err) { err.textContent = msg; err.hidden = false; }
         el.classList.add('err');
         el.focus();
-        toast(msg, 4000);
-        setTimeout(() => el.classList.remove('err'), 2500);
+        el.addEventListener('input', () => { el.classList.remove('err'); if (err) err.hidden = true; }, { once: true });
+    }
+
+    function renderSaving(name) {
+        ov.innerHTML = `<div class="snap-done"><div><span class="snap-spin" style="width:28px;height:28px;display:inline-block"></span>
+            <h2>${esc(t('saving'))}</h2><p>${esc(name)}</p></div></div>`;
+    }
+
+    function renderSaved(name) {
+        ov.innerHTML = `<div class="snap-done"><div>
+            <div class="snap-done-ic">✓</div>
+            <h2>${esc(t('savedTitle'))}</h2>
+            <p><strong>${esc(name)}</strong></p>
+            <p>${esc(t('savedSub'))}</p></div></div>`;
+    }
+
+    function renderSaveFailed(msg, payload) {
+        ov.innerHTML = `<div class="snap-done"><div>
+            <h2>${esc(msg)}</h2>
+            <div class="snap-actions" style="margin-top:20px">
+                <button type="button" class="snap-btn" id="snapFailClose">${esc(t('cancel'))}</button>
+                <button type="button" class="snap-btn primary" id="snapRetry">${esc(t('tryAgain'))}</button>
+            </div></div></div>`;
+        document.getElementById('snapFailClose').onclick = closeOverlay;
+        document.getElementById('snapRetry').onclick = () => sendCapture(payload);
+    }
+
+    function finishSaved(name) {
+        renderSaved(name);
+        setTimeout(() => {
+            closeOverlay();
+            try { if (typeof setMode === 'function') setMode('discover'); } catch (_) {}
+        }, 1600);
+    }
+
+    async function sendCapture(payload) {
+        const name = payload.place_name;
+        renderSaving(name);
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 25000);
+        try {
+            const resp = await fetch(CAPTURE_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            if (!resp.ok) { renderSaveFailed(t('saveFailed'), payload); return; }
+            let data = null;
+            try { data = await resp.json(); } catch (_) { /* non-JSON ok */ }
+            if (data && data.success === false) { renderSaveFailed(t('saveFailed'), payload); return; }
+            finishSaved(name);
+        } catch (err) {
+            if (err && err.name === 'AbortError') {
+                // Still processing on the server: treat as saved, like the main form does.
+                finishSaved(name);
+                return;
+            }
+            console.error('Snap: save failed', err);
+            renderSaveFailed(t('saveOffline'), payload);
+        } finally {
+            clearTimeout(timeout);
+        }
     }
 
     // ── Step 4: save via the existing capture pipeline ─────────
@@ -601,25 +691,7 @@
             language: (currentProfile && currentProfile.language) || 'en'
         };
 
-        closeOverlay();
-        toast(t('saved') + name, 3500);
-        try { if (typeof setMode === 'function') setMode('discover'); } catch (_) {}
-
-        try {
-            const resp = await fetch(CAPTURE_WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!resp.ok) { toast(t('saveFailed'), 6000); return; }
-            try {
-                const data = await resp.json();
-                if (data && data.success === false) toast(t('saveFailed'), 6000);
-            } catch (_) { /* non-JSON ok */ }
-        } catch (err) {
-            console.error('Snap: save failed', err);
-            toast(t('saveOffline'), 6000);
-        }
+        sendCapture(payload);
     }
 
     // ── Wire up ─────────────────────────────────────────────────
