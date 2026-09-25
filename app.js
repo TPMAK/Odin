@@ -5914,6 +5914,23 @@ function rebuildMapListsSorted(userLat, userLng) {
     if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
 }
 
+// Clean light basemap for the Discover and Search maps.
+// OpenFreeMap "Positron" (same look CARTO Positron had) — free, no API key.
+// Falls back to plain OpenStreetMap tiles if the MapLibre scripts fail to load.
+function addBaseMap(map) {
+    if (typeof L.maplibreGL === 'function') {
+        L.maplibreGL({
+            style: 'https://tiles.openfreemap.org/styles/positron',
+            attribution: '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+        }).addTo(map);
+        return;
+    }
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+    }).addTo(map);
+}
+
 function initDiscoverMap() {
     var mapEl = document.getElementById('discoverMap');
     if (!mapEl) return;
@@ -5969,11 +5986,7 @@ function initDiscoverMap() {
         return;
     }
 
-    // OpenStreetMap tiles — free, no API key (CARTO basemaps now require one)
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(discoverMap);
+    addBaseMap(discoverMap);
 
     // User location dot
     if (userLocation.available) {
@@ -7916,11 +7929,7 @@ function initSearchMap(mapId, results) {
         searchMap = L.map(mapId, { zoomControl: false });
     } catch(e) { return; }
 
-    // Same OpenStreetMap tiles as Discover map
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(searchMap);
+    addBaseMap(searchMap);
 
     // User location dot — same style as Discover
     if (userLocation.available) {
