@@ -5969,10 +5969,9 @@ function initDiscoverMap() {
         return;
     }
 
-    // CartoDB Positron — clean minimal tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
+    // OpenStreetMap tiles — free, no API key (CARTO basemaps now require one)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(discoverMap);
 
@@ -7917,10 +7916,9 @@ function initSearchMap(mapId, results) {
         searchMap = L.map(mapId, { zoomControl: false });
     } catch(e) { return; }
 
-    // Same CartoDB Positron tiles as Discover map
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
+    // Same OpenStreetMap tiles as Discover map
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
     }).addTo(searchMap);
 
