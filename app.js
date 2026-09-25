@@ -5914,21 +5914,38 @@ function rebuildMapListsSorted(userLat, userLng) {
     if (countEl) countEl.textContent = dmapMarkers.length + ' place' + (dmapMarkers.length !== 1 ? 's' : '') + ' nearby';
 }
 
-// Clean light basemap for the Discover and Search maps.
-// OpenFreeMap "Positron" (same look CARTO Positron had) — free, no API key.
-// Falls back to plain OpenStreetMap tiles if the MapLibre scripts fail to load.
+// MapTiler key for the basemap. It is meant to be public (it lives in the browser),
+// so protect it with "Allowed HTTP origins" in the MapTiler dashboard.
+var MAPTILER_KEY = 'HkPquQ4RMXPU1SUTDWEG';
+
+// Clean light basemap for the Discover and Search maps (MapTiler "Dataviz Light").
+// If MapTiler tiles fail (bad key, origin not allowed, quota used up),
+// swap to plain OpenStreetMap tiles so the map never goes blank.
 function addBaseMap(map) {
-    if (typeof L.maplibreGL === 'function') {
-        L.maplibreGL({
-            style: 'https://tiles.openfreemap.org/styles/positron',
-            attribution: '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
-        }).addTo(map);
-        return;
-    }
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19
-    }).addTo(map);
+    var osmFallback = function() {
+        return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        });
+    };
+    // 512px tiles with zoomOffset -1 = same look, ~4x fewer tile requests (saves free-plan quota)
+    var maptiler = L.tileLayer('https://api.maptiler.com/maps/dataviz-light/{z}/{x}/{y}{r}.png?key=' + MAPTILER_KEY, {
+        attribution: '<a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a> <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>',
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 1,
+        maxZoom: 19,
+        crossOrigin: true
+    });
+    var switched = false;
+    maptiler.on('tileerror', function() {
+        if (switched) return;
+        switched = true;
+        console.warn('MapTiler tiles failed — falling back to OpenStreetMap');
+        map.removeLayer(maptiler);
+        osmFallback().addTo(map);
+    });
+    maptiler.addTo(map);
 }
 
 function initDiscoverMap() {
