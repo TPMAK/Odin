@@ -12743,7 +12743,7 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
 /* Voice: draft text dims slightly while the accurate final pass runs */
 .home2-bar.refining .home2-input { opacity: 0.55; transition: opacity 0.2s; }
 .home2-bar.refining .home2-mic { animation: none; opacity: 0.6; }
-/* Voice UI like Claude: × cancel, live sound wave, then "Getting your words…" */
+/* Voice UI: × cancel, pulsing "Listening…", then "Getting your words…" */
 .home2-cancel, .home2-wave, .home2-status { display: none; }
 .home2-bar.listening {
     grid-template-areas: "input input input input" "plus wave mic send";
@@ -12754,15 +12754,20 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
 .home2-bar.listening .home2-plus { display: none; }
 .home2-bar.listening .home2-cancel { display: flex; grid-area: plus; background: #F1EDE6; color: var(--ink); }
 .home2-bar.listening .home2-send { display: flex; }
-.home2-wave {
+.home2-wave,
+.home2-status {
     grid-area: wave;
+    min-width: 0;
     align-items: center;
     justify-content: center;
     gap: 8px;
     font: 14px 'DM Sans', sans-serif;
     color: var(--muted);
+    white-space: nowrap;
 }
 .home2-bar.listening .home2-wave { display: flex; }
+.home2-bar.refining .home2-wave { display: none; }
+.home2-bar.refining .home2-status { display: flex; }
 /* Simple pulsing dots while the mic is listening */
 .home2-pulse { display: inline-flex; gap: 4px; }
 .home2-pulse i {
@@ -12778,44 +12783,6 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
     0%, 100% { opacity: 0.25; transform: scale(0.8); }
     50%      { opacity: 1;    transform: scale(1.15); }
 }
-.home2-status { display: none; }
-.home2-bar.listening {
-    grid-template-areas: "input input input input" "plus wave mic send";
-    row-gap: 6px;
-    border-radius: 22px;
-    padding: 10px 8px 8px;
-}
-.home2-bar.listening .home2-plus { display: none; }
-.home2-bar.listening .home2-cancel { display: flex; grid-area: plus; background: #F1EDE6; color: var(--ink); }
-.home2-bar.listening .home2-send { display: flex; }
-.home2-wave {
-    grid-area: wave;
-    height: 30px;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 3px;
-    overflow: hidden;
-    padding: 0 6px;
-}
-.home2-bar.listening .home2-wave { display: flex; }
-.home2-wave span {
-    width: 4px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--ink);
-    flex-shrink: 0;
-    transition: height 0.07s linear;
-}
-.home2-status {
-    grid-area: wave;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font: 14px 'DM Sans', sans-serif;
-    color: var(--muted);
-}
-.home2-bar.refining .home2-wave { display: none; }
-.home2-bar.refining .home2-status { display: flex; }
 .home2-spinner {
     width: 15px;
     height: 15px;
