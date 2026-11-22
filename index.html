@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=67">
+    <link rel="stylesheet" href="styles.css?v=68">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1815,6 +1815,11 @@
                             <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu()" aria-label="Add to Odin">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
+                            <button type="button" class="home2-btn home2-cancel" onclick="home2VoiceCancel()" aria-label="Cancel voice">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                            <div class="home2-wave" id="home2Wave" aria-hidden="true"></div>
+                            <div class="home2-status" id="home2Status" aria-live="polite"><span class="home2-spinner"></span><span>Getting your words…</span></div>
                             <button type="button" class="home2-btn home2-mic" id="home2Mic" onclick="home2MicTap()" aria-label="Speak to search">
                                 <svg class="home2-mic-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
                                 <svg class="home2-stop-ic" width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/></svg>
@@ -5991,6 +5996,7 @@
             var before = input ? input.value.trim() : '';
             _voice = { before: before, done: {}, order: [], partial: {}, closed: false };
             var v = _voice;
+            try { var AC = window.AudioContext || window.webkitAudioContext; if (AC) { v.ac = new AC(); if (v.ac.resume) v.ac.resume(); } } catch (x) {}
             _voiceSetUi('listening');
             if (input) input.placeholder = 'Listening…';
             if (typeof logEvent === 'function') logEvent('voice_start', {});
@@ -5998,6 +6004,7 @@
                 v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
                 if (v.closed) return _voiceTeardown(v);
                 _voiceStartRecorder(v);
+                _voiceStartWave(v);
 
                 var sess = await supabaseClient.auth.getSession();
                 var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
@@ -6081,6 +6088,7 @@
             if (bar) bar.classList.add('refining');
             var refined = await _voiceRefine(v);              // accurate pass on the whole clip
             if (bar) bar.classList.remove('refining');
+            if (v.cancelled) return;
             var el = document.getElementById('home2Input');
             var untouched = el && el.value.trim() === (draft || v.before);   // don't overwrite the user's edits
             var finalText = draft;
@@ -6091,6 +6099,54 @@
             if (typeof logEvent === 'function') logEvent('voice_done', { chars: finalText.length, refined: !!refined, changed: !!refined && finalText !== draft });
             _voiceTeardown(v);
             if (el && finalText && !_home2IsTouch()) el.focus();   // desktop: ready to edit; mobile: no keyboard pop
+        }
+
+
+        // Live sound wave (like Claude): newest level on the right, scrolling left.
+        // Quiet = small dot, speech = taller bar. Pure DOM, ~30 bars.
+        var _WAVE_BARS = 30;
+        function _voiceStartWave(v) {
+            var wave = document.getElementById('home2Wave');
+            if (!wave || !v.ac || !v.stream) return;
+            try {
+                var src = v.ac.createMediaStreamSource(v.stream);
+                var an = v.ac.createAnalyser();
+                an.fftSize = 512;
+                src.connect(an);
+                var data = new Uint8Array(an.fftSize);
+                wave.innerHTML = '';
+                var bars = [];
+                for (var i = 0; i < _WAVE_BARS; i++) { var b = document.createElement('span'); wave.appendChild(b); bars.push(b); }
+                var levels = new Array(_WAVE_BARS).fill(0);
+                var last = 0;
+                var tick = function(t) {
+                    if (v.closed) return;
+                    if (t - last > 70) {                       // ~14 samples a second
+                        last = t;
+                        an.getByteTimeDomainData(data);
+                        var sum = 0;
+                        for (var j = 0; j < data.length; j++) { var x = (data[j] - 128) / 128; sum += x * x; }
+                        var rms = Math.sqrt(sum / data.length);
+                        levels.shift();
+                        levels.push(v.finishing ? 0 : Math.min(1, rms * 5));
+                        for (var k = 0; k < _WAVE_BARS; k++) {
+                            var h = Math.max(4, Math.round(levels[k] * 26));
+                            bars[k].style.height = h + 'px';
+                        }
+                    }
+                    v.raf = requestAnimationFrame(tick);
+                };
+                v.raf = requestAnimationFrame(tick);
+            } catch (x) { /* wave is decoration only */ }
+        }
+        // × while listening: throw away what was heard and restore the bar.
+        function home2VoiceCancel() {
+            var v = _voice;
+            if (!v) return;
+            v.cancelled = true;
+            if (typeof logEvent === 'function') logEvent('voice_cancel', {});
+            _voiceTeardown(v);
+            _voiceShow(v.before);
         }
 
         // Local recording of the same mic stream, for the accurate final pass.
@@ -6146,6 +6202,10 @@
             v.closed = true;
             clearTimeout(v.timer); clearTimeout(v.finishTimer);
             try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); } catch (x) {}
+            if (v.raf) cancelAnimationFrame(v.raf);
+            try { if (v.ac && v.ac.close) v.ac.close(); } catch (x) {}
+            var wave = document.getElementById('home2Wave');
+            if (wave) wave.innerHTML = '';
             var bar = document.getElementById('home2Bar');
             if (bar) bar.classList.remove('refining');
             try { if (v.dc) v.dc.close(); } catch (x) {}
