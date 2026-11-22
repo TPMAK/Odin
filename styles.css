@@ -13333,3 +13333,8 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 }
 .drawer2 .drawer-main-save.active { background: var(--surface); color: var(--wb); border: 1.5px solid var(--wb); }
 .drawer2 .drawer-main-save .bookmark-icon-lg { color: inherit; }
+/* Drawer v2 fixes (22 Nov) */
+.drawer2 .drawer2-notes-title { text-transform: none; letter-spacing: 0; font-size: 15px; }
+.drawer2-note-meta { gap: 4px; }
+.drawer2-note-meta .note-delete, .drawer2-note-meta .note-edit, .drawer2-note-meta .note-translate { margin-left: 8px !important; position: static; }
+.drawer2 .drawer2-translate { text-decoration: none; }

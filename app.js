@@ -2632,7 +2632,7 @@ function renderNotesSection(itemId, notes, trustLevel, opts) {
             <div class="note-body">
                 <div class="note-text">${escapeHtml(n.out_note_text)}</div>
                 <div class="note-header drawer2-note-meta">
-                    <span class="note-author">${isOwn ? 'You' : escapeHtml(name)}</span><span class="note-time"> · ${timeAgo}</span>
+                    <span class="note-author">${isOwn ? 'You' : escapeHtml(name)}</span><span class="note-time">· ${timeAgo}</span>
                     ${translateBtn}${editBtn}${deleteBtn}
                 </div>
             </div>
@@ -6420,11 +6420,17 @@ function openItemDrawer(item) {
                         ? (currentProfile?.display_name || currentUser?.user_metadata?.full_name || '')
                         : (item.added_by_name || '');
                     const otherSavers = [];
+                    let _selfSaved = false;
                     (cached.ids || []).forEach((id, i) => {
+                        if (currentUser && id === currentUser.id) { if (!isOwner) _selfSaved = true; return; }
                         if (friendIds.has(id) && cached.names[i] && cached.names[i] !== adderName) {
                             otherSavers.push(cached.names[i]);
                         }
                     });
+                    if (otherSavers.length === 0 && _selfSaved) {
+                        savesSlot.innerHTML = `<span class="drawer2-saves-text">You saved this too</span>`;
+                        savesSlot.style.display = 'flex';
+                    }
                     if (otherSavers.length > 0) {
                         const avatarsHtml = otherSavers.slice(0, 3).map(n => {
                             const col = typeof strColour === 'function' ? strColour(n) : '#5A8A6A';
