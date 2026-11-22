@@ -5900,6 +5900,8 @@
             return !!v && !/\s/.test(v) && _HOME2_URL_RE.test(v);
         }
         function _home2Autosize(el) {
+            // Empty or hidden (scrollHeight 0): fall back to the natural one-row height.
+            if (!el.value || !el.scrollHeight) { el.style.height = ''; return; }
             el.style.height = 'auto';
             el.style.height = Math.min(el.scrollHeight, 140) + 'px';
         }
@@ -5924,11 +5926,14 @@
             var q = _home2Val();
             if (!q) { var el = document.getElementById('home2Input'); if (el) el.focus(); return; }
             if (typeof logEvent === 'function') logEvent('home_search', { length: q.length, is_link: _home2IsLink(q) });
+            _home2Clear();                       // clear while Home is still visible
             setMode('search');
+            // From Home, every search starts a fresh conversation. Follow-ups typed
+            // on the Search page keep adding to that same conversation.
+            if (typeof startNewSession === 'function') startNewSession();
             var target = document.getElementById('messageInput');
             if (target) target.value = q;
             sendMessage(q);
-            _home2Clear();
         }
         function _home2Clear() {
             var el = document.getElementById('home2Input');
