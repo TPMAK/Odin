@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=66">
+    <link rel="stylesheet" href="styles.css?v=67">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -5997,6 +5997,7 @@
             try {
                 v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
                 if (v.closed) return _voiceTeardown(v);
+                _voiceStartRecorder(v);
 
                 var sess = await supabaseClient.auth.getSession();
                 var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
@@ -6062,26 +6063,91 @@
             if (!v) return;
             v.finishing = true;
             _voiceSetUi('finishing');
+            try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); } catch (x) {}
             if (v.stream) v.stream.getTracks().forEach(function(t) { t.enabled = false; });
             // No server-side end-of-speech detection with this model: commit tells
             // it the turn is over so it sends the final transcript.
             try { if (v.dc && v.dc.readyState === 'open') v.dc.send(JSON.stringify({ type: 'input_audio_buffer.commit' })); } catch (x) {}
-            v.finishTimer = setTimeout(function() { _voiceFinish(v); }, 3500);   // don't wait forever
+            v.finishTimer = setTimeout(function() { _voiceFinish(v); }, 2500);   // don't wait forever
             if (!v.dc || v.dc.readyState !== 'open') _voiceFinish(v);
         }
-        function _voiceFinish(v) {
-            if (v.closed) return;
-            var text = _voiceClean(_voiceText(v));
-            _voiceShow(text || v.before);
-            if (typeof logEvent === 'function') logEvent('voice_done', { chars: text.length });
-            _voiceTeardown(v);
+        async function _voiceFinish(v) {
+            if (v.closed || v.finalising) return;
+            v.finalising = true;
+            clearTimeout(v.finishTimer);
+            var draft = _voiceClean(_voiceText(v));
+            _voiceShow(draft || v.before);
+            var bar = document.getElementById('home2Bar');
+            if (bar) bar.classList.add('refining');
+            var refined = await _voiceRefine(v);              // accurate pass on the whole clip
+            if (bar) bar.classList.remove('refining');
             var el = document.getElementById('home2Input');
-            if (el && text && !_home2IsTouch()) el.focus();   // desktop: ready to edit; mobile: no keyboard pop
+            var untouched = el && el.value.trim() === (draft || v.before);   // don't overwrite the user's edits
+            var finalText = draft;
+            if (refined && untouched) {
+                finalText = _voiceClean((v.before ? v.before + ' ' : '') + refined);
+                _voiceShow(finalText);
+            }
+            if (typeof logEvent === 'function') logEvent('voice_done', { chars: finalText.length, refined: !!refined, changed: !!refined && finalText !== draft });
+            _voiceTeardown(v);
+            if (el && finalText && !_home2IsTouch()) el.focus();   // desktop: ready to edit; mobile: no keyboard pop
+        }
+
+        // Local recording of the same mic stream, for the accurate final pass.
+        function _voiceStartRecorder(v) {
+            if (!window.MediaRecorder) return;
+            var types = ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg'];
+            var type = '';
+            for (var i = 0; i < types.length; i++) {
+                if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(types[i])) { type = types[i]; break; }
+            }
+            try {
+                v.chunks = [];
+                v.rec = type ? new MediaRecorder(v.stream, { mimeType: type }) : new MediaRecorder(v.stream);
+                v.recDone = new Promise(function(resolve) { v.rec.onstop = resolve; });
+                v.rec.ondataavailable = function(e) { if (e.data && e.data.size) v.chunks.push(e.data); };
+                v.rec.start();
+            } catch (x) { v.rec = null; }
+        }
+        // Sends the clip to voice-transcribe. Returns the accurate text, or null
+        // (then the live draft stays). Never waits more than ~8s in total.
+        async function _voiceRefine(v) {
+            if (!v.rec || !v.recDone) return null;
+            try {
+                await Promise.race([v.recDone, new Promise(function(r) { setTimeout(r, 1500); })]);
+                if (!v.chunks || !v.chunks.length) return null;
+                var blob = new Blob(v.chunks, { type: (v.rec.mimeType || 'audio/webm').split(';')[0] });
+                if (blob.size < 2000) return null;                 // too short to be speech
+                var sess = await supabaseClient.auth.getSession();
+                var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+                if (!jwt) return null;
+                var ctrl = window.AbortController ? new AbortController() : null;
+                var to = setTimeout(function() { if (ctrl) ctrl.abort(); }, 6500);
+                var r = await fetch(SUPABASE_URL + '/functions/v1/voice-transcribe', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + jwt, 'apikey': SUPABASE_KEY, 'Content-Type': blob.type },
+                    body: blob,
+                    signal: ctrl ? ctrl.signal : undefined
+                });
+                clearTimeout(to);
+                var d = await r.json().catch(function() { return {}; });
+                if (!r.ok || !d.text) {
+                    if (typeof logEvent === 'function') logEvent('voice_refine_error', { status: r.status, error: String(d.error || '').slice(0, 60) });
+                    return null;
+                }
+                return d.text;
+            } catch (x) {
+                if (typeof logEvent === 'function') logEvent('voice_refine_error', { error: String(x && x.message || x).slice(0, 60) });
+                return null;
+            }
         }
         function _voiceTeardown(v) {
             if (!v) return;
             v.closed = true;
             clearTimeout(v.timer); clearTimeout(v.finishTimer);
+            try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); } catch (x) {}
+            var bar = document.getElementById('home2Bar');
+            if (bar) bar.classList.remove('refining');
             try { if (v.dc) v.dc.close(); } catch (x) {}
             try { if (v.pc) v.pc.close(); } catch (x) {}
             if (v.stream) v.stream.getTracks().forEach(function(t) { t.stop(); });
