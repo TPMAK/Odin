@@ -6425,10 +6425,7 @@ function openItemDrawer(item) {
                             otherSavers.push(cached.names[i]);
                         }
                     });
-                    if (otherSavers.length === 0 && _selfSaved) {
-                        savesSlot.innerHTML = `<span class="drawer2-saves-text">Saved by you</span>`;
-                        savesSlot.style.display = 'flex';
-                    }
+
                     if (otherSavers.length > 0) {
                         const avatarsHtml = otherSavers.slice(0, 3).map(n => {
                             const col = typeof strColour === 'function' ? strColour(n) : '#5A8A6A';

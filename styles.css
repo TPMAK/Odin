@@ -13389,3 +13389,17 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
     font-size: 16px; color: var(--ink); text-align: center; cursor: pointer;
 }
 .drawer2-more-cancel { color: var(--muted); border-bottom: none; }
+/* Layout A fixes: photos fill the hero, no blurred gap */
+.drawer2 .drawer2-hero { height: auto; background: #EFE8DF; }
+.drawer2 .drawer2-hero > .drawer-hero-photo {
+    display: block; width: 100%; height: auto; min-height: 56vw; max-height: 125vw; object-fit: cover;
+}
+.drawer2 .drawer2-hero .carousel { height: min(100vw, 460px); }
+.drawer2 .drawer2-hero .carousel-track,
+.drawer2 .drawer2-hero .carousel-slide { height: 100%; }
+.drawer2 .drawer2-hero .carousel-slide-blur { display: none; }
+.drawer2 .drawer2-hero .carousel-slide .carousel-slide-img { object-fit: cover; height: 100%; }
+@media (min-width: 768px) {
+    .drawer2 .drawer2-hero > .drawer-hero-photo { min-height: 240px; max-height: 520px; }
+    .drawer2 .drawer2-hero .carousel { height: 440px; }
+}
