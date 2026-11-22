@@ -2638,16 +2638,18 @@ function renderNotesSection(itemId, notes, trustLevel, opts) {
             </div>
         </div>`;
     };
-    const listHtml = sorted.map((n, i) => noteHtml(n, i >= 1)).join('');
+    const listHtml = sorted.map((n, i) => noteHtml(n, i >= 2)).join('');
     // Filtered count (viewer's direct-friend circle only), not the raw DB count.
     const count = sorted.length;
-    const seeAll = count > 1
-        ? `<button class="drawer2-textlink drawer2-seeall" onclick="event.stopPropagation(); document.querySelectorAll('#notesList .drawer2-note-more').forEach(el => el.style.display = ''); this.remove();">View all ${count} notes from friends</button>` : '';
+    const seeAll = count > 2
+        ? `<button class="drawer2-textlink drawer2-seeall" onclick="event.stopPropagation(); document.querySelectorAll('#notesList .drawer2-note-more').forEach(el => el.style.display = ''); this.remove();">See all ${count}</button>` : '';
 
     return `<div class="community-notes" id="communityNotes">
-        ${seeAll}
         <div class="notes-list" id="notesList">${listHtml}</div>
-        <button class="drawer2-textlink drawer2-addnote" id="drawer2AddNoteBtn" onclick="event.stopPropagation(); drawer2OpenNoteInput();">${count ? 'Add a note…' : 'Add a note for your friends…'}</button>
+        <div class="drawer3-noterow">
+            <button class="drawer3-addnote" id="drawer2AddNoteBtn" onclick="event.stopPropagation(); drawer2OpenNoteInput();">Add a note…</button>
+            ${seeAll}
+        </div>
         <div class="note-input-wrap drawer2-note-input" id="communityNotesBody" style="display:none;">
             <textarea class="note-input" id="noteInput" placeholder="Write a note for your friends" maxlength="500" rows="2"></textarea>
             <div class="drawer2-note-actions">
@@ -6217,31 +6219,12 @@ function openItemDrawer(item) {
     const isOwner           = currentUser && (item.added_by === currentUser.id);
     const isDirectFriend    = !isOwner && !isExtendedCircle && isFriend(item.added_by);
     let html = '';
-    // ═══ DRAWER v2 (Nov 2026): word first ═══════════════════════════════
-    // Layout only. Every trust branch below is the same as before:
-    //   isOwner / isDirectFriend / isSaveInheritance / isExtendedCircle
-    // decide what is shown; identity never travels more than one hop.
-
-    // === Photo (shorter; swipe + tap to enlarge unchanged) ===
-    const _heroPhotos = getItemPhotos(item);
-    if (_heroPhotos.length === 1) {
-        html += `<div class="drawer-hero drawer2-hero" onclick="event.stopPropagation(); openLightbox('${escapeHtml(_heroPhotos[0])}');">
-            <img class="drawer-hero-photo" src="${escapeHtml(_heroPhotos[0])}">
-        </div>`;
-    } else if (_heroPhotos.length >= 2) {
-        const _photosArg = encodeURIComponent(JSON.stringify(_heroPhotos));
-        html += `<div class="drawer-hero drawer2-hero">
-            ${renderPhotoCarousel(_heroPhotos, { onclick: `event.stopPropagation(); openLightboxMulti('${_photosArg}', 0)` })}
-        </div>`;
-    }
+    // ═══ DRAWER v3 (22 Nov): "From your circle" first — Google Maps-style sections ═══
+    // Layout only. Trust branches (isOwner / isDirectFriend / isSaveInheritance /
+    // isExtendedCircle) decide what is shown exactly as before. The DB enforces
+    // the same rules (item_notes + endorsements RLS, 22 Nov).
     const _drawerEl = document.getElementById('detailDrawer');
-    if (_drawerEl) {
-        _drawerEl.classList.add('drawer2');
-        _drawerEl.classList.toggle('drawer2-has-hero', _heroPhotos.length > 0);
-        _drawerEl.classList.toggle('drawer2-owner', !!isOwner);
-    }
-
-    html += `<div class="drawer-body drawer2-body">`;
+    if (_drawerEl) _drawerEl.classList.add('drawer2');
 
     // ── shared values ──
     const distText = item.distance_km
@@ -6262,65 +6245,66 @@ function openItemDrawer(item) {
     const friendName = item.added_by_name ? escapeHtml(item.added_by_name) : 'Friend';
     const viaName    = item._via_friend_name ? escapeHtml(item._via_friend_name) : null;
     const _when      = item.created_at ? getTimeAgo(item.created_at) : '';
-    const _svg = (d, extra) => `<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
+    const _isPrivate = item.visibility === TRUST.PRIVATE;
+    const _ico = (d, extra, sz) => `<svg width="${sz || 16}" height="${sz || 16}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
     const BOOK_D  = '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>';
     const PIN_D   = '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
-    const SHARE_D = '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>';
+    const NAV_D   = '<polygon points="3 11 22 2 13 21 11 13 3 11"/>';
+    const LINK_D  = '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>';
+    const SHARE_D = '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>';
     const LIST_D  = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
-    const MORE_D  = '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>';
+    const ASK_D   = '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/>';
+    const EDIT_D  = '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/>';
+    const WEB_D   = '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>';
+    const WHO_D   = '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>';
+    const _avatar = (initial, name) => {
+        const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
+        return `<span class="drawer2-av" style="background:${col};">${initial}</span>`;
+    };
 
-    // ── A2: one clear next step + labelled actions; rare actions in ··· ──
+    // ── 1. Header: name, meta, saved-by · icons (save, share, close) ──
+    const _metaBits = [drawerCatLabel, distText].filter(Boolean);
+    let _headIcons = '';
+    if (item.id && !isOwner) {
+        const _c0 = endorsementsCache[item.id] || { userEndorsed: false };
+        _headIcons += `<button type="button" class="drawer3-ib drawer-bookmark-btn drawer3-save${_c0.userEndorsed ? ' active' : ''}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)" aria-label="Save to your circle">${_ico(BOOK_D, ` class="bookmark-icon-lg" fill="${_c0.userEndorsed ? '#7B2D45' : 'none'}"`, 17)}<span class="drawer-bookmark-label sr-only">${_c0.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
+    }
+    if (item.id && !_isPrivate) {
+        _headIcons += `<button type="button" class="drawer3-ib" onclick="event.stopPropagation(); shareItem('${item.id}')" aria-label="Share">${_ico(SHARE_D, '', 17)}</button>`;
+    }
+    _headIcons += `<button type="button" class="drawer3-ib" onclick="closeDrawer()" aria-label="Close"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
+    html += `<div class="drawer-body drawer2-body drawer3">
+        <div class="drawer3-head">
+            <div class="drawer3-head-text">
+                <h1 class="drawer-title drawer3-name">${escapeHtml(_dh.heading)}</h1>
+                ${_metaBits.length ? `<p class="drawer3-meta">${escapeHtml(_metaBits.join(' · '))}</p>` : ''}
+                <p class="drawer3-savedby" id="drawerAttrSaves" style="${(isSaveInheritance && viaName) ? '' : 'display:none;'}">${(isSaveInheritance && viaName) ? `Saved by ${viaName}` : ''}</p>
+            </div>
+            <div class="drawer3-head-icons">${_headIcons}</div>
+        </div>`;
+
+    // ── 2. Action pills ──
     const _iType = (item.type || item.category || '').toLowerCase();
     const _isPlace = _iType === 'place' || (!_iType && !!item.address);
-    let primary = null;
-    if (_isPlace && mapsUrl) primary = { label: 'Directions', d: PIN_D, attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"` };
-    else if (url) primary = { label: 'Open link', d: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>', attrs: `data-action="open-url" data-url="${escapeHtml(url)}"` };
-    else if (mapsUrl) primary = { label: 'Directions', d: PIN_D, attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"` };
-    const _canShare = item.id && item.visibility !== TRUST.PRIVATE;
-    const _shareOnBar = isOwner && _canShare;
-
-    const _more = [];
-    if (_canShare && !_shareOnBar) _more.push({ label: 'Share', attrs: `onclick="drawer2CloseMore(); shareItem('${item.id}')"` });
-    if (item.id) _more.push({ label: 'Add to a list', attrs: `onclick="drawer2CloseMore(); openAddToListSheet('${item.id}')"` });
-    if (mapsUrl && (!primary || primary.label !== 'Directions')) _more.push({ label: 'Directions', attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}" onclick="drawer2CloseMore()"` });
-    if (url && (!primary || primary.label !== 'Open link')) _more.push({ label: 'Open website', attrs: `data-action="open-url" data-url="${escapeHtml(url)}" onclick="drawer2CloseMore()"` });
-    if (item.id && isDirectFriend && !isOwner && item.added_by_name) {
-        _more.push({ label: `Ask ${friendName} about it`, attrs: `onclick="drawer2CloseMore(); askFriendAboutItem('${item.id}', '${escapeHtml(friendName)}', '${escapeHtml(item.address || '')}')"` });
-    }
+    const _pill = (cls, attrs, d, label) => `<button type="button" class="drawer3-pill${cls}" ${attrs}>${_ico(d)}<span>${label}</span></button>`;
+    let pills = '';
+    let _primaryKind = null;
+    if (_isPlace && mapsUrl) { _primaryKind = 'maps'; pills += _pill(' drawer3-pill-pri', `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"`, NAV_D, 'Directions'); }
+    else if (url) { _primaryKind = 'url'; pills += _pill(' drawer3-pill-pri', `data-action="open-url" data-url="${escapeHtml(url)}"`, LINK_D, 'Open link'); }
+    else if (mapsUrl) { _primaryKind = 'maps'; pills += _pill(' drawer3-pill-pri', `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"`, NAV_D, 'Directions'); }
     if (item.id && isOwner) {
-        _more.push({ label: 'Edit', attrs: `onclick="drawer2CloseMore(); enterEditMode();"` });
-        _more.push({ label: 'Who can see it · ' + (item.visibility === TRUST.PRIVATE ? 'Only me' : 'Friends'), attrs: `onclick="drawer2CloseMore(); enterEditMode();"` });
+        pills += _pill('', `onclick="event.stopPropagation(); enterEditMode();"`, EDIT_D, 'Edit');
+    } else if (item.id && isDirectFriend && item.added_by_name) {
+        pills += _pill('', `onclick="event.stopPropagation(); askFriendAboutItem('${item.id}', '${escapeHtml(friendName)}', '${escapeHtml(item.address || '')}')"`, ASK_D, `Ask ${escapeHtml(String(item.added_by_name).split(' ')[0])}`);
+    } else if (item.id && isExtendedCircle && !isSaveInheritance) {
+        const _c1 = endorsementsCache[item.id] || { userEndorsed: false };
+        pills += `<button type="button" class="drawer3-pill drawer-bookmark-btn${_c1.userEndorsed ? ' active' : ''}" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">${_ico(BOOK_D, ` class="bookmark-icon-lg" fill="${_c1.userEndorsed ? '#7B2D45' : 'none'}"`)}<span class="drawer-bookmark-label">${_c1.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
     }
-    window._drawer2MoreItems = _more;
+    if (item.id) pills += _pill('', `onclick="event.stopPropagation(); openAddToListSheet('${item.id}')"`, LIST_D, 'Add to list');
+    if (url && _primaryKind !== 'url') pills += _pill('', `data-action="open-url" data-url="${escapeHtml(url)}"`, WEB_D, 'Website');
+    if (pills) html += `<div class="drawer3-pills">${pills}</div>`;
 
-    if (item.id) {
-        const _ico = (d, extra) => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
-        let bar = '';
-        if (primary) bar += `<button type="button" class="drawer2-btn drawer2-btn-pri" ${primary.attrs}>${_ico(primary.d)}<span>${primary.label}</span></button>`;
-        if (!isOwner) {
-            const _c0 = endorsementsCache[item.id] || { userEndorsed: false };
-            bar += `<button type="button" class="drawer2-btn drawer-bookmark-btn drawer2-save${_c0.userEndorsed ? ' active' : ''}${primary ? '' : ' drawer2-btn-pri'}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">
-                ${_ico(BOOK_D, ` class="bookmark-icon-lg" fill="${_c0.userEndorsed ? '#7B2D45' : 'none'}"`)}<span class="drawer-bookmark-label">${_c0.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
-        } else if (_shareOnBar) {
-            bar += `<button type="button" class="drawer2-btn" onclick="event.stopPropagation(); shareItem('${item.id}')">${_ico(SHARE_D)}<span>Share</span></button>`;
-        }
-        if (_more.length) bar += `<button type="button" class="drawer2-btn drawer2-btn-more" onclick="event.stopPropagation(); drawer2OpenMore();" aria-label="More">${_ico(MORE_D)}</button>`;
-        html += `<div class="drawer2-actbar">${bar}</div>`;
-    }
-
-    // "Also saved by …" (filled after endorsements load; names = you + direct friends only)
-    const savesCount = item.saves_count || item.endorsements || 0;
-    html += `<div class="drawer-attr-saves drawer2-saves" id="drawerAttrSaves" style="display:none;"></div>`;
-    if (isSaveInheritance && viaName) {
-        html += `<p class="drawer2-saves-static">${savesCount > 1 ? `Saved by ${savesCount} people in your circle` : 'Saved in your circle'}</p>`;
-    }
-
-    // ── Name + quiet meta ──
-    const _metaBits = [drawerCatLabel, distText, (item.visibility === TRUST.PRIVATE && isOwner) ? 'Only me' : ''].filter(Boolean);
-    html += `<h1 class="drawer-title drawer2-name">${escapeHtml(_dh.heading)}</h1>`;
-    if (_metaBits.length) html += `<p class="drawer2-meta">${escapeHtml(_metaBits.join(' · '))}</p>`;
-
-    // ── Personal note extraction (rule unchanged) ──
+    // ── 3. From your circle: the word first, then notes from friends ──
     let note = null;
     if (!isExtendedCircle || isSaveInheritance) {
         if (item.PersonalNote) note = item.PersonalNote;
@@ -6336,44 +6320,69 @@ function openItemDrawer(item) {
         ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage)
         : 'Translate';
     const _translateBtn = `<button class="drawer-translate-btn drawer2-translate" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
+    const _trueExtended = isExtendedCircle && !isSaveInheritance;
+    const _summary = isOwner ? (item.description || '') : (item.feed_card_summary || item.description || '');
+    const _usersIcon = _ico(WHO_D, '', 16);
 
-    // ── Signature (identity rules unchanged) ──
-    const _avatar = (initial, name) => {
-        const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
-        return `<span class="drawer2-av" style="background:${col};">${initial}</span>`;
-    };
-    let signature = '';
-    if (isOwner) {
-        const myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || currentUser?.email || 'You';
-        signature = `${_avatar(myName.charAt(0).toUpperCase(), myName)}<span class="drawer2-sig-text">You${_when ? ' · ' + _when : ''}</span>`;
-    } else if (isSaveInheritance && viaName) {
-        signature = `${_avatar(viaName.charAt(0).toUpperCase(), item._via_friend_name)}<span class="drawer2-sig-text">Via ${viaName} <span class="drawer2-sig-sub">· from someone in their circle</span></span>`;
-    } else if (isDirectFriend) {
-        signature = `${_avatar(friendName.charAt(0).toUpperCase(), item.added_by_name)}<span class="drawer2-sig-text">${friendName}${_when ? ' · ' + _when : ''}</span>`;
-    } else if (isExtendedCircle) {
-        signature = `<span class="drawer2-sig-text">Someone in your circle</span>`;
-    }
-
-    // ── The word (star) or summary ──
-    const _showsWord = !!note && (isOwner || isDirectFriend || isSaveInheritance);
-    if (_showsWord) {
-        html += `<div class="drawer2-word"><p class="drawer2-word-text drawer-story-text">${escapeHtml(note)}</p></div>`;
+    if (_trueExtended) {
+        // Extended circle: anonymous signal only — no names, no word, no notes.
+        html += `<div class="drawer3-circle drawer3-circle-ext">
+            <div class="drawer3-circle-head">${_usersIcon}<span>Someone in your circle saved this</span></div>
+            ${_summary ? `<p class="drawer2-summary drawer-description">${escapeHtml(_summary)}</p>` : ''}
+            <p class="drawer3-hint">Save it to share your own word with friends.</p>
+            ${!isOwner ? `<div class="drawer2-sig" style="margin:6px 0 0;">${_translateBtn}</div>` : ''}
+        </div>`;
     } else {
-        const summary = isOwner ? (item.description || '') : (item.feed_card_summary || item.description || '');
-        if (summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(summary)}</p>`;
+        html += `<div class="drawer3-circle"><div class="drawer3-circle-head">${_usersIcon}<span>From your circle</span></div>`;
+        let sig = '';
+        if (isOwner) {
+            const myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || currentUser?.email || 'You';
+            sig = `${_avatar(myName.charAt(0).toUpperCase(), myName)}<span class="drawer2-sig-text">You${_when ? ' · ' + _when : ''}${_isPrivate ? ' · Only you can see this' : ' · Friends can see this'}</span>`;
+        } else if (isSaveInheritance && viaName) {
+            sig = `${_avatar(viaName.charAt(0).toUpperCase(), item._via_friend_name)}<span class="drawer2-sig-text">Via ${viaName} <span class="drawer2-sig-sub">· from someone in their circle</span></span>`;
+        } else if (isDirectFriend) {
+            sig = `${_avatar(friendName.charAt(0).toUpperCase(), item.added_by_name)}<span class="drawer2-sig-text">${friendName}${_when ? ' · ' + _when : ''}</span>`;
+        }
+        if (note) {
+            html += `<p class="drawer2-word-text drawer3-word drawer-story-text">“${escapeHtml(note)}”</p>`;
+            html += `<div class="drawer2-sig drawer3-sig">${sig}${_translateBtn}</div>`;
+        } else if (isOwner) {
+            if (_summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(_summary)}</p>`;
+            html += `<div class="drawer2-sig drawer3-sig">${sig}</div>`;
+            html += `<button type="button" class="drawer3-invite" onclick="event.stopPropagation(); enterEditMode();">Add your word — your circle will trust it more</button>`;
+        } else {
+            const _who = (isSaveInheritance && viaName) ? 'They' : escapeHtml(String(item.added_by_name || 'Your friend').split(' ')[0]);
+            if (_summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(_summary)}</p>`;
+            html += `<div class="drawer2-sig drawer3-sig">${sig}${_summary ? _translateBtn : ''}</div>`;
+            html += `<p class="drawer3-hint">${_who} didn't add a word yet. ${isDirectFriend ? 'Ask what they liked, or add your own note.' : 'Add your own note for your friends.'}</p>`;
+        }
+        if (item.id) {
+            currentDrawerItemId = item.id;
+            html += `<div class="drawer-comments drawer2-notes drawer3-notes" id="communityNotesContainer"></div>`;
+        }
+        html += `</div>`;
     }
-    if (signature) html += `<div class="drawer2-sig">${signature}${(_showsWord || !isOwner) ? _translateBtn : ''}</div>`;
 
-    // Owner without a word — quiet nudge
-    if (item.id && isOwner && !note) {
-        html += `<button class="drawer2-textlink" onclick="event.stopPropagation(); enterEditMode();">Add your word — your circle will trust it more</button>`;
+    // ── 4. Photos (grid; tap to enlarge) ──
+    const _photos = getItemPhotos(item);
+    if (_photos.length) {
+        const _arg = encodeURIComponent(JSON.stringify(_photos));
+        const _tile = (i, cls) => `<div class="drawer3-ph ${cls || ''}" onclick="event.stopPropagation(); ${_photos.length === 1 ? `openLightbox('${escapeHtml(_photos[0])}')` : `openLightboxMulti('${_arg}', ${i})`}"><img src="${escapeHtml(_photos[i])}" loading="lazy" alt=""></div>`;
+        let grid = '';
+        if (_photos.length === 1) grid = _tile(0, 'drawer3-ph-one');
+        else if (_photos.length === 2) grid = _tile(0) + _tile(1);
+        else grid = _tile(0, 'drawer3-ph-big') + _tile(1) + _tile(2, _photos.length > 3 ? 'drawer3-ph-more' : '');
+        html += `<div class="drawer3-photos drawer3-photos-${Math.min(_photos.length, 3)}"${_photos.length > 3 ? ` data-more="+${_photos.length - 3}"` : ''}>${grid}</div>`;
     }
 
-    // ── Notes from friends (friends-only, enforced in DB) ──
-    if (item.id) {
-        currentDrawerItemId = item.id;
-        html += `<div class="drawer-comments drawer2-notes" id="communityNotesContainer"></div>`;
-    }
+    // ── 5. About ──
+    let _host = '';
+    if (url) { try { _host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) { _host = 'Website'; } }
+    let about = '';
+    if (mapsUrl) about += `<button type="button" class="drawer3-row" data-action="open-url" data-url="${escapeHtml(mapsUrl)}">${_ico(PIN_D, '', 18)}<span>${escapeHtml(item.address)}${distText ? ` <span class="drawer3-muted">· ${distText}</span>` : ''}</span></button>`;
+    if (url) about += `<button type="button" class="drawer3-row" data-action="open-url" data-url="${escapeHtml(url)}">${_ico(WEB_D, '', 18)}<span>${escapeHtml(_host)}</span></button>`;
+    if (item.id && isOwner) about += `<button type="button" class="drawer3-row" onclick="event.stopPropagation(); enterEditMode();">${_ico(WHO_D, '', 18)}<span>${_isPrivate ? 'Only you can see this' : 'Friends can see this'}</span><span class="drawer3-change">Change</span></button>`;
+    if (about) html += `<div class="drawer3-about"><p class="drawer3-h">About</p>${about}</div>`;
 
     html += `</div>`; // close .drawer-body
 
@@ -6422,32 +6431,29 @@ function openItemDrawer(item) {
                 // Patch saves-by row in attribution block now that we have real names
                 const savesSlot = document.getElementById('drawerAttrSaves');
                 if (savesSlot && (isOwner || isDirectFriend)) {
+                    // Names come only from you + direct friends (DB-enforced in get_endorsements_for_items)
                     const cached = endorsementsCache[item.id] || { names: [], ids: [] };
                     const friendIds = new Set(friendsCache.map(f => f.out_user_id));
-                    if (currentUser) friendIds.add(currentUser.id);
-                    // Exclude the item adder from "also saved by"
-                    const adderName = isOwner
-                        ? (currentProfile?.display_name || currentUser?.user_metadata?.full_name || '')
-                        : (item.added_by_name || '');
-                    const otherSavers = [];
-                    let _selfSaved = false;
+                    const adderId = item.added_by || null;
+                    const adderName = isOwner ? '' : (item.added_by_name || '');
+                    let selfSaved = false;
+                    const others = [];
                     (cached.ids || []).forEach((id, i) => {
-                        if (currentUser && id === currentUser.id) { if (!isOwner) _selfSaved = true; return; }
-                        if (friendIds.has(id) && cached.names[i] && cached.names[i] !== adderName) {
-                            otherSavers.push(cached.names[i]);
-                        }
+                        if (currentUser && id === currentUser.id) { if (!isOwner) selfSaved = true; return; }
+                        if (id === adderId || (adderName && cached.names[i] === adderName)) return;
+                        if (friendIds.has(id) && cached.names[i]) others.push(String(cached.names[i]).split(' ')[0]);
                     });
-
-                    if (otherSavers.length > 0) {
-                        const avatarsHtml = otherSavers.slice(0, 3).map(n => {
-                            const col = typeof strColour === 'function' ? strColour(n) : '#5A8A6A';
-                            return `<span class="drawer-save-av" style="background:${col};">${n.charAt(0).toUpperCase()}</span>`;
-                        }).join('');
-                        const label = otherSavers.length === 1
-                            ? `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> in your circle`
-                            : `Also saved by <strong>${escapeHtml(otherSavers[0])}</strong> &amp; ${otherSavers.length - 1} other${otherSavers.length > 2 ? 's' : ''} in your circle`;
-                        savesSlot.innerHTML = `<div class="drawer-save-avatars">${avatarsHtml}</div><span class="drawer2-saves-text">${label}</span>`;
-                        savesSlot.style.display = 'flex';
+                    const parts = [];
+                    if (selfSaved) parts.push('you');
+                    if (others.length) parts.push(others[0]);
+                    const rest = others.length - 1;
+                    let text = '';
+                    if (parts.length === 1 && rest <= 0) text = 'Saved by ' + parts[0];
+                    else if (parts.length && rest <= 0) text = 'Saved by ' + parts.join(' and ');
+                    else if (parts.length) text = 'Saved by ' + parts.join(', ') + ` and ${rest} friend${rest > 1 ? 's' : ''}`;
+                    if (text) {
+                        savesSlot.textContent = text;
+                        savesSlot.style.display = '';
                     }
                 }
             }
