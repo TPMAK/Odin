@@ -6413,6 +6413,9 @@
                     other.textContent = 'Somewhere else';
                     other.addEventListener('click', function() {
                         chips.classList.add('hidden');
+                        // Open the address box right where the chips were, not at the top.
+                        var sub = document.getElementById('subAddress');
+                        if (sub && chips.parentNode) chips.parentNode.insertBefore(sub, chips.nextSibling);
                         var btn = document.querySelector('.enrich-btn[data-enrich="location"]');
                         if (btn && !btn.classList.contains('active') && typeof window.toggleEnrich === 'function') window.toggleEnrich('location');
                     });
@@ -6471,7 +6474,12 @@
                 .forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.add('hidden'); });
             var np = document.getElementById('nearbyPicker'); if (np) np.innerHTML = '';
             var ls = document.getElementById('locationStatus'); if (ls) ls.textContent = '';
-            var sa = document.getElementById('subAddress'); if (sa) { sa.classList.add('step-hidden'); sa.classList.remove('step-reveal'); }
+            var sa = document.getElementById('subAddress');
+            if (sa) {
+                sa.classList.add('step-hidden'); sa.classList.remove('step-reveal');
+                var home = window._odinAddrHome;
+                if (home && home.parent && sa.parentNode !== home.parent) home.parent.insertBefore(sa, home.next);
+            }
             var sp = document.getElementById('subPhoto'); if (sp) { sp.classList.add('step-hidden'); sp.classList.remove('step-reveal', 'add2-og-photo'); }
             var fm = document.getElementById('formMessage'); if (fm) fm.innerHTML = '';
             var fv = document.querySelector('#visSelector .vis-option[data-value="friends"]');
@@ -6519,6 +6527,8 @@
             // still submits the form through form="addForm".
             var footer = document.getElementById('subPrivacy');
             if (footer) document.body.appendChild(footer);
+            var subA = document.getElementById('subAddress');
+            if (subA) { window._odinAddrHome = { parent: subA.parentNode, next: subA.nextSibling }; }
             // Same for the Saving/Saved screen, so it truly covers the whole page.
             var ov = document.getElementById('saveSuccessOverlay');
             if (ov) document.body.appendChild(ov);
