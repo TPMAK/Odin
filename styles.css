@@ -13206,3 +13206,130 @@ body .add2-footer { display: none; }
 body.add2-open .add2-footer { display: flex !important; flex-direction: column-reverse; }
 body.add2-open .add2-footer > * { width: 100%; }
 body.add5-sheet-open .add2-footer { visibility: hidden; }
+
+/* ═══ DRAWER v2 (Nov 2026) — word first, matches Add page v5 ═══ */
+.drawer2:has(.drawer2-hero) .drawer-header {
+    position: absolute; top: 0; left: 0; right: 0;
+    background: transparent; border-bottom: none; pointer-events: none;
+}
+.drawer2:has(.drawer2-hero) .drawer-header > * { pointer-events: auto; }
+.drawer2:has(.drawer2-hero) .drawer-close {
+    background: rgba(255,255,255,0.92); border-color: transparent; color: var(--ink);
+    box-shadow: 0 1px 4px rgba(42,30,20,0.18);
+}
+.drawer2:has(.drawer2-hero) .drawer-handle { background: rgba(255,255,255,0.85); }
+.drawer2 .drawer2-hero { height: 170px; background: var(--border); }
+.drawer2 .drawer2-hero .drawer-hero-photo { object-fit: cover; }
+.drawer2 .drawer2-hero .drawer-hero-blur { display: none; }
+.drawer2 .drawer2-hero > * { height: 100%; }
+
+.drawer2-body { padding: 18px 22px 28px; }
+.drawer2-name-row { display: flex; align-items: flex-start; gap: 10px; }
+.drawer2 .drawer2-name {
+    font-family: inherit; font-size: 17px; font-weight: 600; line-height: 1.3;
+    color: var(--ink); margin: 0; flex: 1; letter-spacing: 0;
+}
+.drawer2-edit {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; margin-top: -4px;
+}
+.drawer2-meta { font-size: 13px; color: var(--muted); margin: 3px 0 0; }
+
+/* The word: biggest text on the card */
+.drawer2-word { position: relative; margin: 20px 0 0; padding-left: 22px; }
+.drawer2-word::before {
+    content: "\201C"; position: absolute; left: -2px; top: -12px;
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 46px; line-height: 1; color: var(--wb);
+}
+.drawer2-word-text {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 22px; line-height: 1.38;
+    color: var(--ink); margin: 0; white-space: pre-wrap; word-break: break-word;
+}
+.drawer2-summary { font-size: 15px; line-height: 1.55; color: var(--ink); margin: 18px 0 0; white-space: pre-wrap; }
+
+.drawer2-sig { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 12px 0 0 22px; font-size: 13.5px; color: var(--ink); }
+.drawer2-summary + .drawer2-sig { margin-left: 0; }
+.drawer2-sig-sub { color: var(--muted); }
+.drawer2-av {
+    width: 24px; height: 24px; border-radius: 50%; flex: none; color: #fff;
+    font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;
+}
+.drawer2-av-sm { width: 26px; height: 26px; font-size: 11.5px; }
+.drawer2 .drawer2-translate {
+    background: none; border: none; padding: 0; margin-left: auto; font-size: 13px;
+    color: var(--wb); cursor: pointer; font-weight: 500;
+}
+.drawer2 .drawer2-saves { margin: 10px 0 0; font-size: 13px; color: var(--muted); align-items: center; gap: 6px; }
+.drawer2-saves-text { margin-left: 2px; }
+.drawer2-saves-static { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+.drawer2 .drawer2-ask, .drawer2-nudge {
+    display: block; width: 100%; text-align: left; margin: 16px 0 0; padding: 12px 14px;
+    border-radius: 12px; border: 1px dashed var(--border); background: var(--surface);
+    color: var(--wb); font-size: 14px; font-weight: 500; cursor: pointer;
+}
+.drawer2-nudge-t { display: block; color: var(--wb); font-weight: 600; }
+.drawer2-nudge-s { display: block; color: var(--muted); font-size: 12.5px; font-weight: 400; margin-top: 2px; }
+
+/* Notes from friends — replies */
+.drawer2-notes { margin: 24px 0 0; padding: 18px 0 0; border-top: 1px solid var(--border); }
+.drawer2-notes .notes-loading { font-size: 13px; color: var(--muted); }
+.drawer2-notes .community-notes { padding: 0; margin: 0; background: none; border: none; }
+.drawer2-notes-title { font-size: 14px; font-weight: 600; color: var(--ink); margin: 0 0 10px; }
+.drawer2-notes-hint { font-size: 13px; color: var(--muted); margin: 0; }
+.drawer2-notes .drawer2-note { display: flex; gap: 10px; padding: 8px 0; background: none; border: none; }
+.drawer2-notes .note-body { flex: 1; min-width: 0; }
+.drawer2-notes .note-text { font-size: 15px; line-height: 1.45; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+.drawer2-note-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin-top: 3px; font-size: 12.5px; color: var(--muted); }
+.drawer2-note-meta .note-author { font-weight: 500; color: var(--muted); font-size: 12.5px; }
+.drawer2-note-meta .note-time { font-size: 12.5px; color: var(--muted); }
+.drawer2-note-meta button {
+    background: none; border: none; padding: 0 0 0 12px; font-size: 12.5px; color: var(--muted);
+    cursor: pointer; width: auto; height: auto; opacity: 1;
+}
+.drawer2-note-meta .note-translate { color: var(--wb); }
+.drawer2-link { background: none; border: none; padding: 6px 0; font-size: 13.5px; color: var(--wb); font-weight: 500; cursor: pointer; }
+.drawer2-addnote {
+    display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 6px; padding: 10px 0;
+    background: none; border: none; font-size: 14.5px; color: var(--muted); cursor: pointer; text-align: left;
+}
+.drawer2-addnote-plus {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--muted);
+    display: inline-flex; align-items: center; justify-content: center; font-size: 16px; color: var(--muted);
+}
+.drawer2-note-input { margin-top: 8px; display: block; }
+.drawer2-note-input .note-input {
+    width: 100%; box-sizing: border-box; border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 12px; font-size: 16px; font-family: inherit; background: var(--surface); color: var(--ink); resize: vertical;
+}
+.drawer2-note-actions { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 8px; }
+.drawer2-note-actions .note-submit-btn {
+    background: var(--wb); color: #fff; border: none; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+
+/* Detail rows (same pattern as Add page) */
+.drawer2-rows { margin: 22px 0 0; border-top: 1px solid var(--border); }
+.drawer2-row {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 13px 0;
+    background: none; border: none; border-bottom: 1px solid var(--border); text-align: left; cursor: pointer; color: var(--ink);
+}
+.drawer2-ic {
+    width: 32px; height: 32px; border-radius: 50%; background: var(--surface); flex: none;
+    display: inline-flex; align-items: center; justify-content: center; color: var(--wb);
+}
+.drawer2-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.drawer2-row-title { font-size: 14.5px; font-weight: 500; }
+.drawer2-row-val { font-size: 12.5px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer2-chev { color: var(--muted); flex: none; }
+.drawer2-change { font-size: 13.5px; color: var(--wb); font-weight: 500; flex: none; }
+
+/* One main button */
+.drawer2-actions { margin: 22px 0 0; }
+.drawer2 .drawer-main-save {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px 18px; border-radius: 999px; border: none; background: var(--wb); color: #fff;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.drawer2 .drawer-main-save.active { background: var(--surface); color: var(--wb); border: 1.5px solid var(--wb); }
+.drawer2 .drawer-main-save .bookmark-icon-lg { color: inherit; }
