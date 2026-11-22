@@ -6345,7 +6345,8 @@ function openItemDrawer(item) {
         }
         if (note) {
             html += `<p class="drawer2-word-text drawer3-word drawer-story-text">“${escapeHtml(note)}”</p>`;
-            html += `<div class="drawer2-sig drawer3-sig">${sig}${_translateBtn}</div>`;
+            html += `<div class="drawer3-tr">${_translateBtn}</div>`;
+            html += `<div class="drawer2-sig drawer3-sig">${sig}</div>`;
         } else if (isOwner) {
             if (_summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(_summary)}</p>`;
             html += `<div class="drawer2-sig drawer3-sig">${sig}</div>`;
@@ -6353,7 +6354,8 @@ function openItemDrawer(item) {
         } else {
             const _who = (isSaveInheritance && viaName) ? 'They' : escapeHtml(String(item.added_by_name || 'Your friend').split(' ')[0]);
             if (_summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(_summary)}</p>`;
-            html += `<div class="drawer2-sig drawer3-sig">${sig}${_summary ? _translateBtn : ''}</div>`;
+            if (_summary) html += `<div class="drawer3-tr">${_translateBtn}</div>`;
+            html += `<div class="drawer2-sig drawer3-sig">${sig}</div>`;
             html += `<p class="drawer3-hint">${_who} didn't add a word yet. ${isDirectFriend ? 'Ask what they liked, or add your own note.' : 'Add your own note for your friends.'}</p>`;
         }
         if (item.id) {
