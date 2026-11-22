@@ -2638,19 +2638,16 @@ function renderNotesSection(itemId, notes, trustLevel, opts) {
             </div>
         </div>`;
     };
-    const listHtml = sorted.map((n, i) => noteHtml(n, i >= 2)).join('');
+    const listHtml = sorted.map((n, i) => noteHtml(n, i >= 1)).join('');
     // Filtered count (viewer's direct-friend circle only), not the raw DB count.
     const count = sorted.length;
-    const seeAll = count > 2
-        ? `<button class="drawer2-link drawer2-seeall" onclick="event.stopPropagation(); document.querySelectorAll('#notesList .drawer2-note-more').forEach(el => el.style.display = ''); this.remove();">See all ${count}</button>` : '';
+    const seeAll = count > 1
+        ? `<button class="drawer2-textlink drawer2-seeall" onclick="event.stopPropagation(); document.querySelectorAll('#notesList .drawer2-note-more').forEach(el => el.style.display = ''); this.remove();">View all ${count} notes from friends</button>` : '';
 
     return `<div class="community-notes" id="communityNotes">
-        <p class="drawer2-notes-title community-notes-label">Notes from friends${count ? ` · ${count}` : ''}</p>
-        <div class="notes-list" id="notesList">${listHtml}</div>
         ${seeAll}
-        <button class="drawer2-addnote" id="drawer2AddNoteBtn" onclick="event.stopPropagation(); drawer2OpenNoteInput();">
-            <span class="drawer2-addnote-plus">+</span>${count ? 'Add a note' : 'Add a note for your friends'}
-        </button>
+        <div class="notes-list" id="notesList">${listHtml}</div>
+        <button class="drawer2-textlink drawer2-addnote" id="drawer2AddNoteBtn" onclick="event.stopPropagation(); drawer2OpenNoteInput();">${count ? 'Add a note…' : 'Add a note for your friends…'}</button>
         <div class="note-input-wrap drawer2-note-input" id="communityNotesBody" style="display:none;">
             <textarea class="note-input" id="noteInput" placeholder="Write a note for your friends" maxlength="500" rows="2"></textarea>
             <div class="drawer2-note-actions">
@@ -2661,6 +2658,25 @@ function renderNotesSection(itemId, notes, trustLevel, opts) {
     </div>`;
 }
 
+function drawer2OpenMore() {
+    const items = window._drawer2MoreItems || [];
+    if (!items.length) return;
+    let sheet = document.getElementById('drawer2More');
+    if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.id = 'drawer2More';
+        sheet.className = 'drawer2-more';
+        document.body.appendChild(sheet);
+    }
+    sheet.innerHTML = `<div class="drawer2-more-bg" onclick="drawer2CloseMore()"></div>
+        <div class="drawer2-more-card">${items.map(it => `<button type="button" class="drawer2-more-item" ${it.attrs}>${it.label}</button>`).join('')}
+        <button type="button" class="drawer2-more-item drawer2-more-cancel" onclick="drawer2CloseMore()">Cancel</button></div>`;
+    sheet.classList.add('open');
+}
+function drawer2CloseMore() {
+    const sheet = document.getElementById('drawer2More');
+    if (sheet) sheet.classList.remove('open');
+}
 function drawer2OpenNoteInput() {
     const wrap = document.getElementById('communityNotesBody');
     const btn = document.getElementById('drawer2AddNoteBtn');
@@ -6227,7 +6243,7 @@ function openItemDrawer(item) {
 
     html += `<div class="drawer-body drawer2-body">`;
 
-    // === Name line: name · type · distance (quiet label) ===
+    // ── shared values ──
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
@@ -6235,16 +6251,64 @@ function openItemDrawer(item) {
     const drawerCatLabel = item.category
         ? item.category.charAt(0).toUpperCase() + item.category.slice(1)
         : (item.type ? item.type.charAt(0).toUpperCase() + item.type.slice(1) : '');
+    let url = null;
+    if (item.URL) {
+        if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
+        else if (typeof item.URL === 'string' && item.URL.startsWith('http')) url = item.URL;
+    }
+    if (!url && item.url) url = item.url;
+    if (!url && item.website) url = item.website;
+    const mapsUrl = item.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}` : null;
+    const friendName = item.added_by_name ? escapeHtml(item.added_by_name) : 'Friend';
+    const viaName    = item._via_friend_name ? escapeHtml(item._via_friend_name) : null;
+    const _when      = item.created_at ? getTimeAgo(item.created_at) : '';
+    const _svg = (d, extra) => `<svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
+    const BOOK_D  = '<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>';
+    const PIN_D   = '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
+    const SHARE_D = '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>';
+    const LIST_D  = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
+    const MORE_D  = '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>';
+
+    // ── ··· menu items (rare actions) ──
+    const _more = [];
+    if (url) _more.push({ label: 'Open website', attrs: `data-action="open-url" data-url="${escapeHtml(url)}" onclick="drawer2CloseMore()"` });
+    if (item.id && isDirectFriend && !isOwner && item.added_by_name) {
+        _more.push({ label: `Ask ${friendName} about it`, attrs: `onclick="drawer2CloseMore(); askFriendAboutItem('${item.id}', '${escapeHtml(friendName)}', '${escapeHtml(item.address || '')}')"` });
+    }
+    if (item.id && isOwner) {
+        _more.push({ label: 'Edit', attrs: `onclick="drawer2CloseMore(); enterEditMode();"` });
+        _more.push({ label: 'Who can see it · ' + (item.visibility === TRUST.PRIVATE ? 'Only me' : 'Friends'), attrs: `onclick="drawer2CloseMore(); enterEditMode();"` });
+    }
+    window._drawer2MoreItems = _more;
+
+    // ── Icon bar (Instagram style) ──
+    if (item.id) {
+        let left = '';
+        if (!isOwner) {
+            const _c0 = endorsementsCache[item.id] || { userEndorsed: false };
+            left += `<button class="drawer2-icon drawer-bookmark-btn drawer2-save${_c0.userEndorsed ? ' active' : ''}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)" aria-label="Save to your circle">
+                ${_svg(BOOK_D, ` class="bookmark-icon-lg" fill="${_c0.userEndorsed ? '#7B2D45' : 'none'}"`)}<span class="drawer-bookmark-label sr-only">${_c0.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
+        }
+        if (mapsUrl) left += `<button class="drawer2-icon" data-action="open-url" data-url="${escapeHtml(mapsUrl)}" aria-label="Directions">${_svg(PIN_D)}</button>`;
+        if (item.visibility !== TRUST.PRIVATE) left += `<button class="drawer2-icon" onclick="event.stopPropagation(); shareItem('${item.id}')" aria-label="Share">${_svg(SHARE_D)}</button>`;
+        left += `<button class="drawer2-icon" onclick="event.stopPropagation(); openAddToListSheet('${item.id}')" aria-label="Add to a list">${_svg(LIST_D)}</button>`;
+        const right = _more.length ? `<button class="drawer2-icon" onclick="event.stopPropagation(); drawer2OpenMore();" aria-label="More">${_svg(MORE_D)}</button>` : '';
+        html += `<div class="drawer2-bar"><div class="drawer2-bar-left">${left}</div>${right}</div>`;
+    }
+
+    // "Also saved by …" (filled after endorsements load; names = you + direct friends only)
+    const savesCount = item.saves_count || item.endorsements || 0;
+    html += `<div class="drawer-attr-saves drawer2-saves" id="drawerAttrSaves" style="display:none;"></div>`;
+    if (isSaveInheritance && viaName) {
+        html += `<p class="drawer2-saves-static">${savesCount > 1 ? `Saved by ${savesCount} people in your circle` : 'Saved in your circle'}</p>`;
+    }
+
+    // ── Name + quiet meta ──
     const _metaBits = [drawerCatLabel, distText, (item.visibility === TRUST.PRIVATE && isOwner) ? 'Only me' : ''].filter(Boolean);
-    html += `<div class="drawer2-name-row">
-        <h1 class="drawer-title drawer2-name">${escapeHtml(_dh.heading)}</h1>
-        ${isOwner ? `<button class="drawer-edit-btn drawer2-edit" onclick="enterEditMode()" title="Edit" aria-label="Edit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button>` : ''}
-    </div>`;
+    html += `<h1 class="drawer-title drawer2-name">${escapeHtml(_dh.heading)}</h1>`;
     if (_metaBits.length) html += `<p class="drawer2-meta">${escapeHtml(_metaBits.join(' · '))}</p>`;
 
-    // === Extract personal note (unchanged rule) ===
-    // Save Inheritance keeps the note (content travels, identity doesn't);
-    // true Extended Circle (FoF) never shows a note.
+    // ── Personal note extraction (rule unchanged) ──
     let note = null;
     if (!isExtendedCircle || isSaveInheritance) {
         if (item.PersonalNote) note = item.PersonalNote;
@@ -6261,10 +6325,7 @@ function openItemDrawer(item) {
         : 'Translate';
     const _translateBtn = `<button class="drawer-translate-btn drawer2-translate" data-state="original" onclick="event.stopPropagation(); toggleDrawerLang(this)">${_translateBtnLabel}</button>`;
 
-    // === Who said it (signature) — same identity rules as before ===
-    const friendName    = item.added_by_name ? escapeHtml(item.added_by_name) : 'Friend';
-    const viaName       = item._via_friend_name ? escapeHtml(item._via_friend_name) : null;
-    const _when         = item.created_at ? getTimeAgo(item.created_at) : '';
+    // ── Signature (identity rules unchanged) ──
     const _avatar = (initial, name) => {
         const col = typeof strColour === 'function' ? strColour(name || initial) : '#7B2D45';
         return `<span class="drawer2-av" style="background:${col};">${initial}</span>`;
@@ -6280,89 +6341,26 @@ function openItemDrawer(item) {
     } else if (isExtendedCircle) {
         signature = `<span class="drawer2-sig-text">Someone in your circle</span>`;
     }
-    const savesCount = item.saves_count || item.endorsements || 0;
-    const _siSaves = (isSaveInheritance && viaName)
-        ? `<p class="drawer2-saves-static">${savesCount > 1 ? `Saved by ${savesCount} people in your circle` : 'Saved in your circle'}</p>` : '';
 
-    // === The word (largest text) or the summary (plain) ===
+    // ── The word (star) or summary ──
     const _showsWord = !!note && (isOwner || isDirectFriend || isSaveInheritance);
     if (_showsWord) {
-        html += `<div class="drawer2-word">
-            <p class="drawer2-word-text drawer-story-text">${escapeHtml(note)}</p>
-        </div>`;
+        html += `<div class="drawer2-word"><p class="drawer2-word-text drawer-story-text">${escapeHtml(note)}</p></div>`;
     } else {
         const summary = isOwner ? (item.description || '') : (item.feed_card_summary || item.description || '');
         if (summary) html += `<p class="drawer2-summary drawer-description">${escapeHtml(summary)}</p>`;
     }
-    if (signature) {
-        html += `<div class="drawer2-sig">${signature}${(_showsWord || (!isOwner)) ? _translateBtn : ''}</div>`;
-    }
-    // "Also saved by …" (filled in after endorsements load — same logic as before)
-    html += `<div class="drawer-attr-saves drawer2-saves" id="drawerAttrSaves" style="display:none;"></div>${_siSaves}`;
+    if (signature) html += `<div class="drawer2-sig">${signature}${(_showsWord || !isOwner) ? _translateBtn : ''}</div>`;
 
-    // Ask the friend (direct friend, no word) — existing feature
-    if (item.id && isDirectFriend && !note && item.added_by_name) {
-        html += `<button class="drawer-ask-btn drawer2-ask" onclick="event.stopPropagation(); askFriendAboutItem('${item.id}', '${escapeHtml(friendName)}', '${escapeHtml(item.address || '')}')">Ask ${friendName} about it</button>`;
-    }
-    // Own item without a word — gentle nudge (opens Edit)
+    // Owner without a word — quiet nudge
     if (item.id && isOwner && !note) {
-        html += `<button class="drawer2-nudge" onclick="event.stopPropagation(); enterEditMode();">
-            <span class="drawer2-nudge-t">Add your word</span><span class="drawer2-nudge-s">Your circle will trust this more</span>
-        </button>`;
+        html += `<button class="drawer2-textlink" onclick="event.stopPropagation(); enterEditMode();">Add your word — your circle will trust it more</button>`;
     }
 
-    // === Notes from friends (friends-only filter unchanged) ===
+    // ── Notes from friends (friends-only, enforced in DB) ──
     if (item.id) {
         currentDrawerItemId = item.id;
-        html += `<div class="drawer-comments drawer2-notes" id="communityNotesContainer"><div class="notes-loading">Loading notes…</div></div>`;
-    }
-
-    // === Detail rows ===
-    let url = null;
-    if (item.URL) {
-        if (Array.isArray(item.URL) && item.URL.length > 0) url = item.URL[0];
-        else if (typeof item.URL === 'string' && item.URL.startsWith('http')) url = item.URL;
-    }
-    if (!url && item.url) url = item.url;
-    if (!url && item.website) url = item.website;
-    const itemType = (item.type || item.category || '').toLowerCase();
-    const isPlace = itemType === 'place' || (!itemType && item.address);
-    const mapsUrl = item.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.address)}` : null;
-    const _ic = (d) => `<span class="drawer2-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg></span>`;
-    const _chev = '<svg class="drawer2-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>';
-    const _row = (attrs, icon, title, value, right) => `<button type="button" class="drawer2-row" ${attrs}>${icon}<span class="drawer2-row-text"><span class="drawer2-row-title">${title}</span>${value ? `<span class="drawer2-row-val">${value}</span>` : ''}</span>${right || _chev}</button>`;
-    const PIN_D = '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>';
-    const WEB_D = '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>';
-    const SHARE_D = '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>';
-    const LIST_D = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
-    const WHO_D = '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>';
-    let _host = '';
-    if (url) { try { _host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) { _host = ''; } }
-    const whereRow = mapsUrl ? _row(`data-action="open-url" data-url="${escapeHtml(mapsUrl)}"`, _ic(PIN_D), 'Where', escapeHtml(item.address) + (distText ? ' · ' + distText : '')) : '';
-    const webRow = url ? _row(`data-action="open-url" data-url="${escapeHtml(url)}"`, _ic(WEB_D), 'Website', escapeHtml(_host || 'Open link')) : '';
-    let rowsHtml = isPlace ? (whereRow + webRow) : (webRow + whereRow);
-    // Share — never for private items (unchanged rule)
-    if (item.id && item.visibility !== TRUST.PRIVATE) {
-        rowsHtml += _row(`onclick="event.stopPropagation(); shareItem('${item.id}')"`, _ic(SHARE_D), 'Share', '');
-    }
-    if (item.id) {
-        rowsHtml += _row(`onclick="event.stopPropagation(); openAddToListSheet('${item.id}')"`, _ic(LIST_D), 'Add to a list', '');
-    }
-    if (item.id && isOwner) {
-        rowsHtml += _row(`onclick="event.stopPropagation(); enterEditMode();"`, _ic(WHO_D), 'Who can see it',
-            item.visibility === TRUST.PRIVATE ? 'Only me' : 'Friends', '<span class="drawer2-change">Change</span>');
-    }
-    if (rowsHtml) html += `<div class="drawer2-rows">${rowsHtml}</div>`;
-
-    // === One main button: Save to your circle (others' items only) ===
-    if (item.id && !isOwner) {
-        const _cached0 = endorsementsCache[item.id] || { userEndorsed: false };
-        html += `<div class="drawer2-actions">
-            <button class="drawer-bookmark-btn drawer-main-save${_cached0.userEndorsed ? ' active' : ''}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">
-                <svg class="bookmark-icon-lg" width="16" height="16" viewBox="0 0 24 24" fill="${_cached0.userEndorsed ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2.2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                <span class="drawer-bookmark-label">${_cached0.userEndorsed ? 'Saved' : 'Save to your circle'}</span>
-            </button>
-        </div>`;
+        html += `<div class="drawer-comments drawer2-notes" id="communityNotesContainer"></div>`;
     }
 
     html += `</div>`; // close .drawer-body
@@ -6428,7 +6426,7 @@ function openItemDrawer(item) {
                         }
                     });
                     if (otherSavers.length === 0 && _selfSaved) {
-                        savesSlot.innerHTML = `<span class="drawer2-saves-text">You saved this too</span>`;
+                        savesSlot.innerHTML = `<span class="drawer2-saves-text">Saved by you</span>`;
                         savesSlot.style.display = 'flex';
                     }
                     if (otherSavers.length > 0) {
