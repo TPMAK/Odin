@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=77">
+    <link rel="stylesheet" href="styles.css?v=78">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -2594,19 +2594,12 @@
                 <!-- ══════════════════════════════════════════ -->
                 <div id="wStep2" class="wizard-step step-hidden">
                     <!-- ADD v4 (Nov 2026, Wise-style hierarchy): hero, labelled note, detail rows -->
-                    <div class="add3-hero">
-                        <div class="add3-thumb" id="add3Thumb"></div>
-                        <div class="add3-hero-main" id="add3HeroMain"><p class="add3-sub" id="add3Sub"></p></div>
-                    </div>
+                    <div class="add5-hero" id="add5Hero" role="button" tabindex="0" aria-label="Photos" onclick="add5HeroTap()"></div>
+                    <p class="add3-label" id="add5NameLabel">Name</p>
+                    <div id="add5NameSlot"></div>
                     <p class="add3-label" id="add3NoteLabel">Why would you send a friend here?</p>
                     <div id="add3NoteSlot"></div>
-                    <p class="add3-details-h">Details <span>· optional</span></p>
                     <div class="add3-rows">
-                        <button type="button" class="add3-row" data-row="photo" onclick="add3Row('photo')">
-                            <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
-                            <span class="add3-row-text"><span class="add3-row-title">Photos</span><span class="add3-row-val" id="add3Val_photo"></span></span>
-                            <svg class="add3-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
                         <div class="add3-panel hidden" id="add3Panel_photo"></div>
                         <button type="button" class="add3-row" data-row="where" onclick="add3Row('where')">
                             <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
@@ -2874,6 +2867,17 @@
                 </div><!-- /wStep2 -->
 
                 </form>
+
+                <!-- Add v5 bottom sheet (Where / Link / Who / Photos) — moved to <body> on load -->
+                <div class="add5-sheet hidden" id="add5Sheet" role="dialog" aria-modal="true" aria-labelledby="add5SheetTitle">
+                    <div class="add5-sheet-backdrop" onclick="add5CloseSheet()"></div>
+                    <div class="add5-sheet-card">
+                        <div class="add5-grip"></div>
+                        <p class="add5-sheet-title" id="add5SheetTitle"></p>
+                        <div id="add5SheetBody"></div>
+                        <button type="button" class="add5-sheet-done" onclick="add5CloseSheet()">Done</button>
+                    </div>
+                </div>
 
                 <!-- "Discard this?" when leaving Add with unsaved text (Nov 2026) -->
                 <div class="add2-discard hidden" id="addDiscard" role="dialog" aria-label="Discard this?">
@@ -6280,6 +6284,7 @@
             };
             if (kind === 'link') {
                 enrichOn('link');
+                if (typeof add5OpenSheet === 'function' && !link) add5OpenSheet('link');
                 if (link) {
                     var u = document.getElementById('url');
                     if (u) u.value = link;
@@ -6295,6 +6300,7 @@
                 if (pick) pick.click();
             } else if (kind === 'here') {
                 enrichOn('location');
+                if (typeof add5OpenSheet === 'function') add5OpenSheet('where');
                 if (typeof prefillCaptureLocation === 'function') prefillCaptureLocation();
             } else {
                 var n = document.getElementById('placeName');
@@ -6568,61 +6574,125 @@
             if (ov) document.body.appendChild(ov);
             window.startTakePlaceholder();
         });
-        // ===== ADD PAGE v4 (Nov 2026): Wise-style hierarchy =====
-        // Hero (thumbnail + name) -> labelled note -> quiet "Details" rows.
-        // Existing fields are MOVED into this structure, so all the code that
-        // works with them (link preview, photos, Here, sharing) keeps working.
+        // ===== ADD PAGE v5 (Nov 2026): short page + bottom sheets =====
+        // Main screen: photo hero, Name, Why, then one-line rows (Where, Link,
+        // Who). Details open in a bottom sheet and never expand inside the page.
+        // Existing fields are MOVED (not rebuilt), so preview/photo/Here/sharing/
+        // save logic is unchanged.
         var _add3Prev = {};
+        var _add5Open = null;          // which sheet is open: photo | where | link | who
+        var _add5Snap = {};
         function _add3Panel(k) { return document.getElementById('add3Panel_' + k); }
         function _add3Kind(k) { return k === 'where' ? 'location' : k; }
+        var _ADD5_TITLES = { photo: 'Photos', where: 'Where is it?', link: 'Add a link', who: 'Who can see it?' };
 
         document.addEventListener('DOMContentLoaded', function() {
             var mv = function(id, dest) {
                 var el = document.getElementById(id), d = document.getElementById(dest);
                 if (el && d) d.appendChild(el);
             };
-            var hero = document.getElementById('add3HeroMain');
-            var name = document.getElementById('subPlaceName');
-            if (hero && name) hero.insertBefore(name, document.getElementById('add3Sub'));
+            mv('subPlaceName', 'add5NameSlot');
             mv('subNote', 'add3NoteSlot');
             ['photoPickZone', 'subPhoto'].forEach(function(id) { mv(id, 'add3Panel_photo'); });
             ['placeCard', 'photoPlaceChips', 'subAddress'].forEach(function(id) { mv(id, 'add3Panel_where'); });
             ['urlHeroBar', 'ogLoading', 'ogPreviewCard'].forEach(function(id) { mv(id, 'add3Panel_link'); });
             var vis = document.querySelector('.visibility-group');
             var who = _add3Panel('who');
-            if (vis && who) who.appendChild(vis);
-            // The address box's "home" is now the Where panel.
+            if (vis && who) {
+                who.appendChild(vis);
+                vis.classList.add('add5-vis-hidden');
+                who.insertAdjacentHTML('beforeend',
+                    '<button type="button" class="add5-opt" data-v="friends" onclick="add5PickWho(\'friends\')"><span class="add5-radio"></span><span><span class="add5-opt-t">Friends</span><span class="add5-opt-s">Your friends can find this when they ask</span></span></button>' +
+                    '<button type="button" class="add5-opt" data-v="private" onclick="add5PickWho(\'private\')"><span class="add5-radio"></span><span><span class="add5-opt-t">Only me</span><span class="add5-opt-s">Saved for you; nobody else sees it</span></span></button>');
+            }
             var subA = document.getElementById('subAddress');
             if (subA) window._odinAddrHome = { parent: subA.parentNode, next: subA.nextSibling };
             var note = document.getElementById('personalNote');
             if (note) note.setAttribute('aria-labelledby', 'add3NoteLabel');
+            var nm = document.getElementById('placeName');
+            if (nm) nm.setAttribute('aria-labelledby', 'add5NameLabel');
+            var sh = document.getElementById('add5Sheet');
+            if (sh) document.body.appendChild(sh);
             setInterval(add3Refresh, 400);
         });
 
-        // Tap a row: open/close its panel. Opening Photos/Where/Link also switches
-        // on the existing picker for it; closing just folds it away (keeps values).
-        function add3Row(k) {
-            var p = _add3Panel(k);
-            if (!p) return;
-            var opening = p.classList.contains('hidden');
-            p.classList.toggle('hidden', !opening);
-            document.querySelector('.add3-row[data-row="' + k + '"]').classList.toggle('open', opening);
-            if (k === 'who' || !opening) return;
-            var kind = _add3Kind(k);
-            var btn = document.querySelector('.enrich-btn[data-enrich="' + kind + '"]');
-            if (btn && !btn.classList.contains('active') && !btn.classList.contains('add2-has-place') && typeof window.toggleEnrich === 'function') {
-                window.toggleEnrich(kind);
+        // ── Sheets ──
+        function add5OpenSheet(k) {
+            if (_add5Open === k) return;
+            if (_add5Open) add5CloseSheet();
+            var p = _add3Panel(k), body = document.getElementById('add5SheetBody'), sh = document.getElementById('add5Sheet');
+            if (!p || !body || !sh) return;
+            p.__home = { parent: p.parentNode, next: p.nextSibling };
+            body.appendChild(p);
+            p.classList.remove('hidden');
+            document.getElementById('add5SheetTitle').textContent = _ADD5_TITLES[k] || '';
+            sh.classList.remove('hidden');
+            document.body.classList.add('add5-sheet-open');
+            _add5Open = k;
+            _add5Snap = { photos: _add5PhotoCount(), og: _add5OgVisible() };
+            if (k !== 'who') {
+                var kind = _add3Kind(k);
+                var btn = document.querySelector('.enrich-btn[data-enrich="' + kind + '"]');
+                if (btn && !btn.classList.contains('active') && !btn.classList.contains('add2-has-place') && typeof window.toggleEnrich === 'function') {
+                    window.toggleEnrich(kind);
+                }
+                // Where: also show "Near you" right away if location is already allowed.
+                if (k === 'where' && typeof window.odinSuggestPlacesForPhoto === 'function') window.odinSuggestPlacesForPhoto();
+                // Photos: the place card / picker stay; the strip shows if photos exist.
+                if (k === 'photo' && _add5PhotoCount()) { var pz = document.getElementById('photoPickZone'); if (pz) pz.classList.remove('hidden'); }
             }
-            if (typeof logEvent === 'function') logEvent('add_detail_open', { row: k });
+            if (typeof logEvent === 'function') logEvent('add_sheet_open', { sheet: k });
         }
-        function _add3Open(k, open) {
-            var p = _add3Panel(k); if (!p) return;
-            p.classList.toggle('hidden', !open);
-            var r = document.querySelector('.add3-row[data-row="' + k + '"]');
-            if (r) r.classList.toggle('open', open);
+        function add5CloseSheet() {
+            var k = _add5Open;
+            var sh = document.getElementById('add5Sheet');
+            if (sh) sh.classList.add('hidden');
+            document.body.classList.remove('add5-sheet-open');
+            _add5Open = null;
+            if (!k) return;
+            var p = _add3Panel(k);
+            if (p && p.__home && p.__home.parent) {
+                p.__home.parent.insertBefore(p, p.__home.next);
+                p.classList.add('hidden');
+            }
+        }
+        // Rows on the main screen
+        function add3Row(k) { add5OpenSheet(k); }
+        // Tapping the photo hero opens Photos (or the link sheet for a link picture).
+        function add5HeroTap() {
+            if (!_add5PhotoCount() && _add5OgVisible()) { add5OpenSheet('link'); return; }
+            add5OpenSheet('photo');
+        }
+        function add5PickWho(v) {
+            var opt = document.querySelector('#visSelector .vis-option[data-value="' + v + '"]');
+            if (opt && typeof selectVisibility === 'function') selectVisibility(opt);
+            add3Refresh();
+            setTimeout(add5CloseSheet, 180);
+        }
+        // Picking a place (Here list or "Near you" chip) closes the Where sheet.
+        (function() {
+            var orig = window.odinShowPlaceCard;
+            window.odinShowPlaceCard = function(place) {
+                if (typeof orig === 'function') orig.apply(this, arguments);
+                if (_add5Open === 'where') setTimeout(add5CloseSheet, 250);
+            };
+        })();
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && _add5Open) add5CloseSheet(); });
+
+        function _add5PhotoCount() {
+            var n = document.querySelectorAll('#photoThumbStrip img').length;
+            if (!n) {
+                var pv = document.querySelector('#subPhotoPreview img'), box = document.getElementById('subPhotoPreview');
+                if (pv && pv.getAttribute('src') && box && box.style.display !== 'none' && !(typeof _photoSource !== 'undefined' && _photoSource === 'og')) n = 1;
+            }
+            return n;
+        }
+        function _add5OgVisible() {
+            var oc = document.getElementById('ogPreviewCard');
+            return !!(oc && !oc.classList.contains('hidden'));
         }
 
-        // Keep row values, the hero thumbnail and the summary line up to date.
+        // Keep the hero, row values, sheet state and the button hint in step.
         function add3Refresh() {
             if (!document.body.classList.contains('add2-open')) return;
             var val = function(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
@@ -6632,71 +6702,69 @@
                 if (el.textContent !== text) el.textContent = text;
                 el.classList.toggle('filled', !!filled);
             };
-            // Photos
-            var imgs = document.querySelectorAll('#photoThumbStrip img');
-            var nPhotos = imgs.length;
-            if (!nPhotos) { var pv = document.querySelector('#subPhotoPreview img'); if (pv && pv.getAttribute('src') && document.getElementById('subPhotoPreview').style.display !== 'none') nPhotos = 1; }
-            var ogSrc = (typeof _photoSource !== 'undefined' && _photoSource === 'og');
-            setV('photo', nPhotos && !ogSrc ? (nPhotos + (nPhotos === 1 ? ' photo added' : ' photos added')) : 'Take one or pick from your gallery', nPhotos && !ogSrc);
+            var nPhotos = _add5PhotoCount();
+            var ogOn = _add5OgVisible();
             // Where
             var placeCard = document.getElementById('placeCard');
             var placeName = (placeCard && !placeCard.classList.contains('hidden')) ? document.getElementById('placeCardName').textContent : '';
             var addr = val('address');
-            setV('where', placeName || addr || 'Add a place', !!(placeName || addr));
+            var nearChip = document.querySelector('#photoPlaceChips .add2-chip:not(.add2-chip--quiet)');
+            var whereText = placeName || addr || (nearChip ? 'Near ' + nearChip.textContent + '?' : 'Add a place');
+            setV('where', whereText, !!(placeName || addr));
             // Link
             var url = val('url'), host = '';
             if (url) { try { host = new URL(/^https?:/i.test(url) ? url : 'https://' + url).hostname.replace(/^www\./, ''); } catch (e) { host = url; } }
-            setV('link', host || 'Website, Instagram or Google Maps', !!host);
+            setV('link', host || 'Optional', !!host);
             // Who
             var act = document.querySelector('#visSelector .vis-option.active');
-            setV('who', act && act.getAttribute('data-value') === 'private' ? 'Only me' : 'Friends', true);
+            var whoV = act ? act.getAttribute('data-value') : 'friends';
+            setV('who', whoV === 'private' ? 'Only me' : 'Friends', true);
+            document.querySelectorAll('.add5-opt').forEach(function(o) { o.classList.toggle('on', o.getAttribute('data-v') === whoV); });
 
-            // Auto-open a panel when something switches its picker on (from the
-            // + menu, a link preview, or the "Where was this?" chips appearing).
-            ['photo', 'where', 'link'].forEach(function(k) {
-                var btn = document.querySelector('.enrich-btn[data-enrich="' + _add3Kind(k) + '"]');
-                var on = !!(btn && btn.classList.contains('active'));
-                if (on && !_add3Prev[k]) _add3Open(k, true);
-                _add3Prev[k] = on;
-            });
-            var chips = document.getElementById('photoPlaceChips');
-            var chipsOn = !!(chips && !chips.classList.contains('hidden'));
-            if (chipsOn && !_add3Prev.chips) _add3Open('where', true);
-            _add3Prev.chips = chipsOn;
+            // Sheets close themselves once the job is done.
+            if (_add5Open === 'link' && ogOn && !_add5Snap.og) { _add5Snap.og = true; setTimeout(add5CloseSheet, 700); }
+            if (_add5Open === 'photo' && nPhotos > (_add5Snap.photos || 0)) { _add5Snap.photos = nPhotos; setTimeout(add5CloseSheet, 500); }
 
-            // Hero thumbnail: first photo, else link picture, else a place pin.
-            var thumb = document.getElementById('add3Thumb');
-            if (thumb) {
-                var src = '';
-                if (imgs.length) src = imgs[0].getAttribute('src') || '';
-                if (!src) { var pv2 = document.querySelector('#subPhotoPreview img'); if (pv2 && document.getElementById('subPhotoPreview').style.display !== 'none') src = pv2.getAttribute('src') || ''; }
-                if (!src) { var og = document.getElementById('ogPreviewImg'); var oc = document.getElementById('ogPreviewCard'); if (og && oc && !oc.classList.contains('hidden')) src = og.getAttribute('src') || ''; }
-                var mode = src ? 'img' : ((placeName || addr) ? 'pin' : 'empty');
-                var key = mode + '|' + src;
-                if (thumb.getAttribute('data-k') !== key) {
-                    thumb.setAttribute('data-k', key);
-                    thumb.className = 'add3-thumb add3-thumb--' + mode;
-                    thumb.innerHTML = mode === 'img' ? '<img alt="" src="' + src.replace(/"/g, '&quot;') + '">'
-                        : (mode === 'pin' ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
-                        : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
+            // Hero: first photo, else the link picture, else an "Add a photo" invitation.
+            var hero = document.getElementById('add5Hero');
+            if (hero) {
+                var src = '', mode = 'empty';
+                var im = document.querySelector('#photoThumbStrip img');
+                if (im) src = im.getAttribute('src') || '';
+                if (!src && nPhotos) { var pv2 = document.querySelector('#subPhotoPreview img'); if (pv2) src = pv2.getAttribute('src') || ''; }
+                if (src) mode = 'photo';
+                else if (ogOn) { var og = document.getElementById('ogPreviewImg'); src = og ? (og.getAttribute('src') || '') : ''; mode = src ? 'link' : 'empty'; }
+                var key = mode + '|' + src + '|' + nPhotos + '|' + host;
+                if (hero.getAttribute('data-k') !== key) {
+                    hero.setAttribute('data-k', key);
+                    hero.className = 'add5-hero add5-hero--' + mode;
+                    var esc = function(t) { return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+                    if (mode === 'photo') {
+                        hero.innerHTML = '<img alt="" src="' + esc(src) + '"><span class="add5-hero-pill">+ Add more</span><span class="add5-hero-count">' + nPhotos + ' of 3</span>';
+                    } else if (mode === 'link') {
+                        hero.innerHTML = '<img alt="" src="' + esc(src) + '"><span class="add5-hero-pill">From ' + esc(host || 'link') + '</span>';
+                    } else {
+                        hero.innerHTML = '<span class="add5-hero-empty"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>Add a photo</span>';
+                    }
                 }
             }
-            // Summary under the name: what's attached so far.
-            var bits = [];
-            if (nPhotos && !ogSrc) bits.push(nPhotos + (nPhotos === 1 ? ' photo' : ' photos'));
-            if (host) bits.push(host);
-            if (placeName || addr) bits.push((placeName || addr).split(',')[0]);
-            var sub = document.getElementById('add3Sub');
-            var subText = bits.join(' · ');
-            if (sub && sub.textContent !== subText) sub.textContent = subText;
+            // Button hint: say exactly what's missing.
+            var hasName = !!val('placeName'), hasNote = !!val('personalNote');
+            var help = document.getElementById('saveHelper');
+            if (help) {
+                var msg = (!hasName && !hasNote) ? 'Add a name and why to continue' : (!hasName ? 'Add a name to continue' : (!hasNote ? 'Add why to continue' : ''));
+                if (help.textContent !== msg) help.textContent = msg;
+                help.classList.toggle('add5-show', !!msg);
+            }
         }
 
-        // Fresh start also folds every panel away.
+        // Fresh start also closes any sheet.
         (function() {
             var origFresh = window.odinFreshAdd;
             window.odinFreshAdd = function() {
+                add5CloseSheet();
                 if (typeof origFresh === 'function') origFresh.apply(this, arguments);
-                ['photo', 'where', 'link', 'who'].forEach(function(k) { _add3Open(k, false); });
+                ['photo', 'where', 'link', 'who'].forEach(function(k) { var p = _add3Panel(k); if (p) p.classList.add('hidden'); });
                 _add3Prev = {};
             };
         })();

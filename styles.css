@@ -13123,3 +13123,86 @@ body .add2-footer .submit-btn {
 }
 body .add2-footer .submit-btn.not-ready { background: #D9C9CE !important; color: #fff !important; }
 body .add2-footer .save-helper { display: none !important; }
+
+/* ===== ADD PAGE v5 (Nov 2026): short page + bottom sheets ===== */
+/* Photo hero */
+.add5-hero {
+    position: relative; height: 148px; border-radius: 18px; overflow: hidden; cursor: pointer;
+    margin: 4px 0 18px; display: flex; align-items: center; justify-content: center;
+}
+.add5-hero--empty { background: #EDE7DD; border: 1px dashed #CFC5B6; color: #8A8175; }
+.add5-hero--photo, .add5-hero--link { background: #DDD6CA; }
+.add5-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.add5-hero-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; font: 14px 'DM Sans', sans-serif; }
+.add5-hero-pill {
+    position: absolute; left: 10px; bottom: 10px; background: rgba(255,255,255,0.92);
+    border-radius: 14px; padding: 5px 10px; font: 500 12px 'DM Sans', sans-serif; color: var(--ink);
+}
+.add5-hero-count {
+    position: absolute; right: 10px; bottom: 10px; background: rgba(0,0,0,0.5);
+    border-radius: 12px; padding: 4px 9px; font: 12px 'DM Sans', sans-serif; color: #fff;
+}
+/* Labels + clear fields */
+.add3-label { font: 500 14px 'DM Sans', sans-serif !important; color: var(--ink) !important; margin: 0 0 6px !important; }
+#add5NameSlot { margin-bottom: 18px; }
+#add5NameSlot #subPlaceName { margin: 0 !important; }
+#add5NameSlot .add2-name-input {
+    font: 17px 'DM Sans', sans-serif !important;
+    background: var(--surface) !important;
+    border: 1px solid #E3DCD0 !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    width: 100%;
+}
+#add5NameSlot .add2-name-input:focus { border-color: var(--wb) !important; }
+#add3NoteSlot { margin-bottom: 18px; }
+#add3NoteSlot #personalNote { min-height: 64px !important; }
+/* Rows: Where / Link / Who */
+.add3-rows { border-bottom: 1px solid #E9E2D7; margin-top: 4px; }
+.add3-row .add3-chev { transform: none !important; }
+.add3-panel { padding: 0 !important; }
+/* Bottom sheet */
+.add5-sheet { position: fixed; inset: 0; z-index: 1250; display: flex; align-items: flex-end; justify-content: center; }
+.add5-sheet.hidden { display: none !important; }
+.add5-sheet-backdrop { position: absolute; inset: 0; background: rgba(42, 30, 20, 0.35); }
+.add5-sheet-card {
+    position: relative; width: 100%; max-width: 560px; max-height: 82vh; overflow-y: auto;
+    background: var(--surface); border-radius: 22px 22px 0 0;
+    padding: 10px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 24px rgba(42, 30, 20, 0.12);
+}
+@media (min-width: 768px) {
+    .add5-sheet { align-items: center; }
+    .add5-sheet-card { border-radius: 18px; max-width: 460px; }
+    .add5-grip { display: none; }
+}
+.add5-grip { width: 38px; height: 4px; border-radius: 2px; background: #D3D1C7; margin: 0 auto 12px; }
+.add5-sheet-title { font: 500 17px 'DM Sans', sans-serif; color: var(--ink); margin: 0 0 12px !important; }
+.add5-sheet-done {
+    width: 100%; margin-top: 14px; padding: 12px; border-radius: 22px; border: 1px solid #E3DCD0;
+    background: var(--surface); color: var(--ink); font: 500 15px 'DM Sans', sans-serif; cursor: pointer;
+}
+#add5SheetBody .add3-panel { display: block; }
+#add5SheetBody #subAddress, #add5SheetBody #urlHeroBar, #add5SheetBody #photoPickZone,
+#add5SheetBody #subPhoto, #add5SheetBody #placeCard, #add5SheetBody #ogPreviewCard { margin: 0 0 12px !important; }
+#add5SheetBody .add2-photo-places-label { font-size: 12px; color: var(--muted); }
+/* Who sheet: radio list; the old switch stays hidden but keeps driving the values */
+.add5-vis-hidden { display: none !important; }
+.add5-opt {
+    width: 100%; display: flex; align-items: flex-start; gap: 12px; padding: 14px 2px;
+    background: none; border: none; border-top: 1px solid #EEE8DE; text-align: left; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+}
+.add5-radio { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #B4AC9F; flex-shrink: 0; margin-top: 1px; }
+.add5-opt.on .add5-radio { border: 6px solid var(--wb); }
+.add5-opt-t { display: block; font-size: 15px; color: var(--ink); }
+.add5-opt-s { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* Button hint */
+body .add2-footer .save-helper.add5-show {
+    display: block !important; text-align: center; font-size: 12px; color: var(--muted);
+    margin: 0 0 8px !important;
+}
+body .add2-footer { display: none; }
+body.add2-open .add2-footer { display: flex !important; flex-direction: column-reverse; }
+body.add2-open .add2-footer > * { width: 100%; }
+body.add5-sheet-open .add2-footer { visibility: hidden; }
