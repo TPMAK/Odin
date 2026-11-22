@@ -12493,3 +12493,198 @@ body.map-view-open .content {
     font-weight: 400;
     font-size: 15px;
 }
+
+/* ===== HOME v2 (Nov 2026): just Add + Search ===== */
+/* Mobile: greeting centred, bar docked above the tab bar (thumb reach).
+   Desktop: greeting with the bar directly underneath, like Claude on the web. */
+.launcher-page.home2 {
+    min-height: calc(100vh - 200px);
+    min-height: calc(100dvh - 200px);
+    gap: 0;
+    padding-bottom: 120px;              /* room for the docked bar */
+}
+.home2-center {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 18px;
+}
+.home2 .launcher-greeting h1 {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-style: italic;
+    color: var(--wb);
+}
+.home2-invite {
+    background: none;
+    border: none;
+    padding: 4px 2px;
+    color: var(--wb);
+    font: 500 14px 'DM Sans', sans-serif;
+    border-bottom: 1px solid currentColor;
+    cursor: pointer;
+}
+.home2-dock {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+    padding: 8px 12px 10px;
+    background: var(--bg);
+    z-index: 999;
+}
+.home2-savelink {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto 8px;
+    padding: 7px 14px;
+    border: none;
+    border-radius: 18px;
+    background: #F4EBEE;
+    color: var(--wb);
+    font: 500 13px 'DM Sans', sans-serif;
+    cursor: pointer;
+}
+.home2-bar {
+    position: relative;
+    max-width: 640px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-areas: "plus input mic send";
+    align-items: center;
+    column-gap: 6px;
+    box-shadow: 0 2px 10px rgba(42, 30, 20, 0.06);
+}
+.home2-bar.has-text {
+    grid-template-areas: "input input input input" "plus . mic send";
+    row-gap: 6px;
+    border-radius: 22px;
+    padding: 10px 8px 8px;
+}
+.home2-input {
+    grid-area: input;
+    border: 0;
+    outline: 0;
+    resize: none;
+    background: transparent;
+    font: 16px/1.4 'DM Sans', sans-serif;   /* 16px stops iOS zooming in */
+    color: var(--ink);
+    padding: 8px 6px;
+    max-height: 140px;
+    min-width: 0;
+}
+.home2-input::placeholder { color: var(--muted); }
+.home2-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+.home2-plus { grid-area: plus; background: #F1EDE6; color: var(--ink); }
+.home2-mic  { grid-area: mic;  background: var(--wb); color: #fff; }
+.home2-send { grid-area: send; background: var(--wb); color: #fff; display: none; }
+.home2-bar.has-text .home2-send { display: flex; }
+.home2-bar.has-text .home2-mic  { background: #F1EDE6; color: var(--ink); }
+
+/* Add menu — bottom sheet on mobile */
+.home2-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 30, 20, 0.35);
+    z-index: 1100;
+}
+.home2-menu {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1101;
+    background: var(--surface);
+    border-radius: 22px 22px 0 0;
+    padding: 10px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    text-align: left;
+    box-shadow: 0 -6px 24px rgba(42, 30, 20, 0.12);
+}
+.home2-menu-grip { width: 38px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 12px; }
+.home2-menu-title { font: 500 16px 'DM Sans', sans-serif; color: var(--ink); margin: 0 0 2px; }
+.home2-menu-sub { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+.home2-menu-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 2px;
+    background: none;
+    border: none;
+    border-top: 1px solid #F1EBE2;
+    text-align: left;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+}
+.home2-menu-row:hover { background: #FBF8F3; }
+.home2-menu-ic {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #F4EBEE;
+    color: var(--wb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.home2-menu-label { display: block; font-size: 15px; color: var(--ink); }
+.home2-menu-hint  { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+.home2-only-desk { display: none; }
+@media (hover: hover) and (pointer: fine) {
+    .home2-only-touch { display: none; }
+    .home2-only-desk  { display: inline; }
+}
+
+/* Desktop: bar sits under the greeting; menu pops up above the bar */
+@media (min-width: 768px) {
+    .launcher-page.home2 {
+        justify-content: center;
+        padding-bottom: 40px;
+    }
+    .home2-center { flex: 0 0 auto; }
+    .home2-dock {
+        position: static;
+        background: transparent;
+        padding: 22px 0 0;
+        width: 100%;
+    }
+    .home2-backdrop { background: transparent; }
+    .home2-menu {
+        position: absolute;
+        left: 0;
+        right: auto;
+        bottom: calc(100% + 8px);
+        width: 300px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        padding: 10px 12px 8px;
+        box-shadow: 0 8px 24px rgba(42, 30, 20, 0.12);
+    }
+    .home2-menu-grip { display: none; }
+    /* Three tabs: keep them bunched in the centre instead of spread edge to edge */
+    .bottom-tab-bar { justify-content: center; gap: 48px; }
+    .bottom-tab-bar .tab-item { flex: 0 0 96px; }
+}
+/* Mobile: the docked bar is its own stacking layer (z 999). While the Add menu
+   is open, lift it above the backdrop and tab bar so the sheet shows on top. */
+body.home2-menu-open .home2-dock { z-index: 1102; }

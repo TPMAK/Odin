@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=63">
+    <link rel="stylesheet" href="styles.css?v=64">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1783,91 +1783,59 @@
 
             <!-- ── LAUNCHER HOME (Simple mode) ── -->
             <div id="launcherHome" style="display:block;">
-                <div class="launcher-page">
-                    <div class="launcher-greeting">
-                        <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
-
-                        <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
+                <!-- HOME v2 (Nov 2026): just Add + Search. One bar, Claude-style.
+                     Removed from Home: search hero tile, Add row, stats strip,
+                     "From your circle" feed, "Continue exploring". Their JS is
+                     null-guarded, so the functions simply no-op on Home now. -->
+                <div class="launcher-page home2">
+                    <div class="home2-center">
+                        <div class="launcher-greeting">
+                            <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
+                            <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
+                        </div>
+                        <button type="button" class="home2-invite hidden" id="home2Invite" onclick="home2GoInvite()">Invite a friend to start your circle</button>
                     </div>
-
-                    <!-- Main action tiles -->
-                    <div class="launcher-tiles">
-                        <!-- Search — hero live input -->
-                        <div class="launcher-search-hero" role="button" tabindex="0" onclick="openLauncherSearch()" onkeydown="if(event.key==='Enter'||event.key===' ') openLauncherSearch()" aria-label="Search">
-                            <svg class="launcher-search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            <input type="text" id="launcherSearchInput" class="launcher-search-input" placeholder="Search like you’d ask a friend" readonly tabindex="-1" aria-hidden="true" autocomplete="off">
-                            <div class="launcher-search-ph" id="launcherSearchPh">Search like you’d ask a friend</div>
-                            <button type="button" class="launcher-search-go" onclick="openLauncherSearch()" aria-label="Search">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    <div class="home2-dock">
+                        <button type="button" class="home2-savelink hidden" id="home2SaveLink" onclick="home2SaveLink()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
+                            Save this link to Odin
+                        </button>
+                        <div class="home2-bar" id="home2Bar">
+                            <textarea id="home2Input" class="home2-input" rows="1" placeholder="Search your circle" autocomplete="off" enterkeyhint="search" oninput="home2OnInput()" onkeydown="home2OnKey(event)"></textarea>
+                            <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu()" aria-label="Add to Odin">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
-                        </div>
-
-                        <!-- Add — full-width row (Browse removed; Discover tab covers browse) -->
-                        <button class="launcher-add-row" onclick="setMode('input'); _checkClipboardForUrl();">
-                            <div class="launcher-add-icon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                            <button type="button" class="home2-btn home2-mic" id="home2Mic" onclick="home2MicTap()" aria-label="Speak to search">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+                            </button>
+                            <button type="button" class="home2-btn home2-send" id="home2Send" onclick="home2Send()" aria-label="Search">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                            </button>
+                            <!-- Add menu: bottom sheet on mobile, popover above the bar on desktop -->
+                            <div class="home2-menu hidden" id="home2Menu" role="dialog" aria-label="Add to Odin">
+                                <div class="home2-menu-grip"></div>
+                                <p class="home2-menu-title">Add to Odin</p>
+                                <p class="home2-menu-sub">Something your circle should know about</p>
+                                <button type="button" class="home2-menu-row" onclick="home2AddVia('link')">
+                                    <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+                                    <span><span class="home2-menu-label">Paste a link</span><span class="home2-menu-hint">Instagram, Google Maps, any website</span></span>
+                                </button>
+                                <button type="button" class="home2-menu-row" onclick="home2AddVia('photo')">
+                                    <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+                                    <span><span class="home2-menu-label"><span class="home2-only-touch">Take a photo</span><span class="home2-only-desk">Upload a photo</span></span><span class="home2-menu-hint">The dish, the shopfront, the product</span></span>
+                                </button>
+                                <button type="button" class="home2-menu-row" onclick="home2AddVia('here')">
+                                    <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                                    <span><span class="home2-menu-label">Here</span><span class="home2-menu-hint">Places near you right now</span></span>
+                                </button>
+                                <button type="button" class="home2-menu-row" onclick="home2AddVia('write')">
+                                    <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+                                    <span><span class="home2-menu-label">Write it</span><span class="home2-menu-hint">A name and why you'd recommend it</span></span>
+                                </button>
                             </div>
-                            <div class="launcher-add-text">
-                                <span class="launcher-add-label" id="launcherAddLabel">Add something</span>
-                            </div>
-                            <svg class="launcher-add-chev" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                        </button>
-                    </div>
-
-                    <!-- Stat strip — Added · Friends · Knowledge (hero) -->
-                    <div class="home-stats-strip" id="homeStatsStrip">
-                        <button type="button" class="hstat hstat-sm" onclick="setMode('profile')" aria-label="Your saves">
-                            <span class="hstat-num" id="homeAddedCount">—</span>
-                            <span class="hstat-label">Added</span>
-                        </button>
-                        <span class="hstat-sep" aria-hidden="true">·</span>
-                        <button type="button" class="hstat hstat-sm" onclick="setMode('profile')" aria-label="Your friends">
-                            <span class="hstat-num" id="homeFriendsCount">—</span>
-                            <span class="hstat-label">Friends</span>
-                        </button>
-                        <span class="hstat-sep" aria-hidden="true">·</span>
-                        <button type="button" class="hstat hstat-hero" onclick="setMode('discover')" aria-label="Browse all knowledge in your circle">
-                            <span class="hstat-num" id="homeKnowledgeCount">—</span>
-                            <span class="hstat-label">Knowledge</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- From your circle — always visible below launcher tiles -->
-                <div class="home-feed-section launcher-circle-feed" id="launcherCircleFeed">
-                    <div class="home-section-header">
-                        <h2 class="home-section-title">From your circle</h2>
-                        <a onclick="setMode('discover')">See all</a>
-                    </div>
-                    <div class="home-feed-wrap">
-                        <button class="feed-nav-btn feed-nav-prev hidden" id="launcherFeedNavPrev" aria-label="Scroll left" onclick="scrollFeed(-1)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <div class="home-feed-scroll" id="launcherFeedScroll"></div>
-                        <button class="feed-nav-btn feed-nav-next" id="launcherFeedNavNext" aria-label="Scroll right" onclick="scrollFeed(1)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
-                        <div class="feed-scroll-hint" id="launcherFeedScrollHint">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
                         </div>
                     </div>
-                </div>
-
-                <!-- Continue exploring — recently viewed items -->
-                <div class="launcher-circle-feed" id="launcherRecentSection" style="display:none;">
-                    <div class="home-section-header">
-                        <h2 class="home-section-title">Continue exploring</h2>
-                        <a onclick="clearRecentlyViewed()">Clear</a>
-                    </div>
-                    <div class="home-recent-wrap">
-                        <button class="hr-scroll-arrow hr-scroll-left" id="launcherHrScrollLeft" onclick="scrollRecent(-1)" style="display:none;" aria-label="Scroll left">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                        </button>
-                        <div class="home-recent-scroll" id="launcherRecentScroll"></div>
-                        <button class="hr-scroll-arrow hr-scroll-right" id="launcherHrScrollRight" onclick="scrollRecent(1)" aria-label="Scroll right">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-                        </button>
-                    </div>
+                    <div class="home2-backdrop hidden" id="home2Backdrop" onclick="home2CloseAddMenu()"></div>
                 </div>
             </div>
 
@@ -2905,7 +2873,7 @@
         </div>
     </div>
 
-    <!-- Bottom Tab Bar - 5 tabs: Home, Discover, Search, Add, Profile -->
+    <!-- Bottom Tab Bar - 3 tabs: Home, Discover, Profile (Nov 2026: Search + Add live in the Home bar) -->
     <div class="bottom-tab-bar">
         <button class="tab-item active" onclick="setMode('home')" id="homeTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -2914,14 +2882,6 @@
         <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
             <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
             <div class="tab-label">Discover</div>
-        </button>
-        <button class="tab-item" onclick="setMode('search')" id="searchTab">
-            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <div class="tab-label">Search</div>
-        </button>
-        <button class="tab-item" onclick="setMode('input'); _checkClipboardForUrl();" id="addTab">
-            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-            <div class="tab-label">Add</div>
         </button>
         <button class="tab-item" onclick="setMode('profile')" id="profileTab">
             <div class="tab-avatar" id="tabAvatarInitial">?</div>
@@ -3167,7 +3127,6 @@
     // ══════════════════════════════════════════════════════════
     var ODIN_PHRASES = {
         home: [
-            'Everything here, a real person vouched for.',
             'Your circle knows things Google doesn\'t.',
             'No ads. No algorithms. Just people you trust.',
             'The best tips are hiding in your friends list.',
@@ -5928,6 +5887,141 @@
         // depend on #messageInput existing yet after the mode switch.
         // Whole home search bar is a launch pad — tapping anywhere opens the Search page
         // and focuses its input so the keyboard comes up there.
+        // ===== HOME v2 BAR (Nov 2026) =====
+        // One bar: type (or later, speak) -> press send -> results on the Search page.
+        // + opens the "Add to Odin" menu. A pasted link shows "Save this link".
+        var _HOME2_URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(:\d+)?(\/\S*)?$/i;
+
+        function _home2Val() {
+            var el = document.getElementById('home2Input');
+            return el ? el.value.trim() : '';
+        }
+        function _home2IsLink(v) {
+            return !!v && !/\s/.test(v) && _HOME2_URL_RE.test(v);
+        }
+        function _home2Autosize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+        }
+        function home2OnInput() {
+            var el  = document.getElementById('home2Input');
+            var bar = document.getElementById('home2Bar');
+            var chip = document.getElementById('home2SaveLink');
+            if (!el || !bar) return;
+            var v = el.value.trim();
+            _home2Autosize(el);
+            bar.classList.toggle('has-text', !!v);
+            if (chip) chip.classList.toggle('hidden', !_home2IsLink(v));
+        }
+        function home2OnKey(e) {
+            // Enter searches; Shift+Enter keeps a new line (desktop).
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                home2Send();
+            }
+        }
+        function home2Send() {
+            var q = _home2Val();
+            if (!q) { var el = document.getElementById('home2Input'); if (el) el.focus(); return; }
+            if (typeof logEvent === 'function') logEvent('home_search', { length: q.length, is_link: _home2IsLink(q) });
+            setMode('search');
+            var target = document.getElementById('messageInput');
+            if (target) target.value = q;
+            sendMessage(q);
+            _home2Clear();
+        }
+        function _home2Clear() {
+            var el = document.getElementById('home2Input');
+            if (el) { el.value = ''; }
+            home2OnInput();
+        }
+        function home2MicTap() {
+            // Voice search is wired in the next step (streaming transcription).
+            if (typeof showToast === 'function') showToast('Voice search is coming soon');
+        }
+
+        // ── Add menu ──
+        function home2OpenAddMenu() {
+            var m = document.getElementById('home2Menu');
+            var b = document.getElementById('home2Backdrop');
+            if (!m) return;
+            if (!m.classList.contains('hidden')) { home2CloseAddMenu(); return; }
+            m.classList.remove('hidden');
+            if (b) b.classList.remove('hidden');
+            document.body.classList.add('home2-menu-open');
+            if (typeof logEvent === 'function') logEvent('home_add_menu_open', {});
+        }
+        function home2CloseAddMenu() {
+            var m = document.getElementById('home2Menu');
+            var b = document.getElementById('home2Backdrop');
+            if (m) m.classList.add('hidden');
+            if (b) b.classList.add('hidden');
+            document.body.classList.remove('home2-menu-open');
+        }
+        document.addEventListener('keydown', function(e) { if (e.key === 'Escape') home2CloseAddMenu(); });
+
+        function _home2IsTouch() {
+            return window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+        }
+        // Opens the existing Add form with one starting point switched on.
+        function home2AddVia(kind, link) {
+            home2CloseAddMenu();
+            if (typeof logEvent === 'function') logEvent('home_add_via', { kind: kind });
+            setMode('input');   // resets the form when arriving from Home
+            var enrichOn = function(k) {
+                var btn = document.querySelector('.enrich-btn[data-enrich="' + k + '"]');
+                if (typeof window.toggleEnrich === 'function' && btn && !btn.classList.contains('active')) window.toggleEnrich(k);
+            };
+            if (kind === 'link') {
+                enrichOn('link');
+                if (link) {
+                    var u = document.getElementById('url');
+                    if (u) u.value = link;
+                    if (typeof fetchAndPrefillOG === 'function') {
+                        try { _lastOGFetchedUrl = link; } catch (e) {}
+                        fetchAndPrefillOG(link);
+                    }
+                }
+            } else if (kind === 'photo') {
+                enrichOn('photo');
+                // Must stay synchronous with the tap so the browser allows the picker.
+                var pick = document.getElementById(_home2IsTouch() ? 'photoCamera' : 'photoGallery');
+                if (pick) pick.click();
+            } else if (kind === 'here') {
+                enrichOn('location');
+                if (typeof prefillCaptureLocation === 'function') prefillCaptureLocation();
+            } else {
+                var n = document.getElementById('placeName');
+                if (n) setTimeout(function() { n.focus(); }, 80);
+            }
+        }
+        function home2SaveLink() {
+            var v = _home2Val();
+            if (!_home2IsLink(v)) return;
+            var link = /^https?:\/\//i.test(v) ? v : 'https://' + v;
+            _home2Clear();
+            home2AddVia('link', link);
+        }
+
+        // ── New-user line: shown only when the user has no real friends yet
+        //    (the auto-added Founding Members account doesn't count). ──
+        function home2UpdateInvite() {
+            var el = document.getElementById('home2Invite');
+            if (!el) return;
+            var list = (typeof friendsCache !== 'undefined' && Array.isArray(friendsCache)) ? friendsCache : null;
+            if (!list) { el.classList.add('hidden'); return; }
+            var hq = (typeof ODIN_HQ_USER_ID !== 'undefined') ? ODIN_HQ_USER_ID : '';
+            var real = list.filter(function(f) { return f && f.out_user_id && f.out_user_id !== hq; });
+            el.classList.toggle('hidden', real.length > 0);
+        }
+        function home2GoInvite() {
+            setMode('profile');
+            setTimeout(function() {
+                var btn = document.getElementById('inviteLinkBtn');
+                if (btn) btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 400);
+        }
+
         function openLauncherSearch() {
             setMode('search');
             var t = document.getElementById('messageInput');

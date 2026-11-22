@@ -1934,6 +1934,7 @@ async function loadFriends() {
         }
         friendsCache = data || [];
         console.log('Friends loaded:', friendsCache.length);
+        if (typeof home2UpdateInvite === 'function') home2UpdateInvite();
     } catch (err) {
         console.error('Error in loadFriends:', err);
         friendsCache = [];
@@ -3825,6 +3826,7 @@ function showHome() {
     // Numbers strip — fires on every home render. Safe to call repeatedly;
     // loadHomeStats() early-returns if currentUser isn't ready yet.
     loadHomeStats();
+    if (typeof home2UpdateInvite === 'function') home2UpdateInvite();
 }
 
 // ── Discover pill management — show Discover|Map toggle in header when on Discover ──
@@ -4276,19 +4278,18 @@ function setMode(mode) {
 }
 
 function updateTabBar(mode) {
-    document.getElementById('homeTab').classList.remove('active');
-    document.getElementById('discoverTab').classList.remove('active');
-    var searchTab = document.getElementById('searchTab');
-    if (searchTab) searchTab.classList.remove('active');
-    document.getElementById('addTab').classList.remove('active');
-    document.getElementById('profileTab').classList.remove('active');
-
-    if (mode === 'home') document.getElementById('homeTab').classList.add('active');
-    else if (mode === 'search') { if (searchTab) searchTab.classList.add('active'); }
-    else if (mode === 'discover') document.getElementById('discoverTab').classList.add('active');
-    else if (mode === 'saved') document.getElementById('profileTab').classList.add('active');
-    else if (mode === 'input') document.getElementById('addTab').classList.add('active');
-    else if (mode === 'profile') document.getElementById('profileTab').classList.add('active');
+    // Nov 2026: tab bar is Home / Discover / Profile. Search and Add are reached
+    // from the Home bar, so those modes keep Home highlighted. Every lookup is
+    // null-guarded so removing a tab can never break page switching again.
+    ['homeTab','discoverTab','searchTab','addTab','profileTab'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    var activeId = 'homeTab';
+    if (mode === 'discover') activeId = 'discoverTab';
+    else if (mode === 'saved' || mode === 'profile') activeId = 'profileTab';
+    var activeEl = document.getElementById(activeId);
+    if (activeEl) activeEl.classList.add('active');
 }
 
 function initLocation() {
@@ -10457,7 +10458,7 @@ function _showInviteExpiredMessage() {
 
 // ── Coach Marks ──
 const COACH_MARKS = {
-    home:     "Your feed — recommendations from people you trust.",
+    home:     "Tap + to add something your circle should know.",
     discover: "Browse what your circle saved. Tap the map icon to explore nearby.",
     search:   "Ask it like you'd ask a friend.",
     input:    "Save something great — your circle will thank you.",
