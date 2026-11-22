@@ -6278,7 +6278,7 @@ function openItemDrawer(item) {
             <div class="drawer3-head-text">
                 <h1 class="drawer-title drawer3-name">${escapeHtml(_dh.heading)}</h1>
                 ${_metaBits.length ? `<p class="drawer3-meta">${escapeHtml(_metaBits.join(' · '))}</p>` : ''}
-                <p class="drawer3-savedby" id="drawerAttrSaves" style="${(isSaveInheritance && viaName) ? '' : 'display:none;'}">${(isSaveInheritance && viaName) ? `Saved by ${viaName}` : ''}</p>
+                <p class="drawer3-savedby${(isSaveInheritance && viaName) ? ' drawer3-sb-on' : ''}" id="drawerAttrSaves" style="${(isSaveInheritance && viaName) ? '' : 'display:none;'}">${(isSaveInheritance && viaName) ? `<span class="drawer3-sb-avs"><span class="drawer3-sb-av" style="background:${typeof strColour === 'function' ? strColour(item._via_friend_name) : '#7B2D45'};">${viaName.charAt(0).toUpperCase()}</span></span><span class="drawer3-sb-text">Saved by ${viaName}</span>${(item.saves_count || 0) > 1 ? `<span class="drawer3-sb-count">${item.saves_count} saves</span>` : ''}` : ''}</p>
             </div>
             <div class="drawer3-head-icons">${_headIcons}</div>
         </div>`;
@@ -6440,10 +6440,11 @@ function openItemDrawer(item) {
                     const adderName = isOwner ? '' : (item.added_by_name || '');
                     let selfSaved = false;
                     const others = [];
+                    const _fullNames = [];
                     (cached.ids || []).forEach((id, i) => {
                         if (currentUser && id === currentUser.id) { if (!isOwner) selfSaved = true; return; }
                         if (id === adderId || (adderName && cached.names[i] === adderName)) return;
-                        if (friendIds.has(id) && cached.names[i]) others.push(String(cached.names[i]).split(' ')[0]);
+                        if (friendIds.has(id) && cached.names[i]) { others.push(String(cached.names[i]).split(' ')[0]); _fullNames.push(cached.names[i]); }
                     });
                     const parts = [];
                     if (selfSaved) parts.push('you');
@@ -6454,7 +6455,15 @@ function openItemDrawer(item) {
                     else if (parts.length && rest <= 0) text = 'Saved by ' + parts.join(' and ');
                     else if (parts.length) text = 'Saved by ' + parts.join(', ') + ` and ${rest} friend${rest > 1 ? 's' : ''}`;
                     if (text) {
-                        savesSlot.textContent = text;
+                        const _myName = currentProfile?.display_name || currentUser?.user_metadata?.full_name || 'You';
+                        const _avNames = (selfSaved ? [_myName] : []).concat(_fullNames).slice(0, 3);
+                        const _av = _avNames.map(n => {
+                            const col = typeof strColour === 'function' ? strColour(n) : '#7B2D45';
+                            return `<span class="drawer3-sb-av" style="background:${col};">${escapeHtml(String(n).charAt(0).toUpperCase())}</span>`;
+                        }).join('');
+                        const _total = cached.count || 0;
+                        savesSlot.innerHTML = `<span class="drawer3-sb-avs">${_av}</span><span class="drawer3-sb-text">${escapeHtml(text)}</span>${_total > 1 ? `<span class="drawer3-sb-count">${_total} saves</span>` : ''}`;
+                        savesSlot.classList.add('drawer3-sb-on');
                         savesSlot.style.display = '';
                     }
                 }

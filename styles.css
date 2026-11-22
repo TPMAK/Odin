@@ -13503,3 +13503,19 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .drawer3-tr { margin: 4px 0 0; }
 .drawer2 .drawer3-tr .drawer2-translate { margin: 0; font-size: 12.5px; font-weight: 500; color: var(--wb); opacity: 1; }
 .drawer3 .drawer-translation-block { margin-top: 8px; }
+/* Saved-by: eye-catching chip with avatars + count */
+.drawer3-savedby.drawer3-sb-on {
+    display: inline-flex !important; align-items: center; gap: 8px; margin: 8px 0 0;
+    padding: 5px 12px 5px 5px; border-radius: 999px; background: #F1E4E8; color: var(--wb);
+    font-size: 13.5px; font-weight: 600; max-width: 100%;
+}
+.drawer3-sb-avs { display: inline-flex; flex: none; }
+.drawer3-sb-av {
+    width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center; border: 2px solid #F1E4E8;
+}
+.drawer3-sb-av + .drawer3-sb-av { margin-left: -8px; }
+.drawer3-sb-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.drawer3-sb-count {
+    flex: none; background: var(--wb); color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 600;
+}
