@@ -13403,3 +13403,17 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
     .drawer2 .drawer2-hero > .drawer-hero-photo { min-height: 240px; max-height: 520px; }
     .drawer2 .drawer2-hero .carousel { height: 440px; }
 }
+/* Drawer A2: labelled actions */
+.drawer2-actbar { display: flex; gap: 8px; margin: 12px 0 8px; }
+.drawer2-btn {
+    flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
+    color: var(--ink); font-size: 14.5px; font-weight: 500; cursor: pointer; min-width: 0;
+}
+.drawer2-btn:active { transform: scale(0.97); }
+.drawer2-btn-pri { background: var(--wb); border-color: var(--wb); color: #fff; }
+.drawer2-btn-more { flex: 0 0 46px; padding: 11px 0; }
+.drawer2 .drawer2-btn.drawer2-save { color: var(--ink); }
+.drawer2 .drawer2-btn.drawer2-save.active { color: var(--wb); border-color: var(--wb); background: var(--surface); }
+.drawer2 .drawer2-btn.drawer2-save.drawer2-btn-pri:not(.active) { background: var(--wb); color: #fff; }
+.drawer2 .drawer2-btn.drawer2-save.drawer2-btn-pri:not(.active) .bookmark-icon-lg { fill: none; }

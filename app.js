@@ -6269,9 +6269,21 @@ function openItemDrawer(item) {
     const LIST_D  = '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>';
     const MORE_D  = '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>';
 
-    // ── ··· menu items (rare actions) ──
+    // ── A2: one clear next step + labelled actions; rare actions in ··· ──
+    const _iType = (item.type || item.category || '').toLowerCase();
+    const _isPlace = _iType === 'place' || (!_iType && !!item.address);
+    let primary = null;
+    if (_isPlace && mapsUrl) primary = { label: 'Directions', d: PIN_D, attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"` };
+    else if (url) primary = { label: 'Open link', d: '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>', attrs: `data-action="open-url" data-url="${escapeHtml(url)}"` };
+    else if (mapsUrl) primary = { label: 'Directions', d: PIN_D, attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}"` };
+    const _canShare = item.id && item.visibility !== TRUST.PRIVATE;
+    const _shareOnBar = isOwner && _canShare;
+
     const _more = [];
-    if (url) _more.push({ label: 'Open website', attrs: `data-action="open-url" data-url="${escapeHtml(url)}" onclick="drawer2CloseMore()"` });
+    if (_canShare && !_shareOnBar) _more.push({ label: 'Share', attrs: `onclick="drawer2CloseMore(); shareItem('${item.id}')"` });
+    if (item.id) _more.push({ label: 'Add to a list', attrs: `onclick="drawer2CloseMore(); openAddToListSheet('${item.id}')"` });
+    if (mapsUrl && (!primary || primary.label !== 'Directions')) _more.push({ label: 'Directions', attrs: `data-action="open-url" data-url="${escapeHtml(mapsUrl)}" onclick="drawer2CloseMore()"` });
+    if (url && (!primary || primary.label !== 'Open link')) _more.push({ label: 'Open website', attrs: `data-action="open-url" data-url="${escapeHtml(url)}" onclick="drawer2CloseMore()"` });
     if (item.id && isDirectFriend && !isOwner && item.added_by_name) {
         _more.push({ label: `Ask ${friendName} about it`, attrs: `onclick="drawer2CloseMore(); askFriendAboutItem('${item.id}', '${escapeHtml(friendName)}', '${escapeHtml(item.address || '')}')"` });
     }
@@ -6281,19 +6293,19 @@ function openItemDrawer(item) {
     }
     window._drawer2MoreItems = _more;
 
-    // ── Icon bar (Instagram style) ──
     if (item.id) {
-        let left = '';
+        const _ico = (d, extra) => `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${extra || ''}>${d}</svg>`;
+        let bar = '';
+        if (primary) bar += `<button type="button" class="drawer2-btn drawer2-btn-pri" ${primary.attrs}>${_ico(primary.d)}<span>${primary.label}</span></button>`;
         if (!isOwner) {
             const _c0 = endorsementsCache[item.id] || { userEndorsed: false };
-            left += `<button class="drawer2-icon drawer-bookmark-btn drawer2-save${_c0.userEndorsed ? ' active' : ''}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)" aria-label="Save to your circle">
-                ${_svg(BOOK_D, ` class="bookmark-icon-lg" fill="${_c0.userEndorsed ? '#7B2D45' : 'none'}"`)}<span class="drawer-bookmark-label sr-only">${_c0.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
+            bar += `<button type="button" class="drawer2-btn drawer-bookmark-btn drawer2-save${_c0.userEndorsed ? ' active' : ''}${primary ? '' : ' drawer2-btn-pri'}" id="drawerSaveBtn" data-endorse-id="${item.id}" onclick="toggleEndorsement('${item.id}', event)">
+                ${_ico(BOOK_D, ` class="bookmark-icon-lg" fill="${_c0.userEndorsed ? '#7B2D45' : 'none'}"`)}<span class="drawer-bookmark-label">${_c0.userEndorsed ? 'Saved' : 'Save'}</span></button>`;
+        } else if (_shareOnBar) {
+            bar += `<button type="button" class="drawer2-btn" onclick="event.stopPropagation(); shareItem('${item.id}')">${_ico(SHARE_D)}<span>Share</span></button>`;
         }
-        if (mapsUrl) left += `<button class="drawer2-icon" data-action="open-url" data-url="${escapeHtml(mapsUrl)}" aria-label="Directions">${_svg(PIN_D)}</button>`;
-        if (item.visibility !== TRUST.PRIVATE) left += `<button class="drawer2-icon" onclick="event.stopPropagation(); shareItem('${item.id}')" aria-label="Share">${_svg(SHARE_D)}</button>`;
-        left += `<button class="drawer2-icon" onclick="event.stopPropagation(); openAddToListSheet('${item.id}')" aria-label="Add to a list">${_svg(LIST_D)}</button>`;
-        const right = _more.length ? `<button class="drawer2-icon" onclick="event.stopPropagation(); drawer2OpenMore();" aria-label="More">${_svg(MORE_D)}</button>` : '';
-        html += `<div class="drawer2-bar"><div class="drawer2-bar-left">${left}</div>${right}</div>`;
+        if (_more.length) bar += `<button type="button" class="drawer2-btn drawer2-btn-more" onclick="event.stopPropagation(); drawer2OpenMore();" aria-label="More">${_ico(MORE_D)}</button>`;
+        html += `<div class="drawer2-actbar">${bar}</div>`;
     }
 
     // "Also saved by …" (filled after endorsements load; names = you + direct friends only)
