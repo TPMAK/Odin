@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=65">
+    <link rel="stylesheet" href="styles.css?v=66">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1816,7 +1816,8 @@
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
                             <button type="button" class="home2-btn home2-mic" id="home2Mic" onclick="home2MicTap()" aria-label="Speak to search">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+                                <svg class="home2-mic-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+                                <svg class="home2-stop-ic" width="16" height="16" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/></svg>
                             </button>
                             <button type="button" class="home2-btn home2-send" id="home2Send" onclick="home2Send()" aria-label="Search">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
@@ -5951,10 +5952,147 @@
             if (el) { el.value = ''; }
             home2OnInput();
         }
-        function home2MicTap() {
-            // Voice search is wired in the next step (streaming transcription).
-            if (typeof showToast === 'function') showToast('Voice search is coming soon');
+        // ===== VOICE SEARCH (Nov 2026) =====
+        // Tap mic -> words stream into the bar live (gpt-live-transcribe over
+        // WebRTC) -> tap stop -> filler words removed -> text waits in the bar
+        // until the user presses send. Nothing is searched automatically.
+        var _voice = null;                     // active session state
+        var _VOICE_MAX_MS = 30000;             // hard stop after 30s
+        var _VOICE_FILLERS = /(^|[\s,，。.!?！？])(?:u+m+|u+h+|e+r+m*|a+h+|a{2,}|h+m+|mm+|呃+|嗯+|啊{2,}|唔{2,})(?=$|[\s,，。.!?！？])/gi;
+
+        function _voiceClean(t) {
+            if (!t) return '';
+            var s = t;
+            for (var i = 0; i < 2; i++) s = s.replace(_VOICE_FILLERS, '$1');
+            s = s.replace(/\s{2,}/g, ' ').replace(/^[\s,，。.]+/, '').replace(/[\s,，]+$/, '');
+            s = s.replace(/[。.]$/, '');       // a search doesn't need a full stop
+            return s.trim();
         }
+        function _voiceSetUi(state) {
+            var bar = document.getElementById('home2Bar');
+            var mic = document.getElementById('home2Mic');
+            if (bar) bar.classList.toggle('listening', state === 'listening' || state === 'finishing');
+            if (mic) mic.setAttribute('aria-label', state === 'listening' ? 'Stop' : 'Speak to search');
+        }
+        function _voiceShow(text) {
+            var el = document.getElementById('home2Input');
+            if (!el) return;
+            el.value = text;
+            home2OnInput();
+        }
+
+        async function home2MicTap() {
+            if (_voice) { _voiceStop(); return; }
+            if (!navigator.mediaDevices || !window.RTCPeerConnection) {
+                showToast("Voice search isn't supported on this browser. Try typing.");
+                return;
+            }
+            var input = document.getElementById('home2Input');
+            var before = input ? input.value.trim() : '';
+            _voice = { before: before, done: {}, order: [], partial: {}, closed: false };
+            var v = _voice;
+            _voiceSetUi('listening');
+            if (input) input.placeholder = 'Listening…';
+            if (typeof logEvent === 'function') logEvent('voice_start', {});
+            try {
+                v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+                if (v.closed) return _voiceTeardown(v);
+
+                var sess = await supabaseClient.auth.getSession();
+                var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+                if (!jwt) throw new Error('not_signed_in');
+                var tr = await fetch(SUPABASE_URL + '/functions/v1/voice-token', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + jwt, 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+                    body: '{}'
+                });
+                var tok = await tr.json().catch(function() { return {}; });
+                if (!tr.ok || !tok.value) throw new Error('token_' + (tok.error || tr.status));
+                if (v.closed) return _voiceTeardown(v);
+
+                var pc = new RTCPeerConnection();
+                v.pc = pc;
+                pc.addTrack(v.stream.getTracks()[0]);
+                var dc = pc.createDataChannel('oai-events');
+                v.dc = dc;
+                dc.onmessage = function(e) { _voiceOnEvent(v, e.data); };
+                var offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                var sdp = await fetch('https://api.openai.com/v1/realtime/calls', {
+                    method: 'POST',
+                    body: offer.sdp,
+                    headers: { 'Authorization': 'Bearer ' + tok.value, 'Content-Type': 'application/sdp' }
+                });
+                if (!sdp.ok) throw new Error('sdp_' + sdp.status);
+                await pc.setRemoteDescription({ type: 'answer', sdp: await sdp.text() });
+                v.timer = setTimeout(function() { if (_voice === v) _voiceStop(); }, _VOICE_MAX_MS);
+            } catch (err) {
+                console.warn('Voice search failed:', err && err.message);
+                if (typeof logEvent === 'function') logEvent('voice_error', { error: String(err && err.message || err).slice(0, 80) });
+                var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+                showToast(denied ? 'Allow the microphone to search by voice.' : "Voice search isn't working right now. Try typing.");
+                _voiceTeardown(v);
+            }
+        }
+
+        function _voiceText(v) {
+            var parts = v.order.map(function(id) { return v.done[id] != null ? v.done[id] : (v.partial[id] || ''); });
+            var spoken = parts.join(' ').replace(/\s{2,}/g, ' ').trim();
+            return (v.before ? v.before + ' ' : '') + spoken;
+        }
+        function _voiceOnEvent(v, raw) {
+            var e; try { e = JSON.parse(raw); } catch (x) { return; }
+            var id = e.item_id || 'cur';
+            if (e.type === 'conversation.item.input_audio_transcription.delta') {
+                if (v.order.indexOf(id) < 0) v.order.push(id);
+                v.partial[id] = (v.partial[id] || '') + (e.delta || '');
+                if (!v.closed) _voiceShow(_voiceText(v));
+            } else if (e.type === 'conversation.item.input_audio_transcription.completed') {
+                if (v.order.indexOf(id) < 0) v.order.push(id);
+                v.done[id] = e.transcript || '';
+                if (!v.closed) _voiceShow(_voiceText(v));
+                if (v.finishing) _voiceFinish(v);
+            } else if (e.type === 'conversation.item.input_audio_transcription.failed' || e.type === 'error') {
+                console.warn('Voice event error:', e);
+                if (v.finishing) _voiceFinish(v);
+            }
+        }
+        function _voiceStop() {
+            var v = _voice;
+            if (!v) return;
+            v.finishing = true;
+            _voiceSetUi('finishing');
+            if (v.stream) v.stream.getTracks().forEach(function(t) { t.enabled = false; });
+            // No server-side end-of-speech detection with this model: commit tells
+            // it the turn is over so it sends the final transcript.
+            try { if (v.dc && v.dc.readyState === 'open') v.dc.send(JSON.stringify({ type: 'input_audio_buffer.commit' })); } catch (x) {}
+            v.finishTimer = setTimeout(function() { _voiceFinish(v); }, 3500);   // don't wait forever
+            if (!v.dc || v.dc.readyState !== 'open') _voiceFinish(v);
+        }
+        function _voiceFinish(v) {
+            if (v.closed) return;
+            var text = _voiceClean(_voiceText(v));
+            _voiceShow(text || v.before);
+            if (typeof logEvent === 'function') logEvent('voice_done', { chars: text.length });
+            _voiceTeardown(v);
+            var el = document.getElementById('home2Input');
+            if (el && text && !_home2IsTouch()) el.focus();   // desktop: ready to edit; mobile: no keyboard pop
+        }
+        function _voiceTeardown(v) {
+            if (!v) return;
+            v.closed = true;
+            clearTimeout(v.timer); clearTimeout(v.finishTimer);
+            try { if (v.dc) v.dc.close(); } catch (x) {}
+            try { if (v.pc) v.pc.close(); } catch (x) {}
+            if (v.stream) v.stream.getTracks().forEach(function(t) { t.stop(); });
+            if (_voice === v) _voice = null;
+            var input = document.getElementById('home2Input');
+            if (input) input.placeholder = 'Search your circle';
+            _voiceSetUi('idle');
+        }
+        // Leaving Home mid-recording: stop and keep whatever was heard.
+        document.addEventListener('visibilitychange', function() { if (document.hidden && _voice) _voiceStop(); });
+
 
         // ── Add menu ──
         function home2OpenAddMenu() {

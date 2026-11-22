@@ -12730,3 +12730,13 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
     cursor: pointer;
     flex-shrink: 0;
 }
+/* Voice: while listening the mic becomes a pulsing stop button */
+.home2-stop-ic { display: none; }
+.home2-bar.listening .home2-mic { background: var(--wb); color: #fff; animation: home2Pulse 1.4s ease-in-out infinite; }
+.home2-bar.listening .home2-mic-ic { display: none; }
+.home2-bar.listening .home2-stop-ic { display: block; }
+.home2-bar.listening .home2-send { opacity: 0.4; pointer-events: none; }
+@keyframes home2Pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(123, 45, 69, 0.35); }
+    50%      { box-shadow: 0 0 0 8px rgba(123, 45, 69, 0); }
+}
