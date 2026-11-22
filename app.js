@@ -5417,7 +5417,8 @@ function createCard(item, index) {
     const distText = item.distance_km
         ? (item.distance_km < 1 ? Math.round(item.distance_km * 1000) + 'm' : item.distance_km.toFixed(1) + 'km')
         : '';
-    const distChip = distText ? `<span class="hf-card-dist">${distText}</span>` : '';
+    // Over 50km the number is noise on a card — hide it (still shown in the item card)
+    const distChip = (distText && !(item.distance_km > 50)) ? `<span class="hf-card-dist">${distText}</span>` : '';
 
     // ── Category chip ──
     const catLabel = item.category
@@ -5501,7 +5502,8 @@ function createCard(item, index) {
     const circleCount = (cachedEndorse.ids || []).filter(id => friendIdSet.has(id)).length;
     // Show circle save count (adder counts as 1)
     const totalSaves = Math.max(circleCount, 1);
-    const saveCountLabel = totalSaves === 1 ? '1 save in your circle' : `${totalSaves} saves in your circle`;
+    // One save is just the person who added it — only show the signal from 2 saves up
+    const saveCountLabel = totalSaves < 2 ? '' : `${totalSaves} saves in your circle`;
     const saveCountHtml = `<div class="hf-card-save-count">${saveCountLabel}</div>`;
 
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──

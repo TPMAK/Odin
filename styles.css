@@ -13538,3 +13538,8 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .drawer3-sv-tag { font-size: 12px; color: var(--muted); }
 .drawer3-sv-more { font-size: 13px; color: var(--muted); margin: 4px 16px 10px; }
 .drawer3-sv-card .drawer2-more-cancel { border-top: 1px solid var(--border); }
+/* Discover quick fixes (23 Nov) */
+.recently-viewed-header span { text-transform: none !important; letter-spacing: 0 !important; }
+.dc-surprise-btn { background: #fff !important; color: #7B2D45 !important; border: 1.5px solid #7B2D45 !important; }
+.dc-surprise-btn svg { color: #7B2D45; stroke: currentColor; }
+.dc-grid-card .hf-card-save-count:empty { display: none; }
