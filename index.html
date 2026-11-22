@@ -1811,8 +1811,8 @@
                             Save this link to Odin
                         </button>
                         <div class="home2-bar" id="home2Bar">
-                            <textarea id="home2Input" class="home2-input" rows="1" placeholder="Search your circle" autocomplete="off" enterkeyhint="search" oninput="home2OnInput()" onkeydown="home2OnKey(event)"></textarea>
-                            <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu()" aria-label="Add to Odin">
+                            <textarea id="home2Input" class="home2-input" rows="1" placeholder="Ask your circle" autocomplete="off" enterkeyhint="search" oninput="home2OnInput()" onkeydown="home2OnKey(event)"></textarea>
+                            <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu()" aria-label="Add to your circle">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
                             <button type="button" class="home2-btn home2-cancel" onclick="home2VoiceCancel()" aria-label="Cancel voice">
@@ -1828,9 +1828,9 @@
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
                             </button>
                             <!-- Add menu: bottom sheet on mobile, popover above the bar on desktop -->
-                            <div class="home2-menu hidden" id="home2Menu" role="dialog" aria-label="Add to Odin">
+                            <div class="home2-menu hidden" id="home2Menu" role="dialog" aria-label="Add to your circle">
                                 <div class="home2-menu-grip"></div>
-                                <p class="home2-menu-title">Add to Odin</p>
+                                <p class="home2-menu-title">Add to your circle</p>
                                 <p class="home2-menu-sub">Something your circle should know about</p>
                                 <button type="button" class="home2-menu-row" onclick="home2AddVia('link')">
                                     <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
@@ -2566,7 +2566,7 @@
                     <button type="button" class="add2-back" onclick="setMode('home')" aria-label="Close">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
-                    <h2 class="page-heading add2-title">Add to Odin</h2>
+                    <h2 class="page-heading add2-title">Add to your circle</h2>
                 </div>
                 <div id="formMessage"></div>
 
@@ -5915,7 +5915,7 @@
         // and focuses its input so the keyboard comes up there.
         // ===== HOME v2 BAR (Nov 2026) =====
         // One bar: type (or later, speak) -> press send -> results on the Search page.
-        // + opens the "Add to Odin" menu. A pasted link shows "Save this link".
+        // + opens the "Add to your circle" menu. A pasted link shows "Save this link".
         var _HOME2_URL_RE = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}(:\d+)?(\/\S*)?$/i;
 
         function _home2Val() {
