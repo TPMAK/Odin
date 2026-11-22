@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=64">
+    <link rel="stylesheet" href="styles.css?v=65">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -1796,6 +1796,16 @@
                         <button type="button" class="home2-invite hidden" id="home2Invite" onclick="home2GoInvite()">Invite a friend to start your circle</button>
                     </div>
                     <div class="home2-dock">
+                        <div class="home2-continue hidden" id="home2Continue">
+                            <button type="button" class="home2-continue-go" onclick="home2Continue()">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                                <span class="home2-continue-pre">Continue:</span>
+                                <span class="home2-continue-q" id="home2ContinueQ"></span>
+                            </button>
+                            <button type="button" class="home2-continue-x" onclick="home2DismissContinue()" aria-label="Dismiss">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            </button>
+                        </div>
                         <button type="button" class="home2-savelink hidden" id="home2SaveLink" onclick="home2SaveLink()">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/><line x1="12" y1="7" x2="12" y2="13"/><line x1="9" y1="10" x2="15" y2="10"/></svg>
                             Save this link to Odin
@@ -3099,7 +3109,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=59"></script>
+    <script src="app.js?v=60"></script>
     <script src="snap-capture.js?v=1"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
@@ -5914,6 +5924,7 @@
             _home2Autosize(el);
             bar.classList.toggle('has-text', !!v);
             if (chip) chip.classList.toggle('hidden', !_home2IsLink(v));
+            home2UpdateContinue();
         }
         function home2OnKey(e) {
             // Enter searches; Shift+Enter keeps a new line (desktop).
@@ -6006,6 +6017,60 @@
             var link = /^https?:\/\//i.test(v) ? v : 'https://' + v;
             _home2Clear();
             home2AddVia('link', link);
+        }
+
+
+        // ── "Continue: <last search>" line above the bar ──
+        // The conversation itself lives in memory only. While it is still open,
+        // Continue returns to it untouched; after the app restarts, Continue
+        // re-runs the question. Hidden after 24h, on dismiss, or while typing.
+        var _HOME2_LAST_KEY = 'odin_last_search';
+        var _HOME2_LAST_TTL = 24 * 60 * 60 * 1000;
+        function home2RememberSearch(q) {
+            if (!q || typeof currentUser === 'undefined' || !currentUser) return;
+            try { localStorage.setItem(_HOME2_LAST_KEY, JSON.stringify({ q: q, t: Date.now(), uid: currentUser.id })); } catch (e) {}
+        }
+        function _home2LastSearch() {
+            try {
+                var d = JSON.parse(localStorage.getItem(_HOME2_LAST_KEY) || 'null');
+                if (!d || !d.q) return null;
+                if (typeof currentUser === 'undefined' || !currentUser || d.uid !== currentUser.id) return null;
+                if (Date.now() - d.t > _HOME2_LAST_TTL) return null;
+                return d;
+            } catch (e) { return null; }
+        }
+        function _home2ThreadOpen() {
+            var c = document.getElementById('chatContainer');
+            return !!(c && c.querySelector('.message'));
+        }
+        function home2UpdateContinue() {
+            var wrap = document.getElementById('home2Continue');
+            var qEl  = document.getElementById('home2ContinueQ');
+            if (!wrap || !qEl) return;
+            var d = _home2LastSearch();
+            var typing = !!_home2Val();
+            if (!d || typing) { wrap.classList.add('hidden'); return; }
+            qEl.textContent = d.q;
+            wrap.classList.remove('hidden');
+        }
+        function home2Continue() {
+            var d = _home2LastSearch();
+            if (!d) { home2UpdateContinue(); return; }
+            if (typeof logEvent === 'function') logEvent('home_continue', { reopened: _home2ThreadOpen() });
+            setMode('search');
+            if (_home2ThreadOpen()) {
+                var c = document.getElementById('chatContainer');
+                if (c) setTimeout(function() { c.scrollTop = c.scrollHeight; window.scrollTo(0, document.body.scrollHeight); }, 50);
+                return;
+            }
+            if (typeof startNewSession === 'function') startNewSession();
+            var target = document.getElementById('messageInput');
+            if (target) target.value = d.q;
+            sendMessage(d.q);
+        }
+        function home2DismissContinue() {
+            try { localStorage.removeItem(_HOME2_LAST_KEY); } catch (e) {}
+            home2UpdateContinue();
         }
 
         // ── New-user line: shown only when the user has no real friends yet

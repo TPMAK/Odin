@@ -12688,3 +12688,45 @@ body.map-view-open .content {
 /* Mobile: the docked bar is its own stacking layer (z 999). While the Add menu
    is open, lift it above the backdrop and tab bar so the sheet shows on top. */
 body.home2-menu-open .home2-dock { z-index: 1102; }
+/* "Continue: <last search>" line above the Home bar */
+.home2-continue {
+    display: flex;
+    align-items: center;
+    max-width: 640px;
+    margin: 0 auto 8px;
+    padding: 0 4px;
+}
+.home2-continue-go {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font: 14px 'DM Sans', sans-serif;
+    cursor: pointer;
+    text-align: left;
+}
+.home2-continue-go svg { flex-shrink: 0; color: var(--wb); }
+.home2-continue-pre { flex-shrink: 0; }
+.home2-continue-q {
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.home2-continue-x {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}

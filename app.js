@@ -3827,6 +3827,7 @@ function showHome() {
     // loadHomeStats() early-returns if currentUser isn't ready yet.
     loadHomeStats();
     if (typeof home2UpdateInvite === 'function') home2UpdateInvite();
+    if (typeof home2UpdateContinue === 'function') home2UpdateContinue();
 }
 
 // ── Discover pill management — show Discover|Map toggle in header when on Discover ──
@@ -7353,6 +7354,8 @@ async function sendMessage(text, displayLabel) {
     if (typeof saveRecentSearch === 'function') saveRecentSearch(query);
 
     if (isFirstMessage) {
+        // Remember the opening question for Home's "Continue" line.
+        if (typeof home2RememberSearch === 'function') home2RememberSearch(shown);
         const welcomeEl = document.querySelector('#chatContainer .welcome');
         if (welcomeEl) welcomeEl.style.display = 'none';
         isFirstMessage = false;
