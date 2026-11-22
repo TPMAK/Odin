@@ -2675,6 +2675,28 @@ function drawer2OpenMore() {
         <button type="button" class="drawer2-more-item drawer2-more-cancel" onclick="drawer2CloseMore()">Cancel</button></div>`;
     sheet.classList.add('open');
 }
+function drawer3OpenSavers() {
+    const d = window._drawer3Savers;
+    if (!d) return;
+    let sheet = document.getElementById('drawer2More');
+    if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.id = 'drawer2More';
+        sheet.className = 'drawer2-more';
+        document.body.appendChild(sheet);
+    }
+    const rows = d.names.map(n => {
+        const base = String(n).replace(' (added it)', '');
+        const col = typeof strColour === 'function' ? strColour(base === 'You' ? (currentProfile?.display_name || 'You') : base) : '#7B2D45';
+        const tag = String(n).includes('(added it)') ? '<span class="drawer3-sv-tag">Added it</span>' : '';
+        return `<div class="drawer3-sv-row"><span class="drawer3-sb-av" style="background:${col};border-color:transparent;">${escapeHtml(base.charAt(0).toUpperCase())}</span><span class="drawer3-sv-name">${escapeHtml(base)}</span>${tag}</div>`;
+    }).join('');
+    const more = d.unnamed > 0 ? `<p class="drawer3-sv-more">+ ${d.unnamed} more in the wider circle</p>` : '';
+    sheet.innerHTML = `<div class="drawer2-more-bg" onclick="drawer2CloseMore()"></div>
+        <div class="drawer2-more-card drawer3-sv-card"><p class="drawer3-sv-title">Saved in your circle</p>${rows}${more}
+        <button type="button" class="drawer2-more-item drawer2-more-cancel" onclick="drawer2CloseMore()">Close</button></div>`;
+    sheet.classList.add('open');
+}
 function drawer2CloseMore() {
     const sheet = document.getElementById('drawer2More');
     if (sheet) sheet.classList.remove('open');
@@ -5483,9 +5505,8 @@ function createCard(item, index) {
     const saveCountHtml = `<div class="hf-card-save-count">${saveCountLabel}</div>`;
 
     // ── DISCOVER card order: Title → The Word → chips → Added by → [divider] → saves + translate ──
-    const _dcTranslateLabel = userPreferredLanguage && userPreferredLanguage !== 'en'
-        ? 'Translate to ' + (LANG_LABELS[userPreferredLanguage] || userPreferredLanguage) + ' ' + TRANSLATE_ICON
-        : TRANSLATE_ICON;
+    // Icon only on cards — the full label overlapped the save count in Traditional Chinese
+    const _dcTranslateLabel = TRANSLATE_ICON;
     const _hf = getDisplayHeading(item);
     card.innerHTML = `
         <div class="hf-card-media-wrap">${mediaHtml}</div>
@@ -5501,7 +5522,7 @@ function createCard(item, index) {
             </div>
             <div class="hf-card-by">
                 <span class="hf-card-save-count">${saveCountLabel}</span>
-                <button class="feed-card-translate-btn" data-item-id="${escapeHtml(item.id||'')}" data-state="original" onclick="event.stopPropagation(); toggleFeedCardTranslate(this)">${_dcTranslateLabel}</button>
+                <button class="feed-card-translate-btn" data-item-id="${escapeHtml(item.id||'')}" data-state="original" aria-label="Translate" title="Translate" onclick="event.stopPropagation(); toggleFeedCardTranslate(this)">${_dcTranslateLabel}</button>
             </div>
         </div>
     `;
@@ -6464,6 +6485,15 @@ function openItemDrawer(item) {
                         const _total = cached.count || 0;
                         savesSlot.innerHTML = `<span class="drawer3-sb-avs">${_av}</span><span class="drawer3-sb-text">${escapeHtml(text)}</span>${_total > 1 ? `<span class="drawer3-sb-count">${_total} saves</span>` : ''}`;
                         savesSlot.classList.add('drawer3-sb-on');
+                        // Tap → who saved it (you + direct friends only; others as a count)
+                        const _listNames = (selfSaved ? ['You'] : []).concat(_fullNames);
+                        if (!isOwner && adderName && (cached.names || []).includes(adderName)) _listNames.unshift(adderName + ' (added it)');
+                        if (isOwner) _listNames.unshift('You (added it)');
+                        const _unnamed = Math.max(0, _total - (selfSaved ? 1 : 0) - _fullNames.length - 1);
+                        window._drawer3Savers = { names: _listNames, unnamed: _unnamed };
+                        savesSlot.setAttribute('role', 'button');
+                        savesSlot.onclick = (ev) => { ev.stopPropagation(); drawer3OpenSavers(); };
+                        savesSlot.insertAdjacentHTML('beforeend', '<svg class="drawer3-sb-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>');
                         savesSlot.style.display = '';
                     }
                 }

@@ -13519,3 +13519,22 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .drawer3-sb-count {
     flex: none; background: var(--wb); color: #fff; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 600;
 }
+/* Feed cards: translate is a small icon chip so it never covers the save count */
+.hf-card .feed-card-translate-btn, .dc-grid-card .feed-card-translate-btn {
+    width: 26px; height: 26px; padding: 0; justify-content: center; border-radius: 50%;
+    color: #7B2D45; background: rgba(123,45,69,0.07); flex: none; margin-left: auto;
+}
+.hf-card .feed-card-translate-btn svg, .dc-grid-card .feed-card-translate-btn svg { width: 14px; height: 14px; }
+.dc-grid-card .hf-card-save-count { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* Saved-by chip is tappable; savers list sheet */
+.drawer3-savedby.drawer3-sb-on[role="button"] { cursor: pointer; }
+.drawer3-sb-chev { flex: none; margin-left: -2px; }
+.drawer3-sv-card { padding: 16px 0 0; }
+.drawer3-sv-title { font-size: 15px; font-weight: 600; margin: 0 16px 8px; color: var(--ink); }
+.drawer3-sv-row { display: flex; align-items: center; gap: 10px; padding: 9px 16px; }
+.drawer3-sv-row .drawer3-sb-av { width: 30px; height: 30px; font-size: 13px; margin: 0 !important; }
+.drawer3-sv-name { flex: 1; font-size: 15px; color: var(--ink); }
+.drawer3-sv-tag { font-size: 12px; color: var(--muted); }
+.drawer3-sv-more { font-size: 13px; color: var(--muted); margin: 4px 16px 10px; }
+.drawer3-sv-card .drawer2-more-cancel { border-top: 1px solid var(--border); }
