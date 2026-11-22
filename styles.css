@@ -12792,3 +12792,17 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
     animation: home2Spin 0.8s linear infinite;
 }
 @keyframes home2Spin { to { transform: rotate(360deg); } }
+/* Honest save: spinner while "Saving…", tick once the server confirms */
+.save-spinner { display: none; }
+.save-success-overlay.is-saving .save-success-check svg { display: none; }
+.save-success-overlay.is-saving .save-spinner {
+    display: block;
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+    border: 3px solid #EDE4D8;
+    border-top-color: var(--wb);
+    border-radius: 50%;
+    animation: home2Spin 0.8s linear infinite;
+}
+.submit-btn.saving { opacity: 0.7; pointer-events: none; }

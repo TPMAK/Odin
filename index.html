@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=70">
+    <link rel="stylesheet" href="styles.css?v=71">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -2833,6 +2833,7 @@
                 <div id="saveSuccessOverlay" class="save-success-overlay hidden">
                     <div class="save-success-content">
                         <div class="save-success-check">
+                            <span class="save-spinner" aria-hidden="true"></span>
                             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
                         <h3>Saved!</h3>
@@ -3103,7 +3104,7 @@
 
     </div><!-- end mainApp -->
 
-    <script src="app.js?v=60"></script>
+    <script src="app.js?v=61"></script>
     <script>
     // ===== NAVIGATION HISTORY (back button) =====
     var _navHistory = [];    // stack of mode strings

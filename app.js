@@ -9443,231 +9443,8 @@ function clearPrefillFields() {
     if (titleHint) titleHint.classList.add('hidden');
 }
 
-var submitDiscovery = async function(e) {
-    e.preventDefault();
-
-    if (!currentUser) {
-        alert('Please login first');
-        return;
-    }
-
-    // Auto-generate title if empty — no prompt shown, just silent fallback
-    const titleField = document.getElementById('title');
-    let titleVal = titleField ? titleField.value.trim() : '';
-    if (!titleVal) {
-        let chipType = '';
-        try { chipType = localStorage.getItem('odin_entry_chip') || ''; } catch(e) {}
-        // If user uploaded a photo, auto-detect
-        if (!chipType && _photoSource === 'user') chipType = 'photo';
-        if (chipType === 'photo') {
-            // "Photo — 5 Apr 2026"
-            const now = new Date();
-            const day = now.getDate();
-            const mon = now.toLocaleString('en-NZ', { month: 'short' });
-            const yr  = now.getFullYear();
-            titleVal = `Photo \u2014 ${day} ${mon} ${yr}`;
-        } else if (chipType === 'type') {
-            // First 6 words of Your Take
-            const takeText = document.getElementById('personalNote').value.trim();
-            const words = takeText.split(/\s+/).slice(0, 6).join(' ');
-            if (words) {
-                titleVal = words + (takeText.split(/\s+/).length > 6 ? '\u2026' : '');
-            }
-        }
-        // If still empty (link/here with no OG title), highlight the title field
-        if (!titleVal) {
-            if (titleField) {
-                titleField.focus();
-                titleField.style.borderColor = '#7B2D45';
-                setTimeout(() => { titleField.style.borderColor = ''; }, 2500);
-            }
-            document.getElementById('submitBtn').disabled = false;
-            return;
-        }
-        // Write the generated title back into the field so it's picked up by the payload
-        if (titleField) titleField.value = titleVal;
-    }
-
-    // Validate "Your take" — required but no asterisk shown
-    const takeVal = document.getElementById('personalNote').value.trim();
-    if (!takeVal) {
-        const textarea = document.getElementById('personalNote');
-        textarea.focus();
-        textarea.style.borderColor = '#7B2D45';
-        textarea.style.boxShadow = '0 0 0 2px rgba(123,45,69,0.15)';
-        const formMsg = document.getElementById('formMessage');
-        if (formMsg) {
-            formMsg.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">Tell your circle why it\'s worth it — even one line helps.</p>';
-        }
-        setTimeout(() => {
-            textarea.style.borderColor = '';
-            textarea.style.boxShadow = '';
-        }, 2500);
-        document.getElementById('submitBtn').disabled = false;
-        return;
-    }
-    // Clear any validation state
-    const formMsg = document.getElementById('formMessage');
-    if (formMsg) formMsg.innerHTML = '';
-
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-
-    // Read + compress all selected photos (up to MAX_PHOTOS) BEFORE showing success.
-    // Falls back to legacy single-input lookup so any old code path still works.
-    async function _compressFile(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const MAX = 1200;
-                    let w = img.width, h = img.height;
-                    if (w > MAX || h > MAX) {
-                        if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
-                        else        { w = Math.round(w * MAX / h); h = MAX; }
-                    }
-                    const canvas = document.createElement('canvas');
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                    resolve(dataUrl.split(',')[1]);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    let photosBase64 = [];
-    let photoFilenames = [];
-    if (Array.isArray(_selectedPhotos) && _selectedPhotos.length > 0) {
-        for (const f of _selectedPhotos.slice(0, MAX_PHOTOS)) {
-            const b64 = await _compressFile(f);
-            photosBase64.push(b64);
-            photoFilenames.push(f.name);
-        }
-    } else {
-        // Legacy fallback: file input may still hold a single file (unlikely but safe)
-        const _pgEl = document.getElementById('photoGallery');
-        const _pcEl = document.getElementById('photoCamera');
-        const fallbackFile = (_pgEl && _pgEl.files && _pgEl.files[0]) || (_pcEl && _pcEl.files && _pcEl.files[0]) || null;
-        if (fallbackFile) {
-            photosBase64 = [await _compressFile(fallbackFile)];
-            photoFilenames = [fallbackFile.name];
-        }
-    }
-
-    const visibilityVal = document.getElementById('visibilityValue')?.value || 'private';
-    const isPrivate = visibilityVal === 'private';
-
-    // personalNote is now the single user-facing field (merged with description)
-    const yourTake = document.getElementById('personalNote').value.trim();
-
-    const payload = {
-        title: document.getElementById('title').value.trim(),
-        description: yourTake,        // feeds AI Enhance enrichment
-        personalNote: yourTake || null, // feeds embedding + social display
-        type: document.getElementById('category').value,
-        addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
-        address: document.getElementById('address').value.trim() || null,
-        url: document.getElementById('url').value.trim() || null,
-        user_latitude: document.getElementById('userLat').value ? parseFloat(document.getElementById('userLat').value) : null,
-        user_longitude: document.getElementById('userLng').value ? parseFloat(document.getElementById('userLng').value) : null,
-        UserID: currentUser.id,
-        familyId: currentProfile?.family_id || '37ae9f84-2d1d-4930-9765-f6f8991ae053',
-        // Multi-photo: array form (preferred). Plus legacy single-photo keys for backward compat.
-        photos: photosBase64,
-        photoFilenames: photoFilenames,
-        photo: photosBase64[0] || null,
-        photoFilename: photoFilenames[0] || null,
-        ogImageUrl: (photosBase64.length === 0 && _photoSource === 'og') ? (document.getElementById('ogImageUrl')?.value || null) : null,
-        visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
-        place_name: document.getElementById('placeName')?.value?.trim() || null,
-        // Exact place coords from a "Here" pick (distinct from user_latitude/longitude).
-        // When present, backend uses these instead of geocoding the address string.
-        place_id: document.getElementById('placeId')?.value || null,
-        latitude: document.getElementById('placeLat')?.value
-            ? parseFloat(document.getElementById('placeLat').value) : null,
-        longitude: document.getElementById('placeLng')?.value
-            ? parseFloat(document.getElementById('placeLng').value) : null
-    };
-
-    // Rotating body copy for the save-success overlay. Random line each save so
-    // the confirmation stays fresh for repeat savers. All lines reinforce
-    // permanence + findability within the circle — no endorsement language.
-    const _SAVE_SUCCESS_LINES = [
-        'Here whenever your circle needs it',
-        "Wasn't that easy? Here whenever your circle needs it.",
-        'Now your circle can find it anytime',
-        "It's here now — for you and your circle"
-    ];
-    const _randomSaveLine = () =>
-        _SAVE_SUCCESS_LINES[Math.floor(Math.random() * _SAVE_SUCCESS_LINES.length)];
-
-    // Post-save nudge: if note is thin, show a gentle prompt in the overlay
-    const isThinNote = takeVal.length < 30;
-    const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
-    if (overlayBody) {
-        overlayBody.innerHTML = isThinNote
-            ? 'Saved! <span style="display:block;font-size:12px;color:#9CA3AF;margin-top:4px;">Next time, add one more detail — your circle will love you for it.</span>'
-            : _randomSaveLine();
-    }
-
-    // Show instant "Saved!" overlay immediately
-    const overlay = document.getElementById('saveSuccessOverlay');
-    overlay.classList.remove('hidden');
-    document.getElementById('addForm').reset();
-    // Reset URL field (outside form) and OG preview
-    document.getElementById('url').value = '';
-    resetOGFetchState();
-    // Reset photo preview
-    removePhoto();
-    // Reset category pills to default
-    document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-    const defaultPill = document.querySelector('.category-pill[data-value="place"]');
-    if (defaultPill) defaultPill.classList.add('active');
-    document.getElementById('category').value = 'place';
-    // Show URL hint again
-    const heroHint = document.getElementById('urlHeroHint');
-    if (heroHint) heroHint.style.display = 'flex';
-    // Hide autofill hint on successful save
-    const _titleHint = document.getElementById('titleAutofillHint');
-    if (_titleHint) _titleHint.classList.add('hidden');
-
-    btn.disabled = false;
-
-    // Navigate away after a brief moment
-    setTimeout(() => {
-        overlay.classList.add('hidden');
-        setMode('discover');
-    }, 1500);
-
-    // Send to backend in the background — now with failure feedback
-    fetch(CAPTURE_WEBHOOK, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    }).then(async (resp) => {
-        if (!resp.ok) {
-            const errText = await resp.text().catch(() => '');
-            console.error('Save failed — HTTP', resp.status, errText);
-            showToast('Save failed — please try again. Your entry was not stored.', 6000);
-            return;
-        }
-        try {
-            const data = await resp.json();
-            if (!data || data.success === false) {
-                showToast('Save failed — please try again. Your entry was not stored.', 6000);
-            }
-        } catch (e) {
-            // Non-JSON response but status was OK — treat as success
-        }
-    }).catch(err => {
-        console.error('Background save failed:', err);
-        showToast('Save failed — please check your connection and try again.', 6000);
-    });
-}
+// (Old submitDiscovery removed Nov 2026 — the live save logic is window.submitDiscovery
+//  in the capture-flow section further down. There used to be two copies.)
 
 // Category pill selector
 function selectCategory(el) {
@@ -11153,7 +10930,6 @@ function dismissEmptyFriends() {
     })();
 
     // ---- Validate + inject capture_mode on submit --------------
-    const _origSubmit = window.submitDiscovery;
     window.submitDiscovery = async function(e) {
         if (e && e.preventDefault) e.preventDefault();
         if (!currentUser) { alert('Please login first'); return; }
@@ -11308,25 +11084,110 @@ function dismissEmptyFriends() {
             // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
         };
 
-        // Show success overlay immediately
-        const overlay = document.getElementById('saveSuccessOverlay');
-        const overlayBody = document.querySelector('#saveSuccessOverlay .save-success-content p');
-        if (overlayBody) overlayBody.textContent = _randomSaveLine();
-        if (overlay) overlay.classList.remove('hidden');
+        // ── Honest save (Nov 2026) ──────────────────────────────────────
+        // Wait for the server before saying "Saved". Keep the form until it is
+        // confirmed, so nothing is lost if the save fails. On success, open the
+        // card the user just saved (how their circle will see it) over Home.
+        const btn = document.getElementById('submitBtn');
+        if (btn) { btn.disabled = true; btn.classList.add('saving'); }
+        _odinSaveOverlay('saving', _randomSaveLine());
+        const t0 = Date.now();
+        if (typeof logEvent === 'function') logEvent('capture_submit', { mode: mode, photos: photosBase64.length, note_chars: note.length, visibility: payload.visibility });
 
-        // Reset form (preserve mode reset behaviour)
+        let ok = false, failMsg = '';
+        try {
+            const ctrl = window.AbortController ? new AbortController() : null;
+            const to = setTimeout(() => { if (ctrl) ctrl.abort(); }, 45000);
+            const resp = await fetch(CAPTURE_WEBHOOK, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: ctrl ? ctrl.signal : undefined
+            });
+            clearTimeout(to);
+            if (!resp.ok) {
+                const errText = await resp.text().catch(() => '');
+                console.error('Save failed — HTTP', resp.status, errText);
+                failMsg = "Couldn't save. Your text is still here, so try again.";
+            } else {
+                ok = true;
+                try {
+                    const data = await resp.json();
+                    if (data && data.success === false) { ok = false; failMsg = "Couldn't save. Your text is still here, so try again."; }
+                } catch (_) { /* non-JSON but HTTP OK = saved */ }
+            }
+        } catch (err) {
+            console.error('Save failed:', err);
+            failMsg = (err && err.name === 'AbortError')
+                ? 'This is taking longer than usual. Check your saves on Profile in a minute before trying again.'
+                : "Couldn't reach Odin. Check your connection — your text is still here.";
+        }
+
+        if (!ok) {
+            _odinSaveOverlay('hide');
+            if (btn) { btn.classList.remove('saving'); }
+            if (typeof window._odinUpdateSaveGate === 'function') window._odinUpdateSaveGate();
+            const fm = document.getElementById('formMessage');
+            if (fm) fm.innerHTML = '<p style="color:#7B2D45;font-size:13px;margin:0 0 8px;">' + escapeHtml(failMsg) + '</p>';
+            if (typeof showToast === 'function') showToast(failMsg, 6000);
+            if (typeof logEvent === 'function') logEvent('capture_failed', { ms: Date.now() - t0, reason: failMsg.slice(0, 40) });
+            return;
+        }
+
+        if (typeof logEvent === 'function') logEvent('capture_saved', { ms: Date.now() - t0, mode: mode });
+        _odinSaveOverlay('saved', 'Here is how your circle will see it');
+
+        // Find the item we just saved (the webhook doesn't return its id).
+        let savedItem = null;
+        try {
+            if (typeof loadDiscoveries === 'function') await loadDiscoveries();
+            const since = t0 - 2 * 60 * 1000;
+            const mine = (allDiscoveries || []).filter(d =>
+                d && d.added_by === currentUser.id && d.created_at &&
+                new Date(String(d.created_at).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(d.created_at)) ? '' : 'Z')).getTime() >= since);
+            mine.sort((x, y) => String(y.created_at).localeCompare(String(x.created_at)));
+            savedItem = mine[0] || null;
+        } catch (e) { console.warn('Could not load the saved item:', e); }
+
+        _odinResetAddForm();
+        if (btn) btn.classList.remove('saving');
+
+        setTimeout(() => {
+            _odinSaveOverlay('hide');
+            try { setMode('home'); } catch (_) {}
+            if (savedItem && typeof openItemDrawer === 'function') {
+                openItemDrawer(savedItem);
+            } else if (typeof showToast === 'function') {
+                showToast('Saved. It may take a moment to show up.', 4000);
+            }
+        }, 900);
+    };
+
+    // Saving / Saved overlay. 'saving' shows a spinner, 'saved' a tick.
+    function _odinSaveOverlay(state, line) {
+        const overlay = document.getElementById('saveSuccessOverlay');
+        if (!overlay) return;
+        if (state === 'hide') { overlay.classList.add('hidden'); return; }
+        overlay.classList.remove('hidden');
+        overlay.classList.toggle('is-saving', state === 'saving');
+        const h = overlay.querySelector('.save-success-content h3');
+        const pEl = overlay.querySelector('.save-success-content p');
+        if (h) h.textContent = state === 'saving' ? 'Saving…' : 'Saved';
+        if (pEl && line) pEl.textContent = line;
+    }
+
+    // Clear the Add form after a confirmed save (moved here so it only runs on success).
+    function _odinResetAddForm() {
         const addForm = document.getElementById('addForm');
         if (addForm) addForm.reset();
         const urlEl = document.getElementById('url');
         if (urlEl) urlEl.value = '';
         try { resetOGFetchState && resetOGFetchState(); } catch(_) {}
         try { removePhoto && removePhoto(); } catch(_) {}
-        // Reset hidden category (backend ignores it but keep DOM consistent)
         const catSel = document.getElementById('category');
         if (catSel) catSel.value = 'place';
-
-        // 1a: fully refresh the form UI after submit — visibility pill back to
-        // "Only me", hint reset, required checkmarks cleared, Save back to not-ready.
+        const fm = document.getElementById('formMessage');
+        if (fm) fm.innerHTML = '';
         try {
             document.querySelectorAll('#visSelector .vis-option').forEach(o => o.classList.remove('active'));
             const _defVis = document.querySelector('#visSelector .vis-option[data-value="private"]');
@@ -11338,44 +11199,14 @@ function dismissEmptyFriends() {
             }
             const _pt = document.getElementById('privateToggle'); if (_pt) _pt.value = 'true';
             const _vv = document.getElementById('visibilityValue'); if (_vv) _vv.value = 'private';
-            // Recompute checkmarks + Save gate against the now-empty fields
+            ['placeId','placeLat','placeLng','userLat','userLng','address'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
             if (typeof window._odinUpdateSaveGate === 'function') window._odinUpdateSaveGate();
         } catch (_) {}
-        // Reset our flow state
         _captureMode = null;
         try { localStorage.removeItem('odin_entry_chip'); } catch(_) {}
-        _hideLocReveal();
-        _hideGeoChip();
-
-        setTimeout(() => {
-            if (overlay) overlay.classList.add('hidden');
-            try { setMode('discover'); } catch(_) {}
-        }, 2600);
-
-        // Background POST
-        try {
-            const resp = await fetch(CAPTURE_WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!resp.ok) {
-                const errText = await resp.text().catch(() => '');
-                console.error('Save failed — HTTP', resp.status, errText);
-                if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
-                return;
-            }
-            try {
-                const data = await resp.json();
-                if (data && data.success === false) {
-                    if (typeof showToast === 'function') showToast('Save failed — please try again. Your entry was not stored.', 6000);
-                }
-            } catch (_) { /* non-JSON ok */ }
-        } catch (err) {
-            console.error('Background save failed:', err);
-            if (typeof showToast === 'function') showToast('Save failed — please check your connection and try again.', 6000);
-        }
-    };
+        try { _hideLocReveal(); } catch(_) {}
+        try { _hideGeoChip(); } catch(_) {}
+    }
 
     // Re-init address autocomplete when address field becomes visible again.
     // The existing autocomplete attaches once on DOMContentLoaded — show/hide
