@@ -12806,3 +12806,43 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
     animation: home2Spin 0.8s linear infinite;
 }
 .submit-btn.saving { opacity: 0.7; pointer-events: none; }
+/* Voice for THE WORD: "Say it instead" under the note */
+.note-voice { display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.note-mic {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px 7px 11px;
+    border-radius: 18px;
+    border: 1px solid #E3D5DA;
+    background: #F8F1F3;
+    color: var(--wb);
+    font: 500 13px 'DM Sans', sans-serif;
+    cursor: pointer;
+}
+.note-stop-ic, .note-voice-state, .note-cancel { display: none; }
+.note-voice-state { align-items: center; gap: 8px; font: 13px 'DM Sans', sans-serif; color: var(--muted); }
+.note-voice.listening .note-mic {
+    background: var(--wb);
+    color: #fff;
+    border-color: var(--wb);
+    padding: 8px;
+    animation: home2Pulse 1.4s ease-in-out infinite;
+}
+.note-voice.listening .note-mic-ic,
+.note-voice.listening .note-mic-label { display: none; }
+.note-voice.listening .note-stop-ic { display: block; }
+.note-voice.listening .note-listening { display: inline-flex; }
+.note-voice.listening .note-cancel {
+    display: inline;
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font: 13px 'DM Sans', sans-serif;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.note-voice.refining .note-listening { display: none; }
+.note-voice.refining .note-refining { display: inline-flex; }
+.note-voice.refining .note-mic { animation: none; opacity: 0.6; }

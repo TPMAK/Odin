@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=71">
+    <link rel="stylesheet" href="styles.css?v=72">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -2684,6 +2684,17 @@
                             <label class="field-label-inline">Your note <span class="field-label-optional">— required</span><svg class="field-check" id="noteCheck" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4C8063" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></label>
                             <p class="take-sublabel">This is the part your circle actually needs.</p>
                             <textarea id="personalNote" class="your-take-textarea" placeholder="Best tonkotsu in town — ask for the spicy option, go after 7pm"></textarea>
+                            <!-- Voice for THE WORD (Nov 2026): say it instead of typing -->
+                            <div class="note-voice" id="noteVoiceBox">
+                                <button type="button" class="note-mic" id="noteMic" onclick="noteMicTap()" aria-label="Speak">
+                                    <svg class="note-mic-ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+                                    <svg class="note-stop-ic" width="13" height="13" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="3" fill="currentColor"/></svg>
+                                    <span class="note-mic-label">Say it instead</span>
+                                </button>
+                                <span class="note-voice-state note-listening"><span class="home2-pulse"><i></i><i></i><i></i></span>Listening… tap stop when done</span>
+                                <span class="note-voice-state note-refining"><span class="home2-spinner"></span>Getting your words…</span>
+                                <button type="button" class="note-cancel" onclick="noteVoiceCancel()">Cancel</button>
+                            </div>
                             <input type="hidden" id="description">
                         </div>
                     </div>
@@ -5945,52 +5956,75 @@
             if (el) { el.value = ''; }
             home2OnInput();
         }
-        // ===== VOICE SEARCH (Nov 2026) =====
-        // Tap mic -> words stream into the bar live (gpt-live-transcribe over
-        // WebRTC) -> tap stop -> filler words removed -> text waits in the bar
-        // until the user presses send. Nothing is searched automatically.
-        var _voice = null;                     // active session state
-        var _VOICE_MAX_MS = 30000;             // hard stop after 30s
+        // ===== VOICE INPUT (Nov 2026) — shared by the Home bar and THE WORD =====
+        // Tap mic -> words stream in live (gpt-live-transcribe over WebRTC) ->
+        // tap stop -> accurate final pass on the whole clip -> filler words
+        // removed -> text waits for the user (nothing is sent automatically).
+        var _voice = null;                     // active session (only one at a time)
+        var _VOICE_MAX_MS = 30000;             // search: 30s
+        var _VOICE_NOTE_MAX_MS = 90000;        // THE WORD can be longer
         var _VOICE_FILLERS = /(^|[\s,，。.!?！？])(?:u+m+|u+h+|e+r+m*|a+h+|a{2,}|h+m+|mm+|呃+|嗯+|啊{2,}|唔{2,})(?=$|[\s,，。.!?！？])/gi;
+        var _VOICE_TARGETS = {
+            search: { input: 'home2Input', box: 'home2Bar', mic: 'home2Mic', purpose: 'search', keepPunct: false,
+                      maxMs: _VOICE_MAX_MS, onChange: function() { home2OnInput(); } },
+            note:   { input: 'personalNote', box: 'noteVoiceBox', mic: 'noteMic', purpose: 'note', keepPunct: true,
+                      maxMs: _VOICE_NOTE_MAX_MS, onChange: function() { if (typeof window._odinUpdateSaveGate === 'function') window._odinUpdateSaveGate(); } }
+        };
 
-        function _voiceClean(t) {
+        function _voiceClean(t, keepPunct) {
             if (!t) return '';
             var s = t;
             for (var i = 0; i < 2; i++) s = s.replace(_VOICE_FILLERS, '$1');
             s = s.replace(/\s{2,}/g, ' ').replace(/^[\s,，。.]+/, '').replace(/[\s,，]+$/, '');
-            s = s.replace(/[。.]$/, '');       // a search doesn't need a full stop
+            if (!keepPunct) s = s.replace(/[。.]$/, '');   // a search doesn't need a full stop
             return s.trim();
         }
-        function _voiceSetUi(state) {
-            var bar = document.getElementById('home2Bar');
-            var mic = document.getElementById('home2Mic');
-            if (bar) bar.classList.toggle('listening', state === 'listening' || state === 'finishing');
-            if (mic) mic.setAttribute('aria-label', state === 'listening' ? 'Stop' : 'Speak to search');
+        function _voiceEl(v, key) { return document.getElementById(v.cfg[key]); }
+        function _voiceSetUi(v, state) {
+            var box = _voiceEl(v, 'box');
+            var mic = _voiceEl(v, 'mic');
+            if (box) box.classList.toggle('listening', state === 'listening' || state === 'finishing');
+            if (mic) mic.setAttribute('aria-label', state === 'listening' ? 'Stop' : 'Speak');
         }
-        function _voiceShow(text) {
-            var el = document.getElementById('home2Input');
+        function _voiceShow(v, text) {
+            var el = _voiceEl(v, 'input');
             if (!el) return;
             el.value = text;
-            home2OnInput();
+            v.cfg.onChange();
+        }
+        function _voiceJoin(before, spoken) {
+            if (!before) return spoken;
+            if (!spoken) return before;
+            return before + (/[\s\n]$/.test(before) ? '' : ' ') + spoken;
         }
 
-        async function home2MicTap() {
-            if (_voice) { _voiceStop(); return; }
+        function home2MicTap() { voiceToggle('search'); }
+        function noteMicTap()  { voiceToggle('note'); }
+        function home2VoiceCancel() { voiceCancel(); }
+        function noteVoiceCancel()  { voiceCancel(); }
+
+        async function voiceToggle(target) {
+            if (_voice) {
+                if (_voice.target === target) _voiceStop();
+                return;                         // another field is recording; ignore
+            }
             if (!navigator.mediaDevices || !window.RTCPeerConnection) {
-                showToast("Voice search isn't supported on this browser. Try typing.");
+                showToast("Voice isn't supported on this browser. Try typing.");
                 return;
             }
-            var input = document.getElementById('home2Input');
-            var before = input ? input.value.trim() : '';
-            _voice = { before: before, done: {}, order: [], partial: {}, closed: false };
-            var v = _voice;
-            _voiceSetUi('listening');
-            if (input) input.placeholder = 'Listening…';
-            if (typeof logEvent === 'function') logEvent('voice_start', {});
+            var cfg = _VOICE_TARGETS[target];
+            var input = document.getElementById(cfg.input);
+            var v = { target: target, cfg: cfg, before: input ? input.value.trim() : '',
+                      done: {}, order: [], partial: {}, closed: false };
+            _voice = v;
+            if (input) { v.origPh = input.placeholder; input.placeholder = 'Listening…'; }
+            _voiceSetUi(v, 'listening');
+            if (typeof logEvent === 'function') logEvent('voice_start', { target: target });
             try {
                 v.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
                 if (v.closed) return _voiceTeardown(v);
                 _voiceStartRecorder(v);
+                v.timer = setTimeout(function() { if (_voice === v) _voiceStop(); }, cfg.maxMs);
 
                 var sess = await supabaseClient.auth.getSession();
                 var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
@@ -5998,7 +6032,7 @@
                 var tr = await fetch(SUPABASE_URL + '/functions/v1/voice-token', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + jwt, 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-                    body: '{}'
+                    body: JSON.stringify({ purpose: cfg.purpose })
                 });
                 var tok = await tr.json().catch(function() { return {}; });
                 if (!tr.ok || !tok.value) throw new Error('token_' + (tok.error || tr.status));
@@ -6019,20 +6053,22 @@
                 });
                 if (!sdp.ok) throw new Error('sdp_' + sdp.status);
                 await pc.setRemoteDescription({ type: 'answer', sdp: await sdp.text() });
-                v.timer = setTimeout(function() { if (_voice === v) _voiceStop(); }, _VOICE_MAX_MS);
             } catch (err) {
-                console.warn('Voice search failed:', err && err.message);
-                if (typeof logEvent === 'function') logEvent('voice_error', { error: String(err && err.message || err).slice(0, 80) });
+                console.warn('Voice failed:', err && err.message);
+                if (typeof logEvent === 'function') logEvent('voice_error', { target: target, error: String(err && err.message || err).slice(0, 80) });
                 var denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
-                showToast(denied ? 'Allow the microphone to search by voice.' : "Voice search isn't working right now. Try typing.");
+                if (v.rec) {
+                    // Live words failed, but the recording may still work for the accurate pass.
+                    if (!denied && !v.closed) { showToast('Live words are unavailable. Tap stop when you finish.'); return; }
+                }
+                showToast(denied ? 'Allow the microphone to use voice.' : "Voice isn't working right now. Try typing.");
                 _voiceTeardown(v);
             }
         }
 
         function _voiceText(v) {
             var parts = v.order.map(function(id) { return v.done[id] != null ? v.done[id] : (v.partial[id] || ''); });
-            var spoken = parts.join(' ').replace(/\s{2,}/g, ' ').trim();
-            return (v.before ? v.before + ' ' : '') + spoken;
+            return _voiceJoin(v.before, parts.join(' ').replace(/\s{2,}/g, ' ').trim());
         }
         function _voiceOnEvent(v, raw) {
             var e; try { e = JSON.parse(raw); } catch (x) { return; }
@@ -6040,11 +6076,11 @@
             if (e.type === 'conversation.item.input_audio_transcription.delta') {
                 if (v.order.indexOf(id) < 0) v.order.push(id);
                 v.partial[id] = (v.partial[id] || '') + (e.delta || '');
-                if (!v.closed) _voiceShow(_voiceText(v));
+                if (!v.closed) _voiceShow(v, _voiceText(v));
             } else if (e.type === 'conversation.item.input_audio_transcription.completed') {
                 if (v.order.indexOf(id) < 0) v.order.push(id);
                 v.done[id] = e.transcript || '';
-                if (!v.closed) _voiceShow(_voiceText(v));
+                if (!v.closed) _voiceShow(v, _voiceText(v));
                 if (v.finishing) _voiceFinish(v);
             } else if (e.type === 'conversation.item.input_audio_transcription.failed' || e.type === 'error') {
                 console.warn('Voice event error:', e);
@@ -6053,9 +6089,9 @@
         }
         function _voiceStop() {
             var v = _voice;
-            if (!v) return;
+            if (!v || v.finishing) return;
             v.finishing = true;
-            _voiceSetUi('finishing');
+            _voiceSetUi(v, 'finishing');
             try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); } catch (x) {}
             if (v.stream) v.stream.getTracks().forEach(function(t) { t.enabled = false; });
             // No server-side end-of-speech detection with this model: commit tells
@@ -6068,34 +6104,33 @@
             if (v.closed || v.finalising) return;
             v.finalising = true;
             clearTimeout(v.finishTimer);
-            var draft = _voiceClean(_voiceText(v));
-            _voiceShow(draft || v.before);
-            var bar = document.getElementById('home2Bar');
-            if (bar) bar.classList.add('refining');
+            var keep = v.cfg.keepPunct;
+            var draft = _voiceClean(_voiceText(v), keep);
+            _voiceShow(v, draft || v.before);
+            var box = _voiceEl(v, 'box');
+            if (box) box.classList.add('refining');
             var refined = await _voiceRefine(v);              // accurate pass on the whole clip
-            if (bar) bar.classList.remove('refining');
+            if (box) box.classList.remove('refining');
             if (v.cancelled) return;
-            var el = document.getElementById('home2Input');
+            var el = _voiceEl(v, 'input');
             var untouched = el && el.value.trim() === (draft || v.before);   // don't overwrite the user's edits
             var finalText = draft;
             if (refined && untouched) {
-                finalText = _voiceClean((v.before ? v.before + ' ' : '') + refined);
-                _voiceShow(finalText);
+                finalText = _voiceClean(_voiceJoin(v.before, refined), keep);
+                _voiceShow(v, finalText);
             }
-            if (typeof logEvent === 'function') logEvent('voice_done', { chars: finalText.length, refined: !!refined, changed: !!refined && finalText !== draft });
+            if (typeof logEvent === 'function') logEvent('voice_done', { target: v.target, chars: finalText.length, refined: !!refined, changed: !!refined && finalText !== draft });
             _voiceTeardown(v);
             if (el && finalText && !_home2IsTouch()) el.focus();   // desktop: ready to edit; mobile: no keyboard pop
         }
-
-
-        // × while listening: throw away what was heard and restore the bar.
-        function home2VoiceCancel() {
+        // × / Cancel while recording: throw away what was heard and restore the field.
+        function voiceCancel() {
             var v = _voice;
             if (!v) return;
             v.cancelled = true;
-            if (typeof logEvent === 'function') logEvent('voice_cancel', {});
+            if (typeof logEvent === 'function') logEvent('voice_cancel', { target: v.target });
             _voiceTeardown(v);
-            _voiceShow(v.before);
+            _voiceShow(v, v.before);
         }
 
         // Local recording of the same mic stream, for the accurate final pass.
@@ -6115,7 +6150,7 @@
             } catch (x) { v.rec = null; }
         }
         // Sends the clip to voice-transcribe. Returns the accurate text, or null
-        // (then the live draft stays). Never waits more than ~8s in total.
+        // (then the live draft stays). Waits at most ~12s for long notes.
         async function _voiceRefine(v) {
             if (!v.rec || !v.recDone) return null;
             try {
@@ -6127,8 +6162,8 @@
                 var jwt = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
                 if (!jwt) return null;
                 var ctrl = window.AbortController ? new AbortController() : null;
-                var to = setTimeout(function() { if (ctrl) ctrl.abort(); }, 6500);
-                var r = await fetch(SUPABASE_URL + '/functions/v1/voice-transcribe', {
+                var to = setTimeout(function() { if (ctrl) ctrl.abort(); }, v.target === 'note' ? 12000 : 6500);
+                var r = await fetch(SUPABASE_URL + '/functions/v1/voice-transcribe?purpose=' + encodeURIComponent(v.cfg.purpose), {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + jwt, 'apikey': SUPABASE_KEY, 'Content-Type': blob.type },
                     body: blob,
@@ -6137,12 +6172,12 @@
                 clearTimeout(to);
                 var d = await r.json().catch(function() { return {}; });
                 if (!r.ok || !d.text) {
-                    if (typeof logEvent === 'function') logEvent('voice_refine_error', { status: r.status, error: String(d.error || '').slice(0, 60) });
+                    if (typeof logEvent === 'function') logEvent('voice_refine_error', { target: v.target, status: r.status, error: String(d.error || '').slice(0, 60) });
                     return null;
                 }
                 return d.text;
             } catch (x) {
-                if (typeof logEvent === 'function') logEvent('voice_refine_error', { error: String(x && x.message || x).slice(0, 60) });
+                if (typeof logEvent === 'function') logEvent('voice_refine_error', { target: v.target, error: String(x && x.message || x).slice(0, 60) });
                 return null;
             }
         }
@@ -6151,17 +6186,17 @@
             v.closed = true;
             clearTimeout(v.timer); clearTimeout(v.finishTimer);
             try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); } catch (x) {}
-            var bar = document.getElementById('home2Bar');
-            if (bar) bar.classList.remove('refining');
+            var box = _voiceEl(v, 'box');
+            if (box) box.classList.remove('refining');
             try { if (v.dc) v.dc.close(); } catch (x) {}
             try { if (v.pc) v.pc.close(); } catch (x) {}
             if (v.stream) v.stream.getTracks().forEach(function(t) { t.stop(); });
             if (_voice === v) _voice = null;
-            var input = document.getElementById('home2Input');
-            if (input) input.placeholder = 'Search your circle';
-            _voiceSetUi('idle');
+            var input = _voiceEl(v, 'input');
+            if (input && v.origPh != null) input.placeholder = v.origPh;
+            _voiceSetUi(v, 'idle');
         }
-        // Leaving Home mid-recording: stop and keep whatever was heard.
+        // App backgrounded mid-recording: stop and keep whatever was heard.
         document.addEventListener('visibilitychange', function() { if (document.hidden && _voice) _voiceStop(); });
 
 
