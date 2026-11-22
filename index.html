@@ -25,7 +25,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- IMPORTANT: Add Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link rel="stylesheet" href="styles.css?v=76">
+    <link rel="stylesheet" href="styles.css?v=77">
     <style>
                 /* ── New Landing Page: Two-column split ── */
         :root {
@@ -2593,6 +2593,41 @@
                 <!-- WIZARD STEP 2 — Preview + Details          -->
                 <!-- ══════════════════════════════════════════ -->
                 <div id="wStep2" class="wizard-step step-hidden">
+                    <!-- ADD v4 (Nov 2026, Wise-style hierarchy): hero, labelled note, detail rows -->
+                    <div class="add3-hero">
+                        <div class="add3-thumb" id="add3Thumb"></div>
+                        <div class="add3-hero-main" id="add3HeroMain"><p class="add3-sub" id="add3Sub"></p></div>
+                    </div>
+                    <p class="add3-label" id="add3NoteLabel">Why would you send a friend here?</p>
+                    <div id="add3NoteSlot"></div>
+                    <p class="add3-details-h">Details <span>· optional</span></p>
+                    <div class="add3-rows">
+                        <button type="button" class="add3-row" data-row="photo" onclick="add3Row('photo')">
+                            <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+                            <span class="add3-row-text"><span class="add3-row-title">Photos</span><span class="add3-row-val" id="add3Val_photo"></span></span>
+                            <svg class="add3-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="add3-panel hidden" id="add3Panel_photo"></div>
+                        <button type="button" class="add3-row" data-row="where" onclick="add3Row('where')">
+                            <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                            <span class="add3-row-text"><span class="add3-row-title">Where</span><span class="add3-row-val" id="add3Val_where"></span></span>
+                            <svg class="add3-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="add3-panel hidden" id="add3Panel_where"></div>
+                        <button type="button" class="add3-row" data-row="link" onclick="add3Row('link')">
+                            <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
+                            <span class="add3-row-text"><span class="add3-row-title">Link</span><span class="add3-row-val" id="add3Val_link"></span></span>
+                            <svg class="add3-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                        <div class="add3-panel hidden" id="add3Panel_link"></div>
+                        <button type="button" class="add3-row" data-row="who" onclick="add3Row('who')">
+                            <span class="add3-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                            <span class="add3-row-text"><span class="add3-row-title">Who can see it</span><span class="add3-row-val" id="add3Val_who"></span></span>
+                            <span class="add3-change">Change</span>
+                        </button>
+                        <div class="add3-panel hidden" id="add3Panel_who"></div>
+                    </div>
+
                     <!-- Sub-step 2a: Title — HIDDEN (1a). Backend resolves title; element kept
                          so link auto-fill / auto-grow logic that writes to #title still works. -->
                     <div class="form-group form-group-title" id="subTitle" style="display:none">
@@ -2831,10 +2866,9 @@
                         <input type="hidden" id="addedBy" value="">
 
                         <button type="submit" form="addForm" class="submit-btn not-ready" id="submitBtn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                            Save
+                            Add to your circle
                         </button>
-                        <p class="save-helper" id="saveHelper">Add a name and note to save</p>
+                        <p class="save-helper" id="saveHelper">Add a name and a few words to continue</p>
                     </div>
 
                 </div><!-- /wStep2 -->
@@ -6534,6 +6568,139 @@
             if (ov) document.body.appendChild(ov);
             window.startTakePlaceholder();
         });
+        // ===== ADD PAGE v4 (Nov 2026): Wise-style hierarchy =====
+        // Hero (thumbnail + name) -> labelled note -> quiet "Details" rows.
+        // Existing fields are MOVED into this structure, so all the code that
+        // works with them (link preview, photos, Here, sharing) keeps working.
+        var _add3Prev = {};
+        function _add3Panel(k) { return document.getElementById('add3Panel_' + k); }
+        function _add3Kind(k) { return k === 'where' ? 'location' : k; }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var mv = function(id, dest) {
+                var el = document.getElementById(id), d = document.getElementById(dest);
+                if (el && d) d.appendChild(el);
+            };
+            var hero = document.getElementById('add3HeroMain');
+            var name = document.getElementById('subPlaceName');
+            if (hero && name) hero.insertBefore(name, document.getElementById('add3Sub'));
+            mv('subNote', 'add3NoteSlot');
+            ['photoPickZone', 'subPhoto'].forEach(function(id) { mv(id, 'add3Panel_photo'); });
+            ['placeCard', 'photoPlaceChips', 'subAddress'].forEach(function(id) { mv(id, 'add3Panel_where'); });
+            ['urlHeroBar', 'ogLoading', 'ogPreviewCard'].forEach(function(id) { mv(id, 'add3Panel_link'); });
+            var vis = document.querySelector('.visibility-group');
+            var who = _add3Panel('who');
+            if (vis && who) who.appendChild(vis);
+            // The address box's "home" is now the Where panel.
+            var subA = document.getElementById('subAddress');
+            if (subA) window._odinAddrHome = { parent: subA.parentNode, next: subA.nextSibling };
+            var note = document.getElementById('personalNote');
+            if (note) note.setAttribute('aria-labelledby', 'add3NoteLabel');
+            setInterval(add3Refresh, 400);
+        });
+
+        // Tap a row: open/close its panel. Opening Photos/Where/Link also switches
+        // on the existing picker for it; closing just folds it away (keeps values).
+        function add3Row(k) {
+            var p = _add3Panel(k);
+            if (!p) return;
+            var opening = p.classList.contains('hidden');
+            p.classList.toggle('hidden', !opening);
+            document.querySelector('.add3-row[data-row="' + k + '"]').classList.toggle('open', opening);
+            if (k === 'who' || !opening) return;
+            var kind = _add3Kind(k);
+            var btn = document.querySelector('.enrich-btn[data-enrich="' + kind + '"]');
+            if (btn && !btn.classList.contains('active') && !btn.classList.contains('add2-has-place') && typeof window.toggleEnrich === 'function') {
+                window.toggleEnrich(kind);
+            }
+            if (typeof logEvent === 'function') logEvent('add_detail_open', { row: k });
+        }
+        function _add3Open(k, open) {
+            var p = _add3Panel(k); if (!p) return;
+            p.classList.toggle('hidden', !open);
+            var r = document.querySelector('.add3-row[data-row="' + k + '"]');
+            if (r) r.classList.toggle('open', open);
+        }
+
+        // Keep row values, the hero thumbnail and the summary line up to date.
+        function add3Refresh() {
+            if (!document.body.classList.contains('add2-open')) return;
+            var val = function(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; };
+            var setV = function(k, text, filled) {
+                var el = document.getElementById('add3Val_' + k);
+                if (!el) return;
+                if (el.textContent !== text) el.textContent = text;
+                el.classList.toggle('filled', !!filled);
+            };
+            // Photos
+            var imgs = document.querySelectorAll('#photoThumbStrip img');
+            var nPhotos = imgs.length;
+            if (!nPhotos) { var pv = document.querySelector('#subPhotoPreview img'); if (pv && pv.getAttribute('src') && document.getElementById('subPhotoPreview').style.display !== 'none') nPhotos = 1; }
+            var ogSrc = (typeof _photoSource !== 'undefined' && _photoSource === 'og');
+            setV('photo', nPhotos && !ogSrc ? (nPhotos + (nPhotos === 1 ? ' photo added' : ' photos added')) : 'Take one or pick from your gallery', nPhotos && !ogSrc);
+            // Where
+            var placeCard = document.getElementById('placeCard');
+            var placeName = (placeCard && !placeCard.classList.contains('hidden')) ? document.getElementById('placeCardName').textContent : '';
+            var addr = val('address');
+            setV('where', placeName || addr || 'Add a place', !!(placeName || addr));
+            // Link
+            var url = val('url'), host = '';
+            if (url) { try { host = new URL(/^https?:/i.test(url) ? url : 'https://' + url).hostname.replace(/^www\./, ''); } catch (e) { host = url; } }
+            setV('link', host || 'Website, Instagram or Google Maps', !!host);
+            // Who
+            var act = document.querySelector('#visSelector .vis-option.active');
+            setV('who', act && act.getAttribute('data-value') === 'private' ? 'Only me' : 'Friends', true);
+
+            // Auto-open a panel when something switches its picker on (from the
+            // + menu, a link preview, or the "Where was this?" chips appearing).
+            ['photo', 'where', 'link'].forEach(function(k) {
+                var btn = document.querySelector('.enrich-btn[data-enrich="' + _add3Kind(k) + '"]');
+                var on = !!(btn && btn.classList.contains('active'));
+                if (on && !_add3Prev[k]) _add3Open(k, true);
+                _add3Prev[k] = on;
+            });
+            var chips = document.getElementById('photoPlaceChips');
+            var chipsOn = !!(chips && !chips.classList.contains('hidden'));
+            if (chipsOn && !_add3Prev.chips) _add3Open('where', true);
+            _add3Prev.chips = chipsOn;
+
+            // Hero thumbnail: first photo, else link picture, else a place pin.
+            var thumb = document.getElementById('add3Thumb');
+            if (thumb) {
+                var src = '';
+                if (imgs.length) src = imgs[0].getAttribute('src') || '';
+                if (!src) { var pv2 = document.querySelector('#subPhotoPreview img'); if (pv2 && document.getElementById('subPhotoPreview').style.display !== 'none') src = pv2.getAttribute('src') || ''; }
+                if (!src) { var og = document.getElementById('ogPreviewImg'); var oc = document.getElementById('ogPreviewCard'); if (og && oc && !oc.classList.contains('hidden')) src = og.getAttribute('src') || ''; }
+                var mode = src ? 'img' : ((placeName || addr) ? 'pin' : 'empty');
+                var key = mode + '|' + src;
+                if (thumb.getAttribute('data-k') !== key) {
+                    thumb.setAttribute('data-k', key);
+                    thumb.className = 'add3-thumb add3-thumb--' + mode;
+                    thumb.innerHTML = mode === 'img' ? '<img alt="" src="' + src.replace(/"/g, '&quot;') + '">'
+                        : (mode === 'pin' ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+                        : '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>');
+                }
+            }
+            // Summary under the name: what's attached so far.
+            var bits = [];
+            if (nPhotos && !ogSrc) bits.push(nPhotos + (nPhotos === 1 ? ' photo' : ' photos'));
+            if (host) bits.push(host);
+            if (placeName || addr) bits.push((placeName || addr).split(',')[0]);
+            var sub = document.getElementById('add3Sub');
+            var subText = bits.join(' · ');
+            if (sub && sub.textContent !== subText) sub.textContent = subText;
+        }
+
+        // Fresh start also folds every panel away.
+        (function() {
+            var origFresh = window.odinFreshAdd;
+            window.odinFreshAdd = function() {
+                if (typeof origFresh === 'function') origFresh.apply(this, arguments);
+                ['photo', 'where', 'link', 'who'].forEach(function(k) { _add3Open(k, false); });
+                _add3Prev = {};
+            };
+        })();
+
         // ── New-user line: shown only when the user has no real friends yet
         //    (the auto-added Founding Members account doesn't count). ──
         function home2UpdateInvite() {
