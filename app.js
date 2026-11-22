@@ -8564,11 +8564,8 @@ function _revealPrivacyStep() {
     const takeVal = document.getElementById('personalNote').value.trim();
     if (!takeVal) return; // need at least something
     _privacyRevealed = true;
-    // Show address if category is place or service
-    const cat = document.getElementById('category').value;
-    if (cat === 'place' || cat === 'service') {
-        _revealSubStep('subAddress');
-    }
+    // Nov 2026: the address area no longer pops up on its own. Location is
+    // added via the pin icon, "Here", or the "Where was this?" chips.
     _revealSubStep('subPhoto');
     _revealSubStep('subPrivacy');
     updateAddStep(4);

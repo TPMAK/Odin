@@ -13022,3 +13022,22 @@ body.add2-open .add2-footer { display: block; }
     border-radius: 14px !important;
     background: var(--surface) !important;
 }
+/* Saving / Saved screen: fully covers the page (incl. the pinned Save bar) */
+body > .save-success-overlay { background: var(--bg) !important; z-index: 1300 !important; }
+/* Friends / Only me: back to the original full-width look (Friends still the default) */
+body .add2-footer .add2-share { display: block !important; margin-bottom: 8px !important; }
+body .add2-footer .add2-share-label { display: none !important; }
+body .add2-footer .vis-selector { display: flex !important; width: 100% !important; }
+body .add2-footer .vis-option {
+    flex: 1 1 0 !important;
+    justify-content: center;
+    padding: 10px 12px !important;
+    font-size: 15px !important;
+    order: 0 !important;
+}
+body .add2-footer .vis-hint {
+    display: block !important;
+    font-size: 12px !important;
+    margin: 6px 2px 10px !important;
+    color: var(--muted);
+}
