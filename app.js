@@ -8178,10 +8178,10 @@ function selectVisibility(el) {
     if (visField) visField.value = val;
     if (hint) {
         if (val === 'private') {
-            hint.textContent = 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.';
+            hint.textContent = 'Only you can see this.';
             hint.classList.remove('vis-hint--friends');
         } else {
-            hint.textContent = 'Your friends can save this — and their circle will see it was saved, but not who added it. Your knowledge travels further, anonymously.';
+            hint.textContent = 'Your friends can find this.';
             hint.classList.add('vis-hint--friends');
         }
     }
@@ -8289,12 +8289,8 @@ function clearCaptureForm() {
     if (heroHint) heroHint.style.display = 'flex';
     // Reset visibility selector to private (default)
     document.querySelectorAll('.vis-option').forEach(o => o.classList.remove('active'));
-    const defaultVis = document.querySelector('.vis-option[data-value="private"]');
-    if (defaultVis) defaultVis.classList.add('active');
-    const privInput = document.getElementById('privateToggle');
-    const visField  = document.getElementById('visibilityValue');
-    if (privInput) privInput.value = 'true';
-    if (visField)  visField.value  = 'private';
+    const defaultVis = document.querySelector('.vis-option[data-value="friends"]');
+    if (defaultVis) selectVisibility(defaultVis);   // Nov 2026: Friends is the default
     // Reset address field visibility
     const addressGroup = document.querySelector('.address-group');
     if (addressGroup) addressGroup.style.display = '';
@@ -8373,42 +8369,7 @@ var selectEntryChip = function(chip) {
     if (chip === 'link') {
         const urlInput = document.getElementById('url');
         if (urlInput) setTimeout(() => urlInput.focus(), 50);
-        var _iosDevice = /iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-        var pasteBtn = document.getElementById('iosPasteBtn');
-        if (_iosDevice) {
-            if (pasteBtn) {
-                pasteBtn.classList.remove('hidden');
-                pasteBtn.onclick = function() {
-                    if (!navigator.clipboard || !navigator.clipboard.readText) return;
-                    navigator.clipboard.readText()
-                        .then(function(text) {
-                            if (!text) return;
-                            var trimmed = text.trim();
-                            if (!urlInput) return;
-                            urlInput.value = trimmed;
-                            urlInput.focus();
-                            pasteBtn.classList.add('hidden');
-                            if (/^https?:\/\//i.test(trimmed)) {
-                                _lastOGFetchedUrl = trimmed;
-                                fetchAndPrefillOG(trimmed);
-                            }
-                        })
-                        .catch(function() {});
-                };
-            }
-        } else {
-            if (pasteBtn) pasteBtn.classList.add('hidden');
-            if (urlInput && !urlInput.value && navigator.clipboard && navigator.clipboard.readText) {
-                navigator.clipboard.readText()
-                    .then(function(text) {
-                        if (!text) return;
-                        var trimmed = text.trim();
-                        if (!/^https?:\/\//i.test(trimmed)) return;
-                        _showClipBanner(trimmed);
-                    })
-                    .catch(function() {});
-            }
-        }
+        // (Nov 2026) No automatic clipboard reads here; the Paste button does it on tap.
     } else if (chip === 'here') {
         prefillCaptureLocation();
     }
@@ -8485,6 +8446,10 @@ function _showClipBanner(trimmed) {
 }
 
 function _checkClipboardForUrl() {
+    // Nov 2026: disabled. iPhone asks permission on every clipboard read, so
+    // automatic link detection always misfired. Links now come in only when the
+    // user pastes them (Home bar, or the Paste button on the link field).
+    return;
     // iOS always shows a system "Paste" confirmation banner for any clipboard read.
     // Skip readText() on iOS — the document-level paste listener handles it instead.
     if (/iP(hone|ad|od)/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)) return;
@@ -8785,6 +8750,7 @@ function renderNearbyPicker(places) {
             if (typeof window._odinUpdateSaveGate === 'function') window._odinUpdateSaveGate();
             picker.classList.add('hidden');
             picker.innerHTML = '';
+            if (typeof window.odinShowPlaceCard === 'function') window.odinShowPlaceCard(place);
         });
     });
 
@@ -8968,6 +8934,15 @@ function attachAddressAutocomplete(opts) {
 // Returns a trimmed, single-line string capped at 120 chars, or null if empty.
 // May 2026
 // ──────────────────────────────────────────────────────────
+function _odinDecodeEntities(str) {
+    if (!str || typeof str !== 'string' || str.indexOf('&') < 0) return str;
+    try {
+        const t = document.createElement('textarea');
+        t.innerHTML = str;
+        return t.value;
+    } catch (e) { return str; }
+}
+
 function _cleanOGTitleForName(ogTitle) {
     if (!ogTitle || typeof ogTitle !== 'string') return null;
     let s = ogTitle.trim();
@@ -9060,6 +9035,10 @@ async function fetchAndPrefillOG(url) {
         if (_isLoginWallJunk) {
             og = {};
         }
+
+        // Decode HTML entities from the page ("&amp;" -> "&").
+        if (og && og.title) og.title = _odinDecodeEntities(og.title);
+        if (og && og.description) og.description = _odinDecodeEntities(og.description);
 
         // Fill form fields if empty
         const didFillTitle = !!(og.title && titleField && !titleField.value.trim());
@@ -9190,8 +9169,8 @@ async function fetchAndPrefillOG(url) {
             if (ogDesc) {
                 // Show rating inline if available from Google Places
                 let descText = og.description || '';
-                if (og.rating && !descText.includes('⭐')) {
-                    descText = `⭐ ${og.rating}` + (og.rating_count ? ` (${og.rating_count} reviews)` : '') + (descText ? ' · ' + descText : '');
+                if (og.rating) {
+                    descText = `Rated ${og.rating}` + (og.rating_count ? ` (${og.rating_count} reviews)` : '') + (descText ? ' · ' + descText : '');
                 }
                 ogDesc.textContent = descText;
             }
@@ -9203,6 +9182,9 @@ async function fetchAndPrefillOG(url) {
                 }
             }
             ogCard.classList.remove('hidden');
+            // The card shows the link, so the link field can step aside.
+            const _ub = document.getElementById('urlHeroBar');
+            if (_ub) _ub.classList.add('hidden');
         }
 
         // Hide loading
@@ -9255,11 +9237,20 @@ async function fetchAndPrefillOG(url) {
     }
 }
 
-function clearOGPreview() {
+function clearOGPreview(userRemovedLink) {
     const ogCard = document.getElementById('ogPreviewCard');
     const heroHint = document.getElementById('urlHeroHint');
     if (ogCard) ogCard.classList.add('hidden');
     if (heroHint) heroHint.style.display = 'flex';
+    if (userRemovedLink) {
+        // × on the card = remove this link (and its picture), offer a fresh link field.
+        const u = document.getElementById('url');
+        if (u) u.value = '';
+        _lastOGFetchedUrl = '';
+        if (_photoSource === 'og') removeUnifiedPhoto();
+        const ub = document.getElementById('urlHeroBar');
+        if (ub) ub.classList.remove('hidden');
+    }
 }
 
 // ===== PHOTO: OG image preload & controls =====
@@ -9279,6 +9270,9 @@ function preloadOGPhoto(imageUrl) {
     if (preview) preview.style.display = 'flex';
     if (empty) empty.style.display = 'none';
     if (badge) badge.textContent = 'From link';
+    // The link card already shows this picture; don't show it a second time.
+    const _sp = document.getElementById('subPhoto');
+    if (_sp) _sp.classList.add('add2-og-photo');
     // Reveal the subPhoto sub-step (it may be hidden if OG fetch ran before _revealPrivacyStep)
     _revealSubStep('subPhoto');
     if (ogUrlField) ogUrlField.value = imageUrl;
@@ -9303,6 +9297,8 @@ function removeUnifiedPhoto() {
     if (photoGallery) photoGallery.value = '';
     if (photoCamera) photoCamera.value = '';
     _photoSource = 'none';
+    const _sp = document.getElementById('subPhoto');
+    if (_sp) _sp.classList.remove('add2-og-photo');
     // Also clear multi-photo state
     if (typeof _resetSelectedPhotos === 'function') _resetSelectedPhotos();
 }
@@ -9324,8 +9320,9 @@ document.addEventListener('DOMContentLoaded', () => {
         var text = (e.clipboardData || window.clipboardData || '').getData('text');
         if (!text) return;
         var trimmed = text.trim();
-        if (!/^https?:\/\//i.test(trimmed)) return;
-        _showClipBanner(trimmed);
+        // Nov 2026: no "Found a link" banner. Pasting straight into the link
+        // field is handled by that field's own listener.
+        return;
     });
 
     const urlInput = document.getElementById('url');
@@ -9501,6 +9498,8 @@ function _handlePhotoChange(e) {
     // First photo: clear any OG image (user choice overrides OG fallback)
     if (_selectedPhotos.length >= 1) {
         _photoSource = 'user';
+        { const _sp = document.getElementById('subPhoto'); if (_sp) _sp.classList.remove('add2-og-photo'); }
+        if (typeof window.odinSuggestPlacesForPhoto === 'function') window.odinSuggestPlacesForPhoto();
         const ogUrlField = document.getElementById('ogImageUrl');
         if (ogUrlField) ogUrlField.value = '';
     }
@@ -11080,6 +11079,10 @@ function dismissEmptyFriends() {
             addedBy: currentProfile?.display_name || currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || 'User',
             visibility: visibilityVal === 'private' ? 'only_me' : visibilityVal,
             place_name: document.getElementById('placeName')?.value?.trim() || null,
+            // Exact pin of a place picked from "Here" / nearby chips (n8n prefers these over geocoding)
+            place_id: document.getElementById('placeId')?.value || null,
+            latitude: document.getElementById('placeLat')?.value ? parseFloat(document.getElementById('placeLat').value) : null,
+            longitude: document.getElementById('placeLng')?.value ? parseFloat(document.getElementById('placeLng').value) : null,
             language: (currentProfile?.language || 'en')
             // INTENTIONALLY OMITTED: title, type — backend Resolve Title & Type node handles both
         };
@@ -11094,7 +11097,7 @@ function dismissEmptyFriends() {
         const t0 = Date.now();
         if (typeof logEvent === 'function') logEvent('capture_submit', { mode: mode, photos: photosBase64.length, note_chars: note.length, visibility: payload.visibility });
 
-        let ok = false, failMsg = '';
+        let ok = false, failMsg = '', savedId = null;
         try {
             const ctrl = window.AbortController ? new AbortController() : null;
             const to = setTimeout(() => { if (ctrl) ctrl.abort(); }, 45000);
@@ -11114,6 +11117,7 @@ function dismissEmptyFriends() {
                 try {
                     const data = await resp.json();
                     if (data && data.success === false) { ok = false; failMsg = "Couldn't save. Your text is still here, so try again."; }
+                    if (data && data.id) savedId = data.id;
                 } catch (_) { /* non-JSON but HTTP OK = saved */ }
             }
         } catch (err) {
@@ -11135,7 +11139,7 @@ function dismissEmptyFriends() {
         }
 
         if (typeof logEvent === 'function') logEvent('capture_saved', { ms: Date.now() - t0, mode: mode });
-        _odinSaveOverlay('saved', 'Here is how your circle will see it');
+        _odinSaveOverlay('saved', payload.visibility === 'only_me' ? 'Saved for you only' : 'Shared with your friends');
 
         // Find the item we just saved (the webhook doesn't return its id).
         let savedItem = null;
@@ -11146,7 +11150,7 @@ function dismissEmptyFriends() {
                 d && d.added_by === currentUser.id && d.created_at &&
                 new Date(String(d.created_at).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(d.created_at)) ? '' : 'Z')).getTime() >= since);
             mine.sort((x, y) => String(y.created_at).localeCompare(String(x.created_at)));
-            savedItem = mine[0] || null;
+            savedItem = (savedId && (allDiscoveries || []).find(d => d && d.id === savedId)) || mine[0] || null;
         } catch (e) { console.warn('Could not load the saved item:', e); }
 
         _odinResetAddForm();
@@ -11189,20 +11193,13 @@ function dismissEmptyFriends() {
         const fm = document.getElementById('formMessage');
         if (fm) fm.innerHTML = '';
         try {
-            document.querySelectorAll('#visSelector .vis-option').forEach(o => o.classList.remove('active'));
-            const _defVis = document.querySelector('#visSelector .vis-option[data-value="private"]');
-            if (_defVis) _defVis.classList.add('active');
-            const _vh = document.getElementById('visHint');
-            if (_vh) {
-                _vh.textContent = 'Saved privately — only you can see this. Change to Friends when you\'re ready to share.';
-                _vh.classList.remove('vis-hint--friends');
-            }
-            const _pt = document.getElementById('privateToggle'); if (_pt) _pt.value = 'true';
-            const _vv = document.getElementById('visibilityValue'); if (_vv) _vv.value = 'private';
+            const _defVis = document.querySelector('#visSelector .vis-option[data-value="friends"]');
+            if (_defVis) selectVisibility(_defVis);   // Friends is the default
             ['placeId','placeLat','placeLng','userLat','userLng','address'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
             if (typeof window._odinUpdateSaveGate === 'function') window._odinUpdateSaveGate();
         } catch (_) {}
         _captureMode = null;
+        try { if (typeof window.odinClearPlace === 'function') window.odinClearPlace(true); } catch(_) {}
         try { localStorage.removeItem('odin_entry_chip'); } catch(_) {}
         try { _hideLocReveal(); } catch(_) {}
         try { _hideGeoChip(); } catch(_) {}
