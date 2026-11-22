@@ -13013,3 +13013,12 @@ body.add2-open .add2-footer { display: block; }
 }
 .add2-discard-keep { background: var(--wb); color: #fff; border: none; margin-bottom: 8px; }
 .add2-discard-go { background: transparent; color: #A32D2D; border: none; }
+/* Add v3 nits: calm photo count line, lighter address area */
+#photoCountHint, #photoCountHint * { text-transform: none !important; letter-spacing: 0 !important; }
+#photoCountHint { font-size: 13px; margin: 6px 0 14px; }
+#subAddress .field-label-inline { display: none !important; }
+#subAddress { margin-bottom: 14px; }
+#subAddress #address {
+    border-radius: 14px !important;
+    background: var(--surface) !important;
+}

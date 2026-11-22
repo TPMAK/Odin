@@ -8248,6 +8248,10 @@ let _namePlaceholderIdx = 0;
 function startNamePlaceholder() {
     const input = document.getElementById('placeName');
     if (!input) return;
+    // Nov 2026: one calm placeholder (no rotating examples).
+    if (_namePlaceholderTimer) clearInterval(_namePlaceholderTimer);
+    input.placeholder = 'What is it?';
+    return;
     if (_namePlaceholderTimer) clearInterval(_namePlaceholderTimer);
     input.placeholder = NAME_PLACEHOLDERS[_namePlaceholderIdx % NAME_PLACEHOLDERS.length];
     _namePlaceholderTimer = setInterval(() => {
@@ -11142,23 +11146,41 @@ function dismissEmptyFriends() {
         if (typeof logEvent === 'function') logEvent('capture_saved', { ms: Date.now() - t0, mode: mode });
         _odinSaveOverlay('saved', payload.visibility === 'only_me' ? 'Saved for you only' : 'Shared with your friends');
 
-        // Find the item we just saved (the webhook doesn't return its id).
+        // Open the card we just saved. Fetch only that one item by the id the
+        // capture webhook returns (re-downloading the whole feed took ~6s), then
+        // refresh the feed quietly in the background.
         let savedItem = null;
         try {
-            if (typeof loadDiscoveries === 'function') await loadDiscoveries();
-            const since = t0 - 2 * 60 * 1000;
-            const mine = (allDiscoveries || []).filter(d =>
-                d && d.added_by === currentUser.id && d.created_at &&
-                new Date(String(d.created_at).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(d.created_at)) ? '' : 'Z')).getTime() >= since);
-            mine.sort((x, y) => String(y.created_at).localeCompare(String(x.created_at)));
-            savedItem = (savedId && (allDiscoveries || []).find(d => d && d.id === savedId)) || mine[0] || null;
+            if (savedId) {
+                const { data: row } = await supabaseClient
+                    .from('knowledge_items')
+                    .select('id,title,description,personal_note,place_name,type,theme,address,latitude,longitude,URL,added_by,added_by_name,photo_url,photo_urls,visibility,feed_card_summary,keywords,metadata,created_at,saves_count')
+                    .eq('id', savedId)
+                    .maybeSingle();
+                if (row) { row._trust_level = (typeof TRUST !== 'undefined' && TRUST.OWN) ? TRUST.OWN : 'own'; savedItem = row; }
+            }
         } catch (e) { console.warn('Could not load the saved item:', e); }
+        if (!savedItem) {
+            // Fallback: the old way (newest own item from a feed reload).
+            try {
+                if (typeof loadDiscoveries === 'function') await loadDiscoveries();
+                const since = t0 - 2 * 60 * 1000;
+                const mine = (allDiscoveries || []).filter(d =>
+                    d && d.added_by === currentUser.id && d.created_at &&
+                    new Date(String(d.created_at).replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(d.created_at)) ? '' : 'Z')).getTime() >= since);
+                mine.sort((x, y) => String(y.created_at).localeCompare(String(x.created_at)));
+                savedItem = mine[0] || null;
+            } catch (e) { console.warn('Fallback load failed:', e); }
+        } else if (typeof loadDiscoveries === 'function') {
+            setTimeout(() => { try { loadDiscoveries(); } catch (_) {} }, 1500);
+        }
 
         _odinResetAddForm();
         if (btn) btn.classList.remove('saving');
 
         setTimeout(() => {
             _odinSaveOverlay('hide');
+            window._odinSkipDiscard = true;
             try { setMode('home'); } catch (_) {}
             if (savedItem && typeof openItemDrawer === 'function') {
                 openItemDrawer(savedItem);
