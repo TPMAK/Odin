@@ -13491,3 +13491,11 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .drawer3-row > span:first-of-type { flex: 1; min-width: 0; }
 .drawer3-muted { color: var(--muted); }
 .drawer3-change { color: var(--wb); font-weight: 500; font-size: 13.5px; flex: none; }
+/* Drawer v3: show the whole photo inside a soft frame (no cropping) */
+.drawer3-photos { border: 1px solid var(--border); background: #EFE8DF; }
+.drawer3-photos-1 { padding: 8px; }
+.drawer3-ph-one { background: transparent; display: flex; justify-content: center; align-items: center; border-radius: 10px; }
+.drawer3-ph-one img {
+    width: auto; max-width: 100%; height: auto; min-height: 0; max-height: 440px;
+    object-fit: contain; border-radius: 10px;
+}
