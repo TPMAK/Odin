@@ -12928,3 +12928,88 @@ body.home2-menu-open .home2-dock { z-index: 1102; }
 .add2-footer .vis-hint, .add2-footer .save-helper { display: none !important; }
 .add2-footer .submit-btn { width: 100%; margin: 0 !important; }
 body.keyboard-open .add2-footer { bottom: 0; }
+
+/* ===== ADD PAGE v3 (Nov 2026): calm, Home-page style ===== */
+.add2-header { justify-content: center; position: relative; min-height: 40px; }
+.add2-back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); margin-left: -6px; }
+.add2-title { font-size: 22px !important; }
+/* Name reads like a title, no box */
+#subPlaceName label { display: none !important; }
+.add2-name-input {
+    border: none !important;
+    border-bottom: 1px solid #E6DFD3 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 6px 0 8px !important;
+    font: 24px/1.25 'DM Serif Display', Georgia, serif !important;
+    color: var(--ink) !important;
+}
+.add2-name-input::placeholder { color: #C2B9AC; }
+.add2-name-input:focus { border-bottom-color: var(--wb) !important; outline: none; }
+/* The word: one white card with the tools inside */
+#subNote label, #subNote .take-sublabel { display: none !important; }
+#subNote .form-group-take {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 12px 12px 10px;
+    box-shadow: 0 1px 6px rgba(42, 30, 20, 0.05);
+}
+#personalNote {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    min-height: 110px;
+    padding: 4px 4px !important;
+    font: 16px/1.5 'DM Sans', sans-serif !important;
+    resize: none;
+}
+#personalNote:focus { outline: none; }
+.add2-note-tools { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.add2-note-tools .enrich-row { display: flex; gap: 6px; margin: 0 !important; flex: 0 0 auto; }
+.add2-note-tools .enrich-btn {
+    width: 38px !important; height: 38px !important; min-width: 0 !important;
+    padding: 0 !important; border-radius: 50% !important;
+    border: none !important; background: #F1EDE6 !important; color: var(--ink) !important;
+    font-size: 0 !important; gap: 0 !important;
+    display: inline-flex !important; align-items: center; justify-content: center;
+}
+.add2-note-tools .enrich-btn svg { width: 18px; height: 18px; }
+.add2-note-tools .enrich-btn.active { background: #F4EBEE !important; color: var(--wb) !important; }
+/* Mic sits at the right end of the tools row, round like Home */
+.add2-note-tools .note-voice { margin: 0 0 0 auto; flex-wrap: nowrap; gap: 8px; }
+.add2-note-tools .note-mic { width: 40px; height: 40px; padding: 0 !important; border-radius: 50%; justify-content: center; background: var(--wb); color: #fff; border: none; order: 3; }
+.add2-note-tools .note-mic-label { display: none !important; }
+.add2-note-tools .note-voice-state { order: 1; font-size: 12px; }
+.add2-note-tools .note-cancel { order: 2; margin-left: 0 !important; }
+.note-voice.listening .note-mic { padding: 0 !important; }
+/* While recording, hide the photo/link/location icons to give the status room */
+.add2-note-tools:has(.note-voice.listening) .enrich-row { display: none; }
+/* Old photo pickers: one row only */
+#subPhotoEmpty { display: none !important; }
+#photoPickZone { margin-bottom: 14px; }
+#wStep2 > * + * { margin-top: 0; }
+#subPlaceName, #subNote { margin-bottom: 16px; }
+/* Pinned footer now lives on <body>: only show it on the Add page */
+.add2-footer { display: none; }
+body.add2-open .add2-footer { display: block; }
+.add2-footer .vis-option { white-space: nowrap; flex: 0 0 auto !important; }
+.add2-footer .vis-selector { gap: 4px; }
+/* Discard dialog */
+.add2-discard {
+    position: fixed; inset: 0; z-index: 1200;
+    background: rgba(42, 30, 20, 0.35);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.add2-discard.hidden { display: none !important; }
+.add2-discard-card {
+    background: var(--surface); border-radius: 18px; padding: 20px 18px 14px;
+    width: 100%; max-width: 320px; text-align: center;
+}
+.add2-discard-title { font: 500 17px 'DM Sans', sans-serif; color: var(--ink); margin: 0 0 6px !important; }
+.add2-discard-body { font-size: 14px; color: var(--muted); margin: 0 0 16px !important; }
+.add2-discard-keep, .add2-discard-go {
+    width: 100%; border-radius: 22px; padding: 11px; font: 500 15px 'DM Sans', sans-serif; cursor: pointer;
+}
+.add2-discard-keep { background: var(--wb); color: #fff; border: none; margin-bottom: 8px; }
+.add2-discard-go { background: transparent; color: #A32D2D; border: none; }

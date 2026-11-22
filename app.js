@@ -9500,6 +9500,7 @@ function _handlePhotoChange(e) {
         _photoSource = 'user';
         { const _sp = document.getElementById('subPhoto'); if (_sp) _sp.classList.remove('add2-og-photo'); }
         if (typeof window.odinSuggestPlacesForPhoto === 'function') window.odinSuggestPlacesForPhoto();
+        { const _pz = document.getElementById('photoPickZone'); if (_pz) _pz.classList.add('hidden'); }
         const ogUrlField = document.getElementById('ogImageUrl');
         if (ogUrlField) ogUrlField.value = '';
     }
@@ -11181,6 +11182,7 @@ function dismissEmptyFriends() {
     }
 
     // Clear the Add form after a confirmed save (moved here so it only runs on success).
+    window._odinResetAddForm = function() { _odinResetAddForm(); };
     function _odinResetAddForm() {
         const addForm = document.getElementById('addForm');
         if (addForm) addForm.reset();
