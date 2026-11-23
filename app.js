@@ -3185,7 +3185,12 @@ let searchSelectedIds = new Set();
 let _lpTimer = null; // long-press timer
 
 // ===== APP CONFIGURATION =====
-const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
+// Staging uses the test copy of the search workflow (faster reply step);
+// production keeps the live one. Swap staging back by deleting the ternary.
+const SEARCH_WEBHOOK = (location.hostname.indexOf('staging.') === 0)
+    ? 'https://stanmak.app.n8n.cloud/webhook/search123-test'
+    : 'https://stanmak.app.n8n.cloud/webhook/search123';
+const SEARCH_TIMEOUT_MS = 55000;
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture'; 
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
 const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
@@ -7306,12 +7311,22 @@ async function sendMessage(text, displayLabel) {
         user_longitude: userLocation.longitude ?? null,
     };
 
+    // Stop waiting ourselves at 55s so we can show a clear "taking too long"
+    // message. iOS Safari otherwise drops the request at ~60s with a vague error.
+    const searchAbort = new AbortController();
+    const searchTimer = setTimeout(() => searchAbort.abort(), SEARCH_TIMEOUT_MS);
+
     fetch(SEARCH_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: searchAbort.signal
     })
-    .then(r => r.json())
+    .then(r => {
+        clearTimeout(searchTimer);
+        if (!r.ok) throw new Error('Search HTTP ' + r.status);
+        return r.json();
+    })
     .then(async (rawData) => {
         // n8n sometimes wraps the response in an array — unwrap it
         const data = Array.isArray(rawData) ? rawData[0] : rawData;
@@ -7816,10 +7831,24 @@ async function sendMessage(text, displayLabel) {
         }
         container.scrollTop = container.scrollHeight;
     })
-    .catch(() => {
+    .catch((err) => {
+        clearTimeout(searchTimer);
+        console.error('[Search] failed:', err);
         stopSearchMessages();
-        document.getElementById('typing').remove();
-        container.innerHTML += `<div class="message message-assistant"><div class="message-content">Error searching</div></div>`;
+        const typingEl = document.getElementById('typing');
+        if (typingEl) typingEl.remove();
+        const timedOut = err && err.name === 'AbortError';
+        const msg = timedOut
+            ? 'This is taking longer than usual.'
+            : "Couldn't finish that search.";
+        const retryId = 'searchRetry_' + Date.now();
+        container.innerHTML += `<div class="message message-assistant"><div class="message-content">${msg} <button type="button" id="${retryId}" class="search-retry-btn">Try again</button></div></div>`;
+        const retryBtn = document.getElementById(retryId);
+        if (retryBtn) retryBtn.addEventListener('click', () => {
+            retryBtn.disabled = true;
+            sendMessage(query, displayLabel);
+        });
+        container.scrollTop = container.scrollHeight;
     });
 }
 

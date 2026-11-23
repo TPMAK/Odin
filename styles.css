@@ -13564,3 +13564,16 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
     visibility: visible;
     transition: opacity 0.3s, visibility 0s;
 }
+
+/* Search failure "Try again" button (Nov 2026) */
+.search-retry-btn {
+    margin-left: 6px;
+    padding: 4px 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border, #E3DCD0);
+    background: var(--surface, #fff);
+    color: #7B2D45;
+    font: 500 14px 'DM Sans', sans-serif;
+    cursor: pointer;
+}
+.search-retry-btn:disabled { opacity: 0.5; cursor: default; }
