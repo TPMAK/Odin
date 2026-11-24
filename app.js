@@ -7346,6 +7346,9 @@ async function sendMessage(text, displayLabel) {
             // Tag each item with which group it came from, so the renderer can place it.
             const topPickIds = new Set(v4TopPicks.map(r => r.id));
             currentResults.forEach(r => { r._isTopPick = topPickIds.has(r.id); });
+            // v4.8: backend sent groups but chose no Top picks (e.g. nothing saved for
+            // the place asked about). Respect that — don't promote the first results.
+            var v4NoTopPicks = Array.isArray(data.top_picks) && v4TopPicks.length === 0 && v4MoreOptions.length > 0;
             const queryLanguage = data.query_language || 'en';
 
             // Tag each result with the query language for translation toggle
@@ -7549,7 +7552,7 @@ async function sendMessage(text, displayLabel) {
                 // ── Good matches found — show normal results ──
                 // v4: if backend grouped into top_picks + more_options, respect that.
                 // Else fall back to the old "first 2 = top picks" heuristic.
-                const v4Grouped = currentResults.some(r => r._isTopPick);
+                const v4Grouped = v4NoTopPicks || currentResults.some(r => r._isTopPick);
                 const topPickItems = v4Grouped
                     ? currentResults.filter(r => r._isTopPick)
                     : currentResults.slice(0, currentResults.length === 1 ? 1 : 2);
@@ -7562,17 +7565,18 @@ async function sendMessage(text, displayLabel) {
                     : `Found ${currentResults.length} ${currentResults.length === 1 ? 'discovery' : 'discoveries'}:`;
                 let html = `<div class="message message-assistant"><div class="odin-response-box">${escapeHtml(headerText)}</div><div class="results-section">`;
 
-                html += `
-                    <div class="top-picks-section">
-                        <div class="results-header">
-                            <span class="results-header-title">Top Picks For You</span>
-                        </div>
-                `;
-
-                for (let i = 0; i < topPickItems.length; i++) {
-                    html += buildTopPick(topPickItems[i], i);
+                if (topPickItems.length > 0) {
+                    html += `
+                        <div class="top-picks-section">
+                            <div class="results-header">
+                                <span class="results-header-title">Top Picks For You</span>
+                            </div>
+                    `;
+                    for (let i = 0; i < topPickItems.length; i++) {
+                        html += buildTopPick(topPickItems[i], i);
+                    }
+                    html += '</div>';
                 }
-                html += '</div>';
 
                 const topPickCount = topPickItems.length;
                 if (moreResults.length > 0) {
@@ -7580,7 +7584,7 @@ async function sendMessage(text, displayLabel) {
                     html += `
                         <div class="more-options-section">
                             <div class="results-header">
-                                <span class="results-header-title">More Great Options</span>
+                                <span class="results-header-title">${topPickItems.length > 0 ? 'More Great Options' : 'Other Things Your Friends Saved'}</span>
                             </div>
                             <div class="more-options-wrapper">
                                 <button class="scroll-arrow scroll-arrow-left" onclick="scrollMoreOptions('${scrollId}',-1)" aria-label="Scroll left">
