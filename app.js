@@ -1724,14 +1724,29 @@ async function openListDetail(collectionId) {
     const actions =
         `<div class="lists-detail-actions">
             <button class="lists-action" onclick="startRenameList()">Rename</button>
-            <button class="lists-action lists-action--danger" onclick="confirmDeleteList()">Delete list</button>
             ${exportBtns}
         </div>`;
+    // Delete sits at the bottom, away from everyday actions (one wrong tap shouldn't lose a list).
+    const deleteRow = `<div class="lists-delete-row"><button class="lists-delete-link" onclick="confirmDeleteList()">Delete list</button></div>`;
 
     if (!items.length) {
-        body.innerHTML = actions + '<div class="lists-empty">This list is empty.<br>Add items from any item’s “Add to list”.</div>';
+        body.innerHTML = actions + '<div class="lists-empty">This list is empty.<br>Add items from any item’s “Add to list”.</div>' + deleteRow;
         return;
     }
+    // "Open in Google Maps" only when the list has places (address or pin).
+    const placeCount = items.filter(_isMapsPlace).length;
+    const mapsBar = placeCount
+        ? `<div class="lists-maps-wrap">
+            <button class="lists-maps-btn" id="listsMapsBtn" onclick="openListInGoogleMaps(this)">
+                <svg class="lists-maps-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+                <span class="lists-maps-text">
+                    <span class="lists-maps-title">Open ${placeCount} place${placeCount !== 1 ? 's' : ''} in Google Maps</span>
+                    <span class="lists-maps-sub">Save them there as a list for your trip</span>
+                </span>
+            </button>
+            <div class="lists-maps-note" id="listsMapsNote">Only place names go to Google. Notes and names stay in Odin.</div>
+        </div>`
+        : '';
     const rows = items.map((it, i) => {
         const photos = (typeof getItemPhotos === 'function') ? getItemPhotos(it) : [];
         const thumb = photos.length
@@ -1746,7 +1761,79 @@ async function openListDetail(collectionId) {
             <button class="lists-item-remove" onclick="handleRemoveFromList('${it.id}')" aria-label="Remove from list">&#x2715;</button>
         </div>`;
     }).join('');
-    body.innerHTML = actions + rows;
+    body.innerHTML = actions + mapsBar + rows + deleteRow;
+}
+
+// ── Open a list in Google Maps (Nov 2026) ──
+// Server (api/maps-list.js) reads the list with the user's own token (RLS), looks up
+// Google Place IDs from name + address only, and returns a Maps "shortlist" link.
+// Two taps on purpose: tap 1 builds the link, tap 2 is a real link tap, so iPhone
+// (incl. the home-screen app) never blocks it as a pop-up.
+function _isMapsPlace(it) {
+    const hasAddr = typeof it.address === 'string' && it.address.trim().length > 0;
+    return hasAddr || (it.latitude != null && it.longitude != null);
+}
+
+async function openListInGoogleMaps(btn) {
+    const note = document.getElementById('listsMapsNote');
+    const titleEl = btn ? btn.querySelector('.lists-maps-title') : null;
+    const subEl = btn ? btn.querySelector('.lists-maps-sub') : null;
+    const collectionId = _listsView.collectionId;
+    if (!btn || !collectionId || btn.dataset.busy === '1') return;
+    btn.dataset.busy = '1';
+    btn.classList.add('is-busy');
+    const oldTitle = titleEl ? titleEl.textContent : '';
+    if (titleEl) titleEl.textContent = 'Finding your places…';
+    if (subEl) subEl.textContent = 'This takes a few seconds';
+    const reset = (msg) => {
+        btn.dataset.busy = '';
+        btn.classList.remove('is-busy');
+        if (titleEl) titleEl.textContent = oldTitle;
+        if (subEl) subEl.textContent = 'Save them there as a list for your trip';
+        if (note && msg) note.textContent = msg;
+    };
+    try {
+        const { data } = await supabaseClient.auth.getSession();
+        const token = data && data.session && data.session.access_token;
+        if (!token) { reset('Sign in again to use this.'); return; }
+        const r = await fetch('/api/maps-list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ collection_id: collectionId })
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.url) {
+            reset(j && j.error === 'not_configured'
+                ? 'Google Maps isn’t set up yet. Try again later.'
+                : (j && j.url === null && r.ok)
+                    ? 'Google Maps couldn’t find these places.'
+                    : 'Couldn’t reach Google Maps. Try again.');
+            if (typeof logEvent === 'function') logEvent('list_maps_export_fail', { status: r.status, error: j && j.error });
+            return;
+        }
+        if (typeof logEvent === 'function') logEvent('list_maps_export', { sent: j.sent, places: j.places, total: j.total });
+        // Swap the button for a real link (tap 2).
+        const link = document.createElement('a');
+        link.className = 'lists-maps-btn lists-maps-btn--ready';
+        link.href = j.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.innerHTML = btn.querySelector('.lists-maps-ico').outerHTML +
+            `<span class="lists-maps-text">
+                <span class="lists-maps-title">Ready. Open Google Maps</span>
+                <span class="lists-maps-sub">${j.sent} of ${j.places} place${j.places !== 1 ? 's' : ''} found</span>
+            </span>`;
+        btn.replaceWith(link);
+        if (note) {
+            const missed = (j.skipped || []).slice(0, 3).map(s => escapeHtml(s)).join(', ');
+            note.innerHTML = j.skipped && j.skipped.length
+                ? `Not found on Google: ${missed}${j.skipped.length > 3 ? ' and more' : ''}. They stay here in Odin.`
+                : 'All places found. Notes and names stay in Odin.';
+        }
+    } catch (e) {
+        console.error('openListInGoogleMaps', e);
+        reset('Couldn’t reach Google Maps. Try again.');
+    }
 }
 
 // Open the standard item drawer for a list item.
