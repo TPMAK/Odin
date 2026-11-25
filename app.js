@@ -1718,8 +1718,9 @@ async function openListDetail(collectionId) {
     _listDetailItems = items;
 
     const exportBtns = items.length
-        ? `<button class="lists-action" onclick="copyCurrentList(this)">Copy</button>
-            <button class="lists-action" onclick="downloadCurrentList()">Download .md</button>`
+        ? `<button class="lists-action lists-action--ai" onclick="togglePlanWithAI()">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
+                Plan with AI</button>`
         : '';
     const actions =
         `<div class="lists-detail-actions">
@@ -1761,7 +1762,16 @@ async function openListDetail(collectionId) {
             <button class="lists-item-remove" onclick="handleRemoveFromList('${it.id}')" aria-label="Remove from list">&#x2715;</button>
         </div>`;
     }).join('');
-    body.innerHTML = actions + mapsBar + rows + deleteRow;
+    const aiPanel = `<div class="lists-ai-panel" id="listsAiPanel" hidden>
+            <div class="lists-ai-title">Plan with ChatGPT, Gemini or Claude</div>
+            <ol class="lists-ai-steps">
+                <li>Tap <b>Copy for AI</b>. Your list, notes and addresses are copied with a ready-made question.</li>
+                <li>Open your AI app and paste it into a new chat.</li>
+            </ol>
+            <button class="lists-ai-copy" id="listsAiCopy" onclick="copyListForAI(this)">Copy for AI</button>
+            <button class="lists-ai-file" onclick="downloadCurrentList()">Or save as a file to upload</button>
+        </div>`;
+    body.innerHTML = actions + aiPanel + mapsBar + rows + deleteRow;
 }
 
 // ── Open a list in Google Maps (Nov 2026) ──
@@ -1957,6 +1967,42 @@ function _currentListExport() {
     return { name, md: buildListExportMarkdown(name, items), count: items.length };
 }
 
+// "Plan with AI" (Nov 2026): users didn't know what "Download .md" meant. One button
+// opens a short how-to; "Copy for AI" copies a ready-made question + the list.
+function togglePlanWithAI() {
+    const p = document.getElementById('listsAiPanel');
+    if (p) p.hidden = !p.hidden;
+}
+
+function _aiPromptFor(name) {
+    return `Below is my list "${name}" from Odin: things that people I know have saved, with their own notes ("the word"). ` +
+        `Please help me use it. If it's for a trip, group the places by area and suggest a day-by-day plan, using the notes. ` +
+        `Start by asking me anything you need, like my dates and who I'm travelling with.\n\n`;
+}
+
+async function copyListForAI(btn) {
+    const { name, md, count } = _currentListExport();
+    if (!count) return;
+    const text = _aiPromptFor(name) + md;
+    const done = (ok) => {
+        if (!btn) return;
+        btn.textContent = ok ? 'Copied. Now paste it in your AI app' : 'Couldn’t copy. Try “save as a file”';
+        btn.classList.toggle('is-done', ok);
+        setTimeout(() => { btn.textContent = 'Copy for AI'; btn.classList.remove('is-done'); }, 3500);
+    };
+    try { await navigator.clipboard.writeText(text); done(true); }
+    catch (e) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.focus(); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            done(true);
+        } catch (e2) { console.error('copyListForAI', e2); done(false); }
+    }
+    if (typeof logEvent === 'function') logEvent('list_ai_copy', { items: count });
+}
+
 async function copyCurrentList(btn) {
     const { md, count } = _currentListExport();
     if (!count) return;
@@ -1980,10 +2026,11 @@ function downloadCurrentList() {
     const { name, md, count } = _currentListExport();
     if (!count) return;
     const safe = (String(name).replace(/[^\w\-]+/g, '_').replace(/^_+|_+$/g, '')) || 'list';
-    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const blob = new Blob([_aiPromptFor(name) + md], { type: 'text/markdown;charset=utf-8' });
+    if (typeof logEvent === 'function') logEvent('list_ai_file', { items: count });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `${safe}.md`;
+    a.href = url; a.download = `${safe}_for_AI.md`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
 }

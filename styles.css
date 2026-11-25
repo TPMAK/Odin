@@ -12401,6 +12401,15 @@ body.map-view-open .content {
 .lists-action--danger { border-color: #B23A48; color: #B23A48; }
 .lists-action--danger:hover { background: #FBEDEE; }
 
+/* Plan with AI (Nov 2026) */
+.lists-action--ai { display: inline-flex; align-items: center; gap: 6px; }
+.lists-ai-panel { background: #FFFFFF; border: 1.5px solid #E6DCCF; border-radius: 12px; padding: 14px; margin: 0 0 12px; }
+.lists-ai-title { font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+.lists-ai-steps { margin: 0 0 12px; padding-left: 20px; font-size: 14px; color: var(--ink); line-height: 1.5; }
+.lists-ai-steps li { margin-bottom: 4px; }
+.lists-ai-copy { width: 100%; padding: 11px; background: #7B2D45; color: #FFFFFF; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.lists-ai-copy.is-done { background: #4E7A4A; }
+.lists-ai-file { display: block; margin: 8px auto 0; background: none; border: none; color: #7B2D45; font-size: 13px; text-decoration: underline; cursor: pointer; }
 /* Open list in Google Maps (Nov 2026) */
 .lists-maps-wrap { margin: 0 0 12px; }
 .lists-maps-btn {
