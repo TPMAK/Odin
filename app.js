@@ -4218,6 +4218,7 @@ function setSearchQuery(text) {
 function setMode(mode) {
     var _prevMode = _currentMode;
     _currentMode = mode;
+    document.body.setAttribute('data-mode', mode);   // CSS: hide the + on the Add form
 
     // Log tab navigation
     if (typeof logEvent === 'function') {

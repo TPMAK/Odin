@@ -11,7 +11,7 @@
     --border:         #EAE0D2;   /* Warm border  — dividers, card borders    */
     --text-secondary: #9A8A7A;   /* Alias for --muted — search icons, hints  */
     --border-light:   #EAE0D2;   /* Alias for --border — light dividers      */
-    --nav-height:     72px;      /* Bottom tab bar content height            */
+    --nav-height:     84px;      /* Space kept clear for the floating tab bar (64px pill + gap) */
 }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13588,3 +13588,106 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
     cursor: pointer;
 }
 .search-retry-btn:disabled { opacity: 0.5; cursor: default; }
+
+
+/* ── Floating tab bar (Nov 2026, "Option B") ──
+   A frosted pill with Home · Discover · Profile, plus a round wine + beside it
+   that opens the Add menu from any page. Overrides the old full-width bar. */
+.bottom-tab-bar {
+    left: 16px;
+    right: 16px;
+    bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    min-height: 0;
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: none;           /* only the pill and the + take taps */
+}
+.bottom-tab-bar > * { pointer-events: auto; }
+.tab-pill {
+    flex: 1 1 auto;
+    max-width: 360px;
+    height: 64px;
+    box-sizing: border-box;
+    padding: 6px;
+    border-radius: 32px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(250, 246, 238, 0.97);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 10px 30px rgba(42, 30, 20, 0.16), 0 1px 2px rgba(42, 30, 20, 0.08);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .tab-pill {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(20px) saturate(180%);
+        -webkit-backdrop-filter: blur(20px) saturate(180%);
+    }
+}
+.bottom-tab-bar .tab-item {
+    flex: 1;
+    height: 52px;
+    padding: 0;
+    gap: 2px;
+    justify-content: center;
+    border-radius: 26px;
+}
+.bottom-tab-bar .tab-item.active { background: rgba(123, 45, 69, 0.10); }
+.bottom-tab-bar .tab-item.active .tab-label { font-weight: 600; }
+.tab-add {
+    flex: 0 0 64px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: none;
+    background: var(--wb);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(123, 45, 69, 0.35);
+    transition: transform 0.15s;
+}
+.tab-add:active { transform: scale(0.95); }
+.tab-add:focus-visible { outline: 3px solid rgba(123, 45, 69, 0.35); outline-offset: 3px; }
+/* No + while already on the Add form (it would start over and lose what's typed). */
+body[data-mode="input"] .tab-add { display: none; }
+/* The Home search bar's own + is replaced by the tab bar's +. */
+.home2-bar .home2-plus { display: none; }
+.home2-bar { grid-template-columns: 0 1fr auto auto; column-gap: 0; }
+.home2-bar .home2-input { margin-left: 6px; }
+/* Home dock floats above the pill instead of sitting on a solid strip. */
+.home2-dock { background: transparent; }
+/* While the Add menu is open, keep the + above the backdrop so it can close it. */
+body.home2-menu-open .bottom-tab-bar { z-index: 1102; }
+/* Add menu: now lives in <body>. Phone = floating sheet above the bar. */
+.home2-menu {
+    left: 12px;
+    right: 12px;
+    bottom: calc(var(--nav-height) + max(12px, env(safe-area-inset-bottom, 0px)) - 4px);
+    border-radius: 22px;
+    padding-bottom: 12px;
+    box-shadow: 0 10px 30px rgba(42, 30, 20, 0.18);
+}
+@media (min-width: 768px) {
+    .bottom-tab-bar .tab-item { flex: 1; }
+    /* Desktop: popover above the +, right edges lined up (pill 360 + gap 12 + + 64 = 436). */
+    .home2-menu {
+        position: fixed;
+        left: auto;
+        right: calc(50% - 218px);
+        bottom: calc(var(--nav-height) + 12px);
+        width: 300px;
+        border-radius: 14px;
+    }
+    .home2-backdrop { background: transparent; }
+}

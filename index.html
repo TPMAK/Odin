@@ -2940,17 +2940,22 @@
 
     <!-- Bottom Tab Bar - 3 tabs: Home, Discover, Profile (Nov 2026: Search + Add live in the Home bar) -->
     <div class="bottom-tab-bar">
-        <button class="tab-item active" onclick="setMode('home')" id="homeTab">
-            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <div class="tab-label">Home</div>
-        </button>
-        <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
-            <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-            <div class="tab-label">Discover</div>
-        </button>
-        <button class="tab-item" onclick="setMode('profile')" id="profileTab">
-            <div class="tab-avatar" id="tabAvatarInitial">?</div>
-            <div class="tab-label">Profile</div>
+        <nav class="tab-pill" aria-label="Main">
+            <button class="tab-item active" onclick="setMode('home')" id="homeTab">
+                <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <div class="tab-label">Home</div>
+            </button>
+            <button class="tab-item" onclick="setMode('discover')" id="discoverTab">
+                <svg class="tab-icon-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                <div class="tab-label">Discover</div>
+            </button>
+            <button class="tab-item" onclick="setMode('profile')" id="profileTab">
+                <div class="tab-avatar" id="tabAvatarInitial">?</div>
+                <div class="tab-label">Profile</div>
+            </button>
+        </nav>
+        <button type="button" class="tab-add" id="tabAdd" onclick="home2OpenAddMenu()" aria-label="Add to your circle">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
     </div>
 
@@ -6258,6 +6263,17 @@
             document.body.classList.add('home2-menu-open');
             if (typeof logEvent === 'function') logEvent('home_add_menu_open', {});
         }
+        // The Add menu lives in the Home markup, but the + is now in the tab bar on
+        // every page — move the menu and its backdrop to <body> so they show anywhere.
+        (function() {
+            function lift() {
+                ['home2Backdrop', 'home2Menu'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el && el.parentNode !== document.body) document.body.appendChild(el);
+                });
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lift); else lift();
+        })();
         function home2CloseAddMenu() {
             var m = document.getElementById('home2Menu');
             var b = document.getElementById('home2Backdrop');
