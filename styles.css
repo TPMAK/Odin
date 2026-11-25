@@ -13661,11 +13661,12 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .tab-add:focus-visible { outline: 3px solid rgba(123, 45, 69, 0.35); outline-offset: 3px; }
 /* No + while already on the Add form (it would start over and lose what's typed). */
 body[data-mode="input"] .tab-add { display: none; }
-/* Home: Add lives in the search bar's own + (left, under the thumb). The tab
-   bar's + keeps its space so the pill is the same width on every page. */
+/* Home: Add lives in the search bar's own + (left, under the thumb), so the
+   tab bar's + goes and the pill takes the full width. */
 body[data-mode="home"] .tab-add,
-body:not([data-mode]) .tab-add { visibility: hidden; pointer-events: none; }
+body:not([data-mode]) .tab-add { display: none; }
 .home2-bar .home2-plus { background: var(--wb); color: #FFFFFF; }
+.home2-bar:not(.listening) .home2-mic { background: #F1EDE6; color: var(--ink); }   /* one wine button, not two */
 /* Home dock floats above the pill instead of sitting on a solid strip. */
 .home2-dock { background: transparent; }
 /* While the Add menu is open, keep the + above the backdrop so it can close it.
