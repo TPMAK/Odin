@@ -6873,6 +6873,11 @@
             }
         }
         function home2GoInvite() {
+            // Open "Your circle" (search people + invite link) right over Home.
+            if (typeof openCircleDrawer === 'function' && document.getElementById('circleDrawer')) {
+                openCircleDrawer();
+                return;
+            }
             setMode('profile');
             setTimeout(function() {
                 var btn = document.getElementById('inviteLinkBtn');
