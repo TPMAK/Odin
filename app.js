@@ -3185,11 +3185,7 @@ let searchSelectedIds = new Set();
 let _lpTimer = null; // long-press timer
 
 // ===== APP CONFIGURATION =====
-// Staging uses the test copy of the search workflow (faster reply step);
-// production keeps the live one. Swap staging back by deleting the ternary.
-const SEARCH_WEBHOOK = (location.hostname.indexOf('staging.') === 0)
-    ? 'https://stanmak.app.n8n.cloud/webhook/search123-test'
-    : 'https://stanmak.app.n8n.cloud/webhook/search123';
+const SEARCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search123';
 const SEARCH_TIMEOUT_MS = 55000;
 const CAPTURE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/capture'; 
 const TRANSLATE_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/translate-card';
@@ -3500,11 +3496,11 @@ function requestLocation() {
                 userLocation.latitude  = pos.coords.latitude;
                 userLocation.longitude = pos.coords.longitude;
                 userLocation.available = true;
-                console.log('📍 Location ready:', userLocation.latitude, userLocation.longitude);
+                console.log('Location ready:', userLocation.latitude, userLocation.longitude);
                 resolve(userLocation);
             },
             function(err) {
-                console.log('📍 Location unavailable:', err.message);
+                console.log('Location unavailable:', err.message);
                 // Reset so a future gesture-driven call can retry
                 locationPromise = null;
                 resolve(userLocation);
@@ -4328,7 +4324,7 @@ function initLocation() {
     const indicator = document.getElementById('locationIndicator');
 
     if (!navigator.geolocation) {
-        if (indicator) { indicator.textContent = '📍 Not supported'; indicator.className = 'location-indicator error'; }
+        if (indicator) { indicator.textContent = 'Location not supported'; indicator.className = 'location-indicator error'; }
         return;
     }
 
@@ -4337,11 +4333,11 @@ function initLocation() {
             userLocation.latitude = position.coords.latitude;
             userLocation.longitude = position.coords.longitude;
             userLocation.available = true;
-            if (indicator) { indicator.textContent = '📍 Location on'; indicator.className = 'location-indicator active'; }
+            if (indicator) { indicator.textContent = 'Location on'; indicator.className = 'location-indicator active'; }
             showDistanceRow();
         },
         (error) => {
-            if (indicator) { indicator.textContent = '📍 Location off'; indicator.className = 'location-indicator error'; }
+            if (indicator) { indicator.textContent = 'Location off'; indicator.className = 'location-indicator error'; }
         }
     );
 }
@@ -6978,12 +6974,12 @@ async function confirmDeleteItem(itemId) {
 
         const count = (!error && data) ? data.length : 0;
         if (count > 0) {
-            warningEl.textContent = `⚠️ ${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} also saved this. Deleting will remove it for everyone.`;
+            warningEl.textContent = `${count} friend${count === 1 ? '' : 's'} ha${count === 1 ? 's' : 've'} also saved this. Deleting will remove it for everyone.`;
         } else {
-            warningEl.textContent = '🗑️ No one else has saved this. It will be permanently deleted.';
+            warningEl.textContent = 'No one else has saved this. It will be permanently deleted.';
         }
     } catch (e) {
-        warningEl.textContent = '⚠️ This will permanently delete the item for everyone.';
+        warningEl.textContent = 'This will permanently delete the item for everyone.';
     }
 }
 
@@ -7721,10 +7717,10 @@ async function sendMessage(text, displayLabel) {
                                 <div class="compact-title">${escapeHtml(_pv.heading)}</div>
                                 ${_pv.subtitle ? `<div class="compact-subtitle">${escapeHtml(_pv.subtitle).substring(0, 55)}${_pv.subtitle.length > 55 ? '…' : ''}</div>` : ''}
                                 <div class="compact-meta">
-                                    ${dist ? `<span>📍 ${dist}</span>` : ''}
+                                    ${dist ? `<span>${dist}</span>` : ''}
                                     ${item.added_by_name ? `<span>• ${escapeHtml(item.added_by_name)}</span>` : ''}
                                 </div>
-                                ${snippet ? `<div class="compact-snippet">💡 ${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
+                                ${snippet ? `<div class="compact-snippet">${escapeHtml(snippet).substring(0, 60)}${snippet.length > 60 ? '...' : ''}</div>` : ''}
                             </div>`;
                     }).join('');
                 };
@@ -7734,11 +7730,11 @@ async function sendMessage(text, displayLabel) {
                     <div class="message message-assistant">
                         <div class="message-content">
                             <strong>Nothing found for "${escapeHtml(query)}" in your network yet.</strong><br>
-                            Your friends haven't saved anything matching that — yet. Be the first to add it! 👇
+                            Your friends haven't saved anything matching that — yet. Be the first to add it.
                         </div>
                         <div style="padding: 8px 0;">
                             <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
-                                ＋ Add a recommendation
+                                ＋ Add to your circle
                             </button>
                         </div>
                         ${previewCards ? `
@@ -7771,7 +7767,7 @@ async function sendMessage(text, displayLabel) {
                     const teaserHtml = `
                         <div class="message message-assistant">
                             <div class="message-content" style="color:#888;font-size:0.9em;">
-                                👥 People outside your network saved something similar:
+                                People outside your network saved something similar:
                             </div>
                             <div class="results-section">
                                 <div class="more-options-scroll">
@@ -7781,7 +7777,7 @@ async function sendMessage(text, displayLabel) {
                                             <div class="compact-title">${escapeHtml(r.title)}</div>
                                             <div class="compact-meta">${escapeHtml(r.type || '')}</div>
                                             <div class="compact-snippet" style="color:#aaa;font-style:italic;">
-                                                🔒 Add friends to see their stories
+                                                Add friends to see their stories
                                             </div>
                                         </div>
                                     `).join('')}
@@ -7807,13 +7803,13 @@ async function sendMessage(text, displayLabel) {
                     <div class="message-content">
                         <strong>${data.text && data.text.length ? escapeHtml(data.text) : 'Nothing found for "' + escapeHtml(query) + '" in your network yet.'}</strong><br>
                         ${data.text && data.text.length ? '' : (allDiscoveries.length > 0
-                            ? "Your friends haven't saved anything matching that — yet. Be the first to add it! 👇"
-                            : "Your network is empty. Invite friends to start building your shared discovery list! 🤝")}
+                            ? "Your friends haven't saved anything matching that — yet. Be the first to add it."
+                            : "Your network is empty. Invite friends to start building your shared discovery list.")}
                     </div>
                     ${allDiscoveries.length > 0 ? `
                     <div style="padding: 8px 0;">
                         <button class="drawer-bookmark-btn active" style="margin:0 0 12px 0;" onclick="setMode('input')">
-                            ＋ Add a recommendation
+                            ＋ Add to your circle
                         </button>
                     </div>` : ''}
                     <div class="search-helpful-bar results-footer" role="group" aria-label="Search feedback">
@@ -8212,7 +8208,7 @@ function clearCaptureForm() {
     document.getElementById('category').value = 'place';
     // Reset address label hint
     const addressLabel = document.getElementById('addressLabel');
-    if (addressLabel) addressLabel.textContent = '— recommended for places';
+    if (addressLabel) addressLabel.textContent = '— useful for places';
     // Reset unified photo sub-step
     removeUnifiedPhoto();
     // Hide photo pick zone
@@ -9393,7 +9389,7 @@ function selectCategory(el) {
 
     if (val === 'place') {
         if (addressGroup) addressGroup.style.display = '';
-        if (addressLabel) addressLabel.textContent = '— recommended for places';
+        if (addressLabel) addressLabel.textContent = '— useful for places';
     } else if (val === 'service') {
         if (addressGroup) addressGroup.style.display = '';
         if (addressLabel) addressLabel.textContent = '— optional for services';
@@ -9772,7 +9768,7 @@ async function generateInviteLink() {
 // then triggers native share sheet (iOS/Android) or clipboard
 // fallback (desktop). Recipient lands on share.html.
 // May 2026 — v3: prefixes the message with the sender's first
-// name ("Stanley thinks you'll like this: …") and enriches the
+// name ("Stanley saved this on Odin: …") and enriches the
 // body with item name, suburb, and the personal note (or AI
 // feed_card_summary as a fallback).
 // ══════════════════════════════════════════════════════════
@@ -9851,21 +9847,21 @@ async function shareItem(itemId) {
         }
 
         // Sender first name — matches the framing on share.html
-        // ("Stanley thinks you'll like this"). Uses the same lookup chain
+        // ("Stanley saved this on Odin"). Uses the same lookup chain
         // used elsewhere in the app, then takes the first whitespace-
         // separated token. Falls back to "A friend" when no name is on file.
         const _fullSenderName = (currentProfile?.display_name)
             || (currentUser?.user_metadata?.full_name)
             || '';
         const senderFirst = (_fullSenderName.trim().split(/\s+/)[0]) || 'A friend';
-        const senderPrefix = `${senderFirst} thinks you'll like this: `;
+        const senderPrefix = `${senderFirst} saved this on Odin: `;
 
         // Final shape:
-        //   With Word:    `Stanley thinks you'll like this: "Kajiken" in Britomart — "The personal note here"`
-        //   With AI line: `Stanley thinks you'll like this: "Kajiken" in Britomart — Hidden ramen counter in Auckland alley`
-        //   No address:   `Stanley thinks you'll like this: "Sony WH-1000XM5" — "The personal note here"`
-        //   Bare:         `Stanley thinks you'll like this: "Some item"`
-        //   No sender:    `A friend thinks you'll like this: "Some item"`
+        //   With Word:    `Stanley saved this on Odin: "Kajiken" in Britomart — "The personal note here"`
+        //   With AI line: `Stanley saved this on Odin: "Kajiken" in Britomart — Hidden ramen counter in Auckland alley`
+        //   No address:   `Stanley saved this on Odin: "Sony WH-1000XM5" — "The personal note here"`
+        //   Bare:         `Stanley saved this on Odin: "Some item"`
+        //   No sender:    `A friend saved this on Odin: "Some item"`
         const messageText = `${senderPrefix}"${itemName}"${locator}${voiceLine}`;
 
         // ── Compose the final payload ──
@@ -10732,7 +10728,7 @@ function dismissEmptyFriends() {
             chip.className = 'nc-geo-chip';
             sub.insertBefore(chip, sub.firstChild);
         }
-        chip.innerHTML = '<span>📍 Your location</span>' +
+        chip.innerHTML = '<span>Your location</span>' +
             '<button type="button" class="nc-geo-edit">Edit</button>';
         chip.querySelector('.nc-geo-edit').onclick = function() {
             const inp = document.getElementById('address');
@@ -10783,7 +10779,7 @@ function dismissEmptyFriends() {
             return;
         }
         const locStatus = document.getElementById('locationStatus');
-        if (locStatus) locStatus.textContent = '📍 Detecting location...';
+        if (locStatus) locStatus.textContent = 'Detecting location...';
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const lat = pos.coords.latitude, lng = pos.coords.longitude;
             const latField = document.getElementById('userLat');

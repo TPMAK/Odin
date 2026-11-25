@@ -1850,7 +1850,7 @@
                                 </button>
                                 <button type="button" class="home2-menu-row" onclick="home2AddVia('write')">
                                     <span class="home2-menu-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
-                                    <span><span class="home2-menu-label">Write it</span><span class="home2-menu-hint">A name and why you'd recommend it</span></span>
+                                    <span><span class="home2-menu-label">Write it</span><span class="home2-menu-hint">A name and why it's worth knowing</span></span>
                                 </button>
                             </div>
                         </div>
@@ -2480,7 +2480,7 @@
                             <h3>Friends</h3>
                             <span class="tier-badge outer" id="friendsCountBadge">0</span>
                         </div>
-                        <div class="tier-desc">People you trust. Their recommendations appear in your search results.</div>
+                        <div class="tier-desc">People you trust. What they save appears in your search results.</div>
                         <div id="friendsList" class="friends-list"></div>
                     </div>
 
@@ -2716,7 +2716,7 @@
                         <div class="form-group address-group" style="position: relative;">
                             <label class="field-label-inline">
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px; margin-right:4px;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                Address <span class="field-label-optional" id="addressLabel">— recommended for places</span>
+                                Address <span class="field-label-optional" id="addressLabel">— useful for places</span>
                             </label>
                             <div class="address-input-row">
                                 <input type="text" id="address" placeholder="Search or type an address..." autocomplete="off">
@@ -3075,7 +3075,7 @@
                     <img src="icon-192.png" alt="Odin" width="56" height="56" style="border-radius:14px; display:block;">
                 </div>
                 <h1 class="onb-heading">Welcome to <span class="onb-brand">Odin</span>, <span id="onbUserName">friend</span>.</h1>
-                <p class="onb-body">This is your private discovery network — recommendations from people you actually trust.<br><br>No ads. No strangers. Just your circle.</p>
+                <p class="onb-body">This is your private discovery network — what people you actually trust have saved.<br><br>No ads. No strangers. Just your circle.</p>
 
                 <!-- ── PWA install section (only renders on mobile, non-installed) ── -->
                 <div id="onbInstallSection" class="onb-install" style="display:none;">
@@ -3119,7 +3119,7 @@
                     <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
                 </div>
                 <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
-                <p class="onb-body">Accept to start seeing their recommendations in your feed. Your Knowledge grows the moment you connect.</p>
+                <p class="onb-body">Accept to start seeing what they've saved in your feed. Your Knowledge grows the moment you connect.</p>
                 <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
                 <button class="onb-btn-skip" onclick="onbSkipInvite()">Skip for now</button>
                 <div class="onb-dots">
@@ -3137,7 +3137,7 @@
                 <div class="onb-icon-circle">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7B2D45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                 </div>
-                <h1 class="onb-heading">What's one thing you'd recommend to a friend?</h1>
+                <h1 class="onb-heading">What's one place or thing you'd tell a friend about?</h1>
                 <p class="onb-body">A café, a dentist, a product — anything worth sharing. Adding it takes 30 seconds.</p>
                 <button class="onb-btn-primary" onclick="onbGoAdd()">Add it →</button>
                 <button class="onb-btn-skip" onclick="onbGoStep(4)">Skip for now</button>
@@ -3235,7 +3235,7 @@
         add: [
             'Your knowledge is someone else\'s answer.',
             'Add it once. Your whole circle benefits.',
-            'Be the friend with the best recommendations.',
+            'Be the friend who always knows a good place.',
             'What you add becomes someone\'s trusted source.',
             'Someone in your circle needs exactly what you know.',
             'The best gift you can give is what you already know.',
@@ -3313,7 +3313,7 @@
             'Add a café worth a second trip…',
             'Best breakfast spot lately?',
             'A tradie or handyman who did a good job…',
-            'A doctor or dentist you’d recommend…',
+            'A doctor or dentist you trust…',
             'A kids activity that was a hit…',
             'A product you’d buy again…'
         ];
@@ -3325,7 +3325,7 @@
             'A dish worth ordering again…',
             'A hidden gem from your travels…',
             'A service that saved you time…',
-            'A physio or clinic you’d recommend…'
+            'A physio or clinic you go to…'
         ];
         if (h >= 15 && h < 18) return [  // afternoon
             'Add a kids spot that actually worked…',
@@ -4195,7 +4195,7 @@
                 'What are you craving?',
                 'Time for a break.',
                 'Treat yourself today.',
-                'Need a recommendation?'
+                'Somewhere new to try?'
             ];
         } else if (hour < 17) {
             // Afternoon
