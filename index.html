@@ -6297,7 +6297,7 @@
                 // photoGallery has no capture attribute, so phones show their own
                 // choice: take a photo or pick from the photo library.
                 var pick = document.getElementById('photoGallery');
-                if (pick) pick.click();
+                if (pick) { _anchorPicker(pick, document.getElementById('add5Hero')); pick.click(); }
             } else if (kind === 'here') {
                 enrichOn('location');
                 if (typeof add5OpenSheet === 'function') add5OpenSheet('where');
@@ -6306,6 +6306,21 @@
                 var n = document.getElementById('placeName');
                 if (n) setTimeout(function() { n.focus(); }, 80);
             }
+        }
+        // iOS pops its "Photo Library / Take Photo / Choose Files" menu from wherever
+        // the file input sits. A display:none input has no position, so the menu
+        // landed mid-form over the note box. Park the (invisible) input on the
+        // photo box first, so the menu opens from the photo box.
+        function _anchorPicker(input, target) {
+            var r = target && target.getBoundingClientRect ? target.getBoundingClientRect() : null;
+            var x = r && r.width ? r.left + r.width / 2 : window.innerWidth / 2;
+            var y = r && r.height ? r.top + r.height / 2 : 160;
+            input.style.cssText = 'position:fixed;left:' + Math.round(x) + 'px;top:' + Math.round(y) +
+                'px;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
+            var reset = function() { input.style.cssText = 'display:none'; window.removeEventListener('focus', reset); };
+            input.addEventListener('change', reset, { once: true });
+            window.addEventListener('focus', reset);   // picker closed without a choice
+            setTimeout(reset, 60000);
         }
         function home2SaveLink() {
             var v = _home2Val();
