@@ -1793,6 +1793,10 @@
                             <h1 id="launcherGreetingLine" class="page-heading">Good morning, <span id="launcherGreetingName" class="launcher-name highlight"></span></h1>
                             <p id="launcherSubGreeting" class="page-subtitle launcher-sub-greeting"></p>
                         </div>
+                        <div class="home2-circle hidden" id="home2Circle">
+                            <div class="home2-faces" id="home2Faces"></div>
+                            <button type="button" class="home2-circle-line" id="home2CircleLine" onclick="home2GoInvite()"></button>
+                        </div>
                         <button type="button" class="home2-invite hidden" id="home2Invite" onclick="home2GoInvite()">Invite a friend to start your circle</button>
                     </div>
                     <div class="home2-dock">
@@ -6819,6 +6823,54 @@
             var hq = (typeof ODIN_HQ_USER_ID !== 'undefined') ? ODIN_HQ_USER_ID : '';
             var real = list.filter(function(f) { return f && f.out_user_id && f.out_user_id !== hq; });
             el.classList.toggle('hidden', real.length > 0);
+            home2RenderCircle(real);
+        }
+
+        // ── Circle line: friends' faces, a dashed invite seat, and
+        //    "N friends know M things". M = get_kb_count (only what this user
+        //    can find in search; other people's private saves never count).
+        //    No weekly change shown for now (activity is too low to read well). ──
+        var _home2KbCount = null;
+        var _HOME2_FACE_COLORS = ['#A0663A', '#5A6BB0', '#7B2D45', '#8FA7A0', '#B08A3E'];
+        function _home2Esc(t) {
+            return String(t == null ? '' : t).replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+        function home2RenderCircle(real) {
+            var box = document.getElementById('home2Circle');
+            var faces = document.getElementById('home2Faces');
+            var line = document.getElementById('home2CircleLine');
+            if (!box || !faces || !line) return;
+            if (!real || real.length === 0) { box.classList.add('hidden'); return; }
+            var html = '';
+            real.slice(0, 5).forEach(function(f, i) {
+                var name = f.out_display_name || f.out_email || '?';
+                var initial = _home2Esc(name.trim().charAt(0).toUpperCase() || '?');
+                var bg = _HOME2_FACE_COLORS[i % _HOME2_FACE_COLORS.length];
+                if (f.out_avatar_url && /^https:\/\//.test(f.out_avatar_url)) {
+                    html += '<span class="home2-face" style="background:' + bg + '"><img src="' + _home2Esc(f.out_avatar_url) + '" alt="" loading="lazy" onerror="this.remove()">' + initial + '</span>';
+                } else {
+                    html += '<span class="home2-face" style="background:' + bg + '">' + initial + '</span>';
+                }
+            });
+            html += '<button type="button" class="home2-face-add" onclick="home2GoInvite()" aria-label="Invite a friend">'
+                 + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
+            faces.innerHTML = html;
+            var n = real.length;
+            var setLine = function() {
+                var fr = '<b>' + n + '</b> ' + (n === 1 ? 'friend knows' : 'friends know');
+                line.innerHTML = (_home2KbCount != null)
+                    ? fr + ' <b class="home2-kb">' + _home2KbCount + '</b> ' + (_home2KbCount === 1 ? 'thing' : 'things')
+                    : fr + ' things';
+            };
+            setLine();
+            box.classList.remove('hidden');
+            if (typeof currentUser !== 'undefined' && currentUser && typeof supabaseClient !== 'undefined') {
+                supabaseClient.rpc('get_kb_count', { p_user_id: currentUser.id }).then(function(res) {
+                    if (res && !res.error && res.data != null) { _home2KbCount = res.data; setLine(); }
+                }).catch(function() {});
+            }
         }
         function home2GoInvite() {
             setMode('profile');

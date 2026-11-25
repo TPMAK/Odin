@@ -13700,3 +13700,28 @@ body.home2-menu-open .home2-dock { z-index: 999; }
     }
     .home2-backdrop { background: transparent; }
 }
+
+/* ── Home circle line (faces + "N friends know M things") ── */
+.home2-circle { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 10px; }
+.home2-circle.hidden { display: none; }
+.home2-faces { display: flex; align-items: center; justify-content: center; }
+.home2-face {
+    position: relative; overflow: hidden;
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 2px solid #fff; box-sizing: border-box;
+    color: #fff; font: 600 13px 'DM Sans', sans-serif;
+    display: flex; align-items: center; justify-content: center;
+}
+.home2-face + .home2-face { margin-left: -9px; }
+.home2-face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.home2-face-add {
+    width: 34px; height: 34px; border-radius: 50%; margin-left: 6px; padding: 0;
+    border: 1.5px dashed var(--wb); background: transparent; color: var(--wb);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.home2-circle-line {
+    background: none; border: none; padding: 2px 4px; cursor: pointer;
+    font: 400 14px 'DM Sans', sans-serif; color: #6F6153;
+}
+.home2-circle-line b { color: var(--ink, #2A1E14); font-weight: 600; }
+.home2-circle-line b.home2-kb { color: var(--wb); }
