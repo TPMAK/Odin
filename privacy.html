@@ -119,55 +119,66 @@
 
   <p class="eyebrow">Legal</p>
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: March 2026</p>
+  <p class="updated">Last updated: 25 November 2026</p>
 
   <h2>What Odin is</h2>
-  <p>Odin is a private, invite-only discovery network. You save and search recommendations from people you actually know. We do not show you content from strangers or algorithms.</p>
+  <p>Odin is a private, invite-only discovery network. You save places, services and things worth remembering, and find what the people you know have saved. We do not show you content from strangers, ads or algorithms.</p>
 
   <h2>What we collect</h2>
   <ul>
-    <li><strong>Account information</strong> — your name and email address, via Google Sign-In. We use Google OAuth and do not store your password.</li>
-    <li><strong>Content you add</strong> — titles, descriptions, URLs, addresses, photos, and personal notes ("The Word") that you choose to write.</li>
-    <li><strong>Location</strong> — only when you use distance-based features. We do not store your location permanently; it is used only to calculate distances in-session.</li>
-    <li><strong>Usage data</strong> — which items you save, search queries you run, and when you were last active.</li>
-    <li><strong>Device/session data</strong> — standard technical logs (browser type, session tokens) managed by Supabase and Google.</li>
+    <li><strong>Account information</strong> — your name, email address and profile photo, via Google Sign-In. We never see or store your Google password.</li>
+    <li><strong>Content you add</strong> — titles, descriptions, links, addresses, photos, and personal notes ("The Word").</li>
+    <li><strong>Your connections</strong> — who you are connected with, invite and share links you create, and who joined through them.</li>
+    <li><strong>Searches</strong> — the words you search for (typed or spoken), the results shown, and which results you open. We keep these to improve search.</li>
+    <li><strong>Location</strong> — only when you allow it, for "near me" and distance features. When a search is logged, we keep only an approximate area (rounded to about 1 km), never your exact location.</li>
+    <li><strong>Usage data</strong> — which items you save and view, when you were last active, and how many requests you make per hour (used to protect Odin from abuse).</li>
+    <li><strong>Technical data</strong> — standard logs such as browser type and sign-in sessions, kept by our service providers.</li>
   </ul>
 
-  <h2>How your content travels — Save Inheritance</h2>
-  <p>This is Odin's core privacy mechanic. You should understand it before adding anything.</p>
+  <h2>Who can see what</h2>
+  <p>This is Odin's core privacy rule. Please read it before adding anything.</p>
 
   <div class="highlight-box">
-    <p><strong>When you add an item:</strong> your name and personal note are visible to your direct connections only.</p>
-    <p><strong>If a connection saves your item:</strong> their wider circle sees that the item was saved — but not by whom, and not your personal note.</p>
-    <p><strong>In plain terms:</strong> your identity and story travel one hop. Beyond that, only an anonymous signal travels. Your name never appears to people you haven't connected with.</p>
+    <p><strong>When you add an item set to "Friends":</strong> your direct connections see it, with your name and your note.</p>
+    <p><strong>If one of your connections saves it:</strong> their own connections can see the item, including your note, shown as "via" your connection. They do not see your name.</p>
+    <p><strong>In plain terms:</strong> what you save can travel one step past your circle. Who you are does not.</p>
+    <p><strong>"Only me" items</strong> are never shown to anyone else.</p>
   </div>
 
-  <p>You can set any item to <strong>"Only me"</strong> to keep it entirely private.</p>
-
-  <h2>AI processing</h2>
-  <p>Odin uses AI to make search work well. Here is what happens to your content:</p>
+  <h2>Invite links, share links and Founding Members</h2>
   <ul>
-    <li>Your title, description, and personal note are converted into a numerical "embedding" using OpenAI's API. This is stored in our database and used only for search.</li>
-    <li>When you search, your query is sent to OpenAI to understand intent and language — it is not stored by us beyond the session.</li>
-    <li>Your personal notes may be processed by OpenAI's API as part of embedding generation. As of 2025, OpenAI does not use API-submitted data to train models.</li>
+    <li><strong>Invite links:</strong> when someone joins through your invite link, you are connected to each other automatically. Each link works for one person and expires after 30 days.</li>
+    <li><strong>Share links:</strong> when you share an item, anyone who opens the link can see the item, its photo, your note and your first name, even without an account. Chat apps such as WhatsApp may show the item's name and photo in the message preview. A share link can be forwarded, so only share notes you are happy for others to read.</li>
+    <li><strong>Founding Members:</strong> every new member is connected to the Founding Members account, so Odin is useful from day one. It is run by Odin's founder. Like any connection, it can see items you set to "Friends". You can remove it from your circle at any time.</li>
   </ul>
+
+  <h2>Services we use</h2>
+  <p>We share only what each service needs to do its job:</p>
+  <ul>
+    <li><strong>Supabase</strong> — database, sign-in and photo storage.</li>
+    <li><strong>Vercel</strong> — hosts the Odin website.</li>
+    <li><strong>n8n</strong> — runs our search, add and translation processes.</li>
+    <li><strong>OpenAI</strong> — understands searches, turns voice into text, translates, and creates search "embeddings" (a numeric summary) from your titles, descriptions and notes. OpenAI states that it does not use data sent through its API to train its models.</li>
+    <li><strong>Google</strong> — sign-in, place details, addresses and nearby places.</li>
+    <li><strong>Mapbox</strong> — address suggestions when you add a place.</li>
+  </ul>
+  <p>Some of these services store or process data outside New Zealand, including Singapore (where our database is) and the United States. By using Odin, you agree to this.</p>
 
   <h2>What we do not do</h2>
   <ul>
     <li>We do not sell your data.</li>
-    <li>We do not show advertising.</li>
-    <li>We do not share your data with third parties except Supabase (storage), OpenAI (AI processing), and Google (authentication).</li>
-    <li>We do not build advertising profiles.</li>
+    <li>We do not show advertising or build advertising profiles.</li>
+    <li>We do not share your data with anyone other than the services listed above, unless the law requires it.</li>
   </ul>
 
-  <h2>Your rights (NZ Privacy Act 2020)</h2>
-  <p>You have the right to access, correct, or delete the personal information we hold about you. To exercise any of these rights, contact us at <a href="mailto:odin.privacy@gmail.com">odin.privacy@gmail.com</a>. We will respond within 30 days.</p>
+  <h2>Deleting your account</h2>
+  <p>You can delete your account at any time from your Profile. This removes your account, the items you added, your notes, your saves and your connections. Copies in our providers' backups are removed as those backups expire.</p>
 
-  <h2>Data storage</h2>
-  <p>Your data is stored on Supabase, hosted on AWS infrastructure. By using Odin, you consent to this cross-border transfer. Supabase is SOC 2 compliant.</p>
+  <h2>Your rights (NZ Privacy Act 2020)</h2>
+  <p>You can ask to see or correct the personal information we hold about you. Email <a href="mailto:odin.privacy@gmail.com">odin.privacy@gmail.com</a> and we will respond within 20 working days.</p>
 
   <h2>Changes to this policy</h2>
-  <p>We will notify you of material changes via the app before they take effect.</p>
+  <p>We will tell you about important changes in the app before they take effect.</p>
 
   <h2>Contact</h2>
   <p><a href="mailto:odin.privacy@gmail.com">odin.privacy@gmail.com</a></p>
