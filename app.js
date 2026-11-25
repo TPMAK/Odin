@@ -9857,7 +9857,7 @@ async function shareItem(itemId) {
         const origin = (typeof window !== 'undefined' && window.location && window.location.origin)
             ? window.location.origin
             : 'https://www.join-odin.com';
-        const shareUrl = `${origin}/share.html?token=${token}`;
+        const shareUrl = `${origin}/s/${token}`; // api/share.js adds the item photo preview, then opens share.html
 
         // ── Build enriched message text from the currently-open drawer item ──
         // currentDrawerItem is always populated when the Share button is visible,
@@ -9992,7 +9992,7 @@ async function askFriendAboutItem(itemId, friendName, itemTitle, itemAddress) {
         const origin = (typeof window !== 'undefined' && window.location && window.location.origin)
             ? window.location.origin
             : 'https://www.join-odin.com';
-        const shareUrl = `${origin}/share.html?token=${token}`;
+        const shareUrl = `${origin}/s/${token}`; // api/share.js adds the item photo preview, then opens share.html
 
         // Decode HTML-escaped strings for the message payload.
         function _decode(s) {
