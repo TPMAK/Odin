@@ -12619,6 +12619,17 @@ body.map-view-open .content {
     text-align: left;
     box-shadow: 0 -6px 24px rgba(42, 30, 20, 0.12);
 }
+/* Mobile: the tab bar was drawing over the bottom of the sheet and hiding the
+   last row ("Write it"). Sit the sheet on top of the tab bar instead, and let
+   it scroll if a short phone can't fit every row. */
+@media (max-width: 767px) {
+    .home2-menu {
+        bottom: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+        padding-bottom: 12px;
+        max-height: calc(100dvh - var(--nav-height) - env(safe-area-inset-bottom, 0px) - 80px);
+        overflow-y: auto;
+    }
+}
 .home2-menu-grip { width: 38px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 12px; }
 .home2-menu-title { font: 500 16px 'DM Sans', sans-serif; color: var(--ink); margin: 0 0 2px; }
 .home2-menu-sub { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
