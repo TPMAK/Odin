@@ -122,6 +122,41 @@ function showLoginScreen() {
     // Close auth modal if open (e.g. after sign-out)
     var modal = document.getElementById('authModal');
     if (modal) modal.classList.remove('open');
+    _showLandingInviteNotice();
+}
+
+// Before sign-in: if the visitor arrived with an invite link, say who invited
+// them, or tell them right away that the link is used / expired (so nobody
+// signs up only to find out afterwards).
+async function _showLandingInviteNotice() {
+    let token = null;
+    try {
+        token = new URLSearchParams(window.location.search).get('token')
+             || sessionStorage.getItem('odin_invite_token')
+             || localStorage.getItem('odin_invite_token');
+    } catch (e) {}
+    const old = document.getElementById('landingInviteNotice');
+    if (old) old.remove();
+    if (!token) return;
+    const st = await _inviteStatus(token);
+    const screen = document.getElementById('loginScreen');
+    if (!screen) return;
+    const box = document.createElement('div');
+    box.id = 'landingInviteNotice';
+    box.className = 'landing-invite-notice' + (st.status === 'valid' ? '' : ' is-problem');
+    const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    if (st.status === 'valid') {
+        box.innerHTML = `<strong>${esc(st.name || 'A friend')} invited you to Odin.</strong> Sign in to join their circle.`;
+    } else {
+        const msg = _inviteProblemText(st.status, st.name);
+        box.innerHTML = `<strong>${esc(msg.title)}.</strong> ${esc(msg.body)}`;
+        try {   // the link can't connect anyone — don't carry it into sign-in
+            sessionStorage.removeItem('odin_invite_token');
+            localStorage.removeItem('odin_invite_token');
+        } catch (e) {}
+    }
+    box.onclick = () => box.remove();
+    screen.prepend(box);
 }
 
 async function showMainApp() {
