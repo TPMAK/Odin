@@ -7290,11 +7290,21 @@ async function sendMessage(text, displayLabel) {
     currentSearchEventId = uuidv4();
     currentResultPositions = [];
 
+    // Login token for the search workflow: n8n checks it with Supabase and
+    // searches as the verified user, never trusting user_id from the browser.
+    // getSession() refreshes an expired token on its own.
+    let searchAccessToken = null;
+    try {
+        const { data: _sess } = await supabaseClient.auth.getSession();
+        searchAccessToken = _sess?.session?.access_token || null;
+    } catch (e) { console.warn('getSession for search failed:', e); }
+
     const body = {
         query,
         session_id: currentSessionId,
         conversation_history: sessionMessages,
         user_id: currentUser ? currentUser.id : null,
+        access_token: searchAccessToken,
         // Client-supplied search event id — server writes it as the row PK.
         search_event_id: currentSearchEventId,
         // Visibility filter context sent to n8n so the semantic search
