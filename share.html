@@ -280,6 +280,15 @@
     @media (prefers-reduced-motion: reduce) {
       .cta-primary { transition: none; }
     }
+    .join-terms { margin-top: 18px; font-size: 14px; line-height: 1.5; color: #3a2a2e; }
+    .join-terms strong { display: block; color: #1c1214; margin-bottom: 2px; }
+    .join-terms + .cta-primary { margin-top: 16px; }
+    .join-terms-small { display: block; margin-top: 6px; font-size: 13px; color: #8a7a72; }
+    .what-is { margin-top: 14px; font-size: 14px; color: #5a4a4e; }
+    .what-is summary { cursor: pointer; text-align: center; color: #7b2d45; font-weight: 500; list-style: none; }
+    .what-is summary::-webkit-details-marker { display: none; }
+    .what-is p { margin: 10px 0 0; line-height: 1.5; }
+    .what-is a { color: #7b2d45; }
     .used-note { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(123,45,69,0.07); color: #5a2233; font-size: 14px; line-height: 1.5; }
   </style>
 </head>
@@ -451,9 +460,19 @@
               <div class="the-word-label">The Word</div>
               <div class="the-word-text">${escHtml(note)}</div>
             </div>` : ''}
-            ${canJoin ? `<button class="cta-primary" id="joinBtn">
-              See ${escHtml(sharerFirst)}'s discoveries on Odin
-            </button>` : usedNote}
+            ${canJoin ? `<div class="join-terms">
+              <strong>Joining connects you with ${escHtml(sharerFirst)}.</strong>
+              You'll see what ${escHtml(sharerFirst)} has saved, and ${escHtml(sharerFirst)} will see what you save. Nothing is public.
+              <span class="join-terms-small">Sign in with Google. Free, no ads, and you can delete your account anytime.</span>
+            </div>
+            <button class="cta-primary" id="joinBtn">
+              Join ${escHtml(sharerFirst)} on Odin
+            </button>
+            <details class="what-is">
+              <summary>What is Odin?</summary>
+              <p>Odin is where you keep the places, services and things worth remembering, and find what the people you know have saved. Ask "a good dentist" or "brunch nearby" and you get answers from your own circle, not strangers or ads.</p>
+              <p>It's invite only. You only see saves from people you're connected with, and only they see yours. <a href="/privacy.html">Privacy</a> &middot; <a href="/terms.html">Terms</a></p>
+            </details>` : usedNote}
           </div>
         </div>
         <p class="tagline">
