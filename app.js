@@ -3195,6 +3195,17 @@ const OG_FETCH_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/og-fetch';
 const DELETE_ACCOUNT_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/delete-account';
 const FEEDBACK_WEBHOOK = 'https://stanmak.app.n8n.cloud/webhook/search-feedback';
 
+// Login token for paid n8n webhooks (capture, translate, link preview, nearby).
+// n8n checks it with Supabase and rate-limits per user. getSession() refreshes
+// an expired token on its own. Returns null when signed out.
+async function odinAccessToken() {
+    try {
+        const { data } = await supabaseClient.auth.getSession();
+        return data?.session?.access_token || null;
+    } catch (e) { return null; }
+}
+window.odinAccessToken = odinAccessToken;
+
 // ===== SEARCH EVENT / FEEDBACK LOOP =====
 // Client-generated UUID v4 for each search, sent as search_event_id in the
 // search request body AND used as the row PK for public.search_events.
@@ -3586,7 +3597,7 @@ async function translateItem(item, targetLang) {
     const resp = await fetch(TRANSLATE_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts, target_language: targetLang })
+        body: JSON.stringify({ texts, target_language: targetLang, access_token: await odinAccessToken() })
     });
     if (!resp.ok) throw new Error('Translation request failed: ' + resp.status);
     const data = await resp.json();
@@ -6918,10 +6929,12 @@ async function saveItemEdit(itemId) {
         if (needsReEmbed) {
             console.log('Title/description changed — triggering re-embedding...');
             // Fire-and-forget re-embed call
+            const _reembedToken = await odinAccessToken();
             fetch(CAPTURE_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    access_token: _reembedToken,
                     action: 'update_embedding',
                     itemId: itemId,
                     title: newTitle,
@@ -7136,7 +7149,8 @@ async function translateNote(noteId, btn) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     texts: { personal_note: originalText },
-                    target_language: targetLang
+                    target_language: targetLang,
+                    access_token: await odinAccessToken()
                 })
             });
             if (!resp.ok) throw new Error('Translate request failed: ' + resp.status);
@@ -8613,7 +8627,7 @@ function prefillCaptureLocation() {
             const res = await fetch('https://stanmak.app.n8n.cloud/webhook/nearby', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ lat, lng })
+                body: JSON.stringify({ lat, lng, access_token: await odinAccessToken() })
             });
             const data = await res.json();
             const places = (data && Array.isArray(data.places)) ? data.places : [];
@@ -8952,7 +8966,7 @@ async function fetchAndPrefillOG(url) {
                 res = await fetch(OG_FETCH_WEBHOOK, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url }),
+                    body: JSON.stringify({ url, access_token: await odinAccessToken() }),
                     signal: _ogCtrl.signal
                 });
             } finally {
@@ -11081,7 +11095,7 @@ function dismissEmptyFriends() {
             const resp = await fetch(CAPTURE_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({ ...payload, access_token: await odinAccessToken() }),
                 signal: ctrl ? ctrl.signal : undefined
             });
             clearTimeout(to);

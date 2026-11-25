@@ -1,0 +1,6 @@
+-- APPLIED to production Supabase on 25 Nov 2026 via MCP (migration: api_rate_limits_and_alerts).
+-- Hourly per-user + global usage counters for paid n8n webhooks, plus alert rows
+-- that the "Odin — Usage Alerts (email)" n8n workflow emails to Stanley.
+-- Tables: api_usage(user_key, bucket, window_start, count), api_alerts(kind, user_key, bucket, count, limit_value, emailed_at)
+-- Function: odin_consume_quota(p_user_key, p_bucket, p_limit, p_global_limit, p_warn_at) -> {allowed, count, limit, global_count}
+-- Service role only (anon/authenticated revoked). See Supabase migration history for the full SQL.

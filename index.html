@@ -6471,7 +6471,7 @@
                     var res = await fetch('https://stanmak.app.n8n.cloud/webhook/nearby', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+                        body: JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude, access_token: (typeof odinAccessToken === 'function' ? await odinAccessToken() : null) })
                     });
                     var data = await res.json();
                     var places = (data && Array.isArray(data.places)) ? data.places.slice(0, 3) : [];
