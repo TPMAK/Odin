@@ -10077,6 +10077,7 @@ function copyInviteLink() {
 // Stores the invite token read from the URL (survives OAuth redirect via sessionStorage)
 let _onbInviteToken = null;
 let _onbInviterData = null; // { id, display_name }
+let _onbInviteProblem = null; // { status, name } when the link can't connect
 
 // ── Silent invite processing for returning users ──
 // Called when a user who already completed onboarding opens an invite link.
@@ -10111,13 +10112,14 @@ async function _processInviteTokenSilently(token) {
         } else if (data?.error === 'unauthorized') {
             // Session not fully established yet — retry, KEEP token.
             outcome = 'retry';
-        } else if (data?.error === 'token_expired') {
-            outcome = 'terminal';
-            showToast('That invite link has expired. Ask your friend for a fresh one.', 5000);
-        } else if (data?.error === 'token_used'
-                || data?.error === 'invalid_token'
-                || data?.error === 'self_invite') {
+        } else if (data?.error === 'token_expired' || data?.error === 'token_used'
+                || data?.error === 'invalid_token') {
             outcome = 'terminal';   // nothing more to do; safe to consume token
+            const st = await _inviteStatus(token);
+            const msg = _inviteProblemText(st.status, st.name);
+            showToast(msg.title + '. ' + msg.body, 7000);
+        } else if (data?.error === 'self_invite' || data?.error === 'blocked') {
+            outcome = 'terminal';   // own link, or a blocked pair: nothing to say
         } else {
             outcome = 'retry';      // unknown state — be conservative, keep token
         }
@@ -10131,6 +10133,25 @@ async function _processInviteTokenSilently(token) {
         localStorage.removeItem('odin_invite_token');
     }
     return outcome;
+}
+
+// ── Invite helper: WHY a link doesn't work (used / expired / invalid / own) ──
+// Returns { status, name } — name is the inviter's first name ('' if unknown).
+async function _inviteStatus(token) {
+    try {
+        const { data, error } = await supabaseClient.rpc('get_invite_status', { p_token: token });
+        if (error || !data) return { status: 'invalid', name: '' };
+        return { status: data.status || 'invalid', name: data.inviter_first_name || '' };
+    } catch (e) { return { status: 'invalid', name: '' }; }
+}
+
+// Plain-language message for a link that can't connect anyone.
+function _inviteProblemText(status, name) {
+    const who = name || 'your friend';
+    if (status === 'used')    return { title: 'This invite link has already been used', body: `Each Odin invite link works for one person. Ask ${who} to send you your own link.` };
+    if (status === 'expired') return { title: 'This invite link has expired', body: `Invite links last 30 days. Ask ${who} to send you a fresh one.` };
+    if (status === 'own')     return { title: 'This is your own invite link', body: 'Send it to a friend so they can join your circle.' };
+    return { title: 'This invite link does not work', body: 'Ask your friend to send you a new link.' };
 }
 
 // ── Invite helper: look up inviter via SECURITY DEFINER RPC ──
@@ -10165,22 +10186,23 @@ function _populateStep2UI(inviter) {
     const connectBtn = document.getElementById('onbConnectBtn');
     if (nameSpan)   nameSpan.textContent   = inviter.display_name || 'Someone';
     if (initSpan)   initSpan.textContent   = (inviter.display_name || '?')[0].toUpperCase();
-    if (connectBtn) connectBtn.textContent = `Connect with ${(inviter.display_name || 'them').split(' ')[0]} →`;
+    if (connectBtn) connectBtn.textContent = 'Continue →';
 }
 
 // ── Invite helper: replace Step 2 with an "expired" message ──
 // Called when accept_invite_and_connect returns token_expired / token_used / invalid_token.
-function _showInviteExpiredMessage() {
+function _showInviteExpiredMessage(status, name) {
     const step2 = document.getElementById('onbStep2');
     if (!step2) return;
+    const msg = _inviteProblemText(status || 'used', name || (_onbInviterData && (_onbInviterData.display_name || '').split(' ')[0]) || '');
+    const esc = (t) => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const next = (currentProfile && currentProfile.onboarding_completed_at) ? 'onbComplete()' : 'onbGoStep(3)';
 
     step2.innerHTML = `
-        <div class="onb-expired" style="text-align:center; padding:32px;">
-            <h2 style="margin-bottom:16px;">This invite link has expired</h2>
-            <p style="margin-bottom:24px; color:#666;">
-                Invite links are valid for 3 days. Please ask your friend to send you a fresh link.
-            </p>
-            <button onclick="onbComplete()" class="onb-btn-primary">Got it</button>
+        <div class="onb-screen-inner">
+            <h1 class="onb-heading">${esc(msg.title)}</h1>
+            <p class="onb-body">${esc(msg.body)}</p>
+            <button onclick="${next}" class="onb-btn-primary">Continue →</button>
         </div>
     `;
 
@@ -10298,7 +10320,9 @@ async function checkOnboardingBanner() {
                 console.warn('Auto-connect on invitation failed (will retry on next load):', err)
             );
         } else {
-            // Token invalid or already used — clear it
+            // Token can't connect — remember why so Step 2 can say so plainly
+            const st = await _inviteStatus(_onbInviteToken);
+            if (st.status !== 'own') _onbInviteProblem = st;
             _onbInviteToken = null;
             sessionStorage.removeItem('odin_invite_token');
             localStorage.removeItem('odin_invite_token');
@@ -10328,8 +10352,10 @@ async function onbGoStep(step) {
                 _populateStep2UI(inviter);
             }
         }
-        // If still no inviter data after lookup, skip step 2
-        if (!_onbInviterData) {
+        // Link couldn't connect: show why on Step 2 instead of skipping silently
+        if (!_onbInviterData && _onbInviteProblem) {
+            _showInviteExpiredMessage(_onbInviteProblem.status, _onbInviteProblem.name);
+        } else if (!_onbInviterData) {
             onbGoStep(3);
             return;
         }
@@ -10377,7 +10403,7 @@ async function onbAcceptInvite() {
             try { if (typeof loadHomeStats === 'function')   await loadHomeStats(); }   catch (e) { console.warn('loadHomeStats refresh failed:', e); }
             try { if (typeof loadProfilePage === 'function') await loadProfilePage(); } catch (e) { console.warn('loadProfilePage refresh failed:', e); }
 
-            if (btn) btn.textContent = 'Connected ✓';
+            if (btn) btn.textContent = 'Connected';
 
             setTimeout(() => {
                 if (currentProfile && currentProfile.onboarding_completed_at) {
@@ -10392,7 +10418,8 @@ async function onbAcceptInvite() {
         // Handle errors
         const errCode = data?.error || error?.message || 'unknown';
         if (errCode === 'token_expired' || errCode === 'token_used' || errCode === 'invalid_token') {
-            _showInviteExpiredMessage();
+            const st = await _inviteStatus(_onbInviteToken);
+            _showInviteExpiredMessage(st.status, st.name);
         } else {
             console.warn('accept_invite_and_connect failed:', errCode);
             if (btn) btn.textContent = 'Could not connect — skip';

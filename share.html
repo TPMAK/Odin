@@ -280,6 +280,7 @@
     @media (prefers-reduced-motion: reduce) {
       .cta-primary { transition: none; }
     }
+    .used-note { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: rgba(123,45,69,0.07); color: #5a2233; font-size: 14px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -328,12 +329,23 @@
       // 1. Fetch preview data (works for anon + logged-in)
       const { data: invData, error: invErr } = await sb.rpc('get_share_preview', { p_token: token });
       if (invErr || !invData || invData.length === 0) {
-        showError('This link has expired', 'Share links are valid for 30 days. Ask your friend to send you a fresh one.');
+        // Say WHY: own link, expired, used invite, or broken link.
+        let st = { status: 'invalid', inviter_first_name: '' };
+        try { const r = await sb.rpc('get_invite_status', { p_token: token }); if (r.data) st = r.data; } catch (e) {}
+        const who = st.inviter_first_name || 'your friend';
+        if (st.status === 'own') { window.location.href = '/'; return; }
+        if (st.status === 'expired') { showError('This link has expired', 'Links last 30 days. Ask ' + who + ' to send you a fresh one.'); return; }
+        if (st.status === 'used') { showError('This invite link has already been used', 'Each invite link works for one person. Ask ' + who + ' to send you your own link.'); return; }
+        showError('This link does not work', 'Ask your friend to send you a new link.');
         return;
       }
       const inv = invData[0];
       const sharerFirst = (inv.display_name || 'Someone').split(' ')[0];
       const itemId = inv.knowledge_item_id;
+      // A share link that someone already joined through still shows the item,
+      // but only the first person gets connected.
+      const linkUsed = inv.link_used === true;
+      const usedNote = `<div class="used-note">This link has already been used to join Odin. To join, ask ${escHtml(sharerFirst)} to send you your own invite link.</div>`;
       // 2. Check session
       let session = null;
       try {
@@ -357,6 +369,11 @@
           }
           return;
         }
+        // Not friends and the link is used up: show the item, explain, don't connect
+        if (linkUsed) {
+          renderCard(false);
+          return;
+        }
         // Not friends — auto-connect via token
         const { data: connectData } = await sb.rpc('accept_invite_and_connect', {
           p_token: token,
@@ -365,11 +382,14 @@
         document.getElementById('loadingState').style.display = 'none';
         const main = document.getElementById('mainContent');
         main.style.display = 'block';
+        if (connectData?.error === 'token_used') {
+          renderCard(false);
+          return;
+        }
         if (connectData?.ok) {
           main.innerHTML = `
             <div class="card">
               <div class="card-body" style="text-align:center; padding: 40px 24px;">
-                <div style="font-size: 40px; margin-bottom: 16px;">👋</div>
                 <h1 class="card-title" style="margin-bottom: 12px;">You're now connected with ${escHtml(sharerFirst)}</h1>
                 <p style="font-size:14px; color:var(--muted); margin-bottom: 24px; line-height:1.6;">
                   You can now see each other's discoveries on Odin.
@@ -392,6 +412,9 @@
         return;
       }
       // 3. Not logged in — render preview card
+      renderCard(!linkUsed);
+
+      function renderCard(canJoin) {
       const item = itemId ? {
         id: itemId,
         title: inv.item_title,
@@ -428,9 +451,9 @@
               <div class="the-word-label">The Word</div>
               <div class="the-word-text">${escHtml(note)}</div>
             </div>` : ''}
-            <button class="cta-primary" id="joinBtn">
+            ${canJoin ? `<button class="cta-primary" id="joinBtn">
               See ${escHtml(sharerFirst)}'s discoveries on Odin
-            </button>
+            </button>` : usedNote}
           </div>
         </div>
         <p class="tagline">
@@ -438,7 +461,9 @@
           By invite only. No algorithms. No ads.
         </p>
       `;
-      document.getElementById('joinBtn').addEventListener('click', () => signIn(token, itemId));
+      const jb = document.getElementById('joinBtn');
+      if (jb) jb.addEventListener('click', () => signIn(token, itemId));
+      }
     }
 
     async function signIn(token, itemId) {

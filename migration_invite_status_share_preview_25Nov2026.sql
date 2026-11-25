@@ -1,0 +1,8 @@
+-- APPLIED to production Supabase on 25 Nov 2026 via MCP:
+--   invite_status_and_share_preview_after_use, accept_invite_respect_blocks,
+--   accept_invite_single_friendship_row
+-- get_invite_status(token) -> {status: valid|used|expired|invalid|own, inviter_first_name, is_share}
+-- get_share_preview(token): share links keep their item preview after use (until expiry); adds link_used.
+-- accept_invite_and_connect: already-connected checked before "used"; blocked pairs never reconnect;
+--   a pending request between the two is accepted instead of adding a second row.
+-- Full SQL is in the Supabase migration history.

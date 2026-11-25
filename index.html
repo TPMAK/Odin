@@ -2436,7 +2436,7 @@
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             <span>Invite someone to Odin</span>
                         </div>
-                        <p class="invite-link-body">Generate a personal invite link. When they sign up through it, you'll get a friend request automatically.</p>
+                        <p class="invite-link-body">Make a personal invite link. When they join through it, you're connected straight away.</p>
                         <button class="invite-link-btn" id="inviteLinkBtn" onclick="generateInviteLink()">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Generate invite link
@@ -2446,7 +2446,7 @@
                                 <span class="invite-link-url" id="inviteLinkUrl"></span>
                                 <button class="invite-link-copy" id="inviteLinkCopy" onclick="copyInviteLink()">Copy</button>
                             </div>
-                            <p class="invite-link-hint">Send this link via WhatsApp, iMessage, or email. Works once — expires after use.</p>
+                            <p class="invite-link-hint">Each link works for one person and lasts 30 days. Make a new link for each friend.</p>
                         </div>
                     </div>
 
@@ -3118,10 +3118,9 @@
                 <div class="onb-invite-avatar" id="onbInviterAvatar">
                     <svg width="44" height="44" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="22" r="22" fill="#EAE0D2"/><text x="22" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="18" fill="#7B2D45" id="onbInviterInitial">?</text></svg>
                 </div>
-                <h1 class="onb-heading"><span id="onbInviterName">Someone</span> invited you.</h1>
-                <p class="onb-body">Accept to start seeing what they've saved in your feed. Your Knowledge grows the moment you connect.</p>
-                <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Connect →</button>
-                <button class="onb-btn-skip" onclick="onbSkipInvite()">Skip for now</button>
+                <h1 class="onb-heading">You're connected with <span id="onbInviterName">your friend</span>.</h1>
+                <p class="onb-body">You can now find what they've saved, and they can find yours. Your circle grows with every friend you add.</p>
+                <button class="onb-btn-primary" id="onbConnectBtn" onclick="onbAcceptInvite()">Continue →</button>
                 <div class="onb-dots">
                     <span class="onb-dot"></span>
                     <span class="onb-dot onb-dot-active"></span>
