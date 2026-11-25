@@ -10473,11 +10473,17 @@ function dismissEmptyFriends() {
 
 // ===== PULL-TO-REFRESH =====
 (function initPullToRefresh() {
-    var PTR_THRESHOLD = 65;   // px drag needed to trigger refresh
-    var PTR_MAX      = 90;    // max drag distance (visual clamp)
+    // Nov 2026: was firing too easily (65px of finger travel, half-way counted,
+    // and a scrolled Discover page could look like "at the top").
+    var PTR_DEAD_ZONE = 24;   // finger px ignored before anything shows
+    var PTR_TRIGGER   = 60;   // indicator px (after resistance) needed to refresh ≈ 160px of finger travel (was 65)
+    var PTR_MAX       = 90;   // max indicator height (visual clamp)
+    var PTR_THRESHOLD = PTR_TRIGGER;
 
     var touchStartY  = 0;
+    var touchStartX  = 0;
     var pulling      = false;
+    var locked       = false;  // direction decided (vertical pull)
     var refreshing   = false;
 
     // Create indicator element
@@ -10527,6 +10533,21 @@ function dismissEmptyFriends() {
         if (content) return content.scrollTop;
         return window.scrollY || document.documentElement.scrollTop;
     }
+    // At the top only if the page AND every scrollable box under the finger are at the top.
+    function atTop(target) {
+        if ((window.scrollY || 0) > 0) return false;
+        if (document.scrollingElement && document.scrollingElement.scrollTop > 0) return false;
+        if (getScrollTop() > 0) return false;
+        for (var el = target; el && el !== document.body; el = el.parentElement) {
+            if (el.scrollTop > 0) return false;
+        }
+        return true;
+    }
+    // Never start a pull from the bottom bar, the Add menu, sheets or text fields.
+    function ignoredStart(target) {
+        return !!(target && target.closest && target.closest(
+            '.bottom-tab-bar, .home2-dock, .home2-menu, .detail-drawer, .profile-drawer, .filter-modal, .search-sheet, input, textarea, select, [contenteditable="true"]'));
+    }
 
     function setIndicatorHeight(px) {
         indicator.style.height = px + 'px';
@@ -10575,31 +10596,47 @@ function dismissEmptyFriends() {
     }
 
     document.addEventListener('touchstart', function(e) {
-        if (!isRefreshableMode()) return;
-        if (getScrollTop() > 0) return;
+        pulling = false; locked = false;
+        if (!isRefreshableMode() || refreshing) return;
+        if (e.touches.length !== 1) return;
+        if (ignoredStart(e.target) || !atTop(e.target)) return;
         touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
         pulling = true;
     }, { passive: true });
 
     document.addEventListener('touchmove', function(e) {
         if (!pulling || refreshing) return;
-        var delta = e.touches[0].clientY - touchStartY;
-        if (delta <= 0) { pulling = false; setIndicatorHeight(0); return; }
-        var clamped = Math.min(delta * 0.5, PTR_MAX);
-        setIndicatorHeight(clamped);
-        setIndicatorLabel(clamped >= PTR_THRESHOLD * 0.5 ? 'Release to refresh' : 'Pull to refresh');
+        var dy = e.touches[0].clientY - touchStartY;
+        var dx = e.touches[0].clientX - touchStartX;
+        if (!locked) {
+            // Sideways swipe (e.g. a Discover rail) or upward scroll: not a pull.
+            if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { pulling = false; setIndicatorHeight(0); return; }
+            if (dy < -4) { pulling = false; return; }
+            if (dy < PTR_DEAD_ZONE) return;
+            locked = true;
+        }
+        if (dy <= PTR_DEAD_ZONE) { setIndicatorHeight(0); return; }
+        // Rubber-band resistance: the further you pull, the harder it gets.
+        var pull = dy - PTR_DEAD_ZONE;
+        var h = Math.min(PTR_MAX, pull * 0.5 * (1 - Math.min(pull, 400) / 1200));
+        setIndicatorHeight(h);
+        setIndicatorLabel(h >= PTR_TRIGGER ? 'Release to refresh' : 'Pull to refresh');
     }, { passive: true });
 
-    document.addEventListener('touchend', function() {
+    function endPull() {
         if (!pulling || refreshing) return;
         pulling = false;
         var currentH = parseFloat(indicator.style.height) || 0;
-        if (currentH >= PTR_THRESHOLD * 0.5) {
+        if (locked && currentH >= PTR_TRIGGER) {
             triggerRefresh();
         } else {
             setIndicatorHeight(0);
         }
-    }, { passive: true });
+        locked = false;
+    }
+    document.addEventListener('touchend', endPull, { passive: true });
+    document.addEventListener('touchcancel', function() { pulling = false; locked = false; setIndicatorHeight(0); }, { passive: true });
 
     // Inject keyframe animation for spinner
     var style = document.createElement('style');
