@@ -12022,12 +12022,16 @@ body.map-view-open .content {
 
 /* ── Coach Marks ── */
 #coachMark {
+    /* Top of the screen (below the header) so it never covers the Ask bar,
+       the Save button or the floating tab bar. Tap anywhere on it to close. */
     position: fixed;
-    bottom: calc(64px + env(safe-area-inset-bottom) + 12px);
+    top: calc(env(safe-area-inset-top) + 64px);
+    bottom: auto;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(11, 15, 26, 0.92);
+    background: #7B2D45;
     color: #FAF6EE;
+    box-shadow: 0 6px 20px rgba(40, 20, 25, 0.18);
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     line-height: 1.4;
@@ -12041,7 +12045,7 @@ body.map-view-open .content {
 }
 
 @keyframes coachFadeIn {
-    from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 

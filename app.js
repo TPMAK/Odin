@@ -10078,6 +10078,7 @@ function copyInviteLink() {
 let _onbInviteToken = null;
 let _onbInviterData = null; // { id, display_name }
 let _onbInviteProblem = null; // { status, name } when the link can't connect
+let _onbConnected = false;     // background connect already succeeded
 
 // ── Silent invite processing for returning users ──
 // Called when a user who already completed onboarding opens an invite link.
@@ -10108,7 +10109,9 @@ async function _processInviteTokenSilently(token) {
             await Promise.all([loadFriends(), loadDiscoveries()]);
             try { if (typeof loadHomeStats === 'function')   await loadHomeStats(); }   catch (e) { console.warn('loadHomeStats refresh failed:', e); }
             try { if (typeof loadProfilePage === 'function') await loadProfilePage(); } catch (e) { console.warn('loadProfilePage refresh failed:', e); }
-            showToast('Connected! Check your profile.', 4000);
+            if (currentProfile && currentProfile.onboarding_completed_at) {
+                showToast('Connected! Check your profile.', 4000);
+            }
         } else if (data?.error === 'unauthorized') {
             // Session not fully established yet — retry, KEEP token.
             outcome = 'retry';
@@ -10214,10 +10217,10 @@ function _showInviteExpiredMessage(status, name) {
 // ── Coach Marks ──
 const COACH_MARKS = {
     home:     "Tap + to add something your circle should know.",
-    discover: "Browse what your circle saved. Tap the map icon to explore nearby.",
+    discover: "Browse what your circle saved. Tap Map to see what's nearby.",
     search:   "Ask it like you'd ask a friend.",
-    input:    "Save something great — your circle will thank you.",
-    profile:  "Your Knowledge Base — everything your network knows."
+    input:    "Your note is what friends see first. Say it the way you'd tell them.",
+    profile:  "Invite friends from here. Each invite link works for one person."
 };
 
 let _coachMarkTimer = null;
@@ -10311,6 +10314,7 @@ async function checkOnboardingBanner() {
                     await new Promise(res => setTimeout(res, 1500));
                     r = await _processInviteTokenSilently(_onbInviteToken);
                 }
+                if (r === 'ok') _onbConnected = true;
                 if (r === 'ok' || r === 'terminal') {
                     _onbInviteToken = null;
                 }
@@ -10376,8 +10380,10 @@ async function onbGoStep(step) {
 }
 
 async function onbAcceptInvite() {
-    if (!_onbInviterData || !currentUser) {
-        onbGoStep(3);
+    if (!_onbInviterData || !currentUser || _onbConnected || !_onbInviteToken) {
+        // Already connected in the background (the usual case) — just continue.
+        if (currentProfile && currentProfile.onboarding_completed_at) onbComplete();
+        else onbGoStep(3);
         return;
     }
 
