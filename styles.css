@@ -13661,14 +13661,17 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
 .tab-add:focus-visible { outline: 3px solid rgba(123, 45, 69, 0.35); outline-offset: 3px; }
 /* No + while already on the Add form (it would start over and lose what's typed). */
 body[data-mode="input"] .tab-add { display: none; }
-/* The Home search bar's own + is replaced by the tab bar's +. */
-.home2-bar .home2-plus { display: none; }
-.home2-bar { grid-template-columns: 0 1fr auto auto; column-gap: 0; }
-.home2-bar .home2-input { margin-left: 6px; }
+/* Home: Add lives in the search bar's own + (left, under the thumb). The tab
+   bar's + keeps its space so the pill is the same width on every page. */
+body[data-mode="home"] .tab-add,
+body:not([data-mode]) .tab-add { visibility: hidden; pointer-events: none; }
+.home2-bar .home2-plus { background: var(--wb); color: #FFFFFF; }
 /* Home dock floats above the pill instead of sitting on a solid strip. */
 .home2-dock { background: transparent; }
-/* While the Add menu is open, keep the + above the backdrop so it can close it. */
+/* While the Add menu is open, keep the + above the backdrop so it can close it.
+   The Home dock stays under the backdrop now that the menu lives in <body>. */
 body.home2-menu-open .bottom-tab-bar { z-index: 1102; }
+body.home2-menu-open .home2-dock { z-index: 999; }
 /* Add menu: now lives in <body>. Phone = floating sheet above the bar. */
 .home2-menu {
     left: 12px;

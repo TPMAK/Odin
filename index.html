@@ -1812,7 +1812,7 @@
                         </button>
                         <div class="home2-bar" id="home2Bar">
                             <textarea id="home2Input" class="home2-input" rows="1" placeholder="Ask your circle" autocomplete="off" enterkeyhint="search" oninput="home2OnInput()" onkeydown="home2OnKey(event)"></textarea>
-                            <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu()" aria-label="Add to your circle">
+                            <button type="button" class="home2-btn home2-plus" onclick="home2OpenAddMenu(this)" aria-label="Add to your circle">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             </button>
                             <button type="button" class="home2-btn home2-cancel" onclick="home2VoiceCancel()" aria-label="Cancel voice">
@@ -2954,7 +2954,7 @@
                 <div class="tab-label">Profile</div>
             </button>
         </nav>
-        <button type="button" class="tab-add" id="tabAdd" onclick="home2OpenAddMenu()" aria-label="Add to your circle">
+        <button type="button" class="tab-add" id="tabAdd" onclick="home2OpenAddMenu(this)" aria-label="Add to your circle">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
     </div>
@@ -6253,11 +6253,20 @@
 
 
         // ── Add menu ──
-        function home2OpenAddMenu() {
+        function home2OpenAddMenu(src) {
             var m = document.getElementById('home2Menu');
             var b = document.getElementById('home2Backdrop');
             if (!m) return;
             if (!m.classList.contains('hidden')) { home2CloseAddMenu(); return; }
+            // Desktop: open from whichever + was pressed (Home bar's + or the tab bar's +).
+            m.style.left = ''; m.style.right = ''; m.style.bottom = '';
+            if (src && src.classList && src.classList.contains('home2-plus') &&
+                window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+                var r = src.getBoundingClientRect();
+                m.style.left = Math.round(r.left) + 'px';
+                m.style.right = 'auto';
+                m.style.bottom = Math.round(window.innerHeight - r.top + 8) + 'px';
+            }
             m.classList.remove('hidden');
             if (b) b.classList.remove('hidden');
             document.body.classList.add('home2-menu-open');
