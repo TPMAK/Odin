@@ -4314,7 +4314,7 @@ function setMode(mode) {
     }
 
     updateTabBar(mode);
-    showCoachMark(mode);
+    maybeShowTip(mode);
 }
 
 function updateTabBar(mode) {
@@ -10214,7 +10214,93 @@ function _showInviteExpiredMessage(status, name) {
     localStorage.removeItem('odin_invite_token');
 }
 
-// ── Coach Marks ──
+// ── Tips (Nov 2026) ──
+// A small bubble with an arrow, pinned to the button it explains. Only two:
+// Home + (only if the person hasn't added anything yet) and Discover Map.
+// Waits ~1s for the page to settle, stays until tapped / anything else is
+// tapped, never in the same session as onboarding, shown once per person.
+const ODIN_TIPS = {
+    home: {
+        key: 'odin_tip_home_plus',
+        anchor: () => document.querySelector('#homeMode .home2-plus') || document.querySelector('.home2-plus'),
+        text: 'Tap + to add a place or tip your circle should know.',
+        place: 'above',
+        skip: () => {
+            const me = (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null;
+            return !!(me && Array.isArray(typeof allDiscoveries !== 'undefined' ? allDiscoveries : null)
+                && allDiscoveries.some(d => d && d.added_by === me));
+        }
+    },
+    discover: {
+        key: 'odin_tip_discover_map',
+        anchor: () => document.getElementById('dcMapToggleBtn'),
+        text: "See your circle's saves on a map.",
+        place: 'below'
+    }
+};
+let _tipTimer = null;
+let _tipEl = null;
+let _tipCleanup = null;
+
+function hideTip() {
+    if (_tipTimer) { clearTimeout(_tipTimer); _tipTimer = null; }
+    if (_tipCleanup) { _tipCleanup(); _tipCleanup = null; }
+    if (_tipEl) { _tipEl.remove(); _tipEl = null; }
+}
+
+function maybeShowTip(mode) {
+    hideTip();
+    const tip = ODIN_TIPS[mode];
+    if (!tip) return;
+    try {
+        if (localStorage.getItem(tip.key)) return;
+        if (sessionStorage.getItem('odin_onboarding_session')) return;
+    } catch (e) { return; }
+    const ov = document.getElementById('onboardingOverlay');
+    if (ov && ov.style.display && ov.style.display !== 'none') return;
+
+    _tipTimer = setTimeout(() => {
+        _tipTimer = null;
+        if (_currentMode !== mode) return;
+        if (tip.skip && tip.skip()) { try { localStorage.setItem(tip.key, '1'); } catch (e) {} return; }
+        const anchor = tip.anchor();
+        if (!anchor || anchor.offsetParent === null) return;
+        const r = anchor.getBoundingClientRect();
+        if (r.width === 0 || r.bottom < 0 || r.top > window.innerHeight) return;
+
+        try { localStorage.setItem(tip.key, '1'); } catch (e) {}
+        const el = document.createElement('div');
+        el.className = 'odin-tip odin-tip--' + tip.place;
+        el.setAttribute('role', 'status');
+        el.textContent = tip.text;
+        document.body.appendChild(el);
+
+        // Position next to the anchor, kept inside the screen, arrow pointing at it
+        const tw = el.offsetWidth, th = el.offsetHeight, pad = 12;
+        const cx = r.left + r.width / 2;
+        let left = Math.min(Math.max(cx - tw / 2, pad), window.innerWidth - tw - pad);
+        let top = tip.place === 'above' ? r.top - th - 12 : r.bottom + 12;
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.setProperty('--arrow-x', Math.min(Math.max(cx - left, 16), tw - 16) + 'px');
+        _tipEl = el;
+
+        // Close on any tap (including the anchor itself), scroll or resize
+        const close = () => hideTip();
+        setTimeout(() => {
+            document.addEventListener('pointerdown', close, true);
+            window.addEventListener('scroll', close, true);
+            window.addEventListener('resize', close);
+        }, 0);
+        _tipCleanup = () => {
+            document.removeEventListener('pointerdown', close, true);
+            window.removeEventListener('scroll', close, true);
+            window.removeEventListener('resize', close);
+        };
+    }, 1000);
+}
+
+// ── Coach Marks (old, no longer called — replaced by tips above) ──
 const COACH_MARKS = {
     home:     "Tap + to add something your circle should know.",
     discover: "Browse what your circle saved. Tap Map to see what's nearby.",
@@ -10334,6 +10420,7 @@ async function checkOnboardingBanner() {
     }
 
     // Show the overlay and start at step 1
+    try { sessionStorage.setItem('odin_onboarding_session', '1'); } catch (e) {}
     onbGoStep(1);
 }
 

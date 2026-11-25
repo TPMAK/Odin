@@ -13729,3 +13729,39 @@ body.home2-menu-open .home2-dock { z-index: 999; }
 }
 .home2-circle-line b { color: var(--ink, #2A1E14); font-weight: 600; }
 .home2-circle-line b.home2-kb { color: var(--wb); }
+
+
+/* ══════════════════════════════════════════════════════════
+   TIPS — small bubble pinned to the button it explains (Nov 2026)
+   ══════════════════════════════════════════════════════════ */
+.odin-tip {
+    position: fixed;
+    z-index: 9999;
+    max-width: 240px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: #7B2D45;
+    color: #FAF6EE;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13.5px;
+    line-height: 1.4;
+    box-shadow: 0 8px 24px rgba(40, 20, 25, 0.22);
+    animation: odinTipIn 0.25s ease;
+    pointer-events: auto;
+}
+.odin-tip::after {
+    content: '';
+    position: absolute;
+    left: var(--arrow-x, 50%);
+    width: 12px;
+    height: 12px;
+    background: #7B2D45;
+    transform: translateX(-50%) rotate(45deg);
+    border-radius: 2px;
+}
+.odin-tip--above::after { bottom: -5px; }
+.odin-tip--below::after { top: -5px; }
+@keyframes odinTipIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
