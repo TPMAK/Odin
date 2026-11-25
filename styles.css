@@ -13561,20 +13561,25 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
    backdrops stayed rendered (opacity 0), so the status bar turned grey.
    Take closed overlays out of rendering with visibility:hidden; delay the
    hide until the fade-out finishes so close animations still play. */
+/* 25 Nov: visibility:hidden alone wasn't enough — Safari still picked up the
+   colour. Closed backdrops now also have NO background colour; the colour fades
+   in with the backdrop and out with it. */
 .filter-modal-backdrop,
 .drawer-backdrop,
 .search-sheet-backdrop,
-.profile-drawer {
+.profile-drawer,
+.profile-drawer .profile-drawer-backdrop {
     visibility: hidden;
-    transition: opacity 0.3s, visibility 0s linear 0.3s;
+    background-color: transparent;
+    transition: opacity 0.3s, background-color 0.3s, visibility 0s linear 0.3s;
 }
 .filter-modal-backdrop.active,
-.drawer-backdrop.active,
-.search-sheet-backdrop.active,
-.profile-drawer.is-open {
-    visibility: visible;
-    transition: opacity 0.3s, visibility 0s;
-}
+.search-sheet-backdrop.active { visibility: visible; background-color: rgba(0, 0, 0, 0.4); transition: opacity 0.3s, background-color 0.3s, visibility 0s; }
+.drawer-backdrop.active { visibility: visible; background-color: rgba(42, 30, 20, 0.4); transition: opacity 0.3s, background-color 0.3s, visibility 0s; }
+.profile-drawer.is-open { visibility: visible; transition: opacity 0.3s, visibility 0s; }
+.profile-drawer.is-open .profile-drawer-backdrop { visibility: visible; background-color: rgba(0, 0, 0, 0.45); transition: background-color 0.3s, visibility 0s; }
+/* Same rule for the Add-menu backdrop now that it lives in <body>. */
+.home2-backdrop.hidden { background-color: transparent; }
 
 /* Search failure "Try again" button (Nov 2026) */
 .search-retry-btn {
