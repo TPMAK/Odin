@@ -6844,9 +6844,12 @@
             if (!box || !faces || !line) return;
             if (!real || real.length === 0) { box.classList.add('hidden'); return; }
             var html = '';
-            real.slice(0, 5).forEach(function(f, i) {
+            var _hasName = function(f) { return !!(f.out_avatar_url || /[A-Za-z0-9\u00C0-\uFFFF]/.test(f.out_display_name || '')); };
+            var faceList = real.filter(_hasName).concat(real.filter(function(f) { return !_hasName(f); }));
+            faceList.slice(0, 5).forEach(function(f, i) {
                 var name = f.out_display_name || f.out_email || '?';
-                var initial = _home2Esc(name.trim().charAt(0).toUpperCase() || '?');
+                var ch = (name.trim().match(/[A-Za-z0-9\u00C0-\uFFFF]/) || ['?'])[0];
+                var initial = _home2Esc(ch.toUpperCase());
                 var bg = _HOME2_FACE_COLORS[i % _HOME2_FACE_COLORS.length];
                 if (f.out_avatar_url && /^https:\/\//.test(f.out_avatar_url)) {
                     html += '<span class="home2-face" style="background:' + bg + '"><img src="' + _home2Esc(f.out_avatar_url) + '" alt="" loading="lazy" onerror="this.remove()">' + initial + '</span>';
@@ -6875,7 +6878,18 @@
         function home2GoInvite() {
             // Open "Your circle" (search people + invite link) right over Home.
             if (typeof openCircleDrawer === 'function' && document.getElementById('circleDrawer')) {
+                // The friends list is normally rendered by the Profile page load,
+                // so render it here too (friendsCache is already loaded), then
+                // refresh pending/sent requests in the background.
+                try { if (typeof updateFriendsDisplay === 'function') updateFriendsDisplay(); } catch (e) {}
                 openCircleDrawer();
+                try {
+                    if (typeof loadPendingFriendRequests === 'function' && typeof loadOutgoingFriendRequests === 'function') {
+                        Promise.all([loadPendingFriendRequests(), loadOutgoingFriendRequests()])
+                            .then(function() { if (typeof updateFriendsDisplay === 'function') updateFriendsDisplay(); })
+                            .catch(function() {});
+                    }
+                } catch (e) {}
                 return;
             }
             setMode('profile');
