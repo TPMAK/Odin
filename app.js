@@ -369,11 +369,13 @@ async function executeDeleteAccount() {
         // Call n8n to delete the Supabase Auth record server-side.
         // Must await BEFORE signOut() — signing out invalidates the session
         // and the webhook would arrive with a dead token.
+        // n8n deletes ONLY the user who owns this login token (never trusts user_id).
         try {
+            const { data: _delSess } = await supabaseClient.auth.getSession();
             await fetch(DELETE_ACCOUNT_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: uid })
+                body: JSON.stringify({ user_id: uid, access_token: _delSess?.session?.access_token || null })
             });
         } catch (webhookErr) {
             console.warn('Auth deletion webhook failed (non-critical):', webhookErr);
