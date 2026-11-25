@@ -31,7 +31,11 @@ module.exports = async (req, res) => {
       const rows = r.ok ? await r.json() : [];
       const p = Array.isArray(rows) ? rows[0] : null;
       if (p && p.item_title) title = p.item_title + ' · shared with you on Odin';
-      if (p && p.item_photo_url && p.item_photo_url.startsWith(SUPABASE_URL + '/')) { image = p.item_photo_url; hasPhoto = true; }
+      if (p && p.item_photo_url && p.item_photo_url.startsWith(SUPABASE_URL + '/')) {
+        // WhatsApp often skips preview images over ~300 KB, so send a resized copy (~90 KB).
+        image = p.item_photo_url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + '?width=600&quality=60';
+        hasPhoto = true;
+      }
     }
   } catch (e) { /* fall back to the generic preview */ }
 
