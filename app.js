@@ -10419,6 +10419,15 @@ async function checkOnboardingBanner() {
         }
     }
 
+    // New people start with Founding Members in their circle (a starter set
+    // of saves). Server-side, once per person, never re-added after removal.
+    supabaseClient.rpc('connect_founding_members').then(function(res) {
+        if (res && res.data && res.data.ok && !res.data.already) {
+            friendsCache = null;
+            Promise.all([loadFriends(), loadDiscoveries()]).catch(function() {});
+        }
+    }).catch(function(e) { console.warn('Founding Members connect failed (non-critical):', e); });
+
     // Show the overlay and start at step 1
     try { sessionStorage.setItem('odin_onboarding_session', '1'); } catch (e) {}
     onbGoStep(1);

@@ -13765,3 +13765,6 @@ body.home2-menu-open .home2-dock { z-index: 999; }
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Onboarding step 1: Founding Members starter note */
+.onb-starter { font-size: 13.5px; margin-top: -4px; padding: 10px 14px; border-radius: 12px; background: rgba(123, 45, 69, 0.07); }

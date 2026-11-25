@@ -1,0 +1,4 @@
+-- APPLIED to production Supabase on 25 Nov 2026 via MCP (migration: connect_founding_members).
+-- profiles.founding_offered_at + connect_founding_members(): new people start connected to
+-- Founding Members (fec29546-...) once; never re-added after removal; existing onboarded
+-- members were marked as offered so nobody existing is auto-added. Full SQL in Supabase history.
