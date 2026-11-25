@@ -10547,14 +10547,22 @@ function onbGoAdd() {
 }
 
 function onbGoSearch() {
-    // Mode name is 'search', input element is 'messageInput'
+    // Searching starts on Home (the Home bar), not the old empty Search page
     onbComplete();
-    setTimeout(() => {
-        setMode('search');
-        const searchInput = document.getElementById('messageInput');
-        if (searchInput) searchInput.focus();
-    }, 300);
+    setTimeout(goHomeToSearch, 300);
 }
+
+// "New" on the Search page and "Search now" in onboarding: fresh conversation,
+// back to Home with the Ask bar ready to type in.
+function goHomeToSearch() {
+    if (typeof startNewSession === 'function') startNewSession();
+    setMode('home');
+    setTimeout(() => {
+        const el = document.getElementById('home2Input');
+        if (el) el.focus();
+    }, 150);
+}
+window.goHomeToSearch = goHomeToSearch;
 
 async function onbComplete() {
     // Hide overlay
