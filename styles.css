@@ -12401,6 +12401,13 @@ body.map-view-open .content {
 .lists-action--danger { border-color: #B23A48; color: #B23A48; }
 .lists-action--danger:hover { background: #FBEDEE; }
 
+/* New list from My Lists (Nov 2026) */
+.lists-new-row {
+    display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box;
+    padding: 14px 16px; margin-bottom: 10px; background: transparent; border: 1.5px dashed #7B2D45;
+    border-radius: 14px; color: #7B2D45; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.lists-new-row:active { background: #F5F0E8; }
 /* Plan with AI (Nov 2026) */
 .lists-action--ai { display: inline-flex; align-items: center; gap: 6px; }
 .lists-ai-panel { background: #FFFFFF; border: 1.5px solid #E6DCCF; border-radius: 12px; padding: 14px; margin: 0 0 12px; }

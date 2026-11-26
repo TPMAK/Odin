@@ -1690,16 +1690,53 @@ async function renderListsView() {
     body.innerHTML = '<div class="atl-loading">Loading…</div>';
     const lists = await fetchMyListsWithCounts();
     _listsCache = lists;
+    const newRow = `<button class="lists-new-row" id="listsNewRow" onclick="startNewListInDrawer()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            New list
+        </button>`;
     if (!lists.length) {
-        body.innerHTML = '<div class="lists-empty">No lists yet.<br>Open any item and tap “Add to list” to start one.</div>';
+        body.innerHTML = newRow + '<div class="lists-empty">No lists yet.<br>Make one here, or open any item and tap “Add to list”.</div>';
         return;
     }
-    body.innerHTML = lists.map(l =>
+    body.innerHTML = newRow + lists.map(l =>
         `<button class="lists-row" onclick="openListDetail('${l.id}')">
             <span class="lists-row-name">${escapeHtml(l.name)}</span>
             <span class="lists-row-count">${l.count} item${l.count !== 1 ? 's' : ''}</span>
         </button>`
     ).join('');
+}
+
+// "New list" straight from My Lists (Nov 2026). Inline form, no prompt().
+function startNewListInDrawer() {
+    const row = document.getElementById('listsNewRow');
+    if (!row || document.getElementById('listNewInput')) return;
+    row.insertAdjacentHTML('afterend',
+        `<div class="lists-inline-form" id="listNewForm">
+            <input id="listNewInput" type="text" maxlength="60" placeholder="Melbourne trip" />
+            <button class="lists-action" onclick="submitNewListInDrawer(this)">Create</button>
+            <button class="lists-action" onclick="renderListsView()">Cancel</button>
+        </div>`);
+    const el = document.getElementById('listNewInput');
+    if (el) {
+        el.focus();
+        el.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitNewListInDrawer(); });
+    }
+}
+
+async function submitNewListInDrawer(btn) {
+    const el = document.getElementById('listNewInput');
+    const name = el ? el.value.trim() : '';
+    if (!name) { if (el) { el.classList.add('field-error'); el.focus(); } return; }
+    if (btn) btn.disabled = true;
+    const created = await createList(name);
+    if (!created) {
+        if (btn) btn.disabled = false;
+        if (typeof showToast === 'function') showToast('Couldn’t make the list. Try again.');
+        return;
+    }
+    if (typeof logEvent === 'function') logEvent('list_create', { from: 'lists_drawer' });
+    _listsCache = [{ ...created, count: 0 }, ...(_listsCache || [])];
+    await openListDetail(created.id);
 }
 
 // One list's items + rename/delete actions.
