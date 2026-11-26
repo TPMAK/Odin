@@ -2,7 +2,7 @@
 // Strategy: network-first for all requests.
 // Caches shell assets on install so the app opens offline after first load.
 
-var CACHE_NAME = 'odin-v37-new-list';
+var CACHE_NAME = 'odin-v38-list-tools';
 var SHELL_ASSETS = [
   './',
   './index.html',

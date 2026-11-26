@@ -1746,7 +1746,9 @@ async function openListDetail(collectionId) {
     const titleEl = document.getElementById('listsDrawerTitle');
     const backEl  = document.getElementById('listsDrawerBack');
     const body    = document.getElementById('listsDrawerBody');
-    if (titleEl) titleEl.textContent = list.name;
+    if (titleEl) titleEl.innerHTML = `<span class="lists-title-text">${escapeHtml(list.name)}</span>` +
+        `<button class="lists-title-edit" onclick="startRenameList()" aria-label="Rename list">` +
+        `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg></button>`;
     if (backEl)  backEl.style.display = '';
     if (!body) return;
     body.innerHTML = '<div class="atl-loading">Loading…</div>';
@@ -1754,36 +1756,30 @@ async function openListDetail(collectionId) {
     const items = await fetchListItems(collectionId);
     _listDetailItems = items;
 
-    const exportBtns = items.length
-        ? `<button class="lists-action lists-action--ai" onclick="togglePlanWithAI()">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>
-                Plan with AI</button>`
-        : '';
-    const actions =
-        `<div class="lists-detail-actions">
-            <button class="lists-action" onclick="startRenameList()">Rename</button>
-            ${exportBtns}
-        </div>`;
     // Delete sits at the bottom, away from everyday actions (one wrong tap shouldn't lose a list).
     const deleteRow = `<div class="lists-delete-row"><button class="lists-delete-link" onclick="confirmDeleteList()">Delete list</button></div>`;
 
     if (!items.length) {
-        body.innerHTML = actions + '<div class="lists-empty">This list is empty.<br>Add items from any item’s “Add to list”.</div>' + deleteRow;
+        body.innerHTML = '<div class="lists-empty">This list is empty.<br>Add items from any item’s “Add to list”.</div>' + deleteRow;
         return;
     }
-    // "Open in Google Maps" only when the list has places (address or pin).
+    // Two trip tools side by side. Google Maps only when the list has places.
     const placeCount = items.filter(_isMapsPlace).length;
-    const mapsBar = placeCount
-        ? `<div class="lists-maps-wrap">
-            <button class="lists-maps-btn" id="listsMapsBtn" onclick="openListInGoogleMaps(this)">
-                <svg class="lists-maps-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
-                <span class="lists-maps-text">
-                    <span class="lists-maps-title">${placeCount > 20 ? 'Open 20 of ' + placeCount + ' places' : 'Open ' + placeCount + ' place' + (placeCount !== 1 ? 's' : '')} in Google Maps</span>
-                    <span class="lists-maps-sub">${_mapsSub(placeCount)}</span>
-                </span>
-            </button>
-            <div class="lists-maps-note" id="listsMapsNote">Only place names go to Google. Notes and names stay in Odin.</div>
-        </div>`
+    const PIN = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+    const SPARK = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>';
+    const mapsTile = placeCount
+        ? `<button class="lists-tile lists-tile--maps" id="listsMapsBtn" onclick="openListInGoogleMaps(this)">
+                <span class="lists-tile-title">${PIN}<span class="lists-tile-label">Google Maps</span></span>
+                <span class="lists-tile-sub">${placeCount > 20 ? '20 of ' + placeCount + ' places' : placeCount + ' place' + (placeCount !== 1 ? 's' : '')}</span>
+            </button>`
+        : '';
+    const aiTile = `<button class="lists-tile lists-tile--ai" onclick="togglePlanWithAI()">
+                <span class="lists-tile-title">${SPARK}<span class="lists-tile-label">Plan with AI</span></span>
+                <span class="lists-tile-sub">Copy details for your AI</span>
+            </button>`;
+    const tools = `<div class="lists-tools${placeCount ? '' : ' lists-tools--single'}">${mapsTile}${aiTile}</div>`;
+    const mapsNote = placeCount
+        ? `<div class="lists-maps-note" id="listsMapsNote">Only place names go to Google. Notes and names stay in Odin.</div>`
         : '';
     const rows = items.map((it, i) => {
         const photos = (typeof getItemPhotos === 'function') ? getItemPhotos(it) : [];
@@ -1800,15 +1796,16 @@ async function openListDetail(collectionId) {
         </div>`;
     }).join('');
     const aiPanel = `<div class="lists-ai-panel" id="listsAiPanel" hidden>
-            <div class="lists-ai-title">Plan with ChatGPT, Gemini or Claude</div>
+            <div class="lists-ai-title">Copy this list for your AI</div>
+            <div class="lists-ai-intro">Copies the details of this list (places, addresses, links and notes) with a short question, so any AI chat you use can help you plan.</div>
             <ol class="lists-ai-steps">
-                <li>Tap <b>Copy for AI</b>. Your list, notes and addresses are copied with a ready-made question.</li>
+                <li>Tap <b>Copy for AI</b>.</li>
                 <li>Open your AI app and paste it into a new chat.</li>
             </ol>
             <button class="lists-ai-copy" id="listsAiCopy" onclick="copyListForAI(this)">Copy for AI</button>
             <button class="lists-ai-file" onclick="downloadCurrentList()">Or save as a file to upload</button>
         </div>`;
-    body.innerHTML = actions + aiPanel + mapsBar + rows + deleteRow;
+    body.innerHTML = tools + mapsNote + aiPanel + rows + deleteRow;
 }
 
 // ── Open a list in Google Maps (Nov 2026) ──
@@ -1840,20 +1837,21 @@ function _isMapsPlace(it) {
 
 async function openListInGoogleMaps(btn) {
     const note = document.getElementById('listsMapsNote');
-    const titleEl = btn ? btn.querySelector('.lists-maps-title') : null;
-    const subEl = btn ? btn.querySelector('.lists-maps-sub') : null;
+    const labelEl = btn ? btn.querySelector('.lists-tile-label') : null;
+    const subEl = btn ? btn.querySelector('.lists-tile-sub') : null;
     const collectionId = _listsView.collectionId;
     if (!btn || !collectionId || btn.dataset.busy === '1') return;
     btn.dataset.busy = '1';
     btn.classList.add('is-busy');
-    const oldTitle = titleEl ? titleEl.textContent : '';
-    if (titleEl) titleEl.textContent = 'Finding your places…';
-    if (subEl) subEl.textContent = 'This takes a few seconds';
+    const oldLabel = labelEl ? labelEl.textContent : '';
+    const oldSub = subEl ? subEl.textContent : '';
+    if (labelEl) labelEl.textContent = 'Finding…';
+    if (subEl) subEl.textContent = 'A few seconds';
     const reset = (msg) => {
         btn.dataset.busy = '';
         btn.classList.remove('is-busy');
-        if (titleEl) titleEl.textContent = oldTitle;
-        if (subEl) subEl.textContent = _mapsSub((_listDetailItems || []).filter(_isMapsPlace).length);
+        if (labelEl) labelEl.textContent = oldLabel;
+        if (subEl) subEl.textContent = oldSub;
         if (note && msg) note.textContent = msg;
     };
     try {
@@ -1876,27 +1874,31 @@ async function openListInGoogleMaps(btn) {
             return;
         }
         if (typeof logEvent === 'function') logEvent('list_maps_export', { sent: j.sent, places: j.places, total: j.total });
-        // Swap the button for a real link (tap 2).
+        const listName = _listsView.listName || 'My list';
+        // Swap the tile for a real link (tap 2). Tapping it copies the list name,
+        // because Google's link can't carry a name.
         const link = document.createElement('a');
-        link.className = 'lists-maps-btn lists-maps-btn--ready';
+        link.className = 'lists-tile lists-tile--maps lists-tile--ready';
         link.href = j.url;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.innerHTML = btn.querySelector('.lists-maps-ico').outerHTML +
-            `<span class="lists-maps-text">
-                <span class="lists-maps-title">Ready. Open Google Maps</span>
-                <span class="lists-maps-sub">${j.sent} of ${j.places} place${j.places !== 1 ? 's' : ''} ready</span>
-            </span>`;
-        const listName = _listsView.listName || 'My list';
-        link.addEventListener('click', () => _copyListNameQuietly(listName));
+        link.innerHTML =
+            `<span class="lists-tile-title"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span class="lists-tile-label">Open Google Maps</span></span>
+             <span class="lists-tile-sub">${j.sent} of ${j.places} ready</span>`;
+        link.addEventListener('click', () => {
+            _copyListNameQuietly(listName);
+            if (typeof showToast === 'function') showToast(`“${listName}” copied. Paste it as the list name when you save in Google Maps.`, 6000);
+        });
         btn.replaceWith(link);
         if (note) {
-            const parts = [];
-            parts.push(`In Google Maps, tap Save, then New list, and paste to name it “${escapeHtml(listName)}”. We copy the name for you.`);
-            if (j.places > (j.limit || 20)) parts.push(`Google takes ${j.limit || 20} places at a time, so the first ${j.sent} are sent.`);
-            const missed = (j.skipped || []).slice(0, 3).map(s => escapeHtml(s)).join(', ');
-            if (j.skipped && j.skipped.length) parts.push(`Not found on Google: ${missed}${j.skipped.length > 3 ? ' and more' : ''}. They stay here in Odin.`);
-            note.innerHTML = parts.join(' ');
+            let extra = '';
+            if (j.places > (j.limit || 20)) extra += `<div class="lists-hint-extra">Google takes ${j.limit || 20} places at a time, so the first ${j.sent} are sent.</div>`;
+            const missed = (j.skipped || []).slice(0, 3).map(x => escapeHtml(x)).join(', ');
+            if (j.skipped && j.skipped.length) extra += `<div class="lists-hint-extra">Not found on Google: ${missed}${j.skipped.length > 3 ? ' and more' : ''}. They stay here in Odin.</div>`;
+            note.className = 'lists-maps-hint';
+            note.innerHTML =
+                `<div class="lists-hint-head"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>“${escapeHtml(listName)}” will be copied</div>
+                 <div>In Google Maps: tap <b>Save</b>, then <b>New list</b>, then paste the name.</div>${extra}`;
         }
     } catch (e) {
         console.error('openListInGoogleMaps', e);

@@ -12401,6 +12401,29 @@ body.map-view-open .content {
 .lists-action--danger { border-color: #B23A48; color: #B23A48; }
 .lists-action--danger:hover { background: #FBEDEE; }
 
+/* List tools: Google Maps + Plan with AI side by side; rename pencil (Nov 2026) */
+#listsDrawerTitle { display: inline-flex; align-items: center; gap: 6px; }
+.lists-title-edit { background: none; border: none; color: #7B2D45; padding: 4px; cursor: pointer; display: inline-flex; }
+.lists-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+.lists-tools--single { grid-template-columns: 1fr; }
+.lists-tile {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; box-sizing: border-box; width: 100%;
+    padding: 10px 12px; border-radius: 12px; text-align: left; cursor: pointer; text-decoration: none; font-family: inherit;
+}
+.lists-tile-title { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 600; }
+.lists-tile-sub { font-size: 12px; }
+.lists-tile--maps { background: #7B2D45; color: #FFFFFF; border: 1.5px solid #7B2D45; }
+.lists-tile--maps .lists-tile-sub { color: #F3DDE3; }
+.lists-tile--ready { background: #5E1F33; border-color: #5E1F33; }
+.lists-tile--ai { background: #FFFFFF; color: #7B2D45; border: 1.5px solid #7B2D45; }
+.lists-tile--ai .lists-tile-sub { color: var(--muted); }
+.lists-tile.is-busy { opacity: 0.85; cursor: progress; }
+.lists-tile:active { transform: scale(0.99); }
+.lists-maps-hint { background: #FFFFFF; border: 1px solid #E6DCCF; border-radius: 10px; padding: 10px 12px; margin: 6px 0 12px; font-size: 13px; line-height: 1.5; color: var(--ink); }
+.lists-hint-head { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-bottom: 2px; color: var(--ink); }
+.lists-hint-head svg { color: #7B2D45; }
+.lists-hint-extra { color: var(--muted); margin-top: 4px; }
+.lists-ai-intro { font-size: 14px; color: var(--ink); line-height: 1.5; margin-bottom: 8px; }
 /* New list from My Lists (Nov 2026) */
 .lists-new-row {
     display: flex; align-items: center; gap: 8px; width: 100%; box-sizing: border-box;
@@ -12431,7 +12454,7 @@ body.map-view-open .content {
 .lists-maps-text { display: flex; flex-direction: column; min-width: 0; }
 .lists-maps-title { font-size: 15px; font-weight: 600; }
 .lists-maps-sub { font-size: 12px; color: #F3DDE3; margin-top: 2px; }
-.lists-maps-note { font-size: 12px; color: var(--muted); margin: 6px 4px 0; line-height: 1.4; }
+.lists-maps-note { font-size: 12px; color: var(--muted); margin: 6px 4px 12px; line-height: 1.4; }
 .lists-delete-row { text-align: center; margin: 20px 0 8px; }
 .lists-delete-link { background: none; border: none; color: #B23A48; font-size: 14px; font-weight: 500; padding: 8px 16px; cursor: pointer; }
 
