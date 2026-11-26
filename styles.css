@@ -13921,3 +13921,15 @@ div.pban-num { cursor: default; }
 .plists-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
 .plists-text .pbox-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plists-chev { color: var(--muted); flex-shrink: 0; }
+
+/* Tab bar: Profile avatar matches the outline icons (Nov 2026).
+   Same 24px box as the Home/Discover icons so labels line up; active = wine ring + wine letter,
+   like the icons turning wine, instead of a solid filled disc. */
+.bottom-tab-bar .tab-item .tab-avatar {
+    width: 24px; height: 24px; box-sizing: border-box; font-size: 11px;
+    background: transparent; border: 1.8px solid var(--muted); color: var(--muted); overflow: hidden;
+}
+.bottom-tab-bar .tab-item.active .tab-avatar {
+    background: transparent; border-color: #7B2D45; color: #7B2D45;
+}
+.bottom-tab-bar .tab-item .tab-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
