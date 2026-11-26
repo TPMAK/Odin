@@ -978,7 +978,12 @@ function populateProfileBoxes() {
     // Your Circle card — overlapping avatars (up to 5) plus "+N" (Nov 2026, Option A)
     const circleBox = document.getElementById('profileBoxCircleAvatars');
     if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
-        const shown = friendsCache.slice(0, 4);
+        // Random each time the Profile loads; friends with a real name first, so "-" rows don't lead.
+        const named = f => /[\p{L}\p{N}]/u.test((f.out_display_name || f.out_email || '').trim());
+        const shuffled = friendsCache.slice();
+        for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+        shuffled.sort((a, b) => (named(b) ? 1 : 0) - (named(a) ? 1 : 0));
+        const shown = shuffled.slice(0, 4);
         const more = friendsCache.length - shown.length;
         circleBox.innerHTML = '<div class="pcircle-stack">' + shown.map((f, i) => {
             const name = (f.out_display_name || f.out_email || '?').trim() || '?';
