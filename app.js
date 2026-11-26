@@ -86,6 +86,12 @@ function logEvent(eventType, eventData) {
 
 // ===== FOUNDING MEMBERS ACCOUNT =====
 const ODIN_HQ_USER_ID = 'fec29546-cabd-44c7-96c9-4dfa6e952e93';
+// Real friends = everyone except the auto-added Founding Members account.
+// Home and Profile both count this way, so their numbers match.
+function realFriends() {
+    const list = (typeof friendsCache !== 'undefined' && Array.isArray(friendsCache)) ? friendsCache : [];
+    return list.filter(f => f && f.out_user_id && f.out_user_id !== ODIN_HQ_USER_ID);
+}
 
 // ===== AUTHENTICATION =====
 let currentUser = null;
@@ -977,14 +983,15 @@ function populateProfileBoxes() {
 
     // Your Circle card — overlapping avatars (up to 5) plus "+N" (Nov 2026, Option A)
     const circleBox = document.getElementById('profileBoxCircleAvatars');
-    if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
+    const _real = realFriends();
+    if (circleBox && _real.length > 0) {
         // Random each time the Profile loads; friends with a real name first, so "-" rows don't lead.
         const named = f => /[\p{L}\p{N}]/u.test((f.out_display_name || f.out_email || '').trim());
-        const shuffled = friendsCache.slice();
+        const shuffled = _real.slice();
         for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
         shuffled.sort((a, b) => (named(b) ? 1 : 0) - (named(a) ? 1 : 0));
         const shown = shuffled.slice(0, 4);
-        const more = friendsCache.length - shown.length;
+        const more = _real.length - shown.length;
         circleBox.innerHTML = '<div class="pcircle-stack">' + shown.map((f, i) => {
             const name = (f.out_display_name || f.out_email || '?').trim() || '?';
             const initial = escapeHtml(name.charAt(0).toUpperCase());

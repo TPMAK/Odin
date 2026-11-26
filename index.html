@@ -5760,7 +5760,7 @@
         // Circle count
         var circleEl = document.getElementById('pboxCircleCount');
         if (circleEl) {
-            var count = Array.isArray(friendsCache) ? friendsCache.length : 0;
+            var count = (typeof realFriends === 'function') ? realFriends().length : (Array.isArray(friendsCache) ? friendsCache.length : 0);
             circleEl.textContent = count === 1 ? 'friend' : 'friends';
             var fEl = document.getElementById('pbanFriends');
             if (fEl) fEl.textContent = count;
