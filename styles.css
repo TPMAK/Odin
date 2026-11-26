@@ -13706,7 +13706,7 @@ body.add5-sheet-open .add2-footer { visibility: hidden; }
     justify-content: center;
     border-radius: 26px;
 }
-.bottom-tab-bar .tab-item.active { background: rgba(123, 45, 69, 0.10); }
+.bottom-tab-bar .tab-item.active { background: #F1E5E8; } /* solid: a see-through tint changed colour with the page behind the frosted pill */
 .bottom-tab-bar .tab-item.active .tab-label { font-weight: 600; }
 .tab-add {
     flex: 0 0 64px;
