@@ -15,7 +15,8 @@
 const SUPABASE_URL = 'https://hedywkwmgkvojujvczqr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhlZHl3a3dtZ2t2b2p1anZjenFyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY2Mzg0OTMsImV4cCI6MjA3MjIxNDQ5M30.WdGHwr40REynSkC3T3t2nB97FsAH3M0NOE9gv_bLQA8';
 
-const MAX_PLACES = 60;          // ~27 chars per id; keeps the link under Google's 2,048-char limit
+const MAX_IDS = 20;             // Google: "You can specify a maximum of 20 place IDs" for a shortlist
+const MAX_LOOKUPS = 30;         // look up a few extra so misses don't leave the link short
 const MAX_URL_LEN = 2000;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -89,7 +90,8 @@ module.exports = async (req, res) => {
     const byId = {};
     (items || []).forEach(it => { byId[it.id] = it; });
     const visible = ids.map(id => byId[id]).filter(Boolean);
-    const places = visible.filter(isPlaceLike).slice(0, MAX_PLACES);
+    const allPlaces = visible.filter(isPlaceLike);
+    const places = allPlaces.slice(0, MAX_LOOKUPS);
 
     // 3. Look up Place IDs (in parallel, ID-only field mask).
     const found = await Promise.all(places.map(it => findPlaceId(it, key)));
@@ -108,13 +110,14 @@ module.exports = async (req, res) => {
     if (placeIds.length) {
       const use = [];
       for (const id of placeIds) {
+        if (use.length >= MAX_IDS) break;
         if ((base + use.concat(id).join(',')).length > MAX_URL_LEN) break;
         use.push(id);
       }
       sent = use.length;
       url = base + use.join(',');
     }
-    return res.status(200).json({ url, sent, places: places.length, total: visible.length, skipped });
+    return res.status(200).json({ url, sent, found: placeIds.length, places: allPlaces.length, total: visible.length, skipped, limit: MAX_IDS });
   } catch (e) {
     if (e && e.code === 401) return res.status(401).json({ error: 'sign_in_required' });
     return res.status(502).json({ error: 'lookup_failed' });

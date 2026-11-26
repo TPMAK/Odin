@@ -1741,8 +1741,8 @@ async function openListDetail(collectionId) {
             <button class="lists-maps-btn" id="listsMapsBtn" onclick="openListInGoogleMaps(this)">
                 <svg class="lists-maps-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
                 <span class="lists-maps-text">
-                    <span class="lists-maps-title">Open ${placeCount} place${placeCount !== 1 ? 's' : ''} in Google Maps</span>
-                    <span class="lists-maps-sub">Save them there as a list for your trip</span>
+                    <span class="lists-maps-title">${placeCount > 20 ? 'Open 20 of ' + placeCount + ' places' : 'Open ' + placeCount + ' place' + (placeCount !== 1 ? 's' : '')} in Google Maps</span>
+                    <span class="lists-maps-sub">${_mapsSub(placeCount)}</span>
                 </span>
             </button>
             <div class="lists-maps-note" id="listsMapsNote">Only place names go to Google. Notes and names stay in Odin.</div>
@@ -1779,6 +1779,23 @@ async function openListDetail(collectionId) {
 // Google Place IDs from name + address only, and returns a Maps "shortlist" link.
 // Two taps on purpose: tap 1 builds the link, tap 2 is a real link tap, so iPhone
 // (incl. the home-screen app) never blocks it as a pop-up.
+function _mapsSub(n) {
+    return n === 1 ? 'Save it there for your trip' : 'Save them there as a list for your trip';
+}
+
+// Copy the Odin list name so it can be pasted as the Google list name
+// (Google's shortlist link can't carry a name).
+function _copyListNameQuietly(name) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(name).catch(() => {}); return; }
+    } catch (e) {}
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = name; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    } catch (e) {}
+}
+
 function _isMapsPlace(it) {
     const hasAddr = typeof it.address === 'string' && it.address.trim().length > 0;
     return hasAddr || (it.latitude != null && it.longitude != null);
@@ -1799,7 +1816,7 @@ async function openListInGoogleMaps(btn) {
         btn.dataset.busy = '';
         btn.classList.remove('is-busy');
         if (titleEl) titleEl.textContent = oldTitle;
-        if (subEl) subEl.textContent = 'Save them there as a list for your trip';
+        if (subEl) subEl.textContent = _mapsSub((_listDetailItems || []).filter(_isMapsPlace).length);
         if (note && msg) note.textContent = msg;
     };
     try {
@@ -1831,14 +1848,18 @@ async function openListInGoogleMaps(btn) {
         link.innerHTML = btn.querySelector('.lists-maps-ico').outerHTML +
             `<span class="lists-maps-text">
                 <span class="lists-maps-title">Ready. Open Google Maps</span>
-                <span class="lists-maps-sub">${j.sent} of ${j.places} place${j.places !== 1 ? 's' : ''} found</span>
+                <span class="lists-maps-sub">${j.sent} of ${j.places} place${j.places !== 1 ? 's' : ''} ready</span>
             </span>`;
+        const listName = _listsView.listName || 'My list';
+        link.addEventListener('click', () => _copyListNameQuietly(listName));
         btn.replaceWith(link);
         if (note) {
+            const parts = [];
+            parts.push(`In Google Maps, tap Save, then New list, and paste to name it “${escapeHtml(listName)}”. We copy the name for you.`);
+            if (j.places > (j.limit || 20)) parts.push(`Google takes ${j.limit || 20} places at a time, so the first ${j.sent} are sent.`);
             const missed = (j.skipped || []).slice(0, 3).map(s => escapeHtml(s)).join(', ');
-            note.innerHTML = j.skipped && j.skipped.length
-                ? `Not found on Google: ${missed}${j.skipped.length > 3 ? ' and more' : ''}. They stay here in Odin.`
-                : 'All places found. Notes and names stay in Odin.';
+            if (j.skipped && j.skipped.length) parts.push(`Not found on Google: ${missed}${j.skipped.length > 3 ? ' and more' : ''}. They stay here in Odin.`);
+            note.innerHTML = parts.join(' ');
         }
     } catch (e) {
         console.error('openListInGoogleMaps', e);
