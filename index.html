@@ -6915,7 +6915,9 @@
             if (!real || real.length === 0) { box.classList.add('hidden'); return; }
             var html = '';
             var _hasName = function(f) { return !!(f.out_avatar_url || /[A-Za-z0-9\u00C0-\uFFFF]/.test(f.out_display_name || '')); };
-            var faceList = real.filter(_hasName).concat(real.filter(function(f) { return !_hasName(f); }));
+            // Random each load (named friends still first, so "-" rows don't lead).
+            var _shuf = function(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+            var faceList = _shuf(real.filter(_hasName)).concat(real.filter(function(f) { return !_hasName(f); }));
             faceList.slice(0, 5).forEach(function(f, i) {
                 var name = f.out_display_name || f.out_email || '?';
                 var ch = (name.trim().match(/[A-Za-z0-9\u00C0-\uFFFF]/) || ['?'])[0];
