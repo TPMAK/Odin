@@ -2218,7 +2218,7 @@
 
                 <!-- ── Identity Card ── -->
                 <div id="profileViewMode">
-                    <div class="profile-card-v2">
+                    <div class="profile-card-v2 pcv2--banner">
                         <div class="pcv2-avatar-wrap">
                             <div class="profile-avatar-large" id="profileAvatarLarge">
                                 <span id="profileAvatarLargeInitial">?</span>
@@ -2231,6 +2231,26 @@
                         <button class="pcv2-edit-btn" onclick="toggleProfileEdit(true)" aria-label="Edit profile">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
+                        <!-- ── Option B (Nov 2026): circle numbers + invite inside the colour banner ── -->
+                        <div class="pban-extra">
+                            <div class="pban-nums">
+                                <button class="pban-num" onclick="openCircleDrawer()">
+                                    <span class="pban-big" id="pbanFriends">0</span>
+                                    <span class="pban-small" id="pboxCircleCount">friends</span>
+                                </button>
+                                <div class="pban-num">
+                                    <span class="pban-big" id="pcircleKnows">0</span>
+                                    <span class="pban-small">things your circle knows</span>
+                                </div>
+                            </div>
+                            <div class="pban-row">
+                                <div class="pban-avatars" id="profileBoxCircleAvatars" onclick="openCircleDrawer()"></div>
+                                <button class="pban-invite" onclick="profileOpenInvite()">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                                    Invite
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- ── Stats Row ── -->
@@ -2256,51 +2276,38 @@
                         </div>
                     </div>
 
-                    <!-- ── Your Circle card leads (Option A, Nov 2026) ── -->
-                    <div class="pcircle-card" onclick="openCircleDrawer()">
-                        <div class="pcircle-avatars" id="profileBoxCircleAvatars">
-                            <div class="pbox-icon-placeholder">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                            </div>
-                        </div>
-                        <div class="pcircle-body">
-                            <div class="pcircle-head">
-                                <span class="pcircle-title">Your Circle</span>
-                                <span class="pcircle-count" id="pboxCircleCount"></span>
-                            </div>
-                            <div class="pcircle-knows"><span id="pcircleKnows">0 things</span> your circle knows</div>
-                            <button class="pcircle-invite" onclick="event.stopPropagation(); profileOpenInvite()">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
-                                Invite a friend
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- ── My Saves + My Lists ── -->
+                    <!-- ── Added + Saved photo tiles (Option B) ── -->
                     <div class="profile-boxes-row">
-                        <div class="profile-box" onclick="openMySavesDrawer()">
+                        <div class="profile-box" onclick="openMySavesDrawer('added')">
+                            <div class="pbox-visuals" id="profileBoxAddedThumbs">
+                                <div class="pbox-icon-placeholder">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                                </div>
+                            </div>
+                            <div class="pbox-label-col">
+                                <span class="pbox-label">Added by you</span>
+                                <span class="pbox-count" id="pboxAddedCount"></span>
+                            </div>
+                        </div>
+                        <div class="profile-box" onclick="openMySavesDrawer('saved')">
                             <div class="pbox-visuals" id="profileBoxSavesThumbs">
                                 <div class="pbox-icon-placeholder">
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                                 </div>
                             </div>
                             <div class="pbox-label-col">
-                                <span class="pbox-label">My Saves</span>
+                                <span class="pbox-label">Saved</span>
                                 <span class="pbox-count" id="pboxSavesCount"></span>
                             </div>
                         </div>
-                        <div class="profile-box" onclick="openListsDrawer()">
-                            <div class="pbox-visuals" id="profileBoxListsVisual">
-                                <div class="pbox-icon-placeholder">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                                </div>
-                            </div>
-                            <div class="pbox-label-col">
-                                <span class="pbox-label">My Lists</span>
-                                <span class="pbox-count" id="pboxListsCount"></span>
-                            </div>
-                        </div>
                     </div>
+
+                    <!-- ── My Lists row ── -->
+                    <button class="plists-row" onclick="openListsDrawer()">
+                        <span class="plists-ico" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span>
+                        <span class="plists-text"><span class="pbox-label">My Lists</span><span class="pbox-count" id="pboxListsCount"></span></span>
+                        <svg class="plists-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
 
                     <!-- ── Settings Rows ── -->
                     <div class="profile-settings-list">
@@ -5731,7 +5738,7 @@
             }
             kbEl.textContent = (data != null) ? data : 0;
             var knowsEl = document.getElementById('pcircleKnows');
-            if (knowsEl) { var k = (data != null) ? data : 0; knowsEl.textContent = k + ' thing' + (k !== 1 ? 's' : ''); }
+            if (knowsEl) knowsEl.textContent = (data != null) ? data : 0;
         } catch(e) {
             console.error('KB count error:', e);
         }
@@ -5746,13 +5753,17 @@
             var addEl = document.getElementById('profileDiscoveryCount');
             var n = statEl ? (parseInt(statEl.textContent, 10) || 0) : 0;
             var a = addEl ? (parseInt(addEl.textContent, 10) || 0) : 0;
-            savesEl.textContent = (a || n) ? (a + ' added · ' + n + ' saved') : 'Nothing yet';
+            savesEl.textContent = n + ' item' + (n !== 1 ? 's' : '');
+            var addedEl = document.getElementById('pboxAddedCount');
+            if (addedEl) addedEl.textContent = a + ' item' + (a !== 1 ? 's' : '');
         }
         // Circle count
         var circleEl = document.getElementById('pboxCircleCount');
         if (circleEl) {
             var count = Array.isArray(friendsCache) ? friendsCache.length : 0;
-            circleEl.textContent = count > 0 ? count + ' friend' + (count !== 1 ? 's' : '') : '';
+            circleEl.textContent = count === 1 ? 'friend' : 'friends';
+            var fEl = document.getElementById('pbanFriends');
+            if (fEl) fEl.textContent = count;
         }
         // My Lists count (async — fire and forget)
         if (typeof fetchMyListsWithCounts === 'function') {

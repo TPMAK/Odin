@@ -955,29 +955,30 @@ async function loadProfilePage() {
 function populateProfileBoxes() {
     if (!currentUser) return;
 
-    // Box 1: My Saves — pull thumbnails from the already-rendered cards
-    const savesBox = document.getElementById('profileBoxSavesThumbs');
-    if (savesBox) {
-        const cards = document.querySelectorAll('#myEndorsementsList .my-endorse-card');
-        if (cards.length > 0) {
-            const thumbs = Array.from(cards).slice(0, 3).map((card, i) => {
-                const img = card.querySelector('img');
-                const emoji = card.querySelector('.my-endorse-placeholder');
-                if (img) {
-                    return `<div class="pbox-thumb" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}"><img src="${img.src}" alt=""></div>`;
-                } else if (emoji) {
-                    return `<div class="pbox-thumb pbox-thumb-emoji" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}">${emoji.innerHTML}</div>`;
-                }
-                return '';
-            }).filter(Boolean).join('');
-            if (thumbs) savesBox.innerHTML = thumbs;
-        }
-    }
+    // Photo stacks for the "Added by you" and "Saved" tiles (Option B, Nov 2026)
+    const stackInto = (boxId, selector) => {
+        const box = document.getElementById(boxId);
+        if (!box) return;
+        const cards = Array.from(document.querySelectorAll('#myEndorsementsList ' + selector));
+        const withImg = cards.filter(c => c.querySelector('img'));
+        const pick = (withImg.length ? withImg : cards).slice(0, 3);
+        const thumbs = pick.map((card, i) => {
+            const img = card.querySelector('img');
+            const ph = card.querySelector('.my-endorse-placeholder');
+            const pos = `transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}`;
+            if (img) return `<div class="pbox-thumb" style="${pos}"><img src="${img.src}" alt=""></div>`;
+            if (ph) return `<div class="pbox-thumb pbox-thumb-emoji" style="${pos}">${ph.innerHTML}</div>`;
+            return '';
+        }).filter(Boolean).join('');
+        if (thumbs) box.innerHTML = thumbs;
+    };
+    stackInto('profileBoxAddedThumbs', '.my-endorse-card[data-added="1"]');
+    stackInto('profileBoxSavesThumbs', '.my-endorse-card[data-saved="1"]');
 
     // Your Circle card — overlapping avatars (up to 5) plus "+N" (Nov 2026, Option A)
     const circleBox = document.getElementById('profileBoxCircleAvatars');
     if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
-        const shown = friendsCache.slice(0, 5);
+        const shown = friendsCache.slice(0, 4);
         const more = friendsCache.length - shown.length;
         circleBox.innerHTML = '<div class="pcircle-stack">' + shown.map((f, i) => {
             const name = (f.out_display_name || f.out_email || '?').trim() || '?';
