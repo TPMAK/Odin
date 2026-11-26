@@ -966,7 +966,7 @@ function populateProfileBoxes() {
                 if (img) {
                     return `<div class="pbox-thumb" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}"><img src="${img.src}" alt=""></div>`;
                 } else if (emoji) {
-                    return `<div class="pbox-thumb pbox-thumb-emoji" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}">${emoji.textContent}</div>`;
+                    return `<div class="pbox-thumb pbox-thumb-emoji" style="transform:rotate(${[-8,4,-2][i]}deg) translate(${['-18px, 4px','8px, -4px','-4px, 8px'][i]});z-index:${i+1}">${emoji.innerHTML}</div>`;
                 }
                 return '';
             }).filter(Boolean).join('');
@@ -974,21 +974,20 @@ function populateProfileBoxes() {
         }
     }
 
-    // Box 2: Your Circle — avatars from friendsCache
+    // Your Circle card — overlapping avatars (up to 5) plus "+N" (Nov 2026, Option A)
     const circleBox = document.getElementById('profileBoxCircleAvatars');
     if (circleBox && typeof friendsCache !== 'undefined' && friendsCache.length > 0) {
-        const shown = friendsCache.slice(0, 3);
-        const transforms = [
-            'translate(-22px, 0)',
-            'translate(4px, -8px)',
-            'translate(24px, 6px)'
-        ];
-        circleBox.innerHTML = shown.map((f, i) => {
-            const name = f.out_display_name || f.out_email || '?';
-            const initial = name.charAt(0).toUpperCase();
+        const shown = friendsCache.slice(0, 5);
+        const more = friendsCache.length - shown.length;
+        circleBox.innerHTML = '<div class="pcircle-stack">' + shown.map((f, i) => {
+            const name = (f.out_display_name || f.out_email || '?').trim() || '?';
+            const initial = escapeHtml(name.charAt(0).toUpperCase());
             const col = strColour(name);
-            return `<div class="pbox-avatar" style="background:${col};transform:${transforms[i]};z-index:${i+1}">${initial}</div>`;
-        }).join('');
+            const av = f.out_avatar_url
+                ? `<img src="${escapeHtml(f.out_avatar_url)}" alt="" onerror="this.remove()">`
+                : '';
+            return `<div class="pcircle-av" style="background:${col};z-index:${10 - i}">${initial}${av}</div>`;
+        }).join('') + (more > 0 ? `<div class="pcircle-av pcircle-more">+${more}</div>` : '') + '</div>';
     }
 }
 
@@ -1006,7 +1005,7 @@ async function loadMyEndorsements() {
                 .order('created_at', { ascending: false }),
             supabaseClient
                 .from('knowledge_items')
-                .select('id, title, photo_url, added_by_name, type, created_at')
+                .select('id, title, photo_url, added_by_name, type, theme, created_at')
                 .eq('added_by', currentUser.id)
                 .order('created_at', { ascending: false })
         ]);
@@ -1031,7 +1030,7 @@ async function loadMyEndorsements() {
             // They were visible at save time; re-check in case visibility was changed to private since.
             const { data: more } = await supabaseClient
                 .from('knowledge_items')
-                .select('id, title, photo_url, added_by_name, type, created_at')
+                .select('id, title, photo_url, added_by_name, type, theme, created_at')
                 .in('id', missingIds)
                 .or(`visibility.neq.private,added_by.eq.${currentUser.id}`);
             if (more) fetchedItems = [...fetchedItems, ...more];
@@ -1047,13 +1046,17 @@ async function loadMyEndorsements() {
         fetchedItems.forEach(i => { itemMap[i.id] = i; });
         const sorted = allIds.map(id => itemMap[id]).filter(Boolean);
 
+        const endorsedSet = new Set(endorsedIds);
         container.innerHTML = sorted.map(item => {
-            const _emoji = getCategoryEmoji(item.type);
-            const isMyAdd = item.added_by_name && addedIds.includes(item.id);
+            // Icons, not emoji (no-emoji rule). Data attributes drive the My Saves tabs/chips.
+            const _icon = `<span class="my-endorse-placeholder">${getCategoryIconSvg(item.type)}</span>`;
             const photo = item.photo_url
-                ? `<img src="${escapeHtml(item.photo_url)}" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<span class=\\'my-endorse-placeholder\\'>${_emoji}</span>')">`
-                : `<span class="my-endorse-placeholder">${_emoji}</span>`;
-            return `<div class="my-endorse-card" onclick="goToEndorsedItem('${item.id}')">
+                ? `<img src="${escapeHtml(item.photo_url)}" onerror="this.style.display='none';this.parentNode.classList.add('is-noimg')">${_icon}`
+                : _icon;
+            const isAdded = addedIds.includes(item.id) ? '1' : '0';
+            const isSaved = endorsedSet.has(item.id) ? '1' : '0';
+            const theme = escapeHtml(item.theme || '');
+            return `<div class="my-endorse-card${item.photo_url ? '' : ' is-noimg'}" data-added="${isAdded}" data-saved="${isSaved}" data-theme="${theme}" onclick="goToEndorsedItem('${item.id}')">
                 <div class="my-endorse-card-photo">${photo}</div>
                 <div class="my-endorse-card-title">${escapeHtml(item.title)}</div>
             </div>`;
@@ -3403,6 +3406,19 @@ function removeRecentlyViewed(itemId) {
         localStorage.setItem('odin_recently_viewed', JSON.stringify(viewed));
         renderRecentlyViewed();
     } catch (e) { /* ignore */ }
+}
+
+// Line icons for items without a photo (Nov 2026: replaces emoji in My Saves).
+function getCategoryIconSvg(type) {
+    const paths = {
+        place: '<path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+        product: '<path d="M6 7h12l-1 13H7L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
+        service: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+        advice: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+        link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'
+    };
+    const d = paths[type] || paths.place;
+    return `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 }
 
 function getCategoryEmoji(type) {

@@ -13835,3 +13835,58 @@ body.home2-menu-open .home2-dock { z-index: 999; }
     box-shadow: 0 8px 24px rgba(40, 20, 25, 0.22);
 }
 .landing-invite-notice.is-problem { background: #FAF6EE; color: #3a1f27; border: 1.5px solid #7B2D45; }
+
+/* ===== Profile Option A: Your Circle card leads (Nov 2026) ===== */
+.pcircle-card {
+    background: #FFFFFF; border-radius: 16px; overflow: hidden; margin: 16px 0 0;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.pcircle-avatars {
+    height: 110px; background: #F5F0E8; display: flex; align-items: center; justify-content: center;
+    color: #9c8474;
+}
+.pcircle-stack { display: flex; align-items: center; }
+.pcircle-av {
+    position: relative; width: 52px; height: 52px; border-radius: 50%; border: 3px solid #FFFFFF;
+    margin-left: -14px; display: flex; align-items: center; justify-content: center; overflow: hidden;
+    color: #FFFFFF; font-size: 18px; font-weight: 700; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.pcircle-av:first-child { margin-left: 0; }
+.pcircle-av img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.pcircle-more { background: #FFFFFF; color: #7B2D45; font-size: 14px; }
+.pcircle-body { padding: 12px 16px 16px; }
+.pcircle-head { display: flex; align-items: baseline; justify-content: space-between; }
+.pcircle-title { font-size: 17px; font-weight: 700; color: var(--ink); }
+.pcircle-count { font-size: 14px; color: var(--muted); }
+.pcircle-knows { font-size: 15px; color: var(--ink); margin-top: 2px; }
+.pcircle-knows span { color: #7B2D45; font-weight: 700; }
+.pcircle-invite {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 12px;
+    padding: 11px; background: #7B2D45; color: #FFFFFF; border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.pcircle-invite:active { transform: scale(0.99); }
+.pbox-label-col { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px 12px; min-width: 0; }
+.pbox-label-col .pbox-count { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pbox-thumb-emoji { color: #7B2D45; background: #ECE5DA; }
+
+/* My Saves: tabs, theme chips, icon placeholders */
+.msv-tabs { display: flex; gap: 6px; background: #EFE8DE; padding: 4px; border-radius: 12px; margin-bottom: 10px; }
+.msv-tab {
+    flex: 1; padding: 8px 6px; border: none; background: transparent; border-radius: 9px;
+    font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit;
+}
+.msv-tab.is-active { background: #FFFFFF; color: #7B2D45; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.msv-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.msv-chip {
+    padding: 6px 12px; border-radius: 999px; border: 1px solid #D9CBB8; background: #FFFFFF;
+    font-size: 13px; color: var(--ink); cursor: pointer; font-family: inherit;
+}
+.msv-chip.is-active { background: #7B2D45; border-color: #7B2D45; color: #FFFFFF; }
+.msv-empty { text-align: center; color: var(--muted); font-size: 14px; padding: 24px 0; }
+.my-endorse-card-photo { position: relative; }
+.my-endorse-card-photo .my-endorse-placeholder { display: none; }
+.is-noimg .my-endorse-placeholder {
+    display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+    background: #ECE5DA; color: #7B2D45; font-size: 0;
+}

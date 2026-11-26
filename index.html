@@ -2234,7 +2234,7 @@
                     </div>
 
                     <!-- ── Stats Row ── -->
-                    <div class="profile-stats-row">
+                    <div class="profile-stats-row" style="display:none" aria-hidden="true">
                         <div class="profile-stat-col" data-tooltip="Knowledge you've shared with people who matter">
                             <div class="profile-stat-number" id="profileDiscoveryCount">0</div>
                             <div class="profile-stat-label">Added</div>
@@ -2256,7 +2256,27 @@
                         </div>
                     </div>
 
-                    <!-- ── 2 Action Boxes ── -->
+                    <!-- ── Your Circle card leads (Option A, Nov 2026) ── -->
+                    <div class="pcircle-card" onclick="openCircleDrawer()">
+                        <div class="pcircle-avatars" id="profileBoxCircleAvatars">
+                            <div class="pbox-icon-placeholder">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            </div>
+                        </div>
+                        <div class="pcircle-body">
+                            <div class="pcircle-head">
+                                <span class="pcircle-title">Your Circle</span>
+                                <span class="pcircle-count" id="pboxCircleCount"></span>
+                            </div>
+                            <div class="pcircle-knows"><span id="pcircleKnows">0 things</span> your circle knows</div>
+                            <button class="pcircle-invite" onclick="event.stopPropagation(); profileOpenInvite()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+                                Invite a friend
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ── My Saves + My Lists ── -->
                     <div class="profile-boxes-row">
                         <div class="profile-box" onclick="openMySavesDrawer()">
                             <div class="pbox-visuals" id="profileBoxSavesThumbs">
@@ -2264,33 +2284,21 @@
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
                                 </div>
                             </div>
-                            <div class="pbox-label-row">
+                            <div class="pbox-label-col">
                                 <span class="pbox-label">My Saves</span>
                                 <span class="pbox-count" id="pboxSavesCount"></span>
                             </div>
                         </div>
-                        <div class="profile-box" onclick="openCircleDrawer()">
-                            <div class="pbox-visuals" id="profileBoxCircleAvatars">
-                                <div class="pbox-icon-placeholder">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                </div>
-                            </div>
-                            <div class="pbox-label-row">
-                                <span class="pbox-label">Your Circle</span>
-                                <span class="pbox-count" id="pboxCircleCount"></span>
-                            </div>
-                        </div>
-                        <div class="profile-box profile-box--wide" onclick="openListsDrawer()">
+                        <div class="profile-box" onclick="openListsDrawer()">
                             <div class="pbox-visuals" id="profileBoxListsVisual">
                                 <div class="pbox-icon-placeholder">
                                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                                 </div>
                             </div>
-                            <div class="pbox-label-row">
+                            <div class="pbox-label-col">
                                 <span class="pbox-label">My Lists</span>
                                 <span class="pbox-count" id="pboxListsCount"></span>
                             </div>
-                            <p class="pbox-desc">Group your saves into your own lists, private to you. Open a list and tap Copy to paste it into your AI — handy for trip planning.</p>
                         </div>
                     </div>
 
@@ -2386,6 +2394,19 @@
                     </button>
                 </div>
                 <div class="profile-drawer-body">
+                    <div class="msv-tabs" role="tablist">
+                        <button class="msv-tab is-active" data-msv-tab="all" onclick="setMySavesTab('all')">All</button>
+                        <button class="msv-tab" data-msv-tab="added" onclick="setMySavesTab('added')">Added</button>
+                        <button class="msv-tab" data-msv-tab="saved" onclick="setMySavesTab('saved')">Saved</button>
+                    </div>
+                    <div class="msv-chips">
+                        <button class="msv-chip is-active" data-msv-theme="" onclick="setMySavesTheme('')">All</button>
+                        <button class="msv-chip" data-msv-theme="Eat" onclick="setMySavesTheme('Eat')">Eat</button>
+                        <button class="msv-chip" data-msv-theme="Life" onclick="setMySavesTheme('Life')">Life</button>
+                        <button class="msv-chip" data-msv-theme="Kids" onclick="setMySavesTheme('Kids')">Kids</button>
+                        <button class="msv-chip" data-msv-theme="Cook" onclick="setMySavesTheme('Cook')">Cook</button>
+                    </div>
+                    <p class="msv-empty" id="msvEmpty" hidden>Nothing here yet.</p>
                     <div id="mySavesDrawerList" class="my-endorsements-grid">
                         <p class="my-endorsements-empty">No saves yet. Save finds from your circle!</p>
                     </div>
@@ -5509,13 +5530,22 @@
         if (el && container && container.contains(el)) el.blur();
     }
 
-    function openCircleDrawer() {
+    // Invite from Profile: open Your Circle at the invite card, without popping the keyboard.
+    function profileOpenInvite() {
+        openCircleDrawer({ invite: true });
+        setTimeout(function() {
+            var btn = document.getElementById('inviteLinkBtn');
+            if (btn && btn.scrollIntoView) btn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 360);
+    }
+    function openCircleDrawer(opts) {
         var d = document.getElementById('circleDrawer');
         if (!d) return;
         d.classList.add('is-open');
         var sheet = _drawerSheet('circleDrawer');
         if (sheet) sheet.removeAttribute('aria-hidden');
         _lockScroll();
+        if (opts && opts.invite) return;
         // Focus search input after slide animation completes
         setTimeout(function() {
             var inp = document.getElementById('friendSearchInput');
@@ -5530,7 +5560,7 @@
         if (sheet) { _blurActive(sheet); sheet.setAttribute('aria-hidden', 'true'); }
         _unlockScroll();
     }
-    function openMySavesDrawer() {
+    function openMySavesDrawer(tab) {
         var d = document.getElementById('mySavesDrawer');
         if (!d) return;
         d.classList.add('is-open');
@@ -5538,6 +5568,28 @@
         if (sheet) sheet.removeAttribute('aria-hidden');
         _lockScroll();
         syncMySavesDrawer();
+        _msvTab = tab || 'all'; _msvTheme = '';
+        _applyMySavesFilter();
+    }
+    // ── My Saves tabs + theme chips (Nov 2026) ──
+    var _msvTab = 'all', _msvTheme = '';
+    function setMySavesTab(t) { _msvTab = t; _applyMySavesFilter(); }
+    function setMySavesTheme(t) { _msvTheme = t; _applyMySavesFilter(); }
+    function _applyMySavesFilter() {
+        var d = document.getElementById('mySavesDrawer');
+        var list = document.getElementById('mySavesDrawerList');
+        if (!d || !list) return;
+        d.querySelectorAll('.msv-tab').forEach(function(b) { b.classList.toggle('is-active', b.dataset.msvTab === _msvTab); });
+        d.querySelectorAll('.msv-chip').forEach(function(b) { b.classList.toggle('is-active', b.dataset.msvTheme === _msvTheme); });
+        var shown = 0;
+        list.querySelectorAll('.my-endorse-card').forEach(function(c) {
+            var ok = (_msvTab === 'all') || (_msvTab === 'added' && c.dataset.added === '1') || (_msvTab === 'saved' && c.dataset.saved === '1');
+            if (ok && _msvTheme) ok = (c.dataset.theme === _msvTheme);
+            c.style.display = ok ? '' : 'none';
+            if (ok) shown++;
+        });
+        var empty = document.getElementById('msvEmpty');
+        if (empty) empty.hidden = shown > 0 || !list.querySelector('.my-endorse-card');
     }
     function closeMySavesDrawer() {
         var d = document.getElementById('mySavesDrawer');
@@ -5678,6 +5730,8 @@
                 return;
             }
             kbEl.textContent = (data != null) ? data : 0;
+            var knowsEl = document.getElementById('pcircleKnows');
+            if (knowsEl) { var k = (data != null) ? data : 0; knowsEl.textContent = k + ' thing' + (k !== 1 ? 's' : ''); }
         } catch(e) {
             console.error('KB count error:', e);
         }
@@ -5689,8 +5743,10 @@
         var savesEl = document.getElementById('pboxSavesCount');
         if (savesEl) {
             var statEl = document.getElementById('profileEndorsementCount');
-            var n = statEl ? parseInt(statEl.textContent, 10) : 0;
-            savesEl.textContent = n > 0 ? n + ' save' + (n !== 1 ? 's' : '') : '';
+            var addEl = document.getElementById('profileDiscoveryCount');
+            var n = statEl ? (parseInt(statEl.textContent, 10) || 0) : 0;
+            var a = addEl ? (parseInt(addEl.textContent, 10) || 0) : 0;
+            savesEl.textContent = (a || n) ? (a + ' added · ' + n + ' saved') : 'Nothing yet';
         }
         // Circle count
         var circleEl = document.getElementById('pboxCircleCount');
@@ -5702,7 +5758,10 @@
         if (typeof fetchMyListsWithCounts === 'function') {
             fetchMyListsWithCounts().then(function(lists) {
                 var el = document.getElementById('pboxListsCount');
-                if (el) el.textContent = lists.length > 0 ? lists.length + ' list' + (lists.length !== 1 ? 's' : '') : '';
+                if (!el) return;
+                if (!lists.length) { el.textContent = 'Make your first list'; return; }
+                var names = lists.slice(0, 2).map(function(l) { return l.name; }).join(', ');
+                el.textContent = names + (lists.length > 2 ? ' +' + (lists.length - 2) : '');
             }).catch(function() {});
         }
     }
